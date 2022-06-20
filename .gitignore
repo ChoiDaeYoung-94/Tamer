@@ -10,7 +10,7 @@
 /[Ll]ogs/
 /[Mm]emoryCaptures/
 /[Uu]ser[Ss]ettings/
-/05. Standard Assets/
+/05. StandardAssets/
 /06. ETC/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
