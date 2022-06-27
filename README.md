@@ -1,8 +1,6 @@
 # Tamer
 Unity 3D Project
-
 <br/>
-
 ## Settings
 - Unity2020.3.31f1
 - JDK (engine include ver.)
