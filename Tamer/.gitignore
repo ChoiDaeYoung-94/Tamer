@@ -12,6 +12,8 @@
 /[Uu]ser[Ss]ettings/
 /Assets/05. StandardAssets/
 /Assets/06. ETC/
+/Assets/PlayFabSDK/
+/Assets/PlayFabEditorExtensions/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
