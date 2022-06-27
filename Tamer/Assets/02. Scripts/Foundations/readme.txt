@@ -6,6 +6,8 @@
 
 *	Initialize.cs	: 초기화 순서 지정
 
+*	Login.cs		: PlayFab, Google Login
+
 *	ScreenSize.cs	: 타이틀 사이즈 기기대응
 
 *	ScreenSizeRatio.cs	: 타이틀 사이즈 기기대응(사이즈 딱 맞춤)
