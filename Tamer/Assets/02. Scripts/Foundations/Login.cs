@@ -172,10 +172,8 @@ public class Login : MonoBehaviour
 
         Debug.Log(Social.localUser.id);
         Debug.Log(Social.localUser.userName);
-        //var request = new RegisterPlayFabUserRequest { Email = id, Password = Social.localUser.userName, Username = Social.localUser.userName };
-        //PlayFabClientAPI.RegisterPlayFabUser(request, OnRegisterWithPlayFabSuccess, OnRegisterWithPlayFabFailure);
 
-        var request = new RegisterPlayFabUserRequest { Email = id, Password = "AeDeong", Username = Social.localUser.userName };
+        var request = new RegisterPlayFabUserRequest { Email = id, Password = "AeDeong", RequireBothUsernameAndEmail = false };
         PlayFabClientAPI.RegisterPlayFabUser(request, OnRegisterWithPlayFabSuccess, OnRegisterWithPlayFabFailure);
     }
 
@@ -211,14 +209,14 @@ public class Login : MonoBehaviour
 
     void SignUpWithTestAccount()
     {
-        var request = new RegisterPlayFabUserRequest { Email = "Test@AeDeong.com", Password = "TestAccount", Username = "TestAccount" };
+        var request = new RegisterPlayFabUserRequest { Email = "Test@AeDeong.com", Password = "TestAccount", RequireBothUsernameAndEmail = false };
         PlayFabClientAPI.RegisterPlayFabUser(request,
             (success) =>
             {
                 //Managers.DataM.SetPlayerID(success.PlayFabId);
                 GoGame();
             },
-            (failed) => Debug.Log("Failed SignUpWithTestAccount"));
+            (failed) => Debug.Log("Failed SignUpWithTestAccount  " + failed.ErrorMessage));
     }
     #endregion
 
