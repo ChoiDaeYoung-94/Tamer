@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DY
+namespace AD
 {
     public class Define : MonoBehaviour
     {

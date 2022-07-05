@@ -1,4 +1,4 @@
-namespace DY
+namespace AD
 {
     public class Debug
     {

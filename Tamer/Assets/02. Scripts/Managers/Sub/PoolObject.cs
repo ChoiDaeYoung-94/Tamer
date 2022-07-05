@@ -1,6 +1,9 @@
 using UnityEngine;
 
-public class PoolObject : MonoBehaviour
+namespace AD
 {
-    
+    public class PoolObject : MonoBehaviour
+    {
+
+    }
 }

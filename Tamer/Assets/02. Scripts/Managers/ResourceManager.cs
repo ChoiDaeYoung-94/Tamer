@@ -1,24 +1,27 @@
 using UnityEngine;
 
-public class ResourceManager
+namespace AD
 {
-    public T Load<T>(string where, string path) where T : Object
+    public class ResourceManager
     {
-        if (Resources.Load<T>(path) == null)
-            DY.Debug.Load(where, path);
-
-        return Resources.Load<T>(path);
-    }
-
-    public GameObject Instantiate_(string where, string path, Transform parent = null)
-    {
-        GameObject go = Load<GameObject>(where, "Prefabs/" + path);
-        if (go == null)
+        public T Load<T>(string where, string path) where T : Object
         {
-            DY.Debug.Instantiate(where, path);
-            return null;
+            if (Resources.Load<T>(path) == null)
+                AD.Debug.Load(where, path);
+
+            return Resources.Load<T>(path);
         }
 
-        return Object.Instantiate(go, parent);
+        public GameObject Instantiate_(string where, string path, Transform parent = null)
+        {
+            GameObject go = Load<GameObject>(where, "Prefabs/" + path);
+            if (go == null)
+            {
+                AD.Debug.Instantiate(where, path);
+                return null;
+            }
+
+            return Object.Instantiate(go, parent);
+        }
     }
 }

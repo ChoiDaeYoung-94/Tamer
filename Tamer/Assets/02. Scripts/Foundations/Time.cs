@@ -90,7 +90,7 @@ namespace DY
         {
             double _time = 0;
             if (!double.TryParse(time.ToString(), out _time))
-                Debug.Parse("Time", time.ToString());
+                AD.Debug.Parse("Time", time.ToString());
 
             StringBuilder temp = new StringBuilder();
 

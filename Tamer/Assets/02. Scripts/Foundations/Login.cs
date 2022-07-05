@@ -245,8 +245,7 @@ public class Login : MonoBehaviour
             StopCoroutine(_co_Login);
             _co_Login = null;
 
-            SceneManager.LoadScene("Game");
-            Resources.UnloadUnusedAssets();
+            AD.Managers.SceneM.NextScene("Game");
         }
     }
     #endregion
