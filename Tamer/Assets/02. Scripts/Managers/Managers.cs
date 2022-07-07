@@ -27,7 +27,7 @@ namespace AD
         ResourceManager _resourceM = new ResourceManager();
         public static ResourceManager ResourceM { get { return instance._resourceM; } }
 
-        SceneManager _sceneM = new SceneManager();
+        [SerializeField] SceneManager _sceneM = null;
         public static SceneManager SceneM { get { return instance._sceneM; } }
 
         UpdateManager _updateM = new UpdateManager();
