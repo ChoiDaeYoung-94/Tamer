@@ -10,6 +10,12 @@ namespace AD
         [Header("--- 참고용 ---")]
         [Tooltip("Dictionary<string, object> - Test")]
         public Dictionary<string, object> _dic_test = null;
+        [Tooltip("현재 Player가 PlayFab에 접속한 ID")]
+        string _str_ID = string.Empty;
+        public string StrID { get { return _str_ID; } set { _str_ID = value; } }
+        [Tooltip("현재 Player가 설정한 NickName")]
+        string _str_NickName = string.Empty;
+        public string StrNickName { get { return _str_NickName; } set { _str_NickName = value; } }
 
         /// <summary>
         /// Managers - Awake() -> Init()
