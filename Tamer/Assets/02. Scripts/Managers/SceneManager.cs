@@ -29,7 +29,7 @@ namespace AD
 
             while (!ao.isDone)
             {
-                MonoBehaviour.print(ao.progress);
+                MonoBehaviour.print($"{ao.progress} - progress");
                 progress = ao.progress;
                 yield return null;
             }
@@ -42,7 +42,6 @@ namespace AD
                 _str_sceneName = string.Empty;
 
                 Resources.UnloadUnusedAssets();
-                System.GC.Collect();
             }
         }
     }
