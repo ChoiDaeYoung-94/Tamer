@@ -8,7 +8,6 @@ using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 #if UNITY_ANDROID
 using GooglePlayGames;
@@ -268,16 +267,16 @@ public class Login : MonoBehaviour
     {
         _TMP_load.text = "Check Data...";
 
-        //Managers.DataM.InitPlayerData();
+        AD.Managers.DataM.InitPlayerData();
 
         _co_Login = StartCoroutine(InitPlayerData());
     }
 
     IEnumerator InitPlayerData()
     {
-        //while (!Managers.DataM._isFinished)
-        //    yield return null;
-        yield return null;
+        while (!AD.Managers.DataM.IsFinished)
+            yield return null;
+
         StopInitPlayerDataCoroutine();
     }
 

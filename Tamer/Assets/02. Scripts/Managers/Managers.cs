@@ -30,6 +30,9 @@ namespace AD
         [SerializeField] SceneManager _sceneM = null;
         public static SceneManager SceneM { get { return instance._sceneM; } }
 
+        ServerManager _serverM = new ServerManager();
+        public static ServerManager ServerM { get { return instance._serverM; } }
+
         UpdateManager _updateM = new UpdateManager();
         public static UpdateManager UpdateM { get { return instance._updateM; } }
 
