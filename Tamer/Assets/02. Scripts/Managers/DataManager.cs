@@ -44,7 +44,7 @@ namespace AD
         /// </summary>
         internal void InitPlayerData()
         {
-            Managers.ServerM.GetAllData();
+            AD.Managers.ServerM.GetAllData();
         }
 
         /// <summary>
@@ -54,8 +54,8 @@ namespace AD
         /// </summary>
         internal void CheckBasicData()
         {
-            if (_dic_PlayFabPlayerData == null || _dic_PlayFabPlayerData.Count < _dic_player.Count)
-                Managers.ServerM.SetBasicData();
+            if (this._dic_PlayFabPlayerData == null || this._dic_PlayFabPlayerData.Count < this._dic_player.Count)
+                AD.Managers.ServerM.SetBasicData();
             else
                 SetPlayerData();
         }
@@ -66,7 +66,7 @@ namespace AD
         void SetPlayerData()
         {
             if (string.IsNullOrEmpty(this.StrNickName))
-                this.StrNickName = _dic_PlayFabPlayerData["NickName"].Value;
+                this.StrNickName = this._dic_PlayFabPlayerData["NickName"].Value;
             else
                 Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", this.StrNickName } });
 

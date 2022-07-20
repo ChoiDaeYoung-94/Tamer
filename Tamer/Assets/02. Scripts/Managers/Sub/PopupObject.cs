@@ -18,30 +18,30 @@ namespace AD
 
         private void OnEnable()
         {
-            switch (_checkType)
+            switch (this._checkType)
             {
                 case CheckType.Nomal:
-                    Managers.PopupM.EnablePop(gameObject);
+                    AD.Managers.PopupM.EnablePop(gameObject);
                     break;
                 case CheckType.Exception:
-                    Managers.PopupM.SetException();
+                    AD.Managers.PopupM.SetException();
                     break;
                 case CheckType.Flow:
-                    Managers.PopupM.SetException();
+                    AD.Managers.PopupM.SetException();
                     break;
             }
         }
 
         public void DisablePop()
         {
-            if (_checkType == CheckType.Nomal)
-                Managers.PopupM.DisablePop(isEscape: false);
+            if (this._checkType == CheckType.Nomal)
+                AD.Managers.PopupM.DisablePop(isEscape: false);
         }
 
         private void OnDisable()
         {
-            if (_checkType == CheckType.Exception)
-                Managers.PopupM.ReleaseException();
+            if (this._checkType == CheckType.Exception)
+                AD.Managers.PopupM.ReleaseException();
         }
     }
 }

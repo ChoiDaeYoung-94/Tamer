@@ -10,6 +10,6 @@ public class SetFPS : MonoBehaviour
     private void Awake()
     {
         QualitySettings.vSyncCount = 0;
-        Application.targetFrameRate = _fps;
+        Application.targetFrameRate = this._fps;
     }
 }

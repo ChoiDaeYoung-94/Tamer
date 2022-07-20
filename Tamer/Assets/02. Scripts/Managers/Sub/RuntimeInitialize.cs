@@ -22,7 +22,7 @@ public class RuntimeInitialize : MonoBehaviour
     private void Awake()
     {
 #if DEVELOPMENT_BUILD
-        _go_console.SetActive(true);
+        this._go_console.SetActive(true);
 #endif
     }
 }

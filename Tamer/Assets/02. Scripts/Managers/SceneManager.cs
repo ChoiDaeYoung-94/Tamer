@@ -14,7 +14,7 @@ namespace AD
 
         public void NextScene(string sceneName)
         {
-            _str_sceneName = sceneName;
+            this._str_sceneName = sceneName;
             UnityEngine.SceneManagement.SceneManager.LoadScene("NextScene");
         }
 
@@ -25,12 +25,12 @@ namespace AD
 
         IEnumerator Co_GoScene()
         {
-            AsyncOperation ao = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(_str_sceneName);
+            AsyncOperation ao = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(this._str_sceneName);
 
             while (!ao.isDone)
             {
-                MonoBehaviour.print($"{ao.progress} - progress");
-                progress = ao.progress;
+                AD.Debug.Log("SceneManager", $"{ao.progress} - progress");
+                this.progress = ao.progress;
                 yield return null;
             }
 
@@ -39,7 +39,7 @@ namespace AD
                 StopCoroutine(_co_GoScene);
                 _co_GoScene = null;
 
-                _str_sceneName = string.Empty;
+                this._str_sceneName = string.Empty;
 
                 Resources.UnloadUnusedAssets();
             }

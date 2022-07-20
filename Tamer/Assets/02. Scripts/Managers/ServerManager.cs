@@ -15,10 +15,10 @@ namespace AD
         /// </summary>
         internal void SetBasicData()
         {
-            var request = new UpdateUserDataRequest() { Data = Managers.DataM._dic_player, Permission = UserDataPermission.Public };
+            var request = new UpdateUserDataRequest() { Data = AD.Managers.DataM._dic_player, Permission = UserDataPermission.Public };
             PlayFabClientAPI.UpdateUserData(request,
                 (result) => GetAllData(),
-                (error) => UnityEngine.Debug.LogWarning("Failed to SetBasicData with PlayFab"));
+                (error) => AD.Debug.LogWarning("ServerManager", "Failed to SetBasicData with PlayFab"));
         }
 
         /// <summary>
@@ -26,14 +26,14 @@ namespace AD
         /// </summary>
         internal void GetAllData()
         {
-            var request = new GetUserDataRequest() { PlayFabId = Managers.DataM.StrID };
+            var request = new GetUserDataRequest() { PlayFabId = AD.Managers.DataM.StrID };
             PlayFabClientAPI.GetUserData(request,
                 (result) =>
                 {
-                    Managers.DataM._dic_PlayFabPlayerData = result.Data;
-                    Managers.DataM.CheckBasicData();
+                    AD.Managers.DataM._dic_PlayFabPlayerData = result.Data;
+                    AD.Managers.DataM.CheckBasicData();
                 },
-                (error) => UnityEngine.Debug.LogWarning($"Failed to GetData with PlayFab: {error}"));
+                (error) => AD.Debug.LogWarning("ServerManager", $"Failed to GetData with PlayFab: {error}"));
         }
 
         /// <summary>
@@ -44,10 +44,10 @@ namespace AD
         {
             var request = new UpdateUserDataRequest() { Data = dic, Permission = UserDataPermission.Public };
             PlayFabClientAPI.UpdateUserData(request,
-                (result) => UnityEngine.Debug.Log("Success to SetData with PlayFab"),
+                (result) => AD.Debug.Log("ServerManager", "Success to SetData with PlayFab"),
                 (error) =>
                 {
-                    UnityEngine.Debug.LogWarning("Failed to SetData with PlayFab");
+                    AD.Debug.LogWarning("ServerManager", "Failed to SetData with PlayFab");
                     SetData(dic);
                 });
         }
