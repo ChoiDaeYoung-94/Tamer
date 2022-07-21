@@ -22,6 +22,12 @@ namespace AD
         [Tooltip("현재 Player가 설정한 NickName")]
         string _str_NickName = string.Empty;
         public string StrNickName { get { return _str_NickName; } set { _str_NickName = value; } }
+        public int Ply_gold { get; set; }
+        public int Ply_level { get; set; }
+        public long Ply_experience { get; set; }
+        public float Ply_power { get; set; }
+        public float Ply_attackSpeed { get; set; }
+        public int Ply_maxCount { get; set; }
         [Tooltip("접속 후 PlayerData 를 다 받고 세팅이 끝났는지 여부 확인")]
         bool _isFinished = false;
         public bool IsFinished { get { return _isFinished; } }
@@ -32,7 +38,12 @@ namespace AD
         /// </summary>
         public void Init()
         {
+            this._dic_player = new Dictionary<string, string>();
 
+            string getPlayer = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/Player").ToString();
+            Dictionary<string, object> dic_temp = Utils.JsonToObject(getPlayer) as Dictionary<string, object>;
+            foreach (KeyValuePair<string, object> content in dic_temp)
+                this._dic_player.Add(content.Key, content.Value.ToString());
         }
 
         #region Functions
@@ -69,6 +80,13 @@ namespace AD
                 this.StrNickName = this._dic_PlayFabPlayerData["NickName"].Value;
             else
                 Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", this.StrNickName } });
+
+            this.Ply_gold = int.Parse(_dic_PlayFabPlayerData["Gold"].Value);
+            this.Ply_level = int.Parse(_dic_PlayFabPlayerData["Level"].Value);
+            this.Ply_experience = long.Parse(_dic_PlayFabPlayerData["Experience"].Value);
+            this.Ply_power = float.Parse(_dic_PlayFabPlayerData["Power"].Value);
+            this.Ply_attackSpeed = float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value);
+            this.Ply_maxCount = int.Parse(_dic_PlayFabPlayerData["MaxCount"].Value);
 
             _isFinished = true;
         }
