@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DY
+namespace AD
 {
     [ExecuteInEditMode]
     public class ScreenSizeRatio : MonoBehaviour

@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using UnityEngine;
 
-namespace DY
+namespace AD
 {
     public class Time : MonoBehaviour
     {
