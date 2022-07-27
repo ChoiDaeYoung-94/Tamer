@@ -287,7 +287,7 @@ public class Login : MonoBehaviour
             StopCoroutine(_co_Login);
             _co_Login = null;
 
-            AD.Managers.SceneM.NextScene("Main");
+            AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
         }
     }
     #endregion
