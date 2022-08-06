@@ -16,3 +16,4 @@ Unity 3D Project
   (https://github.com/playgameservices/play-games-plugin-for-unity/releases)
 - TextMesh Pro
 - MiniJSON
+- Cinemachine
