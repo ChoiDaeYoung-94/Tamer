@@ -5,19 +5,29 @@ using UnityEngine.EventSystems;
 
 public class JoyStick : MonoBehaviour
 {
-    [Header("JoyStick 관련")]
-    [SerializeField] RectTransform _RTR_handle;
-    [SerializeField] RectTransform _RTR_handleArea;
-    [SerializeField] Vector3 _vec_joystick;
-    private float _joystickDistance;
-    private float _handleAreaRadius;
-    private Vector3 _vec_firstTouchPosition;
+    enum Mode
+    {
+        Null,
+        FixedArea,
+        FreeArea
+    }
+
+    [Header("JoyStick 관련 세팅")]
+    [SerializeField] Mode _mode = Mode.Null;
+    [SerializeField] RectTransform _RTR_handle = null;
+    [SerializeField] RectTransform _RTR_handleArea = null;
+    [SerializeField] GameObject _go_touchableArea = null;
+    [SerializeField] Vector3 _vec_joystick = Vector3.zero;
+    private float _joystickDistance = 0;
+    private float _handleAreaRadius = 0;
+    private Vector3 _vec_firstTouchPosition = Vector3.zero;
+    private Vector3 _vec_disPosition = Vector3.zero;
     private bool _isPointUp = false;
 
-    [Header("조종 대상 관련")]
-    [SerializeField] GameObject _go_player;
-    [SerializeField] Transform _tr_cameraArm;
-    [SerializeField] float _speed;
+    [Header("조종 대상 관련 세팅")]
+    [SerializeField] GameObject _go_player = null;
+    [SerializeField] Transform _tr_cameraArm = null;
+    [SerializeField] float _speed = 0f;
 
     private void FixedUpdate()
     {
@@ -33,6 +43,12 @@ public class JoyStick : MonoBehaviour
     {
         _handleAreaRadius = _RTR_handleArea.sizeDelta.y * 0.5f;
         _vec_firstTouchPosition = _RTR_handle.position;
+        _vec_disPosition = _RTR_handle.position - _RTR_handleArea.position;
+
+        if (_mode == Mode.FixedArea)
+            _go_touchableArea.SetActive(false);
+        else if (_mode == Mode.FreeArea)
+            gameObject.SetActive(false);
     }
 
     private void Control()
@@ -73,6 +89,14 @@ public class JoyStick : MonoBehaviour
         PointerEventData pointerEventData = baseEventData as PointerEventData;
 
         Vector3 inputPos = pointerEventData.position;
+
+        if (_mode == Mode.FreeArea)
+        {
+            _vec_firstTouchPosition = inputPos;
+            _RTR_handleArea.position = inputPos - _vec_disPosition;
+            gameObject.SetActive(true);
+        }
+
         _RTR_handle.position = inputPos;
         _vec_joystick = (inputPos - _vec_firstTouchPosition).normalized;
 
@@ -114,7 +138,9 @@ public class JoyStick : MonoBehaviour
         _isPointUp = true;
 
         _RTR_handle.anchoredPosition = Vector2.zero;
-        //_vec_joystick = Vector3.zero;
+
+        if (_mode == Mode.FreeArea)
+            gameObject.SetActive(false);
 
         // Player Ani 설정 (Idle)
     }
