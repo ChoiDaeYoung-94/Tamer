@@ -9,7 +9,7 @@ public class Player : BaseController
     int _level = 0;
 
     /// <summary>
-    /// Initialize_Game.cs 에서 호출
+    /// Initialize_Main.cs 에서 호출
     /// </summary>
     public void StartInit()
     {

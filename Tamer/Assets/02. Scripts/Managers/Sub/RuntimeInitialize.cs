@@ -14,6 +14,9 @@ public class RuntimeInitialize : MonoBehaviour
     static void FirstLoad()
     {
 #if UNITY_EDITOR
+        if (SceneManager.GetActiveScene().name.CompareTo("Test") == 0)
+            return;
+
         if (SceneManager.GetActiveScene().name.CompareTo("Login") != 0)
             SceneManager.LoadScene("Login");
 #endif
