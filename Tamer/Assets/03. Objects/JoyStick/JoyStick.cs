@@ -117,10 +117,10 @@ public class JoyStick : MonoBehaviour
         _vec_joystick = (DragPosition - _vec_firstTouchPosition).normalized;
 
         _joystickDistance = Vector3.Distance(DragPosition, _vec_firstTouchPosition);
-        if (_joystickDistance < _handleAreaRadius)
-            _RTR_handle.transform.position = _vec_firstTouchPosition + _vec_joystick * _joystickDistance;
-        else
-            _RTR_handle.transform.position = _vec_firstTouchPosition + _vec_joystick * _handleAreaRadius;
+        if (_joystickDistance > _handleAreaRadius)
+            _joystickDistance = _handleAreaRadius;
+
+        _RTR_handle.position = Vector3.Lerp(_RTR_handle.position, _vec_firstTouchPosition + _vec_joystick * _joystickDistance, 0.7f);
 
         // Player Ani 설정
         if (_joystickDistance > 5f)
