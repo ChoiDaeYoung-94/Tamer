@@ -37,7 +37,7 @@ public class JoyStick : MonoBehaviour
     #region Functions
 
     /// <summary>
-    /// Initialize_Main.cs 에서 호출
+    /// InitializeMain.cs 에서 호출
     /// </summary>
     private void StartInit()
     {
@@ -46,9 +46,12 @@ public class JoyStick : MonoBehaviour
         _vec_disPosition = _RTR_handle.position - _RTR_handleArea.position;
 
         if (_mode == Mode.FixedArea)
+        {
             _go_touchableArea.SetActive(false);
+            _RTR_handleArea.gameObject.SetActive(true);
+        }
         else if (_mode == Mode.FreeArea)
-            gameObject.SetActive(false);
+            _RTR_handleArea.gameObject.SetActive(false);
     }
 
     private void Control()
@@ -94,7 +97,7 @@ public class JoyStick : MonoBehaviour
         {
             _vec_firstTouchPosition = inputPos;
             _RTR_handleArea.position = inputPos - _vec_disPosition;
-            gameObject.SetActive(true);
+            _RTR_handleArea.gameObject.SetActive(true);
         }
 
         _RTR_handle.position = inputPos;
@@ -140,7 +143,7 @@ public class JoyStick : MonoBehaviour
         _RTR_handle.anchoredPosition = Vector2.zero;
 
         if (_mode == Mode.FreeArea)
-            gameObject.SetActive(false);
+            _RTR_handleArea.gameObject.SetActive(false);
 
         // Player Ani 설정 (Idle)
     }
