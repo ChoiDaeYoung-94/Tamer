@@ -4,13 +4,14 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class BaseController : MonoBehaviour
+public abstract class BaseController : MonoBehaviour
 {
     public enum CreatureState
     {
         Idle,
         Run,
         Attack,
+        GetHit,
         Death
     }
 
@@ -42,14 +43,18 @@ public class BaseController : MonoBehaviour
     }
 
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
-    [SerializeField] protected int _hp;
-    [SerializeField] protected float _power;
-    [SerializeField] protected float _attackSpeed;
     [SerializeField] Animator _crtAni = null;
+
+    [Header("--- 공용 데이터 초기화 시 세팅 ---")]
+    [SerializeField] protected int _hp = 0;
+    [SerializeField] protected float _power = 0f;
+    [SerializeField] protected float _attackSpeed = 0f;
+    [SerializeField] protected float _moveSpeed = 0f;
+    
 
     private void Awake()
     {
-
+        Init();
     }
 
     private void Start()
@@ -68,6 +73,12 @@ public class BaseController : MonoBehaviour
     }
 
     #region Functions
+    protected virtual void Init()
+    {
+
+    }
+
+    public abstract void Clear();
 
     #region Ani
     protected virtual void UpdateAni()

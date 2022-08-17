@@ -4,20 +4,52 @@ using UnityEngine;
 
 public class Player : BaseController
 {
-    [Header("--- 참고용 ---")]
-    [SerializeField, Tooltip("플레이어 레벨")]
-    int _level = 0;
+    static Player instance;
+    public static Player Instance { get { return instance; } }
+
+    [Header("플레어어 고유 Data")]
+    [SerializeField] private int _gold = 0;
+    [SerializeField] private int _level = 0;
+    [SerializeField] private long _experience = 0;
+    [SerializeField] private int _maxCount = 0;
+
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            GameObject go = this.gameObject;
+            if (go == null)
+                go = AD.Managers.ResourceM.Instantiate_("Player", "Player/Player");
+
+            DontDestroyOnLoad(go);
+            instance = go.GetComponent<Player>();
+        }
+        else
+            Destroy(gameObject);
+    }
 
     /// <summary>
     /// Initialize_Main.cs 에서 호출
     /// </summary>
     public void StartInit()
     {
-
+        Init();
     }
 
     #region Functions
+    protected override void Init()
+    {
+        base.Init();
 
+        this._gold = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Gold"].Value);
+        this._level = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Level"].Value);
+        this._experience = long.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Experience"].Value);
+        this._maxCount = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MaxCount"].Value);
+        this._hp = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["HP"].Value);
+        this._power = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Power"].Value);
+        this._attackSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["AttackSpeed"].Value);
+        this._moveSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MoveSpeed"].Value);
+    }
     #endregion
 
     private void OnTriggerEnter2D(Collider2D col)
@@ -31,5 +63,10 @@ public class Player : BaseController
         {
 
         }
+    }
+
+    public override void Clear()
+    {
+
     }
 }
