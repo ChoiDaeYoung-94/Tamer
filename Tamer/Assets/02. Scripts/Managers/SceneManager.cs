@@ -10,7 +10,7 @@ namespace AD
         Coroutine _co_GoScene = null;
 
         float progress = 0f;
-        public float Progress { get { return progress; } } 
+        public float Progress { get { return progress; } }
 
         public void NextScene(AD.Define.Scenes scene)
         {

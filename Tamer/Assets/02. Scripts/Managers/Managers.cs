@@ -36,6 +36,9 @@ namespace AD
         UpdateManager _updateM = new UpdateManager();
         public static UpdateManager UpdateM { get { return instance._updateM; } }
 
+        GameManager _gameM = new GameManager();
+        public static GameManager GameM { get { return instance._gameM; } }
+
         private void Awake()
         {
             Init();
