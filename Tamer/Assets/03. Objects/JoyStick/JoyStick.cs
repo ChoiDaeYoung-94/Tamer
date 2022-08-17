@@ -67,6 +67,7 @@ public class JoyStick : MonoBehaviour
         Vector3 moveDIr = Vector3.zero;
 
 #if UNITY_EDITOR
+        // GameView에서 Test시 Mode.FixedArea로하고 사용
         if (_vec_joystick.magnitude == 0)
         {
             float moveHorizontal = Input.GetAxis("Horizontal");
@@ -79,8 +80,14 @@ public class JoyStick : MonoBehaviour
         if (_vec_joystick.magnitude != 0f && _joystickDistance > 5f)
             moveDIr = cameraVecVertical * _vec_joystick.y + cameraVecHorizontal * _vec_joystick.x;
 
-        _go_player.transform.forward = moveDIr;
-        _go_player.transform.position += moveDIr * _speed * Time.deltaTime;
+        if (moveDIr != Vector3.zero)
+        {
+            _go_player.transform.forward = moveDIr;
+            _go_player.transform.position += moveDIr * _speed * Time.deltaTime;
+
+            _tr_cameraArm.position =
+                new Vector3(_go_player.transform.position.x, _tr_cameraArm.position.y, _go_player.transform.position.z);
+        }
     }
     #endregion
 
