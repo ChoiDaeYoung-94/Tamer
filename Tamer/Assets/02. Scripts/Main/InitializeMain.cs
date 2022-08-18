@@ -13,6 +13,7 @@ public class InitializeMain : MonoBehaviour
     /// </summary>
     enum Scripts
     {
+        FirstLogin,
         JoyStick
     }
 
