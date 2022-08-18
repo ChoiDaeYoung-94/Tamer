@@ -916,6 +916,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2535078325095822626}
   - component: {fileID: 2640465298603294840}
+  - component: {fileID: 1621539542}
+  - component: {fileID: 1621539541}
   m_Layer: 0
   m_Name: MaleCharacter
   m_TagString: Untagged
@@ -953,12 +955,42 @@ Animator:
   m_Controller: {fileID: 9100000, guid: bb13abefe62ba1e418ea1648f60e5fc6, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
+--- !u!54 &1621539542
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2910936018180943768}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 0
+--- !u!136 &1621539541
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2910936018180943768}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.4
+  m_Height: 1.5
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.75, z: 0}
 --- !u!1 &3231160871494721559
 GameObject:
   m_ObjectHideFlags: 0
@@ -1750,6 +1782,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6470862542355361368}
+  - component: {fileID: 187336586}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1773,6 +1806,28 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &187336586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6470862542355361371}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: addc26d835617674c95ce70dbbdf3179, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _crtState: 0
+  _crtAni: {fileID: 2640465298603294840}
+  _hp: 0
+  _power: 0
+  _attackSpeed: 0
+  _moveSpeed: 0
+  _gold: 0
+  _level: 0
+  _experience: 0
+  _maxCount: 0
 --- !u!1 &6619506411306021325
 GameObject:
   m_ObjectHideFlags: 0

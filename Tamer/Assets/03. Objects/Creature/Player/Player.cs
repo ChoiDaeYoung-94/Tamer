@@ -29,9 +29,9 @@ public class Player : BaseController
     }
 
     /// <summary>
-    /// Initialize_Main.cs 에서 호출
+    /// InitializeMain.cs 에서 호출
     /// </summary>
-    public void StartInit()
+    private void StartInit()
     {
         Init();
     }
