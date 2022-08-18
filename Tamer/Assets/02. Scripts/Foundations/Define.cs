@@ -11,6 +11,7 @@ namespace AD
         {
             NextScene,
             Login,
+            SetCharacter,
             Main,
             Game
         }
