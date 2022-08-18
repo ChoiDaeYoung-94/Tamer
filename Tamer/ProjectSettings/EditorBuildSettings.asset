@@ -15,6 +15,9 @@ EditorBuildSettings:
     path: Assets/01. Scenes/Game.unity
     guid: 77c3517597d740442b77b3a4c870deee
   - enabled: 1
+    path: Assets/01. Scenes/SetCharacter.unity
+    guid: f23c91e33039ff943a208ceb4660340e
+  - enabled: 1
     path: Assets/01. Scenes/NextScene.unity
     guid: 4ac7add413d180d43b28b213579bcbf5
   m_configObjects: {}
