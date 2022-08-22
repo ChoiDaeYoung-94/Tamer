@@ -18,12 +18,14 @@ public class FirstLogin : MonoBehaviour
 
     #region Functions
     /// <summary>
-    /// Sex Data유무 확인
+    /// 첫 로그인시 해야 할 작업을 위한 데이터 체크
     /// </summary>
     void CheckData()
     {
-        if (AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.ToString().Equals("null"))
-            AD.Managers.SceneM.NextScene(AD.Define.Scenes.SetCharacter);
+        if (AD.Managers.DataM._dic_PlayFabPlayerData["Tutorial"].Value.ToString().Equals("null"))
+        {
+            AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
+        }
     }
     #endregion
 
@@ -33,7 +35,7 @@ public class FirstLogin : MonoBehaviour
     {
         public override void OnInspectorGUI()
         {
-            EditorGUILayout.HelpBox("첫 로그인 시 캐릭터 성별 선택 위함", MessageType.Info);
+            EditorGUILayout.HelpBox("첫 로그인시 해야 할 작업을 위한 데이터 체크\n1. Tutorial 여부", MessageType.Info);
 
             base.OnInspectorGUI();
         }

@@ -287,7 +287,10 @@ public class Login : MonoBehaviour
             StopCoroutine(_co_Login);
             _co_Login = null;
 
-            AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
+            if (AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.ToString().Equals("null"))
+                AD.Managers.SceneM.NextScene(AD.Define.Scenes.SetCharacter);
+            else
+                AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
         }
     }
     #endregion
