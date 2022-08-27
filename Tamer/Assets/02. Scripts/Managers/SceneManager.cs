@@ -18,6 +18,9 @@ namespace AD
             UnityEngine.SceneManagement.SceneManager.LoadScene(AD.Define.Scenes.NextScene.ToString());
         }
 
+        /// <summary>
+        /// NextScene씬에 도달 후 호출
+        /// </summary>
         public void GoScene()
         {
             _co_GoScene = StartCoroutine(Co_GoScene());
