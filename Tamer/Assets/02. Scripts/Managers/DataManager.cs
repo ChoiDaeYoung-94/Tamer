@@ -54,27 +54,14 @@ namespace AD
         }
 
         /// <summary>
-        /// 서버에서 받아온 데이터 체킹 후
-        /// * 데이터가 존재하지 않을 경우 초기화 진행
-        /// * 기본 Player데이터 보다 적을 경우 [ 어딘가에서 꼬인 느낌이라 ]
+        /// 서버에서 받아온 Player Data 가공 후 데이터 세팅 종료
         /// </summary>
-        internal void CheckBasicData()
-        {
-            if (this._dic_PlayFabPlayerData == null || this._dic_PlayFabPlayerData.Count < this._dic_player.Count)
-                AD.Managers.ServerM.SetBasicData();
-            else
-                SetPlayerData();
-        }
-
-        /// <summary>
-        /// Player Data 미리 가공
-        /// </summary>
-        void SetPlayerData()
+        internal void SetPlayerData()
         {
             if (string.IsNullOrEmpty(this.StrNickName))
                 this.StrNickName = this._dic_PlayFabPlayerData["NickName"].Value;
             else
-                Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", this.StrNickName } });
+                AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", this.StrNickName } });
 
             _isFinished = true;
         }
