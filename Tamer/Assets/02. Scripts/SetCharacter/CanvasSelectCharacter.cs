@@ -18,10 +18,15 @@ public class CanvasSelectCharacter : MonoBehaviour
     Vector3 _vec_female = Vector3.zero;
     Coroutine _co_move = null;
 
+    Coroutine _co_play = null;
+
     #region Functions
     public void ButtonPlay()
     {
-        StartCoroutine(Play());
+        if (_co_play != null)
+            return;
+
+        _co_play = StartCoroutine(Play());
     }
 
     public void ButtonDirection(string direction)
@@ -82,6 +87,10 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     IEnumerator Play()
     {
+        string sex = _tr_male.position.x == 0 ? "Man" : "Woman";
+        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", sex } });
+        AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value = sex;
+
         _maleAni.CrossFade("Select", 0.1f);
         _femaleAni.CrossFade("Select", 0.1f);
 
@@ -92,7 +101,13 @@ public class CanvasSelectCharacter : MonoBehaviour
             yield return null;
         }
 
-        AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
+        if (_co_play != null)
+        {
+            StopCoroutine(_co_play);
+            _co_play = null;
+
+            AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
+        }
     }
     #endregion
 
