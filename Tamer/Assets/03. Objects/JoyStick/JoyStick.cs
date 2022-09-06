@@ -41,6 +41,9 @@ public class JoyStick : MonoBehaviour
     /// </summary>
     private void StartInit()
     {
+        _go_player = Player.Instance._go_player;
+        _tr_cameraArm = Player.Instance._tr_cameraArm;
+
         _handleAreaRadius = _RTR_handleArea.sizeDelta.y * 0.5f;
         _vec_firstTouchPosition = _RTR_handle.position;
         _vec_disPosition = _RTR_handle.position - _RTR_handleArea.position;

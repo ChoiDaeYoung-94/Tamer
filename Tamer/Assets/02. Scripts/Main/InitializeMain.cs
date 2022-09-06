@@ -13,8 +13,9 @@ public class InitializeMain : MonoBehaviour
     /// </summary>
     enum Scripts
     {
-        FirstLogin,
-        JoyStick
+        LoginCheck,
+        JoyStick,
+        CameraManage
     }
 
     [Tooltip("초기화 해야 할 스크립트를 지닌 게임오브젝트")]
