@@ -13,6 +13,10 @@ public class Player : BaseController
     [SerializeField] private long _experience = 0;
     [SerializeField] private int _maxCount = 0;
 
+    [Header("플레이어 Settings")]
+    [SerializeField] internal GameObject _go_player = null;
+    [SerializeField] internal Transform _tr_cameraArm = null;
+
     private void Awake()
     {
         if (instance == null)

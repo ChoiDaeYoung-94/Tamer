@@ -1784,7 +1784,7 @@ GameObject:
   - component: {fileID: 6470862542355361368}
   - component: {fileID: 187336586}
   m_Layer: 0
-  m_Name: Player
+  m_Name: Player_Man
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1828,6 +1828,8 @@ MonoBehaviour:
   _level: 0
   _experience: 0
   _maxCount: 0
+  _go_player: {fileID: 2910936018180943768}
+  _tr_cameraArm: {fileID: 6470862542266102978}
 --- !u!1 &6619506411306021325
 GameObject:
   m_ObjectHideFlags: 0
