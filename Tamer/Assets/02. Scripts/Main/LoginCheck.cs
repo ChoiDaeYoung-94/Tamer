@@ -34,13 +34,6 @@ public class LoginCheck : MonoBehaviour
     }
     #endregion
 
-    private void Awake()
-    {
-        string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
-        
-        AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
-    }
-
     /// <summary>
     /// InitializeMain.cs 에서 호출
     /// </summary>
@@ -55,7 +48,11 @@ public class LoginCheck : MonoBehaviour
     /// </summary>
     void SetCharacter()
     {
+        string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
 
+        AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
+
+        NextStep();
     }
 
     /// <summary>
@@ -67,6 +64,8 @@ public class LoginCheck : MonoBehaviour
         {
             AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
         }
+
+        NextStep();
     }
     #endregion
 
