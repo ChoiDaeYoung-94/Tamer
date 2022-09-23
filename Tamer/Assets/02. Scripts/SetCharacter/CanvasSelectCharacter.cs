@@ -31,7 +31,7 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     public void ButtonDirection(string direction)
     {
-        if (_co_move != null)
+        if (_co_move != null || _co_play != null)
             return;
 
         SetPosition(direction);
