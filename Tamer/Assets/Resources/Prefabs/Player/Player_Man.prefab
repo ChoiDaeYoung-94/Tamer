@@ -1785,7 +1785,7 @@ GameObject:
   - component: {fileID: 187336586}
   m_Layer: 0
   m_Name: Player_Man
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1830,6 +1830,8 @@ MonoBehaviour:
   _maxCount: 0
   _go_player: {fileID: 2910936018180943768}
   _tr_cameraArm: {fileID: 6470862542266102978}
+  _sword: {fileID: 4438411673452262552}
+  _shield: {fileID: 8836720009171455714}
 --- !u!1 &6619506411306021325
 GameObject:
   m_ObjectHideFlags: 0
