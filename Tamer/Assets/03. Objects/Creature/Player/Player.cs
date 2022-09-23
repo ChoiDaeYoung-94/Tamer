@@ -16,6 +16,8 @@ public class Player : BaseController
     [Header("플레이어 Settings")]
     [SerializeField] internal GameObject _go_player = null;
     [SerializeField] internal Transform _tr_cameraArm = null;
+    [SerializeField] internal GameObject _sword = null;
+    [SerializeField] internal GameObject _shield = null;
 
     private void Awake()
     {
@@ -23,7 +25,11 @@ public class Player : BaseController
         {
             GameObject go = this.gameObject;
             if (go == null)
-                go = AD.Managers.ResourceM.Instantiate_("Player", "Player/Player");
+            {
+                string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
+
+                go = AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
+            }
 
             DontDestroyOnLoad(go);
             instance = go.GetComponent<Player>();

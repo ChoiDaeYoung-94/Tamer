@@ -1452,22 +1452,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Canvas
       objectReference: {fileID: 0}
-    - target: {fileID: 7522657291232672550, guid: 82d84fa341cd692428c4791d4851e3fe, type: 3}
-      propertyPath: _mode
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 7522657291232672550, guid: 82d84fa341cd692428c4791d4851e3fe, type: 3}
-      propertyPath: _speed
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 7522657291232672550, guid: 82d84fa341cd692428c4791d4851e3fe, type: 3}
-      propertyPath: _go_player
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 7522657291232672550, guid: 82d84fa341cd692428c4791d4851e3fe, type: 3}
-      propertyPath: _tr_cameraArm
-      value: 
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 82d84fa341cd692428c4791d4851e3fe, type: 3}
 --- !u!1 &1904950593 stripped

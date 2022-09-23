@@ -27,16 +27,16 @@ public abstract class BaseController : MonoBehaviour
             switch (_crtState)
             {
                 case CreatureState.Idle:
-                    _crtAni.CrossFade("Idle", 0.5f);
+                    _crtAni.CrossFade("Idle", 0f);
                     break;
                 case CreatureState.Run:
-                    _crtAni.CrossFade("Run", 0.5f);
+                    _crtAni.CrossFade("Run", 0f);
                     break;
                 case CreatureState.Attack:
-                    _crtAni.CrossFade("Attack", 0.1f);
+                    State_Attack();
                     break;
                 case CreatureState.Death:
-                    _crtAni.CrossFade("Death", 0.5f);
+                    _crtAni.CrossFade("Death", 0f);
                     break;
             }
         }
@@ -54,7 +54,7 @@ public abstract class BaseController : MonoBehaviour
 
     private void Awake()
     {
-        Init();
+        
     }
 
     private void Start()
@@ -118,6 +118,26 @@ public abstract class BaseController : MonoBehaviour
     protected virtual void Death()
     {
 
+    }
+
+    private void State_Attack()
+    {
+        if (gameObject.tag == "Player")
+        {
+            int index = 0;
+            if (Player.Instance._sword.activeInHierarchy)
+            {
+                index = Random.Range(1, 4);
+                _crtAni.CrossFade($"Attack0{index}_sword", 0f);
+            }
+            else
+            {
+                index = Random.Range(1, 3);
+                _crtAni.CrossFade($"Punch0{index}", 0f);
+            }
+        }
+        else
+            _crtAni.CrossFade("Attack", 0.1f);
     }
     #endregion
 

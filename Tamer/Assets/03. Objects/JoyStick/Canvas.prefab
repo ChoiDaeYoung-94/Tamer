@@ -455,14 +455,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cc92950491fccd4597fc77aa8f1491a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _mode: 0
+  _mode: 2
   _RTR_handle: {fileID: 6199480201585575306}
   _RTR_handleArea: {fileID: 6199480201164636436}
   _go_touchableArea: {fileID: 202103501}
   _vec_joystick: {x: 0, y: 0, z: 0}
+  _joystickDistance: 0
   _go_player: {fileID: 0}
   _tr_cameraArm: {fileID: 0}
-  _speed: 1
+  _speed: 2
 --- !u!114 &4975818252860625219
 MonoBehaviour:
   m_ObjectHideFlags: 0

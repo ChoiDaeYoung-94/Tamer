@@ -117,9 +117,7 @@ public class JoyStick : MonoBehaviour
 
         // Player Ani 설정
         if (_joystickDistance > 5f)
-        {
-
-        }
+            Player.Instance.CrtState = BaseController.CreatureState.Run;
     }
 
     public void Drag(BaseEventData baseEventData)
@@ -137,13 +135,9 @@ public class JoyStick : MonoBehaviour
 
         // Player Ani 설정
         if (_joystickDistance > 5f)
-        {
-
-        }
+            Player.Instance.CrtState = BaseController.CreatureState.Run;
         else
-        {
-
-        }
+            Player.Instance.CrtState = BaseController.CreatureState.Idle;
     }
 
     public void PointUp(BaseEventData baseEventData)
@@ -156,6 +150,7 @@ public class JoyStick : MonoBehaviour
             _RTR_handleArea.gameObject.SetActive(false);
 
         // Player Ani 설정 (Idle)
+        Player.Instance.CrtState = BaseController.CreatureState.Idle;
     }
     #endregion
 }
