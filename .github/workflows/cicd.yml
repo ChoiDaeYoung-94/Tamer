@@ -1,0 +1,67 @@
+name: cicd
+on:
+  # main branch에 push 할 경우 작동 (trigger를 push로 했을 뿐 Github Action doc를 통해 다양한 trigger를 볼 수 있음)
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  # BuildPC의 UNITY_APP_PATH 참고 - https://docs.unity3d.com/kr/2021.3/Manual/EditorCommandLineArguments.html
+  UNITY_APP_PATH: /Applications/Unity/Hub/Editor/2020.3.25f1/Unity.app/Contents/MacOS/Unity
+
+  # 프로젝트명 ex - Tamer
+  REPO_NAME: Tamer
+
+  # Build 추출물이 나올 경로(AOS, IOS) + 프로젝트명 ex - ./프로잭트명/Build
+  BUILD_PATH: ./Tamer/Build  
+
+jobs:
+  Checkout:
+    # 마지막 commit message에 ci skip이 없을 경우 작동하도록 함
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+
+    # 생성한 runner의 labels로 runner를 구분 참고 - https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job
+    runs-on: [ self-hosted, buildpc ]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2.4.0
+        with:
+          token: ${{ secrets.GIT_ACCESS_TOKEN }}
+          path: ${{ env.REPO_NAME }}
+          clean: false
+          lfs: true
+          submodules: recursive
+
+  Android_Build:
+    needs: Checkout
+    # 생성한 runner의 labels로 runner를 구분 참고 - https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job
+    runs-on: [ self-hosted, buildpc ]
+    env:
+      # build finishversionsetting 파일 경로 입력 ex - ./프로젝트명/BuildInfo/finishversionsetting.txt
+      AND_SETTING_PATH: ./Tamer/BuildInfo/finishversionsetting.txt
+
+    steps:
+      - name: Refresh build files
+        run: |
+          rm -rf $BUILD_PATH
+          rm -f $AND_SETTING_PATH
+          mkdir -p $BUILD_PATH
+        # AppCenter에 aab를 upload 시 apk로 다운로드 할 수 있기 때문에 CI에서 APK 빌드는 제외
+      - name: Unity build
+        # 프로젝트명 주의, GITHUB_WORKSPACE - https://docs.github.com/ko/actions/learn-github-actions/variables#default-environment-variables
+        run: |
+          $UNITY_APP_PATH -logFile $BUILD_PATH/AndroidBuildLog.txt -buildTarget Android -projectPath $GITHUB_WORKSPACE/Tamer -executeMethod BuildScript.BuildAOSAAB
+
+  # 참고 - https://github.com/microsoft/fastlane-plugin-appcenter
+  Deploy_AppCenter:
+    needs: Android_Build
+    runs-on: [ self-hosted, buildpc ]
+    steps:
+      - name: Output path
+        run: |
+          output=$(find $GITHUB_WORKSPACE/$REPO_NAME/Build/AOS -name "*.aab")
+          echo $output
+          echo "aabpath=$output" >> $GITHUB_ENV
+      - name: Upload output to AppCenter
+        working-directory: ${{ env.REPO_NAME }}
+        run: fastlane upload_aab file:"${{ env.aabpath }}" api_token:"${{ secrets.APP_CENTER_TOKEN }}" app_name:"Tamer_AOS" release_notes:"${{ github.event.comment.body }}"
