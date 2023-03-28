@@ -6,7 +6,7 @@ using Cinemachine;
 public class CameraManage : MonoBehaviour
 {
     [Header("사용하는 시네머신 카메라 세팅")]
-    [SerializeField]CinemachineVirtualCamera[] CM_cameras = null;
+    [SerializeField] CinemachineVirtualCamera[] CM_cameras = null;
 
     /// <summary>
     /// InitializeMain.cs 에서 호출
