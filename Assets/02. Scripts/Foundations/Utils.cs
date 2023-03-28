@@ -4,6 +4,9 @@ using MiniJSON;
 
 namespace AD
 {
+    /// <summary>
+    /// 애매한 기능 묶기 위함
+    /// </summary>
     public class Utils : MonoBehaviour
     {
         #region MiniJson
