@@ -8,6 +8,9 @@ using PlayFab.ClientModels;
 
 namespace AD
 {
+    /// <summary>
+    /// PlayFab Server 연동 관리
+    /// </summary>
     public class ServerManager
     {
         [Header("초기 데이터 세팅 시 10개를 초과하는 데이터를 보낼 시 오류 방지")]

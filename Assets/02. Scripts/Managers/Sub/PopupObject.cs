@@ -18,7 +18,7 @@ namespace AD
 
         private void OnEnable()
         {
-            switch (this._checkType)
+            switch (_checkType)
             {
                 case CheckType.Nomal:
                     AD.Managers.PopupM.EnablePop(gameObject);
@@ -34,13 +34,13 @@ namespace AD
 
         public void DisablePop()
         {
-            if (this._checkType == CheckType.Nomal)
+            if (_checkType == CheckType.Nomal)
                 AD.Managers.PopupM.DisablePop(isEscape: false);
         }
 
         private void OnDisable()
         {
-            if (this._checkType == CheckType.Exception)
+            if (_checkType == CheckType.Exception)
                 AD.Managers.PopupM.ReleaseException();
         }
     }

@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace AD
 {
+    /// <summary>
+    /// Pool 관리
+    /// </summary>
     public class PoolManager
     {
         #region Pool
@@ -45,9 +48,7 @@ namespace AD
 
             /// <summary>
             /// GO_poolTarget 생성 후 PoolObject반환
-            /// [ 혹시 PoolObject가 없을 수 있으니 없으면 Add ]
             /// </summary>
-            /// <returns></returns>
             PoolObject Create()
             {
                 GameObject go = Object.Instantiate(GO_poolTarget);
@@ -64,10 +65,6 @@ namespace AD
             /// <param name="poolObj"></param>
             public void PushToPool(PoolObject poolObj)
             {
-                // 혹시 모를...
-                if (poolObj == null)
-                    return;
-
                 poolObj.transform.parent = Root;
                 poolObj.gameObject.SetActive(false);
 
@@ -149,13 +146,9 @@ namespace AD
         /// <param name="go"></param>
         public void PushToPool(GameObject go)
         {
-            if (go == null)
-                return;
-
             PoolObject poolObj = go.GetComponent<PoolObject>();
 
-            // 혹시 모를...
-            if (poolObj == null || !_dic_pool.ContainsKey(go.name))
+            if (!_dic_pool.ContainsKey(go.name))
             {
                 Object.Destroy(go);
                 return;
@@ -183,7 +176,7 @@ namespace AD
 
         /// <summary>
         /// Pool 날릴 때 사용
-        /// 현재 Managers - Clear()에 주석 처리 중 -> 거진 사용 안할 듯
+        /// 현재 Managers - Clear()에 주석 처리 중
         /// </summary>
         public void Clear()
         {

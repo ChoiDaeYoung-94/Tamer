@@ -2,6 +2,9 @@ using UnityEngine;
 
 namespace AD
 {
+    /// <summary>
+    /// Resources 관리
+    /// </summary>
     public class ResourceManager
     {
         public T Load<T>(string where, string path) where T : Object

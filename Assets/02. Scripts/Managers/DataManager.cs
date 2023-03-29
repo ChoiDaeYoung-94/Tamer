@@ -7,6 +7,9 @@ using PlayFab.ClientModels;
 
 namespace AD
 {
+    /// <summary>
+    /// 사용하는 Data 관리
+    /// </summary>
     public class DataManager
     {
         [Header("--- Dictionary 데이터 ---")]
@@ -17,10 +20,10 @@ namespace AD
 
         [Header("--- 참고용 ---")]
         [Tooltip("현재 Player가 PlayFab에 접속한 ID")]
-        string _str_ID = string.Empty;
+        private string _str_ID = string.Empty;
         public string StrID { get { return _str_ID; } set { _str_ID = value; } }
         [Tooltip("현재 Player가 설정한 NickName")]
-        string _str_NickName = string.Empty;
+        private string _str_NickName = string.Empty;
         public string StrNickName { get { return _str_NickName; } set { _str_NickName = value; } }
 
         [Tooltip("접속 후 PlayerData 를 다 받고 세팅이 끝났는지 여부 확인")]
@@ -33,12 +36,12 @@ namespace AD
         /// </summary>
         public void Init()
         {
-            this._dic_player = new Dictionary<string, string>();
+            _dic_player = new Dictionary<string, string>();
 
             string getPlayer = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/Player").ToString();
             Dictionary<string, object> dic_temp = Utils.JsonToObject(getPlayer) as Dictionary<string, object>;
             foreach (KeyValuePair<string, object> content in dic_temp)
-                this._dic_player.Add(content.Key, content.Value.ToString());
+                _dic_player.Add(content.Key, content.Value.ToString());
         }
 
         #region Functions
@@ -58,10 +61,10 @@ namespace AD
         /// </summary>
         internal void SetPlayerData()
         {
-            if (string.IsNullOrEmpty(this.StrNickName))
-                this.StrNickName = this._dic_PlayFabPlayerData["NickName"].Value;
+            if (string.IsNullOrEmpty(StrNickName))
+                StrNickName = _dic_PlayFabPlayerData["NickName"].Value;
             else
-                AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", this.StrNickName } });
+                AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", StrNickName } });
 
             _isFinished = true;
         }
