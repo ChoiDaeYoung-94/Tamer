@@ -6,6 +6,9 @@ using UnityEngine;
 
 namespace AD
 {
+    /// <summary>
+    /// Manager 스크립트 관리
+    /// </summary>
     public class Managers : MonoBehaviour
     {
         /// <summary>
@@ -46,22 +49,10 @@ namespace AD
 
         void Init()
         {
-            if (instance == null)
-            {
-                GameObject go = GameObject.Find("Manager");
-                if (go == null)
-                {
-                    go = new GameObject { name = "Manager" };
-                    go.AddComponent<Managers>();
-                }
+            instance = this;
+            DontDestroyOnLoad(this);
 
-                DontDestroyOnLoad(go);
-                instance = go.GetComponent<Managers>();
-
-                InitM();
-            }
-            else
-                Destroy(gameObject);
+            InitM();
         }
 
         private void OnDestroy()

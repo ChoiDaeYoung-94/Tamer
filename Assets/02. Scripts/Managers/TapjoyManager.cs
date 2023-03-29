@@ -12,6 +12,9 @@ using TapjoyUnity;
 
 namespace AD
 {
+    /// <summary>
+    /// Tapjoy 관리
+    /// </summary>
     public class TapjoyManager : MonoBehaviour
     {
         [Header("--- 세팅 ---")]

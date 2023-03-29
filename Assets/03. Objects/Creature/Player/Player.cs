@@ -23,7 +23,7 @@ public class Player : BaseController
     {
         if (instance == null)
         {
-            GameObject go = this.gameObject;
+            GameObject go = gameObject;
             if (go == null)
             {
                 string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
@@ -51,14 +51,14 @@ public class Player : BaseController
     {
         base.Init();
 
-        this._gold = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Gold"].Value);
-        this._level = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Level"].Value);
-        this._experience = long.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Experience"].Value);
-        this._maxCount = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MaxCount"].Value);
-        this._hp = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["HP"].Value);
-        this._power = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Power"].Value);
-        this._attackSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["AttackSpeed"].Value);
-        this._moveSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MoveSpeed"].Value);
+        _gold = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Gold"].Value);
+        _level = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Level"].Value);
+        _experience = long.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Experience"].Value);
+        _maxCount = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MaxCount"].Value);
+        _hp = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["HP"].Value);
+        _power = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Power"].Value);
+        _attackSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["AttackSpeed"].Value);
+        _moveSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MoveSpeed"].Value);
     }
     #endregion
 

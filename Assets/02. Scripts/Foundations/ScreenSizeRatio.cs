@@ -8,6 +8,9 @@ using UnityEngine;
 
 namespace AD
 {
+    /// <summary>
+    /// 타이틀 사이즈 기기대응(사이즈 딱 맞춤)
+    /// </summary>
     [ExecuteInEditMode]
     public class ScreenSizeRatio : MonoBehaviour
     {

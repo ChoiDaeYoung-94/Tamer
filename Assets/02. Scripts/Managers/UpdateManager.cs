@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace AD
 {
+    /// <summary>
+    /// 애매한 Update() 처리 관리
+    /// </summary>
     public class UpdateManager
     {
         [Tooltip("Managers - Update에 돌릴 메서드 등록 위함")]

@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace AD
 {
+    /// <summary>
+    /// Scene 관리
+    /// </summary>
     public class SceneManager : MonoBehaviour
     {
         AD.Define.Scenes _scene;
@@ -14,7 +17,7 @@ namespace AD
 
         public void NextScene(AD.Define.Scenes scene)
         {
-            this._scene = scene;
+            _scene = scene;
             UnityEngine.SceneManagement.SceneManager.LoadScene(AD.Define.Scenes.NextScene.ToString());
         }
 
@@ -28,12 +31,12 @@ namespace AD
 
         IEnumerator Co_GoScene()
         {
-            AsyncOperation ao = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(this._scene.ToString());
+            AsyncOperation ao = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(_scene.ToString());
 
             while (!ao.isDone)
             {
                 AD.Debug.Log("SceneManager", $"{ao.progress} - progress");
-                this.progress = ao.progress;
+                progress = ao.progress;
                 yield return null;
             }
 

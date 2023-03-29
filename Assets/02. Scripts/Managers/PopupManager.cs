@@ -6,6 +6,9 @@ using UnityEngine.UI;
 
 namespace AD
 {
+    /// <summary>
+    /// Popup 관리
+    /// </summary>
     public class PopupManager
     {
         [Tooltip("popup을 관리할 Stack, Enable - Push, Disable - Pop")]
@@ -49,8 +52,8 @@ namespace AD
         /// <param name="pop"></param>
         public void EnablePop(GameObject pop)
         {
-            this._popupStack.Push(pop);
-            AD.Debug.Log("PopupManager", this._popupStack.Count + "_popupStack.Count -> push함");
+            _popupStack.Push(pop);
+            AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> push함");
         }
 
         /// <summary>
@@ -58,36 +61,34 @@ namespace AD
         /// </summary>
         public void DisablePop(bool isEscape = false)
         {
-            AD.Debug.Log("PopupManager", "DisablePop 들어옴");
-            if (this.isException)
+            if (isException)
             {
-                AD.Debug.Log("PopupManager", this.isException + " - isException");
+                AD.Debug.Log("PopupManager", isException + " - isException");
                 return;
             }
 
-            AD.Debug.Log("PopupManager", this._popupStack.Count + " - _popupStack.Count Disable 전");
             // 스택에 팝업이 있을 경우
-            if (this._popupStack.Count > 0)
+            if (_popupStack.Count > 0)
             {
                 AD.Debug.Log("PopupManager", isEscape + " - isEscape");
-                AD.Debug.Log("PopupManager", this.isGameScene + " - isGameScene");
+                AD.Debug.Log("PopupManager", isGameScene + " - isGameScene");
 
                 // 로비 씬
-                if (!this.isGameScene)
+                if (!isGameScene)
                 {
                     // 뒤로가기 버튼 클릭
                     if (isEscape)
                     {
                         GameObject popup = null;
 
-                        popup = this._popupStack.Peek();
+                        popup = _popupStack.Peek();
                         popup.GetComponent<Button>().onClick.Invoke();
                     }
                     else // 직접 닫기
                     {
                         GameObject popup = null;
 
-                        popup = this._popupStack.Pop();
+                        popup = _popupStack.Pop();
                         popup.SetActive(false);
                     }
                 }
@@ -97,21 +98,21 @@ namespace AD
                     {
                         GameObject popup = null;
 
-                        popup = this._popupStack.Peek();
+                        popup = _popupStack.Peek();
                         popup.GetComponent<Button>().onClick.Invoke();
                     }
                     else
                     {
                         GameObject popup = null;
 
-                        popup = this._popupStack.Pop();
+                        popup = _popupStack.Pop();
                         popup.SetActive(false);
                     }
                 }
             }
             else // 팝업 없을 경우 -> 게임 종료 or 로비로 돌아가는 팝업
             {
-                if (!this.isGameScene)
+                if (!isGameScene)
                 {
                     GameObject quitPop = null; // 나가기 팝업 받아야 함
                     if (!quitPop.activeSelf)
@@ -124,8 +125,6 @@ namespace AD
                         goLobby.SetActive(true);
                 }
             }
-
-            AD.Debug.Log("PopupManager", this._popupStack.Count + " - _popupStack.Count Disable 후");
         }
         #endregion
 
@@ -135,10 +134,10 @@ namespace AD
         /// </summary>
         public void DisableAllPop()
         {
-            foreach (GameObject popup in this._popupStack)
+            foreach (GameObject popup in _popupStack)
                 popup.SetActive(false);
 
-            this._popupStack.Clear();
+            _popupStack.Clear();
         }
 
         /// <summary>
@@ -146,9 +145,9 @@ namespace AD
         /// </summary>
         public void InitLobby()
         {
-            this._popupStack.Clear();
-            this.isGameScene = false;
-            this.isException = true;
+            _popupStack.Clear();
+            isGameScene = false;
+            isException = true;
         }
 
         /// <summary>
@@ -156,19 +155,19 @@ namespace AD
         /// </summary>
         public void InitGame()
         {
-            this._popupStack.Clear();
-            this.isGameScene = true;
-            this.isException = true;
+            _popupStack.Clear();
+            isGameScene = true;
+            isException = true;
         }
 
         public void SetException()
         {
-            this.isException = true;
+            isException = true;
         }
 
         public void ReleaseException()
         {
-            this.isException = false;
+            isException = false;
         }
         #endregion
     }

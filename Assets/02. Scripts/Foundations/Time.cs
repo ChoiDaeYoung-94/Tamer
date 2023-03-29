@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace AD
 {
+    /// <summary>
+    /// 시간 관련 체크, 반환
+    /// </summary>
     public class Time : MonoBehaviour
     {
         /// <summary>

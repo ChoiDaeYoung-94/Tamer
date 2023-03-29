@@ -5,6 +5,9 @@ using UnityEditor;
 using System;
 using UnityEngine;
 
+/// <summary>
+/// 초기화 순서 지정
+/// </summary>
 public class Initialize : MonoBehaviour
 {
     /// <summary>
