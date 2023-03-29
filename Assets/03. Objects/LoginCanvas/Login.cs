@@ -44,20 +44,20 @@ public class Login : MonoBehaviour
     private void Awake()
     {
 #if UNITY_ANDROID
-        //this._go_GameCenter.SetActive(false);
+        //_go_GameCenter.SetActive(false);
 
         PlayGamesPlatform.DebugLogEnabled = true;
         PlayGamesPlatform.Activate();
 #endif
 
 #if UNITY_IOS
-        //this._go_GooglePlay.SetActive(false);
+        //_go_GooglePlay.SetActive(false);
 #endif
     }
 
     private void Start()
     {
-        this._TMP_load.text = "LogIn...";
+        _TMP_load.text = "LogIn...";
         CheckConnection();
     }
 
@@ -81,8 +81,8 @@ public class Login : MonoBehaviour
     /// </summary>
     void ActivateRetry()
     {
-        this._go_Loading.SetActive(false);
-        this._go_Retry.SetActive(true);
+        _go_Loading.SetActive(false);
+        _go_Retry.SetActive(true);
     }
 
     /// <summary>
@@ -90,8 +90,8 @@ public class Login : MonoBehaviour
     /// </summary>
     void StartLogin()
     {
-        this._go_Retry.SetActive(false);
-        this._go_Loading.SetActive(true);
+        _go_Retry.SetActive(false);
+        _go_Loading.SetActive(true);
 
 #if UNITY_EDITOR
         LoginWithTestAccount();
@@ -116,7 +116,7 @@ public class Login : MonoBehaviour
                 else
                 {
                     Debug.LogWarning($"Failed LoginWithGoogle -> {error}");
-                    this._TMP_load.text = $"Failed LoginWithGoogle... :'( \n{error}";
+                    _TMP_load.text = $"Failed LoginWithGoogle... :'( \n{error}";
                 }
             });
         }
@@ -133,7 +133,7 @@ public class Login : MonoBehaviour
     void OnLoginWithPlayFabSuccess(LoginResult result)
     {
         Debug.Log("Success LoginWithPlayFab");
-        this._TMP_load.text = "Success!!";
+        _TMP_load.text = "Success!!";
 
         AD.Managers.DataM.StrID = result.PlayFabId;
 
@@ -153,7 +153,7 @@ public class Login : MonoBehaviour
         result =>
         {
             if (string.IsNullOrEmpty(result.PlayerProfile.DisplayName))
-                this._go_NickName.SetActive(true);
+                _go_NickName.SetActive(true);
             else
                 GoNext();
         },
@@ -185,18 +185,18 @@ public class Login : MonoBehaviour
     void OnRegisterWithPlayFabSuccess(RegisterPlayFabUserResult result)
     {
         Debug.Log("Success SignUpWithPlayFab");
-        this._TMP_load.text = "Success!!";
+        _TMP_load.text = "Success!!";
 
         AD.Managers.DataM.StrID = result.PlayFabId;
 
         // nickname 설정
-        this._go_NickName.SetActive(true);
+        _go_NickName.SetActive(true);
     }
 
     void OnRegisterWithPlayFabFailure(PlayFabError error)
     {
         Debug.LogWarning($"Failed SignUpWithPlayFab -> {error}");
-        this._TMP_load.text = $"Failed SignUpWithPlayFab... :'( \n{error}";
+        _TMP_load.text = $"Failed SignUpWithPlayFab... :'( \n{error}";
     }
 
     /// <summary>
@@ -204,10 +204,10 @@ public class Login : MonoBehaviour
     /// </summary>
     public void CheckNickName()
     {
-        string str_temp = this._TMP_NickName.text;
+        string str_temp = _TMP_NickName.text;
 
         if (string.IsNullOrEmpty(str_temp) || str_temp.Contains(" ") || str_temp.Length < 3 || str_temp.Length > 20)
-            this._go_WarningRule.SetActive(true);
+            _go_WarningRule.SetActive(true);
         else
             UpdateDisplayName(str_temp);
     }
@@ -220,9 +220,9 @@ public class Login : MonoBehaviour
         },
         result =>
         {
-            this._go_NickName.SetActive(false);
-            this._go_WarningRule.SetActive(false);
-            this._go_WarningNAE.SetActive(false);
+            _go_NickName.SetActive(false);
+            _go_WarningRule.SetActive(false);
+            _go_WarningNAE.SetActive(false);
 
             AD.Managers.DataM.StrNickName = name;
 
@@ -231,7 +231,7 @@ public class Login : MonoBehaviour
         error =>
         {
             //Debug.LogError(error.GenerateErrorReport());
-            this._go_WarningNAE.SetActive(true);
+            _go_WarningNAE.SetActive(true);
         });
     }
     #endregion
@@ -265,7 +265,7 @@ public class Login : MonoBehaviour
     #region ETC
     void GoNext()
     {
-        this._TMP_load.text = "Check Data...";
+        _TMP_load.text = "Check Data...";
 
         AD.Managers.DataM.InitPlayerData();
 

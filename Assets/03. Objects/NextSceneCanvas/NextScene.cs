@@ -15,6 +15,6 @@ public class NextScene : MonoBehaviour
 
     private void Update()
     {
-        this._TMP_progress.text = $"{AD.Managers.SceneM.Progress * 100}%";
+        _TMP_progress.text = $"{AD.Managers.SceneM.Progress * 100}%";
     }
 }
