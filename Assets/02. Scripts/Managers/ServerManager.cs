@@ -42,7 +42,7 @@ namespace AD
         /// 2. 지우는 작업 (지워야 할 Data의 경우 value를 null로 보내면 됨)
         /// 3. 추가 작업
         /// 4. 위 작업이 모두 끝나면 데이터 세팅 종료
-        /// </summary
+        /// </summary>
         internal void FixPlayerData()
         {
             if (AD.Managers.DataM._dic_PlayFabPlayerData == null || AD.Managers.DataM._dic_PlayFabPlayerData.Count == 0)
