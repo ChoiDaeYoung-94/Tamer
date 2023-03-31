@@ -239,7 +239,7 @@ public class Login : MonoBehaviour
     #region LoginWithTestAccount
     void LoginWithTestAccount()
     {
-        var request = new LoginWithEmailAddressRequest { Email = "Test@AeDeong.com", Password = "TestAccount" };
+        var request = new LoginWithEmailAddressRequest { Email = "testAccount@AeDeong.com", Password = "TestAccount" };
         PlayFabClientAPI.LoginWithEmailAddress(request,
             (success) =>
             {
@@ -251,12 +251,12 @@ public class Login : MonoBehaviour
 
     void SignUpWithTestAccount()
     {
-        var request = new RegisterPlayFabUserRequest { Email = "Test@AeDeong.com", Password = "TestAccount", RequireBothUsernameAndEmail = false };
+        var request = new RegisterPlayFabUserRequest { Email = "testAccount@AeDeong.com", Password = "TestAccount", RequireBothUsernameAndEmail = false };
         PlayFabClientAPI.RegisterPlayFabUser(request,
             (success) =>
             {
                 AD.Managers.DataM.StrID = success.PlayFabId;
-                UpdateDisplayName("TestAccount");
+                UpdateDisplayName("testAccount");
             },
             (failed) => Debug.Log("Failed SignUpWithTestAccount  " + failed.ErrorMessage));
     }
