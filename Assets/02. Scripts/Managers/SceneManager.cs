@@ -12,9 +12,6 @@ namespace AD
         AD.Define.Scenes _scene;
         Coroutine _co_GoScene = null;
 
-        float progress = 0f;
-        public float Progress { get { return progress; } }
-
         public void NextScene(AD.Define.Scenes scene)
         {
             _scene = scene;
@@ -33,10 +30,19 @@ namespace AD
         {
             AsyncOperation ao = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(_scene.ToString());
 
+            ao.allowSceneActivation = false;
+
             while (!ao.isDone)
             {
                 AD.Debug.Log("SceneManager", $"{ao.progress} - progress");
-                progress = ao.progress;
+
+                if (ao.progress >= 0.9f)
+                {
+                    yield return new WaitForSeconds(2f);
+
+                    ao.allowSceneActivation = true;
+                }
+
                 yield return null;
             }
 
