@@ -42,6 +42,12 @@ namespace AD
         GameManager _gameM = new GameManager();
         public static GameManager GameM { get { return instance._gameM; } }
 
+        [Header("--- 미리 가지고 있어야 할 data ---")]
+        [Tooltip("Pool에 사용할 GameObject")]
+        public GameObject[] _go_poolGOs = null;
+        [Tooltip("Pool에 사용할 UI")]
+        public GameObject[] _go_poolUIs = null;
+
         private void Awake()
         {
             Init();
