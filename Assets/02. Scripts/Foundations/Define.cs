@@ -8,6 +8,11 @@ namespace AD
     public class Define : MonoBehaviour
     {
         /// <summary>
+        /// Pool에서 가져온 객체 기본으로 담아두는 go.name
+        /// </summary>
+        public static string _activePool = "ActivePool";
+
+        /// <summary>
         /// 사용중인 Scene
         /// </summary>
         public enum Scenes

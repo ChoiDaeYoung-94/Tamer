@@ -23,6 +23,11 @@ namespace AD
             public Transform Root { get; set; }
 
             /// <summary>
+            /// GO인지 UI인지 구별
+            /// </summary>
+            public bool isGO = false;
+
+            /// <summary>
             /// 생성된 PoolObject Stack으로 관리, 메서드로 Push, Pop 관리
             /// </summary>
             Stack<PoolObject> _Stack_pool = new Stack<PoolObject>();
@@ -34,12 +39,15 @@ namespace AD
             /// <param name="go"></param>
             /// <param name="go_name"></param>
             /// <param name="count"></param>
-            public void Init(GameObject go, string go_name, int count)
+            public void Init(GameObject go, int count)
             {
                 GO_poolTarget = go;
 
-                Root = new GameObject().transform;
-                Root.name = $"{go_name}";
+                GameObject go_root = new GameObject { name = go.name }.gameObject;
+                if (!isGO)
+                    go_root.AddComponent<Canvas>();
+
+                Root = go_root.transform;
 
                 // count만큼 pool로
                 for (int i = -1; ++i < count;)
@@ -65,7 +73,7 @@ namespace AD
             /// <param name="poolObj"></param>
             public void PushToPool(PoolObject poolObj)
             {
-                poolObj.transform.parent = Root;
+                poolObj.transform.SetParent(Root);
                 poolObj.gameObject.SetActive(false);
 
                 _Stack_pool.Push(poolObj);
@@ -77,7 +85,7 @@ namespace AD
             /// </summary>
             /// <param name="parent"></param>
             /// <returns></returns>
-            public void PopFromPool(Transform parent)
+            public GameObject PopFromPool(Transform parent)
             {
                 PoolObject poolObj;
 
@@ -89,18 +97,11 @@ namespace AD
                 poolObj.gameObject.SetActive(true);
 
                 if (parent == null)
-                {
-                    Transform tr = null;
+                    parent = GameObject.Find(AD.Define._activePool).transform;
 
-                    if (GameObject.Find("ActivePool") == null)
-                        tr = new GameObject { name = "ActivePool" }.transform;
-                    else
-                        tr = GameObject.Find("ActivePool").transform;
+                poolObj.transform.SetParent(parent);
 
-                    poolObj.transform.parent = tr;
-                }
-                else
-                    poolObj.transform.parent = parent;
+                return poolObj.gameObject;
             }
         }
         #endregion
@@ -108,8 +109,10 @@ namespace AD
         [Tooltip("Pool 관리 할 Dictionary - _root아래의 생성할 poolGO.name, Pool로 관리")]
         public Dictionary<string, Pool> _dic_pool = new Dictionary<string, Pool>();
 
-        [Tooltip("Pool의 root Transform")]
-        public Transform _root;
+        [Tooltip("GO Pool의 root Transform")]
+        public Transform _root_GO;
+        [Tooltip("UI Pool의 root Transform")]
+        public Transform _root_UI;
 
         /// <summary>
         /// Managers - Awake() -> Init()
@@ -117,27 +120,36 @@ namespace AD
         /// </summary>
         public void Init()
         {
-            // root 생성
-            if (_root == null)
-            {
-                _root = new GameObject { name = "Pool" }.transform;
-                Object.DontDestroyOnLoad(_root);
-            }
+            // GO root 생성
+            _root_GO = new GameObject { name = "Pool_GO" }.transform;
+            Object.DontDestroyOnLoad(_root_GO);
+
+            // UI root 생성
+            _root_UI = new GameObject { name = "Pool_UI" }.transform;
+            Object.DontDestroyOnLoad(_root_UI);
+
+            for (int i = -1; ++i < Managers.Instance._go_poolGOs.Length;)
+                CreatePool(Managers.Instance._go_poolGOs[i], isGO: true, count: 10);
+
+            for (int i = -1; ++i < Managers.Instance._go_poolUIs.Length;)
+                CreatePool(Managers.Instance._go_poolUIs[i], isGO: false, count: 50);
         }
 
         /// <summary>
-        /// Pool 생성 (기본 5개 씩)
+        /// Pool 생성 (기본 10개 씩)
         /// </summary>
         /// <param name="go"></param>
-        /// <param name="go_name"></param>
         /// <param name="count"></param>
-        public void CreatePool(GameObject go, string go_name, int count = 5)
+        public void CreatePool(GameObject go, bool isGO = true, int count = 10)
         {
             Pool pool = new Pool();
-            pool.Init(go, go_name, count);
-            pool.Root.parent = _root;
+            pool.isGO = isGO;
+            pool.Init(go, count);
 
-            _dic_pool.Add(go_name, pool);
+            Transform tr = isGO ? _root_GO : _root_UI;
+            pool.Root.SetParent(tr);
+
+            _dic_pool.Add(go.name, pool);
         }
 
         /// <summary>
@@ -146,6 +158,9 @@ namespace AD
         /// <param name="go"></param>
         public void PushToPool(GameObject go)
         {
+            if (go == null)
+                return;
+
             PoolObject poolObj = go.GetComponent<PoolObject>();
 
             if (!_dic_pool.ContainsKey(go.name))
@@ -163,15 +178,15 @@ namespace AD
         /// </summary>
         /// <param name="go_name"></param>
         /// <param name="parent"></param>
-        public void PopFromPool(string go_name, Transform parent = null)
+        public GameObject PopFromPool(string go_name, Transform parent = null)
         {
             if (!_dic_pool.ContainsKey(go_name))
             {
                 AD.Debug.Contain("PoolManager", $"{go_name} in _dic_pool");
-                return;
+                return null;
             }
 
-            _dic_pool[go_name].PopFromPool(parent);
+            return _dic_pool[go_name].PopFromPool(parent);
         }
 
         /// <summary>
@@ -180,7 +195,7 @@ namespace AD
         /// </summary>
         public void Clear()
         {
-            foreach (Transform child in _root)
+            foreach (Transform child in _root_GO)
                 GameObject.Destroy(child.gameObject);
 
             _dic_pool.Clear();
