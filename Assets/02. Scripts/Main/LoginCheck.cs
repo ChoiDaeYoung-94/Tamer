@@ -8,66 +8,22 @@ using UnityEngine;
 
 public class LoginCheck : MonoBehaviour
 {
-    #region Check Step
-    enum Step
-    {
-        Ready,
-        SetCharacter,
-        CheckTutorial
-    }
-
-    Step _step = Step.Ready;
-
-    void NextStep()
-    {
-        _step += 1;
-
-        switch (_step)
-        {
-            case Step.SetCharacter:
-                SetCharacter();
-                break;
-            case Step.CheckTutorial:
-                CheckTutorial();
-                break;
-        }
-    }
-    #endregion
+    private State _state;
 
     /// <summary>
     /// InitializeMain.cs 에서 호출
     /// </summary>
     private void StartInit()
     {
-        NextStep();
+        _state = new SetCharacterState(this);
+        _state.Handle();
     }
 
-    #region Functions
-    /// <summary>
-    /// 성별에 따른 캐릭터 생성
-    /// </summary>
-    void SetCharacter()
+    public void SetState(State state)
     {
-        string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
-
-        AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
-
-        NextStep();
+        _state = state;
+        _state.Handle();
     }
-
-    /// <summary>
-    /// Tutorial 여부
-    /// </summary>
-    void CheckTutorial()
-    {
-        if (AD.Managers.DataM._dic_PlayFabPlayerData["Tutorial"].Value.ToString().Equals("null"))
-        {
-            AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
-        }
-
-        NextStep();
-    }
-    #endregion
 
 #if UNITY_EDITOR
     [CustomEditor(typeof(LoginCheck))]
@@ -84,3 +40,53 @@ public class LoginCheck : MonoBehaviour
     }
 #endif
 }
+
+#region LoginCheck Step State
+/// <summary>
+/// 여러 상태를 정의하기 위해 abstract 사용
+/// 아래 State를 상속 받는 class들의 순서대로 상태 진입
+/// </summary>
+public abstract class State
+{
+    protected LoginCheck _loginCheck;
+
+    public State(LoginCheck loginCheck)
+    {
+        _loginCheck = loginCheck;
+    }
+
+    public abstract void Handle();
+}
+
+class SetCharacterState : State
+{
+    public SetCharacterState(LoginCheck loginCheck) : base(loginCheck) { }
+
+    public override void Handle()
+    {
+        AD.Debug.Log("LoginCheck", "SetCharacterState 진입");
+
+        string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
+        AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
+
+        _loginCheck.SetState(new CheckTutorialState(_loginCheck));
+    }
+}
+
+class CheckTutorialState : State
+{
+    public CheckTutorialState(LoginCheck loginCheck) : base(loginCheck) { }
+
+    public override void Handle()
+    {
+        AD.Debug.Log("LoginCheck", "CheckTutorialState 진입");
+
+        if (AD.Managers.DataM._dic_PlayFabPlayerData["Tutorial"].Value.ToString().Equals("null"))
+        {
+            AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
+        }
+
+
+    }
+}
+#endregion
