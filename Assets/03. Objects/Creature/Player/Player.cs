@@ -19,23 +19,14 @@ public class Player : BaseController
     [SerializeField] internal GameObject _sword = null;
     [SerializeField] internal GameObject _shield = null;
 
+    [Header("특정 구역 진입 시 계산 위함")]
+    [SerializeField] private float _stayTime = 0;
+    [SerializeField] private bool isClear = false;
+
     private void Awake()
     {
-        if (instance == null)
-        {
-            GameObject go = gameObject;
-            if (go == null)
-            {
-                string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
-
-                go = AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
-            }
-
-            DontDestroyOnLoad(go);
-            instance = go.GetComponent<Player>();
-        }
-        else
-            Destroy(gameObject);
+        instance = this;
+        DontDestroyOnLoad(transform.parent.gameObject);
     }
 
     /// <summary>
@@ -62,7 +53,7 @@ public class Player : BaseController
     }
     #endregion
 
-    private void OnTriggerEnter2D(Collider2D col)
+    private void OnTriggerEnter(Collider col)
     {
         if (col.CompareTag("Monster"))
         {
@@ -73,6 +64,26 @@ public class Player : BaseController
         {
 
         }
+    }
+
+    private void OnTriggerStay(Collider col)
+    {
+        if (col.CompareTag("BuffingMan"))
+        {
+            if (_stayTime >= 0.5f && !isClear)
+            {
+                isClear = true;
+                AD.Managers.GoogleAdMobM.ShowRewardedAd();
+            }
+            else
+                _stayTime += Time.deltaTime;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        isClear = false;
+        _stayTime = 0f;
     }
 
     public override void Clear()
