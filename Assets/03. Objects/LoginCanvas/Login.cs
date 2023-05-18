@@ -224,7 +224,7 @@ public class Login : MonoBehaviour
             _go_WarningRule.SetActive(false);
             _go_WarningNAE.SetActive(false);
 
-            AD.Managers.DataM.StrNickName = name;
+            AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", name } }, GetAllData: false);
 
             GoNext();
         },
@@ -274,7 +274,7 @@ public class Login : MonoBehaviour
 
     IEnumerator InitPlayerData()
     {
-        while (!AD.Managers.DataM.IsFinished)
+        while (AD.Managers.ServerM.isInprogress)
             yield return null;
 
         StopInitPlayerDataCoroutine();
@@ -287,10 +287,10 @@ public class Login : MonoBehaviour
             StopCoroutine(_co_Login);
             _co_Login = null;
 
-            if (AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.ToString().Equals("null"))
-                AD.Managers.SceneM.NextScene(AD.Define.Scenes.SetCharacter);
-            else
+            if (AD.Managers.DataM._dic_PlayFabPlayerData.ContainsKey("Sex"))
                 AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
+            else
+                AD.Managers.SceneM.NextScene(AD.Define.Scenes.SetCharacter);
         }
     }
     #endregion

@@ -81,7 +81,7 @@ class CheckTutorialState : State
     {
         AD.Debug.Log("LoginCheck", "CheckTutorialState 진입");
 
-        if (AD.Managers.DataM._dic_PlayFabPlayerData["Tutorial"].Value.ToString().Equals("null"))
+        if (AD.Managers.DataM._dic_player["Tutorial"].Equals("null"))
         {
             AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
         }
