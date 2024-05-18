@@ -23,17 +23,14 @@ public class Player : BaseController
     [SerializeField] private float _stayTime = 0;
     [SerializeField] private bool isClear = false;
 
+    /// <summary>
+    /// LoginCheck.cs 에서 호출
+    /// </summary>
     private void Awake()
     {
         instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
-    }
 
-    /// <summary>
-    /// InitializeMain.cs 에서 호출
-    /// </summary>
-    private void StartInit()
-    {
         Init();
     }
 
@@ -42,14 +39,14 @@ public class Player : BaseController
     {
         base.Init();
 
-        _gold = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Gold"].Value);
-        _level = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Level"].Value);
-        _experience = long.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Experience"].Value);
-        _maxCount = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MaxCount"].Value);
-        _hp = int.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["HP"].Value);
-        _power = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["Power"].Value);
-        _attackSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["AttackSpeed"].Value);
-        _moveSpeed = float.Parse(AD.Managers.DataM._dic_PlayFabPlayerData["MoveSpeed"].Value);
+        _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
+        _level = int.Parse(AD.Managers.DataM._dic_player["Level"]);
+        _experience = long.Parse(AD.Managers.DataM._dic_player["Experience"]);
+        _hp = int.Parse(AD.Managers.DataM._dic_player["HP"]);
+        _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
+        _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
+        _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
+        _maxCount = int.Parse(AD.Managers.DataM._dic_player["MaxCount"]);
     }
     #endregion
 
