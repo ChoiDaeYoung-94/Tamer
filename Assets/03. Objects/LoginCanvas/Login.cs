@@ -287,7 +287,7 @@ public class Login : MonoBehaviour
             StopCoroutine(_co_Login);
             _co_Login = null;
 
-            if (AD.Managers.DataM._dic_PlayFabPlayerData.ContainsKey("Sex"))
+            if (AD.Managers.DataM._dic_player.ContainsKey("Sex"))
                 AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
             else
                 AD.Managers.SceneM.NextScene(AD.Define.Scenes.SetCharacter);
