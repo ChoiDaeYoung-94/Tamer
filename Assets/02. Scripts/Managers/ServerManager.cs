@@ -14,7 +14,7 @@ namespace AD
     public class ServerManager
     {
         [Tooltip("Server 통신 확인 용")]
-        public bool isInprogress = false;
+        internal bool isInprogress = false;
 
         #region Functions
         /// <summary>

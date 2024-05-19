@@ -27,11 +27,11 @@ namespace AD
         /// Managers - Awake() -> Init()
         /// 필요한 데이터 미리 받아 둠
         /// </summary>
-        public void Init()
+        internal void Init()
         {
             _dic_player = new Dictionary<string, string>();
 
-            string getPlayer = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/Player-local").ToString();
+            string getPlayer = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString();
             Dictionary<string, object> dic_temp = Utils.JsonToObject(getPlayer) as Dictionary<string, object>;
             foreach (KeyValuePair<string, object> content in dic_temp)
                 _dic_player.Add(content.Key, content.Value.ToString());

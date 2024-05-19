@@ -66,7 +66,7 @@ class SetCharacterState : State
     {
         AD.Debug.Log("LoginCheck", "SetCharacterState 진입");
 
-        string sex = AD.Managers.DataM._dic_player["Sex"].Equals("Man") ? "Man" : "Woman";
+        string sex = AD.Managers.DataM._dic_player["Sex"];
         AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
 
         _loginCheck.SetState(new CheckTutorialState(_loginCheck));
