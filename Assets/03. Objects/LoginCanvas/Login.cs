@@ -39,6 +39,7 @@ public class Login : MonoBehaviour
     GameObject _go_WarningNAE = null;
 
     [Header("--- 참고용 ---")]
+    Coroutine _co_SaveData = null;
     Coroutine _co_Login = null;
 
     private void Awake()
@@ -224,9 +225,11 @@ public class Login : MonoBehaviour
             _go_WarningRule.SetActive(false);
             _go_WarningNAE.SetActive(false);
 
-            AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", name } }, GetAllData: false);
+            AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", name } }, GetAllData: false, Update: false);
 
-            GoNext();
+            _TMP_load.text = "Save NickName...";
+
+            _co_SaveData = StartCoroutine(SaveNickName());
         },
         error =>
         {
@@ -263,11 +266,30 @@ public class Login : MonoBehaviour
     #endregion
 
     #region ETC
+    IEnumerator SaveNickName()
+    {
+        while (AD.Managers.ServerM.isInprogress)
+            yield return null;
+
+        StopSaveNickNameCoroutine();
+    }
+
+    void StopSaveNickNameCoroutine()
+    {
+        if (_co_SaveData != null)
+        {
+            StopCoroutine(_co_SaveData);
+            _co_SaveData = null;
+
+            GoNext();
+        }
+    }
+
     void GoNext()
     {
         _TMP_load.text = "Check Data...";
 
-        AD.Managers.DataM.InitPlayerData();
+        AD.Managers.DataM.UpdatePlayerData();
 
         _co_Login = StartCoroutine(InitPlayerData());
     }
