@@ -23,27 +23,109 @@ namespace AD
         private string _str_ID = string.Empty;
         public string StrID { get { return _str_ID; } set { _str_ID = value; } }
         [Tooltip("PlayerData 초기화 시 server, local 충돌 여부")]
-        private bool _isConflict = false;
+        internal bool _isConflict = false;
+        [Tooltip("Application.persistentDataPath.PlayerData.json 위치")]
+        private string _str_apPlayerDataPath = string.Empty;
+        [Tooltip("Resources/Data/PlayerData.json 내용")]
+        private string _str_rePlayerData = string.Empty;
         Coroutine _co_refreshData = null;
 
         /// <summary>
         /// Managers - Awake() -> Init()
-        /// 필요한 데이터 미리 받아 둠
+        /// 필요한 데이터 미리 받고 세팅 및 데이터 갱신 코루틴 실행
         /// </summary>
         internal void Init()
         {
-            _dic_player = new Dictionary<string, string>();
+            LoadPlayerData();
 
-            string getPlayer = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString();
-            Dictionary<string, object> dic_temp = Utils.JsonToObject(getPlayer) as Dictionary<string, object>;
-            foreach (KeyValuePair<string, object> content in dic_temp)
-                _dic_player.Add(content.Key, content.Value.ToString());
+            StartCoroutine(Co_UpdateFewMinutes());
         }
 
         #region Functions
+        /// <summary>
+        /// 게임 시작 시 PlayerData를 초기화
+        /// 첫 시작일 경우 Resources에 있는 PlayerData.json, 두번째 이상일 경우 persistentDataPath
+        /// </summary>
+        private void LoadPlayerData()
+        {
+            AD.Debug.Log("DataManager", "LoadPlayerData() -> PlayerData 초기화");
+
+            _dic_player = new Dictionary<string, string>();
+
+            _str_apPlayerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");
+            _str_rePlayerData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString();
+
+            string str_temp_getPlayerData = File.Exists(_str_apPlayerDataPath) ? File.ReadAllText(_str_apPlayerDataPath) : _str_rePlayerData;
+
+            InitPlayerData(str_temp_getPlayerData);
+        }
+
+        private void InitPlayerData(string data)
+        {
+            Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(data) as Dictionary<string, object>;
+            foreach (KeyValuePair<string, object> content in dic_temp)
+                _dic_player.Add(content.Key, content.Value.ToString());
+
+            if (File.Exists(_str_apPlayerDataPath))
+                CheckNewPlayerData();
+
+            File.WriteAllText(_str_apPlayerDataPath, data);
+
+            AD.Debug.Log("DataManager", "InitPlayerData() -> PlayerData 초기화 완료");
+        }
+
+        private void CheckNewPlayerData()
+        {
+            AD.Debug.Log("DataManager", "CheckNewPlayerData() -> 새로운 PlayerData 검출");
+
+            Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(_str_rePlayerData) as Dictionary<string, object>;
+
+            if (dic_temp.Count > _dic_player.Count)
+            {
+                foreach (KeyValuePair<string, object> newdata in dic_temp)
+                    if (!_dic_player.ContainsKey(newdata.Key))
+                        _dic_player.Add(newdata.Key, newdata.Value.ToString());
+            }
+        }
 
         #region Local Data
+        IEnumerator Co_UpdateFewMinutes()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(60f);
 
+                UpdateLocalData();
+            }
+        }
+
+        /// <summary>
+        /// Player가 가지고 있는 고유 Data들을 _dic_player에 갱신 후 Json 저장
+        /// </summary>
+        internal void UpdateLocalData()
+        {
+            if (Player.Instance)
+            {
+                _dic_player["Gold"] = Player.Instance.Gold.ToString();
+                _dic_player["Level"] = Player.Instance.Level.ToString();
+                _dic_player["Experience"] = Player.Instance.Experience.ToString();
+                _dic_player["HP"] = Player.Instance.Hp.ToString();
+                _dic_player["Power"] = Player.Instance.Power.ToString();
+                _dic_player["AttackSpeed"] = Player.Instance.AttackSpeed.ToString();
+                _dic_player["MoveSpeed"] = Player.Instance.MoveSpeed.ToString();
+                _dic_player["MaxCount"] = Player.Instance.MaxCount.ToString();
+
+                SaveLocalData();
+            }
+        }
+
+        internal void SaveLocalData()
+        {
+            string str_temp = AD.Utils.ObjectToJson(_dic_player);
+            File.WriteAllText(_str_apPlayerDataPath, str_temp);
+
+            AD.Debug.Log("DataManager", "SaveLocalData() -> PlayerData json저장 완료");
+        }
         #endregion
 
         #region Server Data
@@ -53,9 +135,10 @@ namespace AD
         /// </summary>
         internal void UpdatePlayerData()
         {
+            AD.Debug.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
+
             AD.Managers.ServerM.GetAllData(Update: true);
         }
-        #endregion
 
         /// <summary>
         /// server data, local data를 비교하여 최신화
@@ -111,9 +194,16 @@ namespace AD
                 SanitizeData();
             }
         }
+        #endregion
 
+        /// <summary>
+        /// PlayerData 정리
+        /// local, server 비교하여 데이터 최신화 위함
+        /// </summary>
         private void SanitizeData()
         {
+            AD.Debug.Log("DataManager", "SanitizeData() -> local, server 비교하여 PlayerData 최신화");
+
             int temp_result;
 
             _dic_player["NickName"] = _dic_PlayFabPlayerData["NickName"].Value;
@@ -122,35 +212,35 @@ namespace AD
 
             temp_result = CompareValues(int.Parse(_dic_player["Gold"]), int.Parse(_dic_PlayFabPlayerData["Gold"].Value));
             if (temp_result < 0)
-                _dic_player["Gold"] = _dic_PlayFabPlayerData["Gold"].ToString();
+                _dic_player["Gold"] = _dic_PlayFabPlayerData["Gold"].Value.ToString();
 
             temp_result = CompareValues(int.Parse(_dic_player["Level"]), int.Parse(_dic_PlayFabPlayerData["Level"].Value));
             if (temp_result < 0)
-                _dic_player["Level"] = _dic_PlayFabPlayerData["Level"].ToString();
+                _dic_player["Level"] = _dic_PlayFabPlayerData["Level"].Value.ToString();
 
             temp_result = CompareValues(long.Parse(_dic_player["Experience"]), long.Parse(_dic_PlayFabPlayerData["Experience"].Value));
             if (temp_result < 0)
-                _dic_player["Experience"] = _dic_PlayFabPlayerData["Experience"].ToString();
+                _dic_player["Experience"] = _dic_PlayFabPlayerData["Experience"].Value.ToString();
 
             temp_result = CompareValues(int.Parse(_dic_player["HP"]), int.Parse(_dic_PlayFabPlayerData["HP"].Value));
             if (temp_result < 0)
-                _dic_player["HP"] = _dic_PlayFabPlayerData["HP"].ToString();
+                _dic_player["HP"] = _dic_PlayFabPlayerData["HP"].Value.ToString();
 
             temp_result = CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
             if (temp_result < 0)
-                _dic_player["Power"] = _dic_PlayFabPlayerData["Power"].ToString();
+                _dic_player["Power"] = _dic_PlayFabPlayerData["Power"].Value.ToString();
 
             temp_result = CompareValues(float.Parse(_dic_player["AttackSpeed"]), float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value));
             if (temp_result < 0)
-                _dic_player["AttackSpeed"] = _dic_PlayFabPlayerData["AttackSpeed"].ToString();
+                _dic_player["AttackSpeed"] = _dic_PlayFabPlayerData["AttackSpeed"].Value.ToString();
 
             temp_result = CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
             if (temp_result < 0)
-                _dic_player["MoveSpeed"] = _dic_PlayFabPlayerData["MoveSpeed"].ToString();
+                _dic_player["MoveSpeed"] = _dic_PlayFabPlayerData["MoveSpeed"].Value.ToString();
 
             temp_result = CompareValues(int.Parse(_dic_player["MaxCount"]), int.Parse(_dic_PlayFabPlayerData["MaxCount"].Value));
             if (temp_result < 0)
-                _dic_player["MaxCount"] = _dic_PlayFabPlayerData["MaxCount"].ToString();
+                _dic_player["MaxCount"] = _dic_PlayFabPlayerData["MaxCount"].Value.ToString();
 
             if (_isConflict)
                 AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);
