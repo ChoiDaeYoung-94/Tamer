@@ -22,7 +22,7 @@ namespace AD
         /// Managers - Awake() -> Init()
         /// 필요한 데이터 미리 받아 둠
         /// </summary>
-        public void Init()
+        internal void Init()
         {
             // Initialize the Google Mobile Ads SDK.
             MobileAds.Initialize((InitializationStatus initStatus) =>

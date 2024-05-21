@@ -47,14 +47,17 @@ public abstract class BaseController : MonoBehaviour
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected int _hp = 0;
+    public int Hp { get { return _hp; } }
     [SerializeField] protected float _power = 0f;
+    public float Power { get { return _power; } }
     [SerializeField] protected float _attackSpeed = 0f;
+    public float AttackSpeed { get { return _attackSpeed; } }
     [SerializeField] protected float _moveSpeed = 0f;
-    
+    public float MoveSpeed { get { return _moveSpeed; } }
 
     private void Awake()
     {
-        
+
     }
 
     private void Start()

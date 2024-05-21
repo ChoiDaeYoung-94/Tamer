@@ -18,7 +18,7 @@ namespace AD
         static Managers instance;
         public static Managers Instance { get { return instance; } }
 
-        DataManager _dataM = new DataManager();
+        [SerializeField] DataManager _dataM = null;
         public static DataManager DataM { get { return instance._dataM; } }
 
         PoolManager _poolM = new PoolManager();
@@ -78,7 +78,7 @@ namespace AD
         /// 추후 다른 씬 특히 QA 전용 씬을 만들던지 할 때
         /// flow를 대비하여
         /// </summary>
-        public void InitM()
+        private void InitM()
         {
             DataM.Init();
             PoolM.Init();

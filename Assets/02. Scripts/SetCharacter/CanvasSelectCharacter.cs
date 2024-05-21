@@ -88,18 +88,18 @@ public class CanvasSelectCharacter : MonoBehaviour
     IEnumerator Play()
     {
         string sex = _tr_male.position.x == 0 ? "Man" : "Woman";
-        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", sex } });
-        AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value = sex;
+        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", sex } }, GetAllData: false, Update: false);
 
         _maleAni.CrossFade("Select", 0.1f);
         _femaleAni.CrossFade("Select", 0.1f);
 
-        float timer = 0;
-        while (timer < 1.2f)
-        {
-            timer += Time.deltaTime;
+        while (AD.Managers.ServerM.isInprogress)
             yield return null;
-        }
+
+        AD.Managers.DataM.UpdatePlayerData();
+
+        while (AD.Managers.ServerM.isInprogress)
+            yield return null;
 
         if (_co_play != null)
         {
