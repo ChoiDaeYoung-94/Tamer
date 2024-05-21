@@ -9,9 +9,13 @@ public class Player : BaseController
 
     [Header("플레어어 고유 Data")]
     [SerializeField] private int _gold = 0;
+    public int Gold { get { return instance._gold; } }
     [SerializeField] private int _level = 0;
+    public int Level { get { return instance._level; } }
     [SerializeField] private long _experience = 0;
+    public long Experience { get { return instance._experience; } }
     [SerializeField] private int _maxCount = 0;
+    public int MaxCount { get { return instance._maxCount; } }
 
     [Header("플레이어 Settings")]
     [SerializeField] internal GameObject _go_player = null;
