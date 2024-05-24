@@ -42,7 +42,7 @@ namespace AD
         GameManager _gameM = new GameManager();
         public static GameManager GameM { get { return instance._gameM; } }
 
-        GoogleAdMobManager _googleAdMobM = new GoogleAdMobManager();
+        [SerializeField] GoogleAdMobManager _googleAdMobM = null;
         public static GoogleAdMobManager GoogleAdMobM { get { return instance._googleAdMobM; } }
 
         [Header("--- 미리 가지고 있어야 할 data ---")]

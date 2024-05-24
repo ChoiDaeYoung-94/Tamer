@@ -11,6 +11,7 @@ namespace AD
     public class GoogleAdMobManager : MonoBehaviour
     {
 #if UNITY_ANDROID && Debug
+        // GoogleAdMob에서 제공하는 TestID
         private string _adUnitId = "ca-app-pub-3940256099942544/5224354917";
 #elif UNITY_ANDROID && !Debug
         private string _adUnitId = "ca-app-pub-4045654268115042~2814857605";
@@ -44,10 +45,10 @@ namespace AD
                 _rewardedAd = null;
             }
 
-            UnityEngine.Debug.Log("Loading the rewarded ad.");
+            AD.Debug.Log("GoogleAdMobManager", "Loading the rewarded ad.");
 
             // create our request used to load the ad.
-            var adRequest = new AdRequest.Builder().Build();
+            var adRequest = new AdRequest();
 
             // send the request to load the ad.
             RewardedAd.Load(_adUnitId, adRequest,
@@ -56,11 +57,11 @@ namespace AD
                     // if error is not null, the load request failed.
                     if (error != null || ad == null)
                     {
-                        UnityEngine.Debug.LogError("Rewarded ad failed to load an ad " + "with error : " + error);
+                        AD.Debug.LogError("GoogleAdMobManager", "Rewarded ad failed to load an ad " + "with error : " + error);
                         return;
                     }
 
-                    UnityEngine.Debug.Log("Rewarded ad loaded with response : " + ad.GetResponseInfo());
+                    AD.Debug.Log("GoogleAdMobManager", "Rewarded ad loaded with response : " + ad.GetResponseInfo());
 
                     _rewardedAd = ad;
                 });
@@ -79,7 +80,7 @@ namespace AD
                 _rewardedAd.Show((Reward reward) =>
                 {
                     // TODO: Reward the user.
-                    UnityEngine.Debug.Log(String.Format(rewardMsg, reward.Type, reward.Amount));
+                    AD.Debug.Log("GoogleAdMobManager", String.Format(rewardMsg, reward.Type, reward.Amount));
                 });
             }
         }
@@ -93,7 +94,7 @@ namespace AD
             // Raised when the ad closed full screen content.
             ad.OnAdFullScreenContentClosed += () =>
             {
-                UnityEngine.Debug.Log("Rewarded Ad full screen content closed.");
+                AD.Debug.Log("GoogleAdMobManager", "Rewarded Ad full screen content closed.");
 
                 // Reload the ad so that we can show another as soon as possible.
                 LoadRewardedAd();
@@ -102,7 +103,7 @@ namespace AD
             // Raised when the ad failed to open full screen content.
             ad.OnAdFullScreenContentFailed += (AdError error) =>
             {
-                UnityEngine.Debug.LogError("Rewarded ad failed to open full screen content " +
+                AD.Debug.LogError("GoogleAdMobManager", "Rewarded ad failed to open full screen content " +
                                "with error : " + error);
 
                 // Reload the ad so that we can show another as soon as possible.
