@@ -66,7 +66,7 @@ class SetCharacterState : State
     {
         AD.Debug.Log("LoginCheck", "SetCharacterState 진입");
 
-        string sex = AD.Managers.DataM._dic_PlayFabPlayerData["Sex"].Value.Equals("Man") ? "Man" : "Woman";
+        string sex = AD.Managers.DataM._dic_player["Sex"];
         AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
 
         _loginCheck.SetState(new CheckTutorialState(_loginCheck));
@@ -81,7 +81,7 @@ class CheckTutorialState : State
     {
         AD.Debug.Log("LoginCheck", "CheckTutorialState 진입");
 
-        if (AD.Managers.DataM._dic_PlayFabPlayerData["Tutorial"].Value.ToString().Equals("null"))
+        if (AD.Managers.DataM._dic_player["Tutorial"].Equals("null"))
         {
             AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
         }

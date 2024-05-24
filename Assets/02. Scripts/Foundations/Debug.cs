@@ -26,6 +26,12 @@ namespace AD
         }
 
         [System.Diagnostics.Conditional("Debug")]
+        public static void LogError(string where, string contents)
+        {
+            UnityEngine.Debug.LogWarning($"<color=yellow>LogError</color> - {where} \n<color=cyan>{contents}</color>");
+        }
+
+        [System.Diagnostics.Conditional("Debug")]
         public static void GetData(string where, string contents)
         {
             UnityEngine.MonoBehaviour.print($"<color=red>Check</color> - {where} \nFailed to GetData : {contents}");

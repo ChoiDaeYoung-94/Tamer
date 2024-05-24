@@ -915,9 +915,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2535078325095822626}
+  - component: {fileID: 3822835132874025204}
   - component: {fileID: 2640465298603294840}
-  - component: {fileID: 1621539542}
-  - component: {fileID: 1621539541}
+  - component: {fileID: 1880175399127226642}
+  - component: {fileID: 7002729397940218547}
   m_Layer: 0
   m_Name: MaleCharacter
   m_TagString: Untagged
@@ -942,6 +943,34 @@ Transform:
   m_Father: {fileID: 6470862542355361368}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3822835132874025204
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2910936018180943768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: addc26d835617674c95ce70dbbdf3179, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _crtState: 0
+  _crtAni: {fileID: 2640465298603294840}
+  _hp: 0
+  _power: 0
+  _attackSpeed: 0
+  _moveSpeed: 0
+  _gold: 0
+  _level: 0
+  _experience: 0
+  _maxCount: 0
+  _go_player: {fileID: 2910936018180943768}
+  _tr_cameraArm: {fileID: 6470862542266102978}
+  _sword: {fileID: 4438411673452262552}
+  _shield: {fileID: 8836720009171455714}
+  _stayTime: 0
+  isClear: 0
 --- !u!95 &2640465298603294840
 Animator:
   serializedVersion: 3
@@ -961,7 +990,7 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!54 &1621539542
+--- !u!54 &1880175399127226642
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -977,7 +1006,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!136 &1621539541
+--- !u!136 &7002729397940218547
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1782,7 +1811,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6470862542355361368}
-  - component: {fileID: 187336586}
   m_Layer: 0
   m_Name: Player_Man
   m_TagString: Player
@@ -1806,32 +1834,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &187336586
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6470862542355361371}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: addc26d835617674c95ce70dbbdf3179, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _crtState: 0
-  _crtAni: {fileID: 2640465298603294840}
-  _hp: 0
-  _power: 0
-  _attackSpeed: 0
-  _moveSpeed: 0
-  _gold: 0
-  _level: 0
-  _experience: 0
-  _maxCount: 0
-  _go_player: {fileID: 2910936018180943768}
-  _tr_cameraArm: {fileID: 6470862542266102978}
-  _sword: {fileID: 4438411673452262552}
-  _shield: {fileID: 8836720009171455714}
 --- !u!1 &6619506411306021325
 GameObject:
   m_ObjectHideFlags: 0
@@ -2173,7 +2175,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8480946669942952825}
   m_LocalRotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -0, y: 0.45777598, z: -0.45902124}
+  m_LocalPosition: {x: 0, y: 0.45777598, z: -0.45902124}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 2535078325095822626}

@@ -18,7 +18,7 @@ namespace AD
         static Managers instance;
         public static Managers Instance { get { return instance; } }
 
-        DataManager _dataM = new DataManager();
+        [SerializeField] DataManager _dataM = null;
         public static DataManager DataM { get { return instance._dataM; } }
 
         PoolManager _poolM = new PoolManager();
@@ -41,6 +41,9 @@ namespace AD
 
         GameManager _gameM = new GameManager();
         public static GameManager GameM { get { return instance._gameM; } }
+
+        [SerializeField] GoogleAdMobManager _googleAdMobM = null;
+        public static GoogleAdMobManager GoogleAdMobM { get { return instance._googleAdMobM; } }
 
         [Header("--- 미리 가지고 있어야 할 data ---")]
         [Tooltip("Pool에 사용할 GameObject")]
@@ -75,11 +78,12 @@ namespace AD
         /// 추후 다른 씬 특히 QA 전용 씬을 만들던지 할 때
         /// flow를 대비하여
         /// </summary>
-        public void InitM()
+        private void InitM()
         {
             DataM.Init();
             PoolM.Init();
             PopupM.Init();
+            GoogleAdMobM.Init();
         }
 
         /// <summary>

@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4085436854519492890}
   - component: {fileID: 4085436854519492869}
+  - component: {fileID: 5849004654079259308}
   - component: {fileID: 853700683}
   - component: {fileID: 6203698847706807129}
   m_Layer: 0
@@ -45,7 +46,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59837e5cd4df59b47847240430f20bf3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _dataM: {fileID: 5849004654079259308}
   _sceneM: {fileID: 853700683}
+  _go_poolGOs: []
+  _go_poolUIs: []
+--- !u!114 &5849004654079259308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4085436854519492891}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51897dc58f686f942a3e74b32dd8e8e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &853700683
 MonoBehaviour:
   m_ObjectHideFlags: 0
