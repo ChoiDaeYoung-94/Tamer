@@ -46,6 +46,8 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] Animator _crtAni = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
+    [SerializeField] protected int _orgHp = 0;
+    public int OrgHp { get { return _orgHp; } }
     [SerializeField] protected int _hp = 0;
     public int Hp { get { return _hp; } }
     [SerializeField] protected float _power = 0f;

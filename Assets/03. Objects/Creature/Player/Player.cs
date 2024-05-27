@@ -43,6 +43,7 @@ public class Player : BaseController
     {
         base.Init();
 
+        _orgHp = 100;
         _hp = 100;
         _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
         _captureCapacity = int.Parse(AD.Managers.DataM._dic_player["CaptureCapacity"]);
