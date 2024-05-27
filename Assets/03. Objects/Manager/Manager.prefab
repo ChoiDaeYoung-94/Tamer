@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4085436854519492869}
   - component: {fileID: 5849004654079259308}
   - component: {fileID: 853700683}
+  - component: {fileID: 3159954228247672208}
   - component: {fileID: 6203698847706807129}
   m_Layer: 0
   m_Name: Manager
@@ -48,6 +49,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _dataM: {fileID: 5849004654079259308}
   _sceneM: {fileID: 853700683}
+  _googleAdMobM: {fileID: 3159954228247672208}
   _go_poolGOs: []
   _go_poolUIs: []
 --- !u!114 &5849004654079259308
@@ -72,6 +74,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9653ae4c1721949418409c7c6626bfb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &3159954228247672208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4085436854519492891}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a460bce73e9d714c8186c5bcccbadcc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!114 &6203698847706807129
