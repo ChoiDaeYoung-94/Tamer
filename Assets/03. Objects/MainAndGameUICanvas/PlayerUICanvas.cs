@@ -41,14 +41,12 @@ public class PlayerUICanvas : MonoBehaviour
     {
         instance = this;
         DontDestroyOnLoad(gameObject);
-
-        StartInit();
     }
 
     /// <summary>
-    /// InitializeGame_.cs -> GameManager.cs 에서 호출
+    /// Player.cs, GameManager.cs 에서 호출
     /// </summary>
-    private void StartInit()
+    internal void StartInit()
     {
         _go_Popup_playerInfo.SetActive(false);
         _go_panel_gamesceneUI.SetActive(AD.Managers.GameM.IsGame);
@@ -62,6 +60,8 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     private void Settings()
     {
+        _TMP_playerNickName.text = $"{AD.Managers.DataM._dic_player["NickName"]}";
+
         UpdatePlayerInfo();
         UpdatePopPlayerInfo();
     }
@@ -79,9 +79,9 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     internal void UpdatePlayerInfo()
     {
-        _TMP_captureCapacity.text = $"{AD.Managers.DataM._dic_player["CaptureCapacity"]}";
-        _TMP_gold.text = $"{AD.Managers.DataM._dic_player["Gold"]}";
-        _TMP_HP.text = $"{Player.Instance.Hp / Player.Instance.OrgHp}";
+        _TMP_captureCapacity.text = $"{AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";
+        _TMP_gold.text = $"Gold - {Player.Instance.Gold}";
+        _TMP_HP.text = $"{Player.Instance.Hp} / {Player.Instance.OrgHp}";
 
         _Slider_HP.maxValue = Player.Instance.OrgHp;
         _Slider_HP.value = Player.Instance.Hp;
@@ -95,13 +95,13 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     internal void UpdatePopPlayerInfo()
     {
-        _TMP_POPplayerNickName.text = $"{AD.Managers.DataM._dic_player["NickName"]}";
-        _TMP_POPcaptureCapacity.text = $"{AD.Managers.DataM._dic_player["CaptureCapacity"]}";
-        _TMP_POPgold.text = $"{AD.Managers.DataM._dic_player["Gold"]}";
+        _TMP_POPplayerNickName.text = $"NickName - {AD.Managers.DataM._dic_player["NickName"]}";
+        _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";
+        _TMP_POPgold.text = $"Gold - {Player.Instance.Gold}";
 
-        _TMP_POPpower.text = $"{Player.Instance.Power}";
-        _TMP_POPattackSpeed.text = $"{Player.Instance.AttackSpeed}";
-        _TMP_POPmoveSpeed.text = $"{Player.Instance.MoveSpeed}";
+        _TMP_POPpower.text = $"Power - {Player.Instance.Power}";
+        _TMP_POPattackSpeed.text = $"AttackSpeed - {Player.Instance.AttackSpeed}";
+        _TMP_POPmoveSpeed.text = $"MoveSpeed - {Player.Instance.MoveSpeed}";
     }
     #endregion
 

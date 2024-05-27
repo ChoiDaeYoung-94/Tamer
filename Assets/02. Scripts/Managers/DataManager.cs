@@ -107,7 +107,8 @@ namespace AD
             if (Player.Instance)
             {
                 _dic_player["Gold"] = Player.Instance.Gold.ToString();
-                _dic_player["CaptureCapacity"] = Player.Instance.CaptureCapacity.ToString();
+                _dic_player["CurCaptureCapacity"] = Player.Instance.CurCaptureCapacity.ToString();
+                _dic_player["MaxCaptureCapacity"] = Player.Instance.MaxCaptureCapacity.ToString();
                 _dic_player["Power"] = Player.Instance.Power.ToString();
                 _dic_player["AttackSpeed"] = Player.Instance.AttackSpeed.ToString();
                 _dic_player["MoveSpeed"] = Player.Instance.MoveSpeed.ToString();
@@ -211,9 +212,13 @@ namespace AD
             if (temp_result < 0)
                 _dic_player["Gold"] = _dic_PlayFabPlayerData["Gold"].Value.ToString();
 
-            temp_result = CompareValues(int.Parse(_dic_player["CaptureCapacity"]), int.Parse(_dic_PlayFabPlayerData["CaptureCapacity"].Value));
+            temp_result = CompareValues(int.Parse(_dic_player["CurCaptureCapacity"]), int.Parse(_dic_PlayFabPlayerData["CurCaptureCapacity"].Value));
             if (temp_result < 0)
-                _dic_player["CaptureCapacity"] = _dic_PlayFabPlayerData["CaptureCapacity"].Value.ToString();
+                _dic_player["CurCaptureCapacity"] = _dic_PlayFabPlayerData["CurCaptureCapacity"].Value.ToString();
+
+            temp_result = CompareValues(int.Parse(_dic_player["MaxCaptureCapacity"]), int.Parse(_dic_PlayFabPlayerData["MaxCaptureCapacity"].Value));
+            if (temp_result < 0)
+                _dic_player["MaxCaptureCapacity"] = _dic_PlayFabPlayerData["MaxCaptureCapacity"].Value.ToString();
 
             temp_result = CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
             if (temp_result < 0)

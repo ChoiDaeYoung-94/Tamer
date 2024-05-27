@@ -10,8 +10,10 @@ public class Player : BaseController
     [Header("플레어어 고유 Data")]
     [SerializeField] private int _gold = 0;
     public int Gold { get { return instance._gold; } }
-    [SerializeField] private int _captureCapacity = 0;
-    public int CaptureCapacity { get { return instance._captureCapacity; } }
+    [SerializeField] private int _curCaptureCapacity = 0;
+    public int CurCaptureCapacity { get { return instance._curCaptureCapacity; } }
+    [SerializeField] private int _maxCaptureCapacity = 0;
+    public int MaxCaptureCapacity { get { return instance._maxCaptureCapacity; } }
 
     [Header("플레이어 Settings")]
     [SerializeField] internal GameObject _go_player = null;
@@ -46,10 +48,13 @@ public class Player : BaseController
         _orgHp = 100;
         _hp = 100;
         _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
-        _captureCapacity = int.Parse(AD.Managers.DataM._dic_player["CaptureCapacity"]);
+        _curCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["CurCaptureCapacity"]);
+        _maxCaptureCapacity= int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
         _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
         _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
         _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
+
+        PlayerUICanvas.Instance.StartInit();
     }
     #endregion
 
