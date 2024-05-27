@@ -17,6 +17,8 @@ namespace AD
         {
             AD.Debug.Log("SceneManager", "NextScene으로 전환");
 
+            AD.Managers.PopupM.SetException();
+
             _scene = scene;
             UnityEngine.SceneManagement.SceneManager.LoadScene(AD.Define.Scenes.NextScene.ToString());
         }

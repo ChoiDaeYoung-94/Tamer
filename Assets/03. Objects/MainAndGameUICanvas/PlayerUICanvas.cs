@@ -103,6 +103,16 @@ public class PlayerUICanvas : MonoBehaviour
         _TMP_POPattackSpeed.text = $"AttackSpeed - {Player.Instance.AttackSpeed}";
         _TMP_POPmoveSpeed.text = $"MoveSpeed - {Player.Instance.MoveSpeed}";
     }
+
+    public void OpenPopupPlayerInfo()
+    {
+        _go_Popup_playerInfo.SetActive(true);
+    }
+
+    public void ClosePopupPlayerInfo()
+    {
+        AD.Managers.PopupM.DisablePop();
+    }
     #endregion
 
 #if UNITY_EDITOR

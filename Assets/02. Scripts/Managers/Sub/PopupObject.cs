@@ -35,7 +35,7 @@ namespace AD
         public void DisablePop()
         {
             if (_checkType == CheckType.Nomal)
-                AD.Managers.PopupM.DisablePop(isEscape: false);
+                AD.Managers.PopupM.DisablePop();
         }
 
         private void OnDisable()

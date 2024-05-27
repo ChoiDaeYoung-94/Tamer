@@ -20,6 +20,14 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     Coroutine _co_play = null;
 
+    /// <summary>
+    /// 이 씬에도 뒤로가기로 게임 종료 가능하도록 하기 위함
+    /// </summary>
+    private void Start()
+    {
+        AD.Managers.PopupM.ReleaseException();
+    }
+
     #region Functions
     public void ButtonPlay()
     {

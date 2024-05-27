@@ -10,6 +10,7 @@ public class InitializeMain : MonoBehaviour
     /// <summary>
     /// 초기화 해야하는 스크립트들의 이름을 그대로 선언
     /// -> 먼저 적은 순으로 초기화 진행
+    /// * PopupManager의 경우 첫 씬인 Main에서 Init이 모두 끝난 뒤 isException를 false로
     /// </summary>
     enum Scripts
     {
@@ -34,6 +35,8 @@ public class InitializeMain : MonoBehaviour
                 }
             }
         }
+
+        AD.Managers.PopupM.ReleaseException();
     }
 
 #if UNITY_EDITOR
