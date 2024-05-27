@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class CanvasSelectCharacter : MonoBehaviour
 {
-    [Header("--- Settings ---")]
+    [Header("--- 세팅 ---")]
     [SerializeField] Transform _tr_male = null;
     [SerializeField] Transform _tr_female = null;
     [SerializeField] Animator _maleAni = null;
@@ -19,6 +19,14 @@ public class CanvasSelectCharacter : MonoBehaviour
     Coroutine _co_move = null;
 
     Coroutine _co_play = null;
+
+    /// <summary>
+    /// 이 씬에도 뒤로가기로 게임 종료 가능하도록 하기 위함
+    /// </summary>
+    private void Start()
+    {
+        AD.Managers.PopupM.ReleaseException();
+    }
 
     #region Functions
     public void ButtonPlay()

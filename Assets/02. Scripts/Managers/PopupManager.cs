@@ -8,6 +8,9 @@ namespace AD
 {
     /// <summary>
     /// Popup 관리
+    /// GameM.IsGame을 통해 게임씬, 로비씬 여부에 따라 
+    /// 아무 팝업이 없이 뒤로 가기 버튼을 클릭시에
+    /// 게임을 종료할지, 로비로 가겠냐는 팝업을 띄울지 정함
     /// </summary>
     public class PopupManager
     {
@@ -15,23 +18,36 @@ namespace AD
         Stack<GameObject> _popupStack = new Stack<GameObject>();
 
         /// <summary>
-        /// 게임씬, 로비씬 여부에 따라 
-        /// 아무 팝업이 없이 뒤로 가기 버튼을 클릭시에
-        /// 게임을 종료할지, 로비로 가겠냐는 팝업을 띄울지 정함
-        /// </summary>
-        bool isGameScene = false;
-
-        /// <summary>
         /// 예외처리에 사용
         /// 로비씬 -> 오퍼월
         /// 게임씬에서 아이템을 선택하여서 사용 전인지에 대한 여부 판단
+        /// Flow상 MainScene 진입 시 InitializeMain.cs에서 false
         /// </summary>
         bool isException = true;
 
+        /// <summary>
+        /// Managers - Awake() -> Init()
+        /// </summary>
         internal void Init()
         {
             AD.Managers.UpdateM._update -= Onupdate;
             AD.Managers.UpdateM._update += Onupdate;
+
+            SetPopup();
+        }
+
+        /// <summary>
+        /// 열여있는 팝업 닫고 초기화
+        /// </summary>
+        public void SetPopup()
+        {
+            if (_popupStack.Count > 0)
+            {
+                foreach (GameObject popup in _popupStack)
+                    popup.SetActive(false);
+            }
+
+            _popupStack.Clear();
         }
 
         void Onupdate()
@@ -40,12 +56,12 @@ namespace AD
             {
                 if (Input.GetKeyDown(KeyCode.Escape))
                 {
-                    DisablePop(isEscape: true);
+                    DisablePop();
                 }
             }
         }
 
-        #region Popup 관련
+        #region Functions
         /// <summary>
         /// Popup이 Enable 될 때 Push
         /// </summary>
@@ -53,13 +69,13 @@ namespace AD
         public void EnablePop(GameObject pop)
         {
             _popupStack.Push(pop);
-            AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> push함");
+            AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> push");
         }
 
         /// <summary>
         /// Popup이 Disable 될 때 Pop하고 비활성화
         /// </summary>
-        public void DisablePop(bool isEscape = false)
+        public void DisablePop()
         {
             if (isException)
             {
@@ -70,105 +86,37 @@ namespace AD
             // 스택에 팝업이 있을 경우
             if (_popupStack.Count > 0)
             {
-                AD.Debug.Log("PopupManager", isEscape + " - isEscape");
-                AD.Debug.Log("PopupManager", isGameScene + " - isGameScene");
+                GameObject popup = null;
 
-                // 로비 씬
-                if (!isGameScene)
-                {
-                    // 뒤로가기 버튼 클릭
-                    if (isEscape)
-                    {
-                        GameObject popup = null;
+                popup = _popupStack.Pop();
+                AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> pop");
 
-                        popup = _popupStack.Peek();
-                        popup.GetComponent<Button>().onClick.Invoke();
-                    }
-                    else // 직접 닫기
-                    {
-                        GameObject popup = null;
-
-                        popup = _popupStack.Pop();
-                        popup.SetActive(false);
-                    }
-                }
-                else // 게임 씬
-                {
-                    if (isEscape)
-                    {
-                        GameObject popup = null;
-
-                        popup = _popupStack.Peek();
-                        popup.GetComponent<Button>().onClick.Invoke();
-                    }
-                    else
-                    {
-                        GameObject popup = null;
-
-                        popup = _popupStack.Pop();
-                        popup.SetActive(false);
-                    }
-                }
+                popup.SetActive(false);
             }
             else // 팝업 없을 경우 -> 게임 종료 or 로비로 돌아가는 팝업
             {
-                if (!isGameScene)
+                if (!AD.Managers.GameM.IsGame)
                 {
+                    AD.Debug.Log("PopupManager", "lobby scene -> quit popup");
+
                     GameObject quitPop = null; // 나가기 팝업 받아야 함
                     if (!quitPop.activeSelf)
                         quitPop.SetActive(true);
                 }
                 else
                 {
+                    AD.Debug.Log("PopupManager", "lobby  scene-> go lobby popup");
+
                     GameObject goLobby = null; // 로비 가는 팝업 받아야 함
                     if (!goLobby.activeSelf)
                         goLobby.SetActive(true);
                 }
             }
         }
-        #endregion
 
-        #region Functions
-        /// <summary>
-        /// 모든 팝업 닫기
-        /// </summary>
-        public void DisableAllPop()
-        {
-            foreach (GameObject popup in _popupStack)
-                popup.SetActive(false);
+        internal void SetException() => isException = true;
 
-            _popupStack.Clear();
-        }
-
-        /// <summary>
-        /// 로비 씬 진입 시 초기화
-        /// </summary>
-        public void InitLobby()
-        {
-            _popupStack.Clear();
-            isGameScene = false;
-            isException = true;
-        }
-
-        /// <summary>
-        /// 게임 씬 진입 시 초기화
-        /// </summary>
-        public void InitGame()
-        {
-            _popupStack.Clear();
-            isGameScene = true;
-            isException = true;
-        }
-
-        public void SetException()
-        {
-            isException = true;
-        }
-
-        public void ReleaseException()
-        {
-            isException = false;
-        }
+        internal void ReleaseException() => isException = false;
         #endregion
     }
 }

@@ -107,13 +107,11 @@ namespace AD
             if (Player.Instance)
             {
                 _dic_player["Gold"] = Player.Instance.Gold.ToString();
-                _dic_player["Level"] = Player.Instance.Level.ToString();
-                _dic_player["Experience"] = Player.Instance.Experience.ToString();
-                _dic_player["HP"] = Player.Instance.Hp.ToString();
+                _dic_player["CurCaptureCapacity"] = Player.Instance.CurCaptureCapacity.ToString();
+                _dic_player["MaxCaptureCapacity"] = Player.Instance.MaxCaptureCapacity.ToString();
                 _dic_player["Power"] = Player.Instance.Power.ToString();
                 _dic_player["AttackSpeed"] = Player.Instance.AttackSpeed.ToString();
                 _dic_player["MoveSpeed"] = Player.Instance.MoveSpeed.ToString();
-                _dic_player["MaxCount"] = Player.Instance.MaxCount.ToString();
 
                 SaveLocalData();
             }
@@ -214,17 +212,13 @@ namespace AD
             if (temp_result < 0)
                 _dic_player["Gold"] = _dic_PlayFabPlayerData["Gold"].Value.ToString();
 
-            temp_result = CompareValues(int.Parse(_dic_player["Level"]), int.Parse(_dic_PlayFabPlayerData["Level"].Value));
+            temp_result = CompareValues(int.Parse(_dic_player["CurCaptureCapacity"]), int.Parse(_dic_PlayFabPlayerData["CurCaptureCapacity"].Value));
             if (temp_result < 0)
-                _dic_player["Level"] = _dic_PlayFabPlayerData["Level"].Value.ToString();
+                _dic_player["CurCaptureCapacity"] = _dic_PlayFabPlayerData["CurCaptureCapacity"].Value.ToString();
 
-            temp_result = CompareValues(long.Parse(_dic_player["Experience"]), long.Parse(_dic_PlayFabPlayerData["Experience"].Value));
+            temp_result = CompareValues(int.Parse(_dic_player["MaxCaptureCapacity"]), int.Parse(_dic_PlayFabPlayerData["MaxCaptureCapacity"].Value));
             if (temp_result < 0)
-                _dic_player["Experience"] = _dic_PlayFabPlayerData["Experience"].Value.ToString();
-
-            temp_result = CompareValues(int.Parse(_dic_player["HP"]), int.Parse(_dic_PlayFabPlayerData["HP"].Value));
-            if (temp_result < 0)
-                _dic_player["HP"] = _dic_PlayFabPlayerData["HP"].Value.ToString();
+                _dic_player["MaxCaptureCapacity"] = _dic_PlayFabPlayerData["MaxCaptureCapacity"].Value.ToString();
 
             temp_result = CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
             if (temp_result < 0)
@@ -237,10 +231,6 @@ namespace AD
             temp_result = CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
             if (temp_result < 0)
                 _dic_player["MoveSpeed"] = _dic_PlayFabPlayerData["MoveSpeed"].Value.ToString();
-
-            temp_result = CompareValues(int.Parse(_dic_player["MaxCount"]), int.Parse(_dic_PlayFabPlayerData["MaxCount"].Value));
-            if (temp_result < 0)
-                _dic_player["MaxCount"] = _dic_PlayFabPlayerData["MaxCount"].Value.ToString();
 
             if (_isConflict)
                 AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);
