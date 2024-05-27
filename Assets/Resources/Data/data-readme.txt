@@ -27,11 +27,9 @@ Resources/Data/PlayerData.json 에 Player의 시작 데이터가 저장된다.
 - NickName > string
 - Sex > "Man" or "Woman"
 - Tutorial > "null"
+- CaptureCapacity > "1"
 - Gold > "0"
-- Level > "1"
-- Experience > "0"
-- HP > "100"
 - Power > "10"
 - AttackSpeed > "0.5"
 - MoveSpeed > "2.0"
-- MaxCount > "1"
+

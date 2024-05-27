@@ -10,12 +10,8 @@ public class Player : BaseController
     [Header("플레어어 고유 Data")]
     [SerializeField] private int _gold = 0;
     public int Gold { get { return instance._gold; } }
-    [SerializeField] private int _level = 0;
-    public int Level { get { return instance._level; } }
-    [SerializeField] private long _experience = 0;
-    public long Experience { get { return instance._experience; } }
-    [SerializeField] private int _maxCount = 0;
-    public int MaxCount { get { return instance._maxCount; } }
+    [SerializeField] private int _captureCapacity = 0;
+    public int CaptureCapacity { get { return instance._captureCapacity; } }
 
     [Header("플레이어 Settings")]
     [SerializeField] internal GameObject _go_player = null;
@@ -39,18 +35,20 @@ public class Player : BaseController
     }
 
     #region Functions
+    /// <summary>
+    /// HP는 장비에 맞게 따로 계산
+    /// Player의 기본 HP는 100
+    /// </summary>
     protected override void Init()
     {
         base.Init();
 
+        _hp = 100;
         _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
-        _level = int.Parse(AD.Managers.DataM._dic_player["Level"]);
-        _experience = long.Parse(AD.Managers.DataM._dic_player["Experience"]);
-        _hp = int.Parse(AD.Managers.DataM._dic_player["HP"]);
+        _captureCapacity = int.Parse(AD.Managers.DataM._dic_player["CaptureCapacity"]);
         _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
         _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
         _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
-        _maxCount = int.Parse(AD.Managers.DataM._dic_player["MaxCount"]);
     }
     #endregion
 

@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class CanvasSelectCharacter : MonoBehaviour
 {
-    [Header("--- Settings ---")]
+    [Header("--- 세팅 ---")]
     [SerializeField] Transform _tr_male = null;
     [SerializeField] Transform _tr_female = null;
     [SerializeField] Animator _maleAni = null;
