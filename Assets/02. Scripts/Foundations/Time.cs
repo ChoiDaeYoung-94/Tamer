@@ -199,5 +199,12 @@ namespace AD
 
             return false;
         }
+
+        public static DateTime GoogleAdMobRewardBuff()
+        {
+            DateTime test = DateTime.Now;
+
+            return test;
+        }
     }
 }

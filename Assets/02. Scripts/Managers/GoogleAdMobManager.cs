@@ -10,6 +10,9 @@ namespace AD
 {
     public class GoogleAdMobManager : MonoBehaviour
     {
+        [SerializeField, Tooltip("비동기 AD 실행 확인")]
+        internal bool isInprogress = false;
+
 #if UNITY_ANDROID && Debug
         // GoogleAdMob에서 제공하는 TestID
         private string _adUnitId = "ca-app-pub-3940256099942544/5224354917";
@@ -64,6 +67,8 @@ namespace AD
                     AD.Debug.Log("GoogleAdMobManager", "Rewarded ad loaded with response : " + ad.GetResponseInfo());
 
                     _rewardedAd = ad;
+
+                    RegisterReloadHandler(_rewardedAd);
                 });
         }
 
@@ -72,6 +77,8 @@ namespace AD
         /// </summary>
         public void ShowRewardedAd()
         {
+            isInprogress = true;
+
             const string rewardMsg =
                 "Rewarded ad rewarded the user. Type: {0}, amount: {1}.";
 
@@ -81,7 +88,15 @@ namespace AD
                 {
                     // TODO: Reward the user.
                     AD.Debug.Log("GoogleAdMobManager", String.Format(rewardMsg, reward.Type, reward.Amount));
+
+                    BuffingMan.Instance.OnAdSuccess();
+                    isInprogress = false;
                 });
+            }
+            else
+            {
+                BuffingMan.Instance.OnAdFailure();
+                isInprogress = false;
             }
         }
 

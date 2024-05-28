@@ -27,6 +27,7 @@ Resources/Data/PlayerData.json 에 Player의 시작 데이터가 저장된다.
 - NickName > string
 - Sex > "Man" or "Woman"
 - Tutorial > "null"
+- GoogleAdMob > "null or DateTime"
 - CurCaptureCapacity > "1"
 - MaxCaptureCapacity > "10"
 - Gold > "0"

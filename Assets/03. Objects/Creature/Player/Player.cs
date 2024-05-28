@@ -74,7 +74,8 @@ public class Player : BaseController
                 switch (str_temp)
                 {
                     case "GoogleAdMob":
-                        AD.Managers.GoogleAdMobM.ShowRewardedAd();
+                        if (!AD.Managers.GoogleAdMobM.isInprogress)
+                            AD.Managers.GoogleAdMobM.ShowRewardedAd();
                         break;
                 }
             }
