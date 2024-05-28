@@ -921,7 +921,7 @@ GameObject:
   - component: {fileID: 7002729397940218547}
   m_Layer: 0
   m_Name: MaleCharacter
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -957,14 +957,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _crtState: 0
   _crtAni: {fileID: 2640465298603294840}
+  _orgHp: 0
   _hp: 0
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
   _gold: 0
-  _level: 0
-  _experience: 0
-  _maxCount: 0
+  _curCaptureCapacity: 0
+  _maxCaptureCapacity: 0
   _go_player: {fileID: 2910936018180943768}
   _tr_cameraArm: {fileID: 6470862542266102978}
   _sword: {fileID: 4438411673452262552}
