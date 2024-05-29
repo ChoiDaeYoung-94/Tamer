@@ -140,6 +140,7 @@ namespace AD
             AD.Managers.DataM.UpdateLocalData();
 
             PlayerUICanvas.Instance.EndBuff();
+            Player.Instance.EndBuff();
             if (BuffingMan.Instance)
                 BuffingMan.Instance.ableAdMob();
         }

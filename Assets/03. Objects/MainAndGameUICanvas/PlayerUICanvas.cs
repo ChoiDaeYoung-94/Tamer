@@ -113,9 +113,9 @@ public class PlayerUICanvas : MonoBehaviour
         _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";
         _TMP_POPgold.text = $"Gold - {Player.Instance.Gold}";
 
-        _TMP_POPpower.text = $"Power - {Player.Instance.Power}";
-        _TMP_POPattackSpeed.text = $"AttackSpeed - {Player.Instance.AttackSpeed}";
-        _TMP_POPmoveSpeed.text = $"MoveSpeed - {Player.Instance.MoveSpeed}";
+        _TMP_POPpower.text = _isBuff ? $"Power - {Player.Instance._bufPower}" : $"Power - {Player.Instance.Power}";
+        _TMP_POPattackSpeed.text = _isBuff ? $"AttackSpeed - {Player.Instance._bufAttackSpeed}" : $"AttackSpeed - {Player.Instance.AttackSpeed}";
+        _TMP_POPmoveSpeed.text = _isBuff ? $"MoveSpeed - {Player.Instance._bufMoveSpeed}" : $"MoveSpeed - {Player.Instance.MoveSpeed}";
     }
 
     public void OpenPopupPlayerInfo()
@@ -137,8 +137,6 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     private void UpdateBuffPanel()
     {
-        AD.Debug.Log("playeruicanvas", $"buff - {_isBuff}, _remaintime - {_remainBuffTime}");
-
         if (_isBuff)
         {
             _TMP_remainingBuffTime.text = AD.Time.TimeToString(_remainBuffTime, plusZero: true, plusSecond: true, colon: true);
@@ -157,6 +155,8 @@ public class PlayerUICanvas : MonoBehaviour
         _remainBuffTime = remainTime;
         _isBuff = true;
 
+        UpdatePopPlayerInfo();
+
         _go_panelAdMobBuff.SetActive(true);
     }
 
@@ -168,6 +168,8 @@ public class PlayerUICanvas : MonoBehaviour
         _go_panelAdMobBuff.SetActive(false);
 
         _isBuff = false;
+
+        UpdatePopPlayerInfo();
     }
     #endregion
 

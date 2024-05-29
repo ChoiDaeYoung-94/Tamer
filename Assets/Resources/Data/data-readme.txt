@@ -33,4 +33,4 @@ Resources/Data/PlayerData.json 에 Player의 시작 데이터가 저장된다.
 - Gold > "0"
 - Power > "10"
 - AttackSpeed > "0.5"
-- MoveSpeed > "2.0"
+- MoveSpeed > "3.0"

@@ -20,6 +20,12 @@ public class Player : BaseController
     [SerializeField] internal Transform _tr_cameraArm = null;
     [SerializeField] internal GameObject _sword = null;
     [SerializeField] internal GameObject _shield = null;
+    [SerializeField] private GameObject _buff = null;
+
+    [Header("플레이어 버프 시 적용되는 status")]
+    [SerializeField] public float _bufPower = 0;
+    [SerializeField] public float _bufAttackSpeed = 0;
+    [SerializeField] public float _bufMoveSpeed = 0;
 
     /// <summary>
     /// LoginCheck.cs 에서 호출
@@ -80,6 +86,20 @@ public class Player : BaseController
                 }
             }
         }
+    }
+
+    internal void SetBuff()
+    {
+        _bufPower = _power * 1.3f;
+        _bufAttackSpeed = _attackSpeed * 1.3f;
+        _bufMoveSpeed = _moveSpeed * 2f;
+
+        _buff.SetActive(true);
+    }
+
+    internal void EndBuff()
+    {
+        _buff.SetActive(false);
     }
     #endregion
 
