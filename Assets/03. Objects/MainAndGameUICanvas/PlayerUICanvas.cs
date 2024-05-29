@@ -30,8 +30,16 @@ public class PlayerUICanvas : MonoBehaviour
     [SerializeField] TMP_Text _TMP_POPattackSpeed = null;
     [SerializeField] TMP_Text _TMP_POPmoveSpeed = null;
 
+    [Header("--- 세팅 panel_playerBuff ---")]
+    [SerializeField, Tooltip("AdMobBuff 남은 시간 표기하는 panel")] GameObject _go_panelAdMobBuff = null;
+    [SerializeField, Tooltip("AdMobBuff 남은 시간 표기하는 TMP")] TMP_Text _TMP_remainingBuffTime = null;
+
     [Header("--- ETC ---")]
     [SerializeField, Tooltip("Game scene 진입 시")] GameObject _go_panel_gamesceneUI = null;
+
+    [Header("--- 참고용 ---")]
+    private bool _isBuff = false;
+    private double _remainBuffTime = 0f;
 
     /// <summary>
     /// Main scene에서 생성 후 StartInit
@@ -39,6 +47,9 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     private void Awake()
     {
+        if (instance)
+            Destroy(gameObject);
+
         instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -52,6 +63,9 @@ public class PlayerUICanvas : MonoBehaviour
         _go_panel_gamesceneUI.SetActive(AD.Managers.GameM.IsGame);
 
         Settings();
+
+        AD.Managers.UpdateM._update -= UpdateBuffPanel;
+        AD.Managers.UpdateM._update += UpdateBuffPanel;
     }
 
     #region Functions
@@ -106,6 +120,8 @@ public class PlayerUICanvas : MonoBehaviour
 
     public void OpenPopupPlayerInfo()
     {
+        UpdatePopPlayerInfo();
+
         _go_Popup_playerInfo.SetActive(true);
     }
 
@@ -113,6 +129,48 @@ public class PlayerUICanvas : MonoBehaviour
     {
         AD.Managers.PopupM.DisablePop();
     }
+
+    #region GoogleAdMob Buff
+    /// <summary>
+    /// BuffingMan.cs을 통해 변동되는 data로 작동
+    /// buffpanel 관리 위함
+    /// </summary>
+    private void UpdateBuffPanel()
+    {
+        AD.Debug.Log("playeruicanvas", $"buff - {_isBuff}, _remaintime - {_remainBuffTime}");
+
+        if (_isBuff)
+        {
+            _TMP_remainingBuffTime.text = AD.Time.TimeToString(_remainBuffTime, plusZero: true, plusSecond: true, colon: true);
+
+            _remainBuffTime -= Time.deltaTime;
+            if (_remainBuffTime <= 0f)
+                AD.Managers.GoogleAdMobM.ResetAdMob();
+        }
+    }
+
+    /// <summary>
+    /// AdMob 광고 시청 후 buff 시작 or Main 씬 진입 후 buff시간이 남아 있을 경우
+    /// </summary>
+    internal void SetBuff(double remainTime)
+    {
+        _remainBuffTime = remainTime;
+        _isBuff = true;
+
+        _go_panelAdMobBuff.SetActive(true);
+    }
+
+    /// <summary>
+    /// AdMob buff 종료 시
+    /// </summary>
+    internal void EndBuff()
+    {
+        _go_panelAdMobBuff.SetActive(false);
+
+        _isBuff = false;
+    }
+    #endregion
+
     #endregion
 
 #if UNITY_EDITOR

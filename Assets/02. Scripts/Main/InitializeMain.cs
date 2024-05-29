@@ -16,7 +16,8 @@ public class InitializeMain : MonoBehaviour
     {
         LoginCheck,
         JoyStick,
-        CameraManage
+        CameraManage,
+        BuffingMan
     }
 
     [Tooltip("초기화 해야 할 스크립트를 지닌 게임오브젝트")]

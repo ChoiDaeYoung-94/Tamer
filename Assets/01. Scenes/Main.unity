@@ -229,6 +229,7 @@ MonoBehaviour:
   - {fileID: 59624956}
   - {fileID: 1904950593}
   - {fileID: 1596602837}
+  - {fileID: 4589691445897901392}
 --- !u!114 &59624960
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9788,3 +9789,8 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c48eb0210bb2e6e4ca2c1dd4d35d824d, type: 3}
+--- !u!1 &4589691445897901392 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4589691447130665394, guid: c48eb0210bb2e6e4ca2c1dd4d35d824d, type: 3}
+  m_PrefabInstance: {fileID: 4589691445897901391}
+  m_PrefabAsset: {fileID: 0}

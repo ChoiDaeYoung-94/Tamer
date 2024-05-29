@@ -18,29 +18,68 @@ public class BuffingMan : MonoBehaviour
     [Header("--- 참고용 ---")]
     private string _str_normalState = "클릭하여 광고 보상을 통해\n플레이어의 능력치를 증가시켜주세요!\n버프는 10분간 적용됩니다.";
     private string _str_failState = "광고가 로드되지 않았습니다.\n잠시 후 다시 시도해 주세요!";
-    private string _str_bufTime = string.Empty;
 
     private void Awake()
     {
         instance = this;
-
-        Init();
     }
 
-    private void Init()
+    private void OnDestroy()
+    {
+        instance = null;
+    }
+
+    /// <summary>
+    /// InitializeMain.cs 에서 호출
+    /// </summary>
+    public void StartInit()
+    {
+        CheckAdMob();
+    }
+
+    #region Functions
+    /// <summary>
+    /// AdMob data check 후 버프 진행여부 결정
+    /// </summary>
+    private void CheckAdMob()
+    {
+        string str_temp = AD.Managers.DataM._dic_player["GoogleAdMob"];
+        if (str_temp != "null")
+        {
+            double remainTime = AD.Time.GetGoogleAdMobRewardBuffRemainingTime(str_temp);
+            if (remainTime >= 0f)
+            {
+                PlayerUICanvas.Instance.SetBuff(remainTime);
+                UnableAdMob();
+                return;
+            }
+            else
+                AD.Managers.GoogleAdMobM.ResetAdMob();
+        }
+
+        ableAdMob();
+    }
+
+    /// <summary>
+    /// AdMob 광고 시청이 가능할 경우
+    /// </summary>
+    public void ableAdMob()
     {
         _TM_admob.text = _str_normalState;
         _go_ablePortal.SetActive(true);
         _go_unablePortal.SetActive(false);
-
-        _str_bufTime = AD.Managers.DataM._dic_player["GoogleAdMob"];
-        if (_str_bufTime != "null")
-        {
-
-        }
     }
 
-    #region Functions
+    /// <summary>
+    /// AdMob 광고 시청이 불가능할 경우
+    /// </summary>
+    private void UnableAdMob()
+    {
+        _TM_admob.text = _str_failState;
+        _go_ablePortal.SetActive(false);
+        _go_unablePortal.SetActive(true);
+    }
+
     /// <summary>
     /// 보상형 광고 성공 후 리워드 적용
     /// 플레이어 버프
@@ -49,10 +88,12 @@ public class BuffingMan : MonoBehaviour
     public void OnAdSuccess()
     {
         _go_admob.SetActive(false);
-        _go_ablePortal.SetActive(false);
-        _go_unablePortal.SetActive(true);
+        UnableAdMob();
 
-        AD.Managers.DataM._dic_player["GoogleAdMob"] = _str_bufTime = DateTime.Now.ToString();
+        AD.Managers.DataM._dic_player["GoogleAdMob"] = DateTime.Now.ToString();
+        AD.Managers.DataM.UpdateLocalData();
+
+        CheckAdMob();
     }
 
     public void OnAdFailure()
@@ -65,7 +106,7 @@ public class BuffingMan : MonoBehaviour
     {
         if (col.CompareTag("Player"))
         {
-            if (_str_bufTime == "null")
+            if (AD.Managers.DataM._dic_player["GoogleAdMob"] == "null")
             {
                 _TM_admob.text = _str_normalState;
                 _go_admob.SetActive(true);
