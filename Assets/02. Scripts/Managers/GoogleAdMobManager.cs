@@ -10,6 +10,9 @@ namespace AD
 {
     public class GoogleAdMobManager : MonoBehaviour
     {
+        [SerializeField, Tooltip("비동기 AD 실행 확인")]
+        internal bool isInprogress = false;
+
 #if UNITY_ANDROID && Debug
         // GoogleAdMob에서 제공하는 TestID
         private string _adUnitId = "ca-app-pub-3940256099942544/5224354917";
@@ -64,6 +67,8 @@ namespace AD
                     AD.Debug.Log("GoogleAdMobManager", "Rewarded ad loaded with response : " + ad.GetResponseInfo());
 
                     _rewardedAd = ad;
+
+                    RegisterReloadHandler(_rewardedAd);
                 });
         }
 
@@ -72,6 +77,8 @@ namespace AD
         /// </summary>
         public void ShowRewardedAd()
         {
+            isInprogress = true;
+
             const string rewardMsg =
                 "Rewarded ad rewarded the user. Type: {0}, amount: {1}.";
 
@@ -81,7 +88,15 @@ namespace AD
                 {
                     // TODO: Reward the user.
                     AD.Debug.Log("GoogleAdMobManager", String.Format(rewardMsg, reward.Type, reward.Amount));
+
+                    BuffingMan.Instance.OnAdSuccess();
+                    isInprogress = false;
                 });
+            }
+            else
+            {
+                BuffingMan.Instance.OnAdFailure();
+                isInprogress = false;
             }
         }
 
@@ -110,5 +125,25 @@ namespace AD
                 LoadRewardedAd();
             };
         }
+
+        #region Functions
+        /// <summary>
+        /// 보상형 광고 데이터 리셋 시 사용
+        /// GoogleAdMob data의 경우 local에만 저장하면 됨
+        /// -> Player data 갱신 시 GoogleAdMob에 대한 내용을 따로 추가하지 않았기 때문에
+        /// 해당 데이터는 로컬을 우선시하게 됨 즉 서버를 통해 Player data를 갱신하게 되더라도
+        /// 서버에 있는 GoogleAdMob가 우선이 아니라 로컬에 있는 GoogleAdMob를 우선시 하게 됨
+        /// </summary>
+        internal void ResetAdMob()
+        {
+            AD.Managers.DataM._dic_player["GoogleAdMob"] = "null";
+            AD.Managers.DataM.UpdateLocalData();
+
+            PlayerUICanvas.Instance.EndBuff();
+            Player.Instance.EndBuff();
+            if (BuffingMan.Instance)
+                BuffingMan.Instance.ableAdMob();
+        }
+        #endregion
     }
 }

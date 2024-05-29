@@ -4,9 +4,9 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - BuffingMan
   - Monster
   - DropItem
+  - GoogleAdMob
   layers:
   - Default
   - TransparentFX

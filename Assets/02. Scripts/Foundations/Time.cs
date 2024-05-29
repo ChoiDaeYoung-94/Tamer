@@ -199,5 +199,19 @@ namespace AD
 
             return false;
         }
+
+        /// <summary>
+        /// GoogleAdMob 보상형 광고 시청 후 버프(10분)의 남은 시간이 있는지 계산
+        /// </summary>
+        /// <param name="datetime"></param>
+        /// <returns></returns>
+        public static double GetGoogleAdMobRewardBuffRemainingTime(string datetime)
+        {
+            DateTime dateTime = DateTime.Parse(datetime);
+
+            TimeSpan timeSpan = dateTime.AddMinutes(10f) - DateTime.Now;
+
+            return timeSpan.TotalSeconds;
+        }
     }
 }

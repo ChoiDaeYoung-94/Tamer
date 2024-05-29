@@ -20,10 +20,12 @@ public class Player : BaseController
     [SerializeField] internal Transform _tr_cameraArm = null;
     [SerializeField] internal GameObject _sword = null;
     [SerializeField] internal GameObject _shield = null;
+    [SerializeField] private GameObject _buff = null;
 
-    [Header("특정 구역 진입 시 계산 위함")]
-    [SerializeField] private float _stayTime = 0;
-    [SerializeField] private bool isClear = false;
+    [Header("플레이어 버프 시 적용되는 status")]
+    [SerializeField] public float _bufPower = 0;
+    [SerializeField] public float _bufAttackSpeed = 0;
+    [SerializeField] public float _bufMoveSpeed = 0;
 
     /// <summary>
     /// LoginCheck.cs 에서 호출
@@ -49,12 +51,55 @@ public class Player : BaseController
         _hp = 100;
         _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
         _curCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["CurCaptureCapacity"]);
-        _maxCaptureCapacity= int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
+        _maxCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
         _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
         _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
         _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
 
+        AD.Managers.UpdateM._update -= TouchEvent;
+        AD.Managers.UpdateM._update += TouchEvent;
+
         PlayerUICanvas.Instance.StartInit();
+    }
+
+    /// <summary>
+    /// 화면을 클릭하여 대응해야할 부분
+    /// 버프, 몬스터 포획 등
+    /// </summary>
+    private void TouchEvent()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            RaycastHit hit;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out hit))
+            {
+                string str_temp = hit.collider.tag;
+
+                switch (str_temp)
+                {
+                    case "GoogleAdMob":
+                        if (!AD.Managers.GoogleAdMobM.isInprogress)
+                            AD.Managers.GoogleAdMobM.ShowRewardedAd();
+                        break;
+                }
+            }
+        }
+    }
+
+    internal void SetBuff()
+    {
+        _bufPower = _power * 1.3f;
+        _bufAttackSpeed = _attackSpeed * 1.3f;
+        _bufMoveSpeed = _moveSpeed * 2f;
+
+        _buff.SetActive(true);
+    }
+
+    internal void EndBuff()
+    {
+        _buff.SetActive(false);
     }
     #endregion
 
@@ -69,26 +114,6 @@ public class Player : BaseController
         {
 
         }
-    }
-
-    private void OnTriggerStay(Collider col)
-    {
-        if (col.CompareTag("BuffingMan"))
-        {
-            if (_stayTime >= 0.5f && !isClear)
-            {
-                isClear = true;
-                AD.Managers.GoogleAdMobM.ShowRewardedAd();
-            }
-            else
-                _stayTime += Time.deltaTime;
-        }
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        isClear = false;
-        _stayTime = 0f;
     }
 
     public override void Clear()
