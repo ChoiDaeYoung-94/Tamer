@@ -25,6 +25,7 @@ public class CanvasSelectCharacter : MonoBehaviour
     /// </summary>
     private void Start()
     {
+        AD.Managers.Instance.SetCamera();
         AD.Managers.PopupM.ReleaseException();
     }
 

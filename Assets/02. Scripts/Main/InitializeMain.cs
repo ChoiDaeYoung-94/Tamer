@@ -37,6 +37,7 @@ public class InitializeMain : MonoBehaviour
             }
         }
 
+        AD.Managers.Instance.SetCamera();
         AD.Managers.PopupM.ReleaseException();
     }
 

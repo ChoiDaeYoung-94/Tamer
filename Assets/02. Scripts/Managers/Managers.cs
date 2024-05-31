@@ -24,7 +24,7 @@ namespace AD
         PoolManager _poolM = new PoolManager();
         public static PoolManager PoolM { get { return instance._poolM; } }
 
-        PopupManager _popupM = new PopupManager();
+        [SerializeField] PopupManager _popupM = null;
         public static PopupManager PopupM { get { return instance._popupM; } }
 
         ResourceManager _resourceM = new ResourceManager();
@@ -50,6 +50,8 @@ namespace AD
         public GameObject[] _go_poolGOs = null;
         [Tooltip("Pool에 사용할 UI")]
         public GameObject[] _go_poolUIs = null;
+        [Tooltip("Canvas - PopupM에 사용 위함")]
+        public Canvas _canvas = null;
 
         private void Awake()
         {
@@ -62,6 +64,17 @@ namespace AD
             DontDestroyOnLoad(this);
 
             InitM();
+        }
+
+        /// <summary>
+        /// 공통으로 사용하는 Popup을 관리하기 위함
+        /// 씬 전환 시 해당 메서드를 불러서 초기화 시켜야 함
+        /// </summary>
+        internal void SetCamera()
+        {
+            _canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            _canvas.worldCamera = Camera.main;
+            _canvas.planeDistance = 100f;
         }
 
         private void OnDestroy()

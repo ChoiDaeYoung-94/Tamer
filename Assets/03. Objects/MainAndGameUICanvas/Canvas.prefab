@@ -381,9 +381,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 4253044625172767875}
-        m_TargetAssemblyTypeName: PlayerUICanvas, Assembly-CSharp
-        m_MethodName: ClosePopupPlayerInfo
+      - m_Target: {fileID: 1705601721837430788}
+        m_TargetAssemblyTypeName: AD.PopupObject, Assembly-CSharp
+        m_MethodName: DisablePop
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

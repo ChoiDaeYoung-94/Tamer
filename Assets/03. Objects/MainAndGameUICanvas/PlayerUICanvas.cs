@@ -125,11 +125,6 @@ public class PlayerUICanvas : MonoBehaviour
         _go_Popup_playerInfo.SetActive(true);
     }
 
-    public void ClosePopupPlayerInfo()
-    {
-        AD.Managers.PopupM.DisablePop();
-    }
-
     #region GoogleAdMob Buff
     /// <summary>
     /// BuffingMan.cs을 통해 변동되는 data로 작동
