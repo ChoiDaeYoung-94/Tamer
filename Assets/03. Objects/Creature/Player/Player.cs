@@ -83,6 +83,9 @@ public class Player : BaseController
                         if (!AD.Managers.GoogleAdMobM.isInprogress)
                             AD.Managers.GoogleAdMobM.ShowRewardedAd();
                         break;
+                    case "GoGameScene":
+                        AD.Managers.SceneM.NextScene(AD.Define.Scenes.Game);
+                        break;
                 }
             }
         }
