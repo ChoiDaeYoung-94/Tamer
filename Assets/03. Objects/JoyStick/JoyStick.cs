@@ -5,6 +5,9 @@ using UnityEngine.EventSystems;
 
 public class JoyStick : MonoBehaviour
 {
+    static JoyStick instance;
+    public static JoyStick Instance { get { return instance; } }
+
     enum Mode
     {
         Null,
@@ -29,6 +32,15 @@ public class JoyStick : MonoBehaviour
     [SerializeField] Transform _tr_cameraArm = null;
     [SerializeField] float _speed = 0f;
 
+    /// <summary>
+    /// LoginCheck.cs 에서 생성
+    /// </summary>
+    private void Awake()
+    {
+        instance = this;
+        DontDestroyOnLoad(transform.parent.gameObject);
+    }
+
     private void FixedUpdate()
     {
         Control();
@@ -37,9 +49,9 @@ public class JoyStick : MonoBehaviour
     #region Functions
 
     /// <summary>
-    /// InitializeMain.cs 에서 호출
+    /// Player.cs 에서 플레이어 초기화 후 호출
     /// </summary>
-    private void StartInit()
+    internal void StartInit()
     {
         _go_player = Player.Instance._go_player;
         _tr_cameraArm = Player.Instance._tr_cameraArm;

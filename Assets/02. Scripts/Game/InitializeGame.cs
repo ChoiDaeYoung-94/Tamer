@@ -34,6 +34,7 @@ public class InitializeGame : MonoBehaviour
             }
         }
 
+        AD.Managers.GameM.InitMainOrGameScene();
         AD.Managers.Instance.SetCamera();
         AD.Managers.PopupM.ReleaseException();
     }
