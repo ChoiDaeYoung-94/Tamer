@@ -23,6 +23,8 @@ namespace AD
         /// </summary>
         internal void SwitchMainOrGameScene(AD.Define.Scenes scene)
         {
+            AD.Managers.PopupM.SetException();
+
             _isGame = !_isGame;
 
             JoyStick.Instance.transform.parent.gameObject.SetActive(false);

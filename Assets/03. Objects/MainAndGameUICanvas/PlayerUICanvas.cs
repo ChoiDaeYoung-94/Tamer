@@ -129,7 +129,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void GoMainScene()
     {
-        AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Main);
+        AD.Managers.PopupM.PopupGoLobby();
     }
 
     #region GoogleAdMob Buff

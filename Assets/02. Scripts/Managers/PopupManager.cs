@@ -118,7 +118,11 @@ namespace AD
             }
         }
 
-        public void GoLobby() => AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
+        internal void PopupGoLobby() => _go_popupLobby.SetActive(true);
+
+        internal void PopupExit() => _go_popupExit.SetActive(true);
+
+        public void GoLobby() => AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Main);
 
         public void ExitGame() => Application.Quit();
 

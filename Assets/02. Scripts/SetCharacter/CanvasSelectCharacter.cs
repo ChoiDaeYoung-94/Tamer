@@ -25,13 +25,14 @@ public class CanvasSelectCharacter : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        AD.Managers.Instance.SetCamera();
         AD.Managers.PopupM.ReleaseException();
     }
 
     #region Functions
     public void ButtonPlay()
     {
+        AD.Managers.PopupM.SetException();
+
         if (_co_play != null)
             return;
 

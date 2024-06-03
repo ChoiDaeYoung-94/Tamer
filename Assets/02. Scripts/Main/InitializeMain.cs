@@ -38,7 +38,6 @@ public class InitializeMain : MonoBehaviour
         AD.Managers.GameM._loginCheck = false;
 
         AD.Managers.GameM.InitMainOrGameScene();
-        AD.Managers.Instance.SetCamera();
         AD.Managers.PopupM.ReleaseException();
     }
 
