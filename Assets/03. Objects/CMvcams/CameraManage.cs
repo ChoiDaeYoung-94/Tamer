@@ -5,13 +5,25 @@ using Cinemachine;
 
 public class CameraManage : MonoBehaviour
 {
+    static CameraManage instance;
+    public static CameraManage Instance { get { return instance; } }
+
     [Header("사용하는 시네머신 카메라 세팅")]
-    [SerializeField] CinemachineVirtualCamera[] CM_cameras = null;
+    [SerializeField] internal CinemachineVirtualCamera[] CM_cameras = null;
 
     /// <summary>
-    /// InitializeMain.cs 에서 호출
+    /// LoginCheck.cs 에서 생성
     /// </summary>
-    public void StartInit()
+    private void Awake()
+    {
+        instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    /// <summary>
+    /// Player.cs 에서 플레이어 초기화 후 호출
+    /// </summary>
+    internal void StartInit()
     {
         foreach (CinemachineVirtualCamera cm in CM_cameras)
         {

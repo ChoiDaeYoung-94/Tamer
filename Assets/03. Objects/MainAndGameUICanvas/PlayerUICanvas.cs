@@ -42,14 +42,10 @@ public class PlayerUICanvas : MonoBehaviour
     private double _remainBuffTime = 0f;
 
     /// <summary>
-    /// Main scene에서 생성 후 StartInit
-    /// * 그 후 세팅을 위해 Game scene에서 StartInit 호출
+    /// LoginCheck.cs 에서 생성
     /// </summary>
     private void Awake()
     {
-        if (instance)
-            Destroy(gameObject);
-
         instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -59,10 +55,8 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     internal void StartInit()
     {
-        _go_Popup_playerInfo.SetActive(false);
-        _go_panel_gamesceneUI.SetActive(AD.Managers.GameM.IsGame);
-
-        Settings();
+        ViewSettings();
+        DataSettings();
 
         AD.Managers.UpdateM._update -= UpdateBuffPanel;
         AD.Managers.UpdateM._update += UpdateBuffPanel;
@@ -70,22 +64,24 @@ public class PlayerUICanvas : MonoBehaviour
 
     #region Functions
     /// <summary>
-    /// 데이터 뷰 세팅
+    /// 뷰 세팅
+    /// Main scene 진입 시, Main Game scene 전환 시
     /// </summary>
-    private void Settings()
+    internal void ViewSettings()
+    {
+        _go_Popup_playerInfo.SetActive(false);
+        _go_panel_gamesceneUI.SetActive(AD.Managers.GameM.IsGame);
+    }
+
+    /// <summary>
+    /// 데이터 세팅
+    /// </summary>
+    private void DataSettings()
     {
         _TMP_playerNickName.text = $"{AD.Managers.DataM._dic_player["NickName"]}";
 
         UpdatePlayerInfo();
         UpdatePopPlayerInfo();
-    }
-
-    /// <summary>
-    /// 추후 미니맵, 복귀 등 게임씬 작업 시 진행
-    /// </summary>
-    private void GameSettings()
-    {
-
     }
 
     /// <summary>
@@ -118,6 +114,9 @@ public class PlayerUICanvas : MonoBehaviour
         _TMP_POPmoveSpeed.text = _isBuff ? $"MoveSpeed - {Player.Instance._bufMoveSpeed}" : $"MoveSpeed - {Player.Instance.MoveSpeed}";
     }
 
+    /// <summary>
+    /// panel_playerInfo 클릭 시
+    /// </summary>
     public void OpenPopupPlayerInfo()
     {
         UpdatePopPlayerInfo();
@@ -125,9 +124,12 @@ public class PlayerUICanvas : MonoBehaviour
         _go_Popup_playerInfo.SetActive(true);
     }
 
-    public void ClosePopupPlayerInfo()
+    /// <summary>
+    /// Game scene에서 복귀버튼 클릭 시
+    /// </summary>
+    public void GoMainScene()
     {
-        AD.Managers.PopupM.DisablePop();
+        AD.Managers.PopupM.PopupGoLobby();
     }
 
     #region GoogleAdMob Buff

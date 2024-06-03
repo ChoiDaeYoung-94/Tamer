@@ -31,6 +31,8 @@ public class CanvasSelectCharacter : MonoBehaviour
     #region Functions
     public void ButtonPlay()
     {
+        AD.Managers.PopupM.SetException();
+
         if (_co_play != null)
             return;
 

@@ -28,7 +28,7 @@ public class Player : BaseController
     [SerializeField] public float _bufMoveSpeed = 0;
 
     /// <summary>
-    /// LoginCheck.cs 에서 호출
+    /// LoginCheck.cs 에서 생성
     /// </summary>
     private void Awake()
     {
@@ -36,6 +36,17 @@ public class Player : BaseController
         DontDestroyOnLoad(transform.parent.gameObject);
 
         Init();
+    }
+
+    /// <summary>
+    /// 플레이어의 초기화가 끝난 후
+    /// 플레이어와 관련된 요소들 초기화
+    /// </summary>
+    private void OnEnable()
+    {
+        JoyStick.Instance.StartInit();
+        CameraManage.Instance.StartInit();
+        PlayerUICanvas.Instance.StartInit();
     }
 
     #region Functions
@@ -58,8 +69,6 @@ public class Player : BaseController
 
         AD.Managers.UpdateM._update -= TouchEvent;
         AD.Managers.UpdateM._update += TouchEvent;
-
-        PlayerUICanvas.Instance.StartInit();
     }
 
     /// <summary>
@@ -82,6 +91,9 @@ public class Player : BaseController
                     case "GoogleAdMob":
                         if (!AD.Managers.GoogleAdMobM.isInprogress)
                             AD.Managers.GoogleAdMobM.ShowRewardedAd();
+                        break;
+                    case "GoGameScene":
+                        AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Game);
                         break;
                 }
             }

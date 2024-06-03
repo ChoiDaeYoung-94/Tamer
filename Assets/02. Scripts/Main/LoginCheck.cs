@@ -15,6 +15,9 @@ public class LoginCheck : MonoBehaviour
     /// </summary>
     private void StartInit()
     {
+        if (!AD.Managers.GameM._loginCheck)
+            return;
+
         _state = new SetCharacterState(this);
         _state.Handle();
     }
@@ -67,6 +70,9 @@ class SetCharacterState : State
         AD.Debug.Log("LoginCheck", "SetCharacterState 진입");
 
         string sex = AD.Managers.DataM._dic_player["Sex"];
+        AD.Managers.ResourceM.Instantiate_("Player", "JoyStick/Canvas");
+        AD.Managers.ResourceM.Instantiate_("Player", "CMvcams/CM vcams");
+        AD.Managers.ResourceM.Instantiate_("Player", "MainAndGameUICanvas/Canvas");
         AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
 
         _loginCheck.SetState(new CheckTutorialState(_loginCheck));
@@ -85,8 +91,6 @@ class CheckTutorialState : State
         {
             AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
         }
-
-
     }
 }
 #endregion

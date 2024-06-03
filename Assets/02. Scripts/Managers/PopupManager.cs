@@ -12,8 +12,14 @@ namespace AD
     /// 아무 팝업이 없이 뒤로 가기 버튼을 클릭시에
     /// 게임을 종료할지, 로비로 가겠냐는 팝업을 띄울지 정함
     /// </summary>
-    public class PopupManager
+    public class PopupManager : MonoBehaviour
     {
+        [Header("--- 세팅 ---")]
+        [SerializeField, Tooltip("로비 팝업")]
+        GameObject _go_popupLobby = null;
+        [SerializeField, Tooltip("게임 종료 팝업")]
+        GameObject _go_popupExit = null;
+
         [Tooltip("popup을 관리할 Stack, Enable - Push, Disable - Pop")]
         Stack<GameObject> _popupStack = new Stack<GameObject>();
 
@@ -99,20 +105,26 @@ namespace AD
                 {
                     AD.Debug.Log("PopupManager", "lobby scene -> quit popup");
 
-                    GameObject quitPop = null; // 나가기 팝업 받아야 함
-                    if (!quitPop.activeSelf)
-                        quitPop.SetActive(true);
+                    if (!_go_popupExit.activeSelf)
+                        _go_popupExit.SetActive(true);
                 }
                 else
                 {
                     AD.Debug.Log("PopupManager", "lobby  scene-> go lobby popup");
 
-                    GameObject goLobby = null; // 로비 가는 팝업 받아야 함
-                    if (!goLobby.activeSelf)
-                        goLobby.SetActive(true);
+                    if (!_go_popupLobby.activeSelf)
+                        _go_popupLobby.SetActive(true);
                 }
             }
         }
+
+        internal void PopupGoLobby() => _go_popupLobby.SetActive(true);
+
+        internal void PopupExit() => _go_popupExit.SetActive(true);
+
+        public void GoLobby() => AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Main);
+
+        public void ExitGame() => Application.Quit();
 
         internal void SetException() => isException = true;
 
