@@ -71,6 +71,11 @@ public class PlayerUICanvas : MonoBehaviour
     {
         _go_Popup_playerInfo.SetActive(false);
         _go_panel_gamesceneUI.SetActive(AD.Managers.GameM.IsGame);
+        
+        if (AD.Managers.GameM.IsGame)
+        {
+            // minimap 작업
+        }
     }
 
     /// <summary>
