@@ -12,6 +12,8 @@ namespace AD
     {
         [SerializeField, Tooltip("비동기 AD 실행 확인")]
         internal bool isInprogress = false;
+        [SerializeField, Tooltip("보상 받은 여부 확인")]
+        internal bool isReceive = false;
 
 #if UNITY_ANDROID && Debug
         // GoogleAdMob에서 제공하는 TestID
@@ -34,6 +36,18 @@ namespace AD
                 // This callback is called once the MobileAds SDK is initialized.
                 LoadRewardedAd();
             });
+
+            AD.Managers.UpdateM._update -= CheckReward;
+            AD.Managers.UpdateM._update += CheckReward;
+        }
+
+        private void CheckReward()
+        {
+            if (isReceive)
+            {
+                isReceive = !isReceive;
+                BuffingMan.Instance.OnAdSuccess();
+            }
         }
 
         /// <summary>
@@ -89,8 +103,7 @@ namespace AD
                     // TODO: Reward the user.
                     AD.Debug.Log("GoogleAdMobManager", String.Format(rewardMsg, reward.Type, reward.Amount));
 
-                    BuffingMan.Instance.OnAdSuccess();
-                    isInprogress = false;
+                    isReceive = true;
                 });
             }
             else
@@ -101,7 +114,8 @@ namespace AD
         }
 
         /// <summary>
-        /// 다음 보상형 광고 미리 로드
+        /// 광고 본 후 처리
+        /// 보상 받기, 다음 보상형 광고 미리 로드
         /// </summary>
         /// <param name="ad"></param>
         private void RegisterReloadHandler(RewardedAd ad)
@@ -109,6 +123,8 @@ namespace AD
             // Raised when the ad closed full screen content.
             ad.OnAdFullScreenContentClosed += () =>
             {
+                isInprogress = false;
+
                 AD.Debug.Log("GoogleAdMobManager", "Rewarded Ad full screen content closed.");
 
                 // Reload the ad so that we can show another as soon as possible.
@@ -118,6 +134,10 @@ namespace AD
             // Raised when the ad failed to open full screen content.
             ad.OnAdFullScreenContentFailed += (AdError error) =>
             {
+                BuffingMan.Instance.OnAdFailure();
+                isInprogress = false;
+                isReceive = false;
+
                 AD.Debug.LogError("GoogleAdMobManager", "Rewarded ad failed to open full screen content " +
                                "with error : " + error);
 
