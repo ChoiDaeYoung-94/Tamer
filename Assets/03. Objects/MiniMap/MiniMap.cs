@@ -18,6 +18,12 @@ public class MiniMap : MonoBehaviour
         instance = this;
     }
 
+    private void OnDisable()
+    {
+        if (AD.Managers.Instance)
+            AD.Managers.UpdateM._update -= SetPlayerIcon;
+    }
+
     private void OnDestroy()
     {
         instance = null;
