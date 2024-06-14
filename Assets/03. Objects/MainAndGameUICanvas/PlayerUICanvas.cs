@@ -71,11 +71,6 @@ public class PlayerUICanvas : MonoBehaviour
     {
         _go_Popup_playerInfo.SetActive(false);
         _go_panel_gamesceneUI.SetActive(AD.Managers.GameM.IsGame);
-        
-        if (AD.Managers.GameM.IsGame)
-        {
-            // minimap 작업
-        }
     }
 
     /// <summary>
@@ -127,6 +122,14 @@ public class PlayerUICanvas : MonoBehaviour
         UpdatePopPlayerInfo();
 
         _go_Popup_playerInfo.SetActive(true);
+    }
+
+    /// <summary>
+    /// MiniMap 클릭 시
+    /// </summary>
+    public void OpenMap()
+    {
+        MiniMap.Instance.OpenMap();
     }
 
     /// <summary>
