@@ -34,6 +34,7 @@ public class InitializeGame : MonoBehaviour
             }
         }
 
+        MiniMap.Instance.StartInit();
         AD.Managers.GameM.InitMainOrGameScene();
         AD.Managers.PopupM.ReleaseException();
     }

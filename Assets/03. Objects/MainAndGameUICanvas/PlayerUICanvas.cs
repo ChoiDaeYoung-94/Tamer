@@ -125,6 +125,14 @@ public class PlayerUICanvas : MonoBehaviour
     }
 
     /// <summary>
+    /// MiniMap 클릭 시
+    /// </summary>
+    public void OpenMap()
+    {
+        MiniMap.Instance.OpenMap();
+    }
+
+    /// <summary>
     /// Game scene에서 복귀버튼 클릭 시
     /// </summary>
     public void GoMainScene()
