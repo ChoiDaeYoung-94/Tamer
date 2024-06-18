@@ -9,10 +9,9 @@ public abstract class BaseController : MonoBehaviour
     public enum CreatureState
     {
         Idle,
-        Run,
+        Move,
         Attack,
-        GetHit,
-        Death
+        Die
     }
 
     [SerializeField] CreatureState _crtState = CreatureState.Idle;
@@ -29,14 +28,14 @@ public abstract class BaseController : MonoBehaviour
                 case CreatureState.Idle:
                     _crtAni.CrossFade("Idle", 0f);
                     break;
-                case CreatureState.Run:
-                    _crtAni.CrossFade("Run", 0f);
+                case CreatureState.Move:
+                    _crtAni.CrossFade("Move", 0f);
                     break;
                 case CreatureState.Attack:
                     State_Attack();
                     break;
-                case CreatureState.Death:
-                    _crtAni.CrossFade("Death", 0f);
+                case CreatureState.Die:
+                    _crtAni.CrossFade("Die", 0f);
                     break;
             }
         }
@@ -69,7 +68,7 @@ public abstract class BaseController : MonoBehaviour
 
     private void Update()
     {
-        UpdateAni();
+
     }
 
     private void FixedUpdate()
@@ -85,49 +84,11 @@ public abstract class BaseController : MonoBehaviour
 
     public abstract void Clear();
 
-    #region Ani
-    protected virtual void UpdateAni()
-    {
-        switch (CrtState)
-        {
-            case CreatureState.Idle:
-                Idle();
-                break;
-            case CreatureState.Run:
-                Run();
-                break;
-            case CreatureState.Attack:
-                Attack();
-                break;
-            case CreatureState.Death:
-                Death();
-                break;
-        }
-    }
-
-    protected virtual void Idle()
-    {
-
-    }
-
-    protected virtual void Run()
-    {
-
-    }
-
-    protected virtual void Attack()
-    {
-
-    }
-
-    protected virtual void Death()
-    {
-
-    }
-
     private void State_Attack()
     {
-        if (gameObject.tag == "Player")
+        string str_tag = gameObject.tag;
+
+        if (str_tag == "Player")
         {
             int index = 0;
             if (Player.Instance._sword.activeInHierarchy)
@@ -141,10 +102,12 @@ public abstract class BaseController : MonoBehaviour
                 _crtAni.CrossFade($"Punch0{index}", 0f);
             }
         }
+        else if (str_tag == "Boss")
+        {
+
+        }
         else
             _crtAni.CrossFade("Attack", 0.1f);
     }
-    #endregion
-
     #endregion
 }

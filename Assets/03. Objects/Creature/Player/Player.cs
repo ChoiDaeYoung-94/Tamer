@@ -66,6 +66,7 @@ public class Player : BaseController
         _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
         _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
         _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
+        JoyStick.Instance.SetSpeed(_moveSpeed);
 
         AD.Managers.UpdateM._update -= TouchEvent;
         AD.Managers.UpdateM._update += TouchEvent;
@@ -105,12 +106,15 @@ public class Player : BaseController
         _bufPower = _power * 1.3f;
         _bufAttackSpeed = _attackSpeed * 1.3f;
         _bufMoveSpeed = _moveSpeed * 2f;
+        JoyStick.Instance.SetSpeed(_bufMoveSpeed);
 
         _buff.SetActive(true);
     }
 
     internal void EndBuff()
     {
+        JoyStick.Instance.SetSpeed(_moveSpeed);
+
         _buff.SetActive(false);
     }
     #endregion
