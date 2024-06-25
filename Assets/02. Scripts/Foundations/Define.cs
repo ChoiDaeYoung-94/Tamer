@@ -23,5 +23,24 @@ namespace AD
             Main,
             Game
         }
+
+        /// <summary>
+        /// 사용중인 monster name
+        /// </summary>
+        public enum Monsters
+        {
+            Bat,
+            Magma,
+            Chest,
+            Crab,
+            RatAssassin,
+            Spider,
+            SpiderToxin,
+            SpiderKing,
+            LizardWarrior,
+            Werewolf,
+            FylingDemon,
+            Beholder
+        }
     }
 }
