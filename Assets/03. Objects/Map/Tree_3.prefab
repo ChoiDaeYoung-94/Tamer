@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4602163295357469380}
   - component: {fileID: 4602163295356370948}
   - component: {fileID: 4602163295360413796}
+  - component: {fileID: 8477204254420121860}
   m_Layer: 7
   m_Name: Tree_3
   m_TagString: Untagged
@@ -26,7 +27,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4602163295358312130}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.12, y: 0.12, z: 0.12}
   m_Children: []
@@ -97,3 +98,19 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300002, guid: d9921c7e274f6234ba2ba7bf493b0a79, type: 3}
+--- !u!208 &8477204254420121860
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4602163295358312130}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 8.895, y: 13.686001, z: 7.35}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: -1.4920001, y: 13.686001, z: 3.8030002}
+  m_TimeToStationary: 0.5
