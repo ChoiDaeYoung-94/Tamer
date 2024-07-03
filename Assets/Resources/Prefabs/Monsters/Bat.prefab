@@ -234,11 +234,16 @@ MonoBehaviour:
   _navAgent: {fileID: 2224596187608030025}
   _go_commander: {fileID: 0}
   isCommander: 0
+  moveRadius: 5
   _list_groupMonsters: []
-  isAlly: 0
+  flockingRadius: 2
   isAbleAlly: 0
+  isAlly: 0
   detectionRadius: 10
   isDetection: 0
+  detectionLayer: 0
+  _vec_detection: {x: 0, y: 0, z: 0}
+  isDie: 0
   _player: {fileID: 0}
 --- !u!136 &7596044772776327162
 CapsuleCollider:
@@ -251,7 +256,7 @@ CapsuleCollider:
   m_IsTrigger: 1
   m_Enabled: 1
   m_Radius: 0.5
-  m_Height: 1.5
+  m_Height: 0.8
   m_Direction: 1
   m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!54 &8192251206820491823
