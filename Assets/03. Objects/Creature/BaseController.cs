@@ -77,9 +77,26 @@ public abstract class BaseController : MonoBehaviour
     }
 
     #region Functions
-    protected virtual void Init()
+    protected virtual void Init(AD.Define.Creature creature)
     {
+        if (creature == AD.Define.Creature.Player)
+        {
+            _orgHp = 100;
+            _hp = 100;
+            _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
+            _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
+            _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
+        }
+        else
+        {
+            string key = creature.ToString();
+            Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[key] as Dictionary<string, object>;
 
+            _hp = _orgHp = int.Parse(dic_temp["Hp"].ToString());
+            _power = float.Parse(dic_temp["Power"].ToString());
+            _attackSpeed = float.Parse(dic_temp["AttackSpeed"].ToString());
+            _moveSpeed = float.Parse(dic_temp["MoveSpeed"].ToString());
+        }
     }
 
     public abstract void Clear();

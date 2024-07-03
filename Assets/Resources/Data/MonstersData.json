@@ -1,0 +1,86 @@
+{
+    "Bat": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"Magma": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"Chest": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"Crab": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"RatAssassin": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"Spider": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"SpiderToxin": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"SpiderKing": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"LizardWarrior": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"Werewolf": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"FylingDemon": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    },
+	"Beholder": 
+	{
+		"Hp": "100",
+        "Power": "1",
+        "AttackSpeed": "0.5",
+        "MoveSpeed": "3.0"
+    }
+}

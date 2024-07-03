@@ -230,7 +230,7 @@ MonoBehaviour:
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  _monster: 0
+  _monster: 1
   _navAgent: {fileID: 2224596187608030025}
   _go_commander: {fileID: 0}
   isCommander: 0

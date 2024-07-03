@@ -35,7 +35,7 @@ public class Player : BaseController
         instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
 
-        Init();
+        Init(AD.Define.Creature.Player);
     }
 
     /// <summary>
@@ -54,18 +54,14 @@ public class Player : BaseController
     /// HP는 장비에 맞게 따로 계산
     /// Player의 기본 HP는 100
     /// </summary>
-    protected override void Init()
+    protected override void Init(AD.Define.Creature creture)
     {
-        base.Init();
+        base.Init(creture);
 
-        _orgHp = 100;
-        _hp = 100;
         _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
         _curCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["CurCaptureCapacity"]);
         _maxCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
-        _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
-        _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
-        _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
+
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
         AD.Managers.UpdateM._update -= TouchEvent;

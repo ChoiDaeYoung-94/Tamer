@@ -10,7 +10,7 @@ using UnityEngine.AI;
 public class Monster : BaseController
 {
     [Header("--- 세팅 ---")]
-    [SerializeField] AD.Define.Monsters _monster;
+    [SerializeField] AD.Define.Creature _monster;
     [SerializeField] NavMeshAgent _navAgent;
 
     [Header("--- 참고 ---")]
@@ -33,9 +33,14 @@ public class Monster : BaseController
     [Header("--- 테스트 ---")]
     public Transform _player = null;
 
+    private void Awake()
+    {
+        base.Init(_monster);
+    }
+
     private void OnEnable()
     {
-        Init();
+        Init(_monster);
     }
 
     private void OnDisable()
@@ -52,12 +57,10 @@ public class Monster : BaseController
     #region Functions
     /// <summary>
     /// monster 초기화
-    /// _go_commander, _list_groupMonsters의 경우 추후 MonsterGenerator.cs에서 관리
-    /// BaseController에 존재하는 공용 data의 경우 base.Init()에서 초기화 진행 -> Player.cs 수정 필요
     /// </summary>
-    protected override void Init()
+    protected override void Init(AD.Define.Creature creature)
     {
-        base.Init();
+        _hp = _orgHp;
 
         if (isAlly)
             AllySetting();

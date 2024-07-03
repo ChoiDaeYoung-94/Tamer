@@ -25,10 +25,11 @@ namespace AD
         }
 
         /// <summary>
-        /// 사용중인 monster name
+        /// 모든 객체
         /// </summary>
-        public enum Monsters
+        public enum Creature
         {
+            Player,
             Bat,
             Magma,
             Chest,
