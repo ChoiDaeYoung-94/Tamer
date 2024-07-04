@@ -36,6 +36,16 @@ namespace AD
 
             return component;
         }
+
+        public static int Plus(int n, int result)
+        {
+            while (--n != 0)
+            {
+                result += n;
+            }
+
+            return result;
+        }
         #endregion
     }
 }

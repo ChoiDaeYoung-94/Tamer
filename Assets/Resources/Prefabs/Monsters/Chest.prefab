@@ -758,9 +758,8 @@ MonoBehaviour:
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  _monster: 2
+  _monster: 3
   _navAgent: {fileID: 2757221814062477178}
-  _go_commander: {fileID: 0}
   isCommander: 0
   moveRadius: 5
   _list_groupMonsters: []

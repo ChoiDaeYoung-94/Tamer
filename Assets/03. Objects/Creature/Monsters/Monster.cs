@@ -11,14 +11,13 @@ public class Monster : BaseController
 {
     [Header("--- 세팅 ---")]
     [SerializeField] AD.Define.Creature _monster;
-    [SerializeField] NavMeshAgent _navAgent;
+    [SerializeField] internal NavMeshAgent _navAgent;
 
     [Header("--- 참고 ---")]
-    [SerializeField, Tooltip("통솔 오브젝트 - Monster 중 commander or player")] GameObject _go_commander = null;
     [SerializeField, Tooltip("Commander Monster 여부")] bool isCommander = false;
     [SerializeField, Tooltip("Commander Monster의 random 이동 최대 반경")] float moveRadius = 5.0f;
     [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] List<Monster> _list_groupMonsters = new List<Monster>();
-    [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] float flockingRadius = 2f;
+    [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] internal float flockingRadius = 2f;
     [SerializeField, Tooltip("포획 가능한 몬스터인지 여부")] bool isAbleAlly = false;
     [SerializeField, Tooltip("포획된 몬스터인지 여부")] bool isAlly = false;
     [SerializeField, Tooltip("player 및 monster 감지를 위한 Coroutine")] Coroutine _co_detection = null;
@@ -33,7 +32,7 @@ public class Monster : BaseController
     [Header("--- 테스트 ---")]
     public Transform _player = null;
 
-    private void Awake()
+    private void Start()
     {
         base.Init(_monster);
     }
@@ -100,18 +99,18 @@ public class Monster : BaseController
         if (isDetection)
         {
             AD.Debug.Log("monster", "catch player");
-        }
-        else
-        {
-            if (isCommander)
-            {
-                updateTimer += Time.deltaTime;
 
-                if (updateTimer >= updateTime)
-                {
-                    CommanderMove();
-                    updateTimer = 0;
-                }
+            return;
+        }
+
+        if (isCommander)
+        {
+            updateTimer += Time.deltaTime;
+
+            if (updateTimer >= updateTime)
+            {
+                CommanderMove();
+                updateTimer = 0;
             }
         }
     }
@@ -162,9 +161,10 @@ public class Monster : BaseController
 
         int row = 1;
         int countInRow = 0;
+        int listCount = _list_groupMonsters.Count;
         Vector3 startRowPosition = finalPosition;
 
-        for (int i = -1; ++i < _list_groupMonsters.Count;)
+        for (int i = -1; ++i < listCount;)
         {
             if (countInRow >= row)
             {
@@ -173,7 +173,15 @@ public class Monster : BaseController
                 startRowPosition += (Vector3.forward * flockingRadius * -1f);
             }
 
-            Vector3 positionOffset = _list_groupMonsters.Count - 1 == i ? Vector3.zero : (Vector3.right * (countInRow - (row - 1) / 2.0f) * flockingRadius);
+            int maxCountInRow = 0;
+            int plusrow = AD.Utils.Plus(row, 0);
+            int curRow = listCount - plusrow;
+            if (curRow > row)
+                maxCountInRow = row;
+            else
+                maxCountInRow = curRow;
+
+            Vector3 positionOffset = Vector3.right * (countInRow - (maxCountInRow - 1) / 2.0f) * flockingRadius;
             Vector3 position = startRowPosition + positionOffset;
 
             _list_groupMonsters[i]._navAgent.SetDestination(position);
@@ -186,6 +194,11 @@ public class Monster : BaseController
     {
         if (isAlly)
             gameObject.SetActive(false);
+
+        if (isCommander)
+        {
+
+        }
 
         isDie = true;
 
@@ -220,10 +233,10 @@ public class Monster : BaseController
     /// </summary>
     public void AllySetting()
     {
+        isAlly = true;
         gameObject.tag = "AllyMonster";
         gameObject.layer = 10;
         detectionLayer = 11;
-        _go_commander = Player.Instance.gameObject;
     }
     #endregion
 
