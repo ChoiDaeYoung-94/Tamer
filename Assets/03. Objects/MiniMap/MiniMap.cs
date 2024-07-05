@@ -90,7 +90,7 @@ public class MiniMap : MonoBehaviour
         _go_minimapCamera.SetActive(false);
     }
 
-    private void MiniMapDrag()//73  20 ,-18
+    private void MiniMapDrag()
     {
         if (Input.touchCount > 0)
         {

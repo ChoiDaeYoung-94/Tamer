@@ -23,5 +23,25 @@ namespace AD
             Main,
             Game
         }
+
+        /// <summary>
+        /// 모든 객체
+        /// </summary>
+        public enum Creature
+        {
+            Player,
+            Bat,
+            Magma,
+            Chest,
+            Crab,
+            RatAssassin,
+            Spider,
+            SpiderToxin,
+            SpiderKing,
+            LizardWarrior,
+            Werewolf,
+            FylingDemon,
+            Beholder
+        }
     }
 }

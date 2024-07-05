@@ -8,5 +8,6 @@
 	"Gold": "0",
 	"Power": "10",
 	"AttackSpeed": "0.5",
-	"MoveSpeed": "3.0"
+	"MoveSpeed": "3.0",
+	"AllyMonsters": "null"
 }

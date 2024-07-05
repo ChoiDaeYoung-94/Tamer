@@ -8,6 +8,7 @@ TagManager:
   - DropItem
   - GoogleAdMob
   - GoGameScene
+  - AllyMonster
   layers:
   - Default
   - TransparentFX
@@ -19,9 +20,9 @@ TagManager:
   - Tree
   - Rock
   - Map
-  - 
-  - 
-  - 
+  - Ally
+  - Enemy
+  - Die
   - 
   - 
   - 

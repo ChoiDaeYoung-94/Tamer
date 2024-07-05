@@ -47,7 +47,6 @@ public class JoyStick : MonoBehaviour
     }
 
     #region Functions
-
     /// <summary>
     /// Player.cs 에서 플레이어 초기화 후 호출
     /// </summary>
@@ -104,6 +103,8 @@ public class JoyStick : MonoBehaviour
                 new Vector3(_go_player.transform.position.x, _tr_cameraArm.position.y, _go_player.transform.position.z);
         }
     }
+
+    internal void SetSpeed(float speed) => _speed = speed;
     #endregion
 
     #region EventTrigger
@@ -129,7 +130,7 @@ public class JoyStick : MonoBehaviour
 
         // Player Ani 설정
         if (_joystickDistance > 5f)
-            Player.Instance.CrtState = BaseController.CreatureState.Run;
+            Player.Instance.CrtState = BaseController.CreatureState.Move;
     }
 
     public void Drag(BaseEventData baseEventData)
@@ -147,7 +148,7 @@ public class JoyStick : MonoBehaviour
 
         // Player Ani 설정
         if (_joystickDistance > 5f)
-            Player.Instance.CrtState = BaseController.CreatureState.Run;
+            Player.Instance.CrtState = BaseController.CreatureState.Move;
         else
             Player.Instance.CrtState = BaseController.CreatureState.Idle;
     }
