@@ -29,9 +29,6 @@ public class Monster : BaseController
     private float updateTime = 4f;
     private float updateTimer = 0f;
 
-    [Header("--- 테스트 ---")]
-    public Transform _player = null;
-
     private void Start()
     {
         base.Init(_monster);
@@ -140,12 +137,12 @@ public class Monster : BaseController
     {
         Vector3 temp_randomDirection = Vector3.zero;
 
-        float distance = Vector3.Distance(_player.position, transform.position);
+        float distance = Vector3.Distance(Player.Instance.transform.position, transform.position);
 
         if (distance > 20f)
         {
-            Vector3 directionToPlayer = (_player.position - transform.position).normalized;
-            temp_randomDirection = _player.position - directionToPlayer * 15f;
+            Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
+            temp_randomDirection = Player.Instance.transform.position - directionToPlayer * 15f;
         }
         else
         {
