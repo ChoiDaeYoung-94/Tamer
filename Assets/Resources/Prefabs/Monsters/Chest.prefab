@@ -675,6 +675,7 @@ GameObject:
   - component: {fileID: 7746338505349758498}
   - component: {fileID: 8434579520193301990}
   - component: {fileID: 3067649970754536518}
+  - component: {fileID: 7674527854321324647}
   m_Layer: 11
   m_Name: Chest
   m_TagString: Monster
@@ -724,7 +725,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4814792846775631703}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 0.8
   m_Speed: 3.5
@@ -771,7 +772,6 @@ MonoBehaviour:
   detectionLayer: 0
   _vec_detection: {x: 0, y: 0, z: 0}
   isDie: 0
-  _player: {fileID: 0}
 --- !u!136 &8434579520193301990
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -802,6 +802,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &7674527854321324647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4814792846775631703}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33a40c3e07c3c3440ab413d3d6c22d5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &4814792846775631705
 GameObject:
   m_ObjectHideFlags: 0

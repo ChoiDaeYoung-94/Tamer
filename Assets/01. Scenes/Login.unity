@@ -750,6 +750,58 @@ PrefabInstance:
       propertyPath: m_Name
       value: Manager
       objectReference: {fileID: 0}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.size
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[0]
+      value: 
+      objectReference: {fileID: 5236718036414858801, guid: 4eba08bbb9b1dd54ea3cc4ad66ab40e3, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[1]
+      value: 
+      objectReference: {fileID: 1558345009641329118, guid: 5a6ad7a629403fd40b2520bf70949016, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[2]
+      value: 
+      objectReference: {fileID: 4814792846775631703, guid: 99f8519d757a36746b7daf662c01f84b, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[3]
+      value: 
+      objectReference: {fileID: 4488960519551190376, guid: 86dec2a0f3a43ae4c8e90648a83f3b20, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[4]
+      value: 
+      objectReference: {fileID: 7936659665562753151, guid: dfc791ae57423dc47b2edb06098acd67, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[5]
+      value: 
+      objectReference: {fileID: 5129702725772968747, guid: d06cb6c4e426fe04abac969cce8b6c7b, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[6]
+      value: 
+      objectReference: {fileID: 4720033934912402048, guid: 7e0e63aab5e3c1840a65c133d383ff03, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[7]
+      value: 
+      objectReference: {fileID: 8420243121187840698, guid: 30d234f917454aa469da1316ac9ca88d, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[8]
+      value: 
+      objectReference: {fileID: 5125821977085678848, guid: b9f61f6827978e94089205029ce11cd9, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[9]
+      value: 
+      objectReference: {fileID: 3874591938963502990, guid: 61ae4c9d6cc925249a86f146b112612c, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[10]
+      value: 
+      objectReference: {fileID: 2107389947689620278, guid: 569e405f7ce4b7d44804b641fcf36c9b, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolGOs.Array.data[11]
+      value: 
+      objectReference: {fileID: 6890316156517058945, guid: 91305f9be97e7434a9f46d8814835c39, type: 3}
     - target: {fileID: 4059317841477057472, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
       propertyPath: m_Pivot.x
       value: 0

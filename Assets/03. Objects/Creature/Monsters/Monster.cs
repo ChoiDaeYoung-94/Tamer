@@ -32,6 +32,7 @@ public class Monster : BaseController
     private void Start()
     {
         base.Init(_monster);
+        _navAgent.enabled = true;
     }
 
     private void OnEnable()

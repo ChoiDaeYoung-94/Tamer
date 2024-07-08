@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5176238298499895754}
   - component: {fileID: 8088301524482525600}
   - component: {fileID: 6597031053489874884}
+  - component: {fileID: -6467016336757010622}
   m_Layer: 11
   m_Name: Spider
   m_TagString: Monster
@@ -76,7 +77,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5125821977085678848}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 0.8
   m_Speed: 3.5
@@ -123,7 +124,6 @@ MonoBehaviour:
   detectionLayer: 0
   _vec_detection: {x: 0, y: 0, z: 0}
   isDie: 0
-  _player: {fileID: 0}
 --- !u!136 &8088301524482525600
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -154,6 +154,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &-6467016336757010622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5125821977085678848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33a40c3e07c3c3440ab413d3d6c22d5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5125821977085678850
 GameObject:
   m_ObjectHideFlags: 0

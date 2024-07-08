@@ -679,6 +679,7 @@ GameObject:
   - component: {fileID: 18775120158796351}
   - component: {fileID: 1610567700113145506}
   - component: {fileID: 567056009368209573}
+  - component: {fileID: 8947026799735431564}
   m_Layer: 11
   m_Name: SpiderToxin
   m_TagString: Monster
@@ -747,7 +748,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2107389947689620278}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 1.1
   m_Speed: 3.5
@@ -794,7 +795,6 @@ MonoBehaviour:
   detectionLayer: 0
   _vec_detection: {x: 0, y: 0, z: 0}
   isDie: 0
-  _player: {fileID: 0}
 --- !u!136 &1610567700113145506
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -825,6 +825,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &8947026799735431564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2107389947689620278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33a40c3e07c3c3440ab413d3d6c22d5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2107389947689620280
 GameObject:
   m_ObjectHideFlags: 0
