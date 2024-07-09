@@ -36,6 +36,7 @@ public class InitializeGame : MonoBehaviour
 
         MiniMap.Instance.StartInit();
         AD.Managers.GameM.InitMainOrGameScene();
+        MonsterGenerator.Instance.Init();
         AD.Managers.PopupM.ReleaseException();
     }
 
