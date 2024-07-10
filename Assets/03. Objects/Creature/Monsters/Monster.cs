@@ -14,9 +14,9 @@ public class Monster : BaseController
     [SerializeField] internal NavMeshAgent _navAgent;
 
     [Header("--- 참고 ---")]
-    [SerializeField, Tooltip("Commander Monster 여부")] bool isCommander = false;
+    [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
     [SerializeField, Tooltip("Commander Monster의 random 이동 최대 반경")] float moveRadius = 5.0f;
-    [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] List<Monster> _list_groupMonsters = new List<Monster>();
+    [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] internal List<Monster> _list_groupMonsters = new List<Monster>();
     [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] internal float flockingRadius = 2f;
     [SerializeField, Tooltip("포획 가능한 몬스터인지 여부")] bool isAbleAlly = false;
     [SerializeField, Tooltip("포획된 몬스터인지 여부")] bool isAlly = false;
@@ -195,6 +195,7 @@ public class Monster : BaseController
 
         if (isCommander)
         {
+            isCommander = false;
 
         }
 

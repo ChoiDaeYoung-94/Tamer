@@ -129,18 +129,18 @@ namespace AD
             Object.DontDestroyOnLoad(_root_UI);
 
             for (int i = -1; ++i < Managers.Instance._go_poolGOs.Length;)
-                CreatePool(Managers.Instance._go_poolGOs[i], isGO: true, count: 10);
+                CreatePool(Managers.Instance._go_poolGOs[i], isGO: true, count: 20);
 
             for (int i = -1; ++i < Managers.Instance._go_poolUIs.Length;)
                 CreatePool(Managers.Instance._go_poolUIs[i], isGO: false, count: 50);
         }
 
         /// <summary>
-        /// Pool 생성 (기본 10개 씩)
+        /// Pool 생성 (기본 20개 씩)
         /// </summary>
         /// <param name="go"></param>
         /// <param name="count"></param>
-        public void CreatePool(GameObject go, bool isGO = true, int count = 10)
+        public void CreatePool(GameObject go, bool isGO = true, int count = 20)
         {
             Pool pool = new Pool();
             pool.isGO = isGO;

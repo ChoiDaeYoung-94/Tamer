@@ -2718,7 +2718,7 @@ GameObject:
   - component: {fileID: 981742750}
   - component: {fileID: 981742749}
   m_Layer: 0
-  m_Name: MonsterGenerator
+  m_Name: ActivePool
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2737,6 +2737,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _go_boss: {fileID: 7936659665562753151, guid: dfc791ae57423dc47b2edb06098acd67, type: 3}
+  maxMonsters: 20
+  curMonsters: 0
+  _go_curMonsters: []
+  curRegionOfPlayer: 1
 --- !u!4 &981742750
 Transform:
   m_ObjectHideFlags: 0
