@@ -1568,6 +1568,7 @@ GameObject:
   - component: {fileID: 8864912355196751233}
   - component: {fileID: 4991230408886652742}
   - component: {fileID: 7435360658210797996}
+  - component: {fileID: 5034660098969108699}
   m_Layer: 11
   m_Name: Beholder
   m_TagString: Monster
@@ -1617,7 +1618,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1558345009641329118}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 0.8
   m_Speed: 3.5
@@ -1664,7 +1665,6 @@ MonoBehaviour:
   detectionLayer: 0
   _vec_detection: {x: 0, y: 0, z: 0}
   isDie: 0
-  _player: {fileID: 0}
 --- !u!136 &4991230408886652742
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1695,3 +1695,15 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &5034660098969108699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1558345009641329118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33a40c3e07c3c3440ab413d3d6c22d5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

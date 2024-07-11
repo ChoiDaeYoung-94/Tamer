@@ -40,8 +40,8 @@ namespace AD
             SpiderKing,
             LizardWarrior,
             Werewolf,
-            FylingDemon,
-            Beholder
+            Beholder,
+            FylingDemon
         }
     }
 }

@@ -1597,6 +1597,7 @@ GameObject:
   - component: {fileID: 3682282576664764247}
   - component: {fileID: 3729812152761635907}
   - component: {fileID: 4011906324131190976}
+  - component: {fileID: 4857754759127132392}
   m_Layer: 11
   m_Name: FylingDemon
   m_TagString: Monster
@@ -1646,7 +1647,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7936659665562753151}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 1.1
   m_Speed: 3.5
@@ -1682,8 +1683,9 @@ MonoBehaviour:
   _moveSpeed: 0
   _monster: 11
   _navAgent: {fileID: 1406403708960966276}
-  isCommander: 0
-  moveRadius: 5
+  isCommander: 1
+  isBoss: 1
+  moveRadius: 3
   _list_groupMonsters: []
   flockingRadius: 2
   isAbleAlly: 0
@@ -1693,7 +1695,6 @@ MonoBehaviour:
   detectionLayer: 0
   _vec_detection: {x: 0, y: 0, z: 0}
   isDie: 0
-  _player: {fileID: 0}
 --- !u!136 &3729812152761635907
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1724,6 +1725,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &4857754759127132392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7936659665562753151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33a40c3e07c3c3440ab413d3d6c22d5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7936659665562753473
 GameObject:
   m_ObjectHideFlags: 0
