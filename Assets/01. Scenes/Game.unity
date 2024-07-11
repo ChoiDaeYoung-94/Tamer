@@ -2736,10 +2736,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfe0052647338454398989b4308aabaa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_boss: {fileID: 7936659665562753151, guid: dfc791ae57423dc47b2edb06098acd67, type: 3}
-  maxMonsters: 20
+  maxMonsters: 16
   curMonsters: 0
+  isBoss: 0
   _go_curMonsters: []
+  spawnRadius: 12
   curRegionOfPlayer: 1
 --- !u!4 &981742750
 Transform:

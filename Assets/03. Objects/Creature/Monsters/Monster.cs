@@ -15,6 +15,7 @@ public class Monster : BaseController
 
     [Header("--- 참고 ---")]
     [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
+    [SerializeField, Tooltip("Boss Monster 여부")] internal bool isBoss = false;
     [SerializeField, Tooltip("Commander Monster의 random 이동 최대 반경")] float moveRadius = 5.0f;
     [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] internal List<Monster> _list_groupMonsters = new List<Monster>();
     [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] internal float flockingRadius = 2f;
@@ -65,8 +66,11 @@ public class Monster : BaseController
         {
             detectionLayer = 10;
 
-            int temp_probability = isCommander ? 50 : 10;
-            isAbleAlly = Random.Range(0, 100) < temp_probability;
+            int temp_probability = isCommander ? 40 : 20;
+            if (isBoss)
+                isAbleAlly = Random.Range(0, 100) < 5;
+            else
+                isAbleAlly = Random.Range(0, 100) < temp_probability;
         }
 
         _co_detection = StartCoroutine(Detection());
@@ -140,7 +144,7 @@ public class Monster : BaseController
 
         float distance = Vector3.Distance(Player.Instance.transform.position, transform.position);
 
-        if (distance > 20f)
+        if (distance > 20f && !isBoss)
         {
             Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
             temp_randomDirection = Player.Instance.transform.position - directionToPlayer * 15f;
@@ -155,7 +159,10 @@ public class Monster : BaseController
         NavMeshHit hit;
         Vector3 finalPosition = Vector3.zero;
         if (NavMesh.SamplePosition(temp_randomDirection, out hit, 5f, 1))
+        {
             finalPosition = hit.position;
+            _navAgent.SetDestination(finalPosition);
+        }
 
         int row = 1;
         int countInRow = 0;
@@ -182,7 +189,8 @@ public class Monster : BaseController
             Vector3 positionOffset = Vector3.right * (countInRow - (maxCountInRow - 1) / 2.0f) * flockingRadius;
             Vector3 position = startRowPosition + positionOffset;
 
-            _list_groupMonsters[i]._navAgent.SetDestination(position);
+            if (NavMesh.SamplePosition(position, out hit, 5f, 1))
+                _list_groupMonsters[i]._navAgent.SetDestination(hit.position);
 
             countInRow++;
         }
@@ -197,6 +205,11 @@ public class Monster : BaseController
         {
             isCommander = false;
 
+        }
+
+        if (isBoss)
+        {
+            MonsterGenerator.Instance._go_boss = null;
         }
 
         isDie = true;

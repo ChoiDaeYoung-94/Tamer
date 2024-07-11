@@ -752,7 +752,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
       propertyPath: _go_poolGOs.Array.size
-      value: 11
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
       propertyPath: _go_poolGOs.Array.data[0]
@@ -801,7 +801,7 @@ PrefabInstance:
     - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
       propertyPath: _go_poolGOs.Array.data[11]
       value: 
-      objectReference: {fileID: 6890316156517058945, guid: 91305f9be97e7434a9f46d8814835c39, type: 3}
+      objectReference: {fileID: 7936659665562753151, guid: dfc791ae57423dc47b2edb06098acd67, type: 3}
     - target: {fileID: 4059317841477057472, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
       propertyPath: m_Pivot.x
       value: 0

@@ -1597,7 +1597,7 @@ GameObject:
   - component: {fileID: 3682282576664764247}
   - component: {fileID: 3729812152761635907}
   - component: {fileID: 4011906324131190976}
-  - component: {fileID: 8087318917194143037}
+  - component: {fileID: 4857754759127132392}
   m_Layer: 11
   m_Name: FylingDemon
   m_TagString: Monster
@@ -1683,8 +1683,9 @@ MonoBehaviour:
   _moveSpeed: 0
   _monster: 11
   _navAgent: {fileID: 1406403708960966276}
-  isCommander: 0
-  moveRadius: 5
+  isCommander: 1
+  isBoss: 1
+  moveRadius: 3
   _list_groupMonsters: []
   flockingRadius: 2
   isAbleAlly: 0
@@ -1724,7 +1725,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &8087318917194143037
+--- !u!114 &4857754759127132392
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
