@@ -46,7 +46,13 @@ namespace AD
             if (isReceive)
             {
                 isReceive = !isReceive;
-                BuffingMan.Instance.OnAdSuccess();
+
+                string temp_sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+
+                if (temp_sceneName == "Main")
+                    BuffingMan.Instance.OnAdSuccess();
+                else if (temp_sceneName == "Game")
+                    Portal.Instance.RewardHeal();
             }
         }
 

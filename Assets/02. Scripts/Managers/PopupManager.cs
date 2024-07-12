@@ -19,6 +19,8 @@ namespace AD
         GameObject _go_popupLobby = null;
         [SerializeField, Tooltip("게임 종료 팝업")]
         GameObject _go_popupExit = null;
+        [SerializeField, Tooltip("게임씬 힐 보상 팝업")]
+        GameObject _go_popupHeal = null;
 
         [Tooltip("popup을 관리할 Stack, Enable - Push, Disable - Pop")]
         Stack<GameObject> _popupStack = new Stack<GameObject>();
@@ -122,9 +124,17 @@ namespace AD
 
         internal void PopupExit() => _go_popupExit.SetActive(true);
 
+        internal void PopupHeal() => _go_popupHeal.SetActive(true);
+
         public void GoLobby() => AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Main);
 
         public void ExitGame() => Application.Quit();
+
+        public void Heal()
+        {
+            if (!AD.Managers.GoogleAdMobM.isInprogress)
+                AD.Managers.GoogleAdMobM.ShowRewardedAd();
+        }
 
         internal void SetException() => isException = true;
 
