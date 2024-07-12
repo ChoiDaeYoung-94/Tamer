@@ -9,6 +9,7 @@ TagManager:
   - GoogleAdMob
   - GoGameScene
   - AllyMonster
+  - Portal
   layers:
   - Default
   - TransparentFX
