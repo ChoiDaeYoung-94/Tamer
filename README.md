@@ -20,15 +20,31 @@ TODO
 - Unity2020.3.25f1 LTS
 
 
-## SDK, Package ...
+## SDK, Package, Library ...
 
 - [PlayFabEditorExtensions, PlayFabSDK](https://docs.microsoft.com/ko-kr/gaming/playfab/sdks/unity3d/installing-unity3d-sdk)
 - [play games plugin](https://github.com/playgameservices/play-games-plugin-for-unity/releases)
+- [Google AdMob](https://developers.google.com/admob/android/quick-start?hl=ko)
+- [MiniJson ](https://github.com/Unity-Technologies/UnityCsReference/blob/master/External/JsonParsers/MiniJson/MiniJSON.cs)
+- [IngameDebugConsole](https://assetstore.unity.com/packages/tools/gui/in-game-debug-console-68068)
+- [Safe Area Helper](https://assetstore.unity.com/packages/tools/gui/safe-area-helper-130488)
+
+
+## Technologies and Techniques
+- MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
+- 몬스터 군집이동 구현
+- CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리
+- Singleton 기법 개선(Managers.cs) 및 사용하는 Manager코드 개선
+- Login 시 체크해야 할 부분을 State Pattern으로 구현
+- PoolManager.cs를 통해 Object Pooling 적용
+- google, playfab 로그인 적용
+  - playfab 데이터 저장을 위해 사용
 
 
 ## Download
 
 - TODO > GOOGLE PLAY
+- [APK](https://drive.google.com/file/d/1bV78lKlD4uujYy79wkdofEt0yIv41Dr2/view?usp=drive_link)
 - Clone the repository locally:
 ~~~
 git clone https://github.com/ChoiDaeYoung-94/Tamer.git
