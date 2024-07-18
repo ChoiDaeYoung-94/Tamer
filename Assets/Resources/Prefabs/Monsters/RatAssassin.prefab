@@ -1112,6 +1112,7 @@ MonoBehaviour:
   _monster: 5
   _navAgent: {fileID: 6099953079655826109}
   isCommander: 0
+  isBoss: 0
   moveRadius: 5
   _list_groupMonsters: []
   flockingRadius: 2
@@ -1132,10 +1133,10 @@ CapsuleCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 1
   m_Enabled: 1
-  m_Radius: 0.7
-  m_Height: 2
+  m_Radius: 1.5
+  m_Height: 4
   m_Direction: 1
-  m_Center: {x: 0, y: 1, z: 0}
+  m_Center: {x: 0, y: 1, z: 0.25}
 --- !u!54 &8644645540145390114
 Rigidbody:
   m_ObjectHideFlags: 0

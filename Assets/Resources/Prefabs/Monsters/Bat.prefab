@@ -234,6 +234,7 @@ MonoBehaviour:
   _monster: 1
   _navAgent: {fileID: 2224596187608030025}
   isCommander: 0
+  isBoss: 0
   moveRadius: 5
   _list_groupMonsters: []
   flockingRadius: 2
@@ -254,8 +255,8 @@ CapsuleCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 1
   m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 0.8
+  m_Radius: 1
+  m_Height: 2.75
   m_Direction: 1
   m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!54 &8192251206820491823
