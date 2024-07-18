@@ -53,6 +53,7 @@ namespace AD
             Player.Instance.transform.transform.position = _isGame ? _vec_player : Vector3.zero;
             Player.Instance.transform.transform.rotation = Quaternion.identity;
             Player.Instance.transform.parent.gameObject.SetActive(true);
+            Player.Instance.HandleAttackCoroutine(isGame: _isGame);
         }
         #endregion
     }

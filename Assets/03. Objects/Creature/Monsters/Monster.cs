@@ -221,6 +221,8 @@ public class Monster : BaseController
 
         }
 
+        Player.Instance.CheckTarget(target: gameObject);
+
         StartCoroutine(AfterDie());
     }
 

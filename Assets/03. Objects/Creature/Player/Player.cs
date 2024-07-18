@@ -30,6 +30,9 @@ public class Player : BaseController
 
     [Header("--- 참고 ---")]
     [SerializeField] bool isAllyAvailable = false;
+    [SerializeField, Tooltip("현재 타겟 몬스터")] GameObject _go_targetMonster = null;
+    [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle;
+    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget;
 
     /// <summary>
     /// LoginCheck.cs 에서 생성
@@ -51,6 +54,11 @@ public class Player : BaseController
         JoyStick.Instance.StartInit();
         CameraManage.Instance.StartInit();
         PlayerUICanvas.Instance.StartInit();
+    }
+
+    private void OnDisable()
+    {
+        DisableCoroutine();
     }
 
     private void Update()
@@ -155,17 +163,86 @@ public class Player : BaseController
             countInRow++;
         }
     }
+
+    internal void CheckTarget(GameObject target)
+    {
+        if (target == _go_targetMonster)
+            _go_targetMonster = null;
+    }
+
+    internal void HandleAttackCoroutine(bool isGame)
+    {
+        if (isGame)
+        {
+            DisableCoroutine();
+
+            _co_battle = StartCoroutine(Battle());
+            _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
+        }
+    }
+
+    IEnumerator Battle()
+    {
+        while (true)
+        {
+            if (_go_targetMonster != null)
+            {
+                CrtState = CreatureState.Attack;
+                yield return new WaitForSeconds(1f / _attackSpeed);
+            }
+
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// 추후 몬스터 객체 크기에 따라 distance 비교 차이를 둬야 함
+    /// 몬스터 Data에 추가해도 괜찮을 것 같음
+    /// </summary>
+    /// <returns></returns>
+    IEnumerator DistanceOfTarget()
+    {
+        while (true)
+        {
+            if (_go_targetMonster != null)
+            {
+                float distance = Vector3.Distance(Player.Instance.transform.position, _go_targetMonster.transform.position);
+
+                if (distance > 1.5f)
+                    _go_targetMonster = null;
+            }
+
+            yield return null;
+        }
+    }
+
+    private void DisableCoroutine()
+    {
+        if (_co_battle != null)
+        {
+            StopCoroutine(_co_battle);
+            _co_battle = null;
+
+            StopCoroutine(_co_distanceOfTarget);
+            _co_distanceOfTarget = null;
+        }
+    }
     #endregion
 
     private void OnTriggerEnter(Collider col)
     {
-        if (col.CompareTag("Monster"))
+        if (col.CompareTag("DropItem"))
         {
 
         }
+    }
 
-        if (col.CompareTag("DropItem"))
+    private void OnTriggerStay(Collider col)
+    {
+        if (col.CompareTag("Monster"))
         {
+            if (_go_targetMonster == null)
+                _go_targetMonster = col.gameObject;
 
         }
     }
