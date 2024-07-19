@@ -119,13 +119,16 @@ public class MonsterGenerator : MonoBehaviour
 
                 for (int i = 0; ++i < groupSize;)
                 {
-                    GameObject monster = AD.Managers.PoolM.PopFromPool(temp_name);
+                    GameObject go_monster = AD.Managers.PoolM.PopFromPool(temp_name);
+                    Monster monster = go_monster.GetComponent<Monster>();
 
                     Vector3 temp_vec = i % 2 == 0 ? new Vector3(i / 2, 0, 0) : new Vector3(0, 0, i);
-                    monster.transform.position = commanderMonster.transform.position + temp_vec;
-                    commanderMonster._list_groupMonsters.Add(monster.GetComponent<Monster>());
+                    go_monster.transform.position = commanderMonster.transform.position + temp_vec;
 
-                    PlusMonster(monster);
+                    commanderMonster._list_groupMonsters.Add(monster);
+                    monster._commanderMonster = commanderMonster;
+
+                    PlusMonster(go_monster);
                 }
             }
         }

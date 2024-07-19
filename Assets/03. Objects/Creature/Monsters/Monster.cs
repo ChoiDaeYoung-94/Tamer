@@ -15,6 +15,7 @@ public class Monster : BaseController
 
     [Header("--- 참고 ---")]
     [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
+    [SerializeField, Tooltip("Commander Monster가 아닐 경우")] internal Monster _commanderMonster = null;
     [SerializeField, Tooltip("Boss Monster 여부")] internal bool isBoss = false;
     [SerializeField, Tooltip("Commander Monster의 random 이동 최대 반경")] float moveRadius = 5.0f;
     [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] internal List<Monster> _list_groupMonsters = new List<Monster>();
@@ -216,7 +217,11 @@ public class Monster : BaseController
         {
             isCommander = false;
 
+            if (_list_groupMonsters.Count > 0)
+                _list_groupMonsters[0].DelegateCommander(_list_groupMonsters);
         }
+        else
+            _commanderMonster.UpdateMonsterList(this);
 
         if (isBoss)
         {
@@ -235,6 +240,26 @@ public class Monster : BaseController
         Player.Instance.CheckTarget(target: gameObject);
 
         StartCoroutine(AfterDie());
+    }
+
+    internal void DelegateCommander(List<Monster> list_monster)
+    {
+        isCommander = true;
+
+        for (int i = -1; ++i < list_monster.Count;)
+        {
+            Monster monster = list_monster[i];
+            if (monster != this)
+            {
+                monster._commanderMonster = this;
+                _list_groupMonsters.Add(monster);
+            }
+        }
+    }
+
+    internal void UpdateMonsterList(Monster monster)
+    {
+        _list_groupMonsters.Remove(monster);
     }
 
     IEnumerator AfterDie()
