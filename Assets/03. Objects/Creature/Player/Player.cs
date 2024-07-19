@@ -24,13 +24,15 @@ public class Player : BaseController
     [SerializeField] private GameObject _buff = null;
 
     [Header("--- 플레이어 버프 시 적용되는 status ---")]
-    [SerializeField] public float _bufPower = 0;
-    [SerializeField] public float _bufAttackSpeed = 0;
-    [SerializeField] public float _bufMoveSpeed = 0;
+    [SerializeField] private bool isBuffing = false;
+    [SerializeField] public float _buffPower = 0;
+    [SerializeField] public float _buffAttackSpeed = 0;
+    [SerializeField] public float _buffMoveSpeed = 0;
 
     [Header("--- 참고 ---")]
     [SerializeField] bool isAllyAvailable = false;
     [SerializeField, Tooltip("현재 타겟 몬스터")] GameObject _go_targetMonster = null;
+    [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
     [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle;
     [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget;
 
@@ -120,16 +122,20 @@ public class Player : BaseController
 
     internal void SetBuff()
     {
-        _bufPower = _power * 1.3f;
-        _bufAttackSpeed = _attackSpeed * 1.3f;
-        _bufMoveSpeed = _moveSpeed * 2f;
-        JoyStick.Instance.SetSpeed(_bufMoveSpeed);
+        isBuffing = true;
+
+        _buffPower = _power * 1.3f;
+        _buffAttackSpeed = _attackSpeed * 1.3f;
+        _buffMoveSpeed = _moveSpeed * 2f;
+        JoyStick.Instance.SetSpeed(_buffMoveSpeed);
 
         _buff.SetActive(true);
     }
 
     internal void EndBuff()
     {
+        isBuffing = false;
+
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
         _buff.SetActive(false);
@@ -164,10 +170,26 @@ public class Player : BaseController
         }
     }
 
+    /// <summary>
+    /// monster가 죽은 뒤 호출
+    /// </summary>
+    /// <param name="target"></param>
     internal void CheckTarget(GameObject target)
     {
         if (target == _go_targetMonster)
             _go_targetMonster = null;
+    }
+
+    /// <summary>
+    /// 플레이어 공격 애니메이션에서 진행
+    /// </summary>
+    private void AttackTarget()
+    {
+        if (_go_targetMonster != null)
+        {
+            float power = isBuffing ? _buffPower : Power;
+            targetMonster.GetDamage(power);
+        }
     }
 
     internal void HandleAttackCoroutine(bool isGame)
@@ -239,11 +261,13 @@ public class Player : BaseController
 
     private void OnTriggerStay(Collider col)
     {
-        if (col.CompareTag("Monster"))
+        if (col.CompareTag("Monster") && col.gameObject.layer == 11)
         {
             if (_go_targetMonster == null)
+            {
                 _go_targetMonster = col.gameObject;
-
+                targetMonster = _go_targetMonster.GetComponent<Monster>();
+            }
         }
     }
 

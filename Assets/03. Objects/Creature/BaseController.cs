@@ -45,14 +45,18 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] Animator _crtAni = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
-    [SerializeField] protected int _orgHp = 0;
-    public int OrgHp { get { return _orgHp; } }
-    [SerializeField] protected int _hp = 0;
-    public int Hp { get { return _hp; } }
+    [SerializeField] protected float _orgHp = 0;
+    public float OrgHp { get { return _orgHp; } }
+
+    [SerializeField] protected float _hp = 0;
+    public float Hp { get { return _hp; } set { _hp = value; } }
+
     [SerializeField] protected float _power = 0f;
     public float Power { get { return _power; } }
+
     [SerializeField] protected float _attackSpeed = 0f;
     public float AttackSpeed { get { return _attackSpeed; } }
+
     [SerializeField] protected float _moveSpeed = 0f;
     public float MoveSpeed { get { return _moveSpeed; } }
 
@@ -92,7 +96,7 @@ public abstract class BaseController : MonoBehaviour
             string key = creature.ToString();
             Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[key] as Dictionary<string, object>;
 
-            _hp = _orgHp = int.Parse(dic_temp["Hp"].ToString());
+            _hp = _orgHp = float.Parse(dic_temp["Hp"].ToString());
             _power = float.Parse(dic_temp["Power"].ToString());
             _attackSpeed = float.Parse(dic_temp["AttackSpeed"].ToString());
             _moveSpeed = float.Parse(dic_temp["MoveSpeed"].ToString());

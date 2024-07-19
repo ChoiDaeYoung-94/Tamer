@@ -109,9 +109,9 @@ public class PlayerUICanvas : MonoBehaviour
         _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";
         _TMP_POPgold.text = $"Gold - {Player.Instance.Gold}";
 
-        _TMP_POPpower.text = _isBuff ? $"Power - {Player.Instance._bufPower}" : $"Power - {Player.Instance.Power}";
-        _TMP_POPattackSpeed.text = _isBuff ? $"AttackSpeed - {Player.Instance._bufAttackSpeed}" : $"AttackSpeed - {Player.Instance.AttackSpeed}";
-        _TMP_POPmoveSpeed.text = _isBuff ? $"MoveSpeed - {Player.Instance._bufMoveSpeed}" : $"MoveSpeed - {Player.Instance.MoveSpeed}";
+        _TMP_POPpower.text = _isBuff ? $"Power - {Player.Instance._buffPower}" : $"Power - {Player.Instance.Power}";
+        _TMP_POPattackSpeed.text = _isBuff ? $"AttackSpeed - {Player.Instance._buffAttackSpeed}" : $"AttackSpeed - {Player.Instance.AttackSpeed}";
+        _TMP_POPmoveSpeed.text = _isBuff ? $"MoveSpeed - {Player.Instance._buffMoveSpeed}" : $"MoveSpeed - {Player.Instance.MoveSpeed}";
     }
 
     /// <summary>

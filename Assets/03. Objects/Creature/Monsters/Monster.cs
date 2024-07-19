@@ -64,7 +64,7 @@ public class Monster : BaseController
             AllySetting();
         else
         {
-            detectionLayer = 10;
+            detectionLayer = LayerMask.NameToLayer("Ally");
 
             int temp_probability = isCommander ? 40 : 20;
             if (isBoss)
@@ -82,7 +82,7 @@ public class Monster : BaseController
         {
             isAlly = false;
             gameObject.tag = "Monster";
-            gameObject.layer = 11;
+            gameObject.layer = LayerMask.NameToLayer("Enemy");
         }
 
         updateTimer = 0f;
@@ -196,6 +196,17 @@ public class Monster : BaseController
         }
     }
 
+    internal void GetDamage(float damage)
+    {
+        if (Hp <= 0)
+            return;
+
+        Hp -= damage;
+
+        if (Hp <= 0)
+            Die();
+    }
+
     private void Die()
     {
         if (isAlly)
@@ -214,7 +225,7 @@ public class Monster : BaseController
 
         isDie = true;
 
-        gameObject.layer = 12;
+        gameObject.layer = LayerMask.NameToLayer("Die");
 
         if (isAbleAlly)
         {
@@ -249,8 +260,8 @@ public class Monster : BaseController
     {
         isAlly = true;
         gameObject.tag = "AllyMonster";
-        gameObject.layer = 10;
-        detectionLayer = 11;
+        gameObject.layer = LayerMask.NameToLayer("Ally");
+        detectionLayer = LayerMask.NameToLayer("Enemy");
     }
     #endregion
 
