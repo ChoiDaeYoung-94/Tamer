@@ -97,6 +97,7 @@ public class Monster : BaseController
         }
     }
 
+    #region MonsterAI
     private void MonsterAI()
     {
         if (isDetection)
@@ -139,6 +140,13 @@ public class Monster : BaseController
         }
     }
 
+    /// <summary>
+    /// commander가 플레이어와 특정 거리 이상 멀어질 경우 가까워지도록 하고
+    /// commander를 이동시킨 후 나머지 구성원들이 군집형태로 이동
+    /// 한 행에 들어갈 수 있는 몬스터의 수는 한정적
+    /// 볼링 핀 처럼 1, 2, 3, 4 이런식으로 쭉 나열하지만 
+    /// 일단 몬스터 최대 객체수는 4로 지정
+    /// </summary>
     private void CommanderMove()
     {
         Vector3 temp_randomDirection = Vector3.zero;
@@ -153,8 +161,8 @@ public class Monster : BaseController
         else
         {
             temp_randomDirection = Random.insideUnitSphere * moveRadius;
-            temp_randomDirection.y = 0f;
             temp_randomDirection += transform.position;
+            temp_randomDirection.y = transform.position.y;
         }
 
         NavMeshHit hit;
@@ -165,10 +173,15 @@ public class Monster : BaseController
             _navAgent.SetDestination(finalPosition);
         }
 
-        int row = 1;
+        GroupMonsterMove(finalPosition);
+    }
+
+    private void GroupMonsterMove(Vector3 commanderDestination)
+    {
+        int row = 2;
         int countInRow = 0;
         int listCount = _list_groupMonsters.Count;
-        Vector3 startRowPosition = finalPosition;
+        Vector3 startRowPosition = commanderDestination;
 
         for (int i = -1; ++i < listCount;)
         {
@@ -176,26 +189,30 @@ public class Monster : BaseController
             {
                 row++;
                 countInRow = 0;
+
+                // -z 방향으로 군집
                 startRowPosition += (Vector3.forward * flockingRadius * -1f);
             }
 
-            int maxCountInRow = 0;
+            // 현재 행에서 정렬해야 하는 남은 몬스터의 수를 반환하고
+            // 그 수가 현재 행에서 정렬할 수 있는 수 보다 많을 시 현재 행에서 정렬할 수 있는 몬스터 수를 반환 하도록
+            // 첫 번째 행은 commander이므로 2번 째 행 부터 시작하고 list에는 commander를 포함하지 않기 때문에 1을 더해줘서 계산
             int plusrow = AD.Utils.Plus(row, 0);
-            int curRow = listCount - plusrow;
-            if (curRow > row)
-                maxCountInRow = row;
-            else
-                maxCountInRow = curRow;
+            int curRow = listCount + 1 - plusrow;
+            int maxCountInRow = curRow > row ? row : curRow;
 
+            // 각 행에서 객체수에 따라 x축에 간격을 두어 군집
             Vector3 positionOffset = Vector3.right * (countInRow - (maxCountInRow - 1) / 2.0f) * flockingRadius;
             Vector3 position = startRowPosition + positionOffset;
 
+            NavMeshHit hit;
             if (NavMesh.SamplePosition(position, out hit, 5f, 1))
                 _list_groupMonsters[i]._navAgent.SetDestination(hit.position);
 
             countInRow++;
         }
     }
+    #endregion
 
     internal void GetDamage(float damage)
     {
@@ -211,9 +228,11 @@ public class Monster : BaseController
     private void Die()
     {
         if (isAlly)
-            gameObject.SetActive(false);
+            AD.Managers.PoolM.PushToPool(gameObject);
 
-        if (isCommander)
+        if (isBoss)
+            MonsterGenerator.Instance._go_boss = null;
+        else if (isCommander)
         {
             isCommander = false;
 
@@ -222,11 +241,6 @@ public class Monster : BaseController
         }
         else
             _commanderMonster.UpdateMonsterList(this);
-
-        if (isBoss)
-        {
-            MonsterGenerator.Instance._go_boss = null;
-        }
 
         isDie = true;
 
@@ -268,7 +282,7 @@ public class Monster : BaseController
         {
             if (!isDetection)
             {
-                gameObject.SetActive(false);
+                AD.Managers.PoolM.PushToPool(gameObject);
                 yield break;
             }
 

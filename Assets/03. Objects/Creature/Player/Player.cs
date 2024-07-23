@@ -141,6 +141,9 @@ public class Player : BaseController
         _buff.SetActive(false);
     }
 
+    /// <summary>
+    /// Monster.cs -> GroupMonsterMove()와 동일
+    /// </summary>
     private void AllyMove()
     {
         int row = 2;
