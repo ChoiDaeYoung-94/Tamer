@@ -12,6 +12,7 @@ public class Monster : BaseController
     [Header("--- 세팅 ---")]
     [SerializeField] AD.Define.Creature _monster;
     [SerializeField] internal NavMeshAgent _navAgent;
+    [SerializeField] GameObject _go_capture = null;
 
     [Header("--- 참고 ---")]
     [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
