@@ -95,15 +95,12 @@ public class PlayerUICanvas : MonoBehaviour
 
         _Slider_HP.maxValue = Player.Instance.OrgHp;
         _Slider_HP.value = Player.Instance.Hp;
-
-        if (_go_Popup_playerInfo.activeSelf)
-            UpdatePopPlayerInfo();
     }
 
     /// <summary>
     /// PlayerInfo Popup Update
     /// </summary>
-    internal void UpdatePopPlayerInfo()
+    private void UpdatePopPlayerInfo()
     {
         _TMP_POPplayerNickName.text = $"NickName - {AD.Managers.DataM._dic_player["NickName"]}";
         _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";

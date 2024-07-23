@@ -91,8 +91,7 @@ public class BuffingMan : MonoBehaviour
         _go_admob.SetActive(false);
         UnableAdMob();
 
-        AD.Managers.DataM._dic_player["GoogleAdMob"] = DateTime.Now.ToString();
-        AD.Managers.DataM.UpdateLocalData();
+        AD.Managers.DataM.UpdateLocalData(key: "GoogleAdMob", value: DateTime.Now.ToString());
 
         CheckAdMob();
     }

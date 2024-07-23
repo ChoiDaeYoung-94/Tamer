@@ -30,6 +30,7 @@ public class Monster : BaseController
     [SerializeField] private bool isDie = false;
     private float updateTime = 4f;
     private float updateTimer = 0f;
+    [SerializeField, Tooltip("죽을 시 플레이어 보상 골드")] int gold = 0;
 
     private void Start()
     {
@@ -64,15 +65,9 @@ public class Monster : BaseController
         if (isAlly)
             AllySetting();
         else
-        {
-            detectionLayer = LayerMask.NameToLayer("Ally");
+            BaseSetting();
 
-            int temp_probability = isCommander ? 40 : 20;
-            if (isBoss)
-                isAbleAlly = Random.Range(0, 100) < 5;
-            else
-                isAbleAlly = Random.Range(0, 100) < temp_probability;
-        }
+        GoldSetting();
 
         _co_detection = StartCoroutine(Detection());
     }
@@ -251,7 +246,7 @@ public class Monster : BaseController
 
         }
 
-        Player.Instance.CheckTarget(target: gameObject);
+        Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: gold);
 
         StartCoroutine(AfterDie());
     }
@@ -290,6 +285,15 @@ public class Monster : BaseController
         }
     }
 
+    #region Setting
+    private void GoldSetting()
+    {
+        Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_monster.ToString()] as Dictionary<string, object>;
+
+        int temp_gold = int.Parse(dic_temp["Gold"].ToString());
+        gold = temp_gold + Random.Range(-temp_gold, temp_gold + 1);
+    }
+
     /// <summary>
     /// ally 세팅
     /// Init 시
@@ -302,6 +306,19 @@ public class Monster : BaseController
         gameObject.layer = LayerMask.NameToLayer("Ally");
         detectionLayer = LayerMask.NameToLayer("Enemy");
     }
+
+    private void BaseSetting()
+    {
+        detectionLayer = LayerMask.NameToLayer("Ally");
+
+        int temp_probability = isCommander ? 40 : 20;
+        if (isBoss)
+            isAbleAlly = Random.Range(0, 100) < 5;
+        else
+            isAbleAlly = Random.Range(0, 100) < temp_probability;
+    }
+    #endregion
+
     #endregion
 
     private void OnTriggerEnter(Collider col)

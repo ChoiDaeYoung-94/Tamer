@@ -174,16 +174,6 @@ public class Player : BaseController
     }
 
     /// <summary>
-    /// monster가 죽은 뒤 호출
-    /// </summary>
-    /// <param name="target"></param>
-    internal void CheckTarget(GameObject target)
-    {
-        if (target == _go_targetMonster)
-            _go_targetMonster = null;
-    }
-
-    /// <summary>
     /// 플레이어 공격 애니메이션에서 진행
     /// </summary>
     private void AttackTarget()
@@ -252,15 +242,21 @@ public class Player : BaseController
             _co_distanceOfTarget = null;
         }
     }
-    #endregion
 
-    private void OnTriggerEnter(Collider col)
+    /// <summary>
+    /// monster가 죽은 뒤 호출
+    /// </summary>
+    /// <param name="target"></param>
+    internal void NotifyPlayerOfDeath(GameObject target, int gold)
     {
-        if (col.CompareTag("DropItem"))
-        {
+        if (target == _go_targetMonster)
+            _go_targetMonster = null;
 
-        }
+        _gold += gold;
+        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
+    #endregion
 
     private void OnTriggerStay(Collider col)
     {
