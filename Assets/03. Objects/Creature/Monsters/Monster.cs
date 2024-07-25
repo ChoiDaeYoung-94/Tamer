@@ -184,7 +184,7 @@ public class Monster : BaseController
         int row = 2;
         int countInRow = 0;
         int listCount = _list_groupMonsters.Count;
-        Vector3 startRowPosition = commanderDestination;
+        Vector3 startRowPosition = commanderDestination + Vector3.forward * flockingRadius * -1f;
 
         for (int i = -1; ++i < listCount;)
         {
