@@ -36,6 +36,7 @@ public class PlayerUICanvas : MonoBehaviour
 
     [Header("--- ETC ---")]
     [SerializeField, Tooltip("Game scene 진입 시")] GameObject _go_panel_gamesceneUI = null;
+    [SerializeField, Tooltip("monster를 포획 가능 할 경우 포획 버튼 활성화")] GameObject _go_capture = null;
 
     [Header("--- 참고용 ---")]
     private bool _isBuff = false;
@@ -63,6 +64,8 @@ public class PlayerUICanvas : MonoBehaviour
     }
 
     #region Functions
+
+    #region Data Setting
     /// <summary>
     /// 뷰 세팅
     /// Main scene 진입 시, Main Game scene 전환 시
@@ -110,6 +113,7 @@ public class PlayerUICanvas : MonoBehaviour
         _TMP_POPattackSpeed.text = _isBuff ? $"AttackSpeed - {Player.Instance._buffAttackSpeed}" : $"AttackSpeed - {Player.Instance.AttackSpeed}";
         _TMP_POPmoveSpeed.text = _isBuff ? $"MoveSpeed - {Player.Instance._buffMoveSpeed}" : $"MoveSpeed - {Player.Instance.MoveSpeed}";
     }
+    #endregion
 
     /// <summary>
     /// panel_playerInfo 클릭 시
@@ -179,6 +183,16 @@ public class PlayerUICanvas : MonoBehaviour
         UpdatePopPlayerInfo();
     }
     #endregion
+
+    internal void EnableCapture() => _go_capture.SetActive(true);
+
+    internal void DisableCapture() => _go_capture.SetActive(false);
+
+    public void OnClickCapture()
+    {
+        Player.Instance.Capture();
+        _go_capture.SetActive(false);
+    }
 
     #endregion
 

@@ -253,6 +253,11 @@ namespace AD
             if (temp_result < 0)
                 _dic_player["MoveSpeed"] = _dic_PlayFabPlayerData["MoveSpeed"].Value.ToString();
 
+            string temp_ally = _dic_PlayFabPlayerData["AllyMonsters"].Value;
+            temp_result = CompareValues(_dic_player["AllyMonsters"].ToString(), temp_ally);
+            if (temp_result < 0 && !temp_ally.Equals("null"))
+                _dic_player["AllyMonsters"] = _dic_PlayFabPlayerData["AllyMonsters"].Value.ToString();
+
             if (_isConflict)
                 AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);
             else
