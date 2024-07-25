@@ -10,9 +10,9 @@ using UnityEngine.AI;
 public class Monster : BaseController
 {
     [Header("--- 세팅 ---")]
-    [SerializeField] AD.Define.Creature _monster;
+    [SerializeField] internal AD.Define.Creature _monster;
     [SerializeField] internal NavMeshAgent _navAgent;
-    [SerializeField] GameObject _go_capture = null;
+    [SerializeField, Tooltip("포획 가능할 시 생기는 effect")] GameObject _go_capture = null;
 
     [Header("--- 참고 ---")]
     [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
@@ -23,7 +23,8 @@ public class Monster : BaseController
     [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] internal float flockingRadius = 2f;
     [SerializeField, Tooltip("포획 가능한 몬스터인지 여부")] bool isAbleAlly = false;
     [SerializeField, Tooltip("포획된 몬스터인지 여부")] bool isAlly = false;
-    [SerializeField, Tooltip("player 및 monster 감지를 위한 Coroutine")] Coroutine _co_detection = null;
+    [Tooltip("player 및 monster 감지를 위한 Coroutine")] Coroutine _co_detection = null;
+    [Tooltip("죽은 뒤 pool로 돌아가기 위한 Coroutine")] Coroutine _co_afterDie = null;
     [SerializeField, Tooltip("player 및 monster 감지 범위")] float detectionRadius = 10.0f;
     [SerializeField, Tooltip("감지 여부")] bool isDetection = false;
     [SerializeField, Tooltip("감지 layer")] int detectionLayer = 0;
@@ -63,12 +64,11 @@ public class Monster : BaseController
     {
         _hp = _orgHp;
 
-        if (isAlly)
-            AllySetting();
-        else
+        if (!isAlly)
+        {
             BaseSetting();
-
-        GoldSetting();
+            GoldSetting();
+        }
 
         _co_detection = StartCoroutine(Detection());
     }
@@ -85,11 +85,18 @@ public class Monster : BaseController
         updateTimer = 0f;
         _list_groupMonsters.Clear();
         isDie = false;
+        _go_capture.SetActive(false);
 
         if (_co_detection != null)
         {
             StopCoroutine(_co_detection);
             _co_detection = null;
+        }
+
+        if (_co_afterDie != null)
+        {
+            StopCoroutine(_co_afterDie);
+            _co_afterDie = null;
         }
     }
 
@@ -224,7 +231,10 @@ public class Monster : BaseController
     private void Die()
     {
         if (isAlly)
+        {
             AD.Managers.PoolM.PushToPool(gameObject);
+            Player.Instance.RemoveAllyMonster(this);
+        }
 
         if (isBoss)
             MonsterGenerator.Instance._go_boss = null;
@@ -243,13 +253,11 @@ public class Monster : BaseController
         gameObject.layer = LayerMask.NameToLayer("Die");
 
         if (isAbleAlly)
-        {
-
-        }
+            _go_capture.SetActive(true);
 
         Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: gold);
 
-        StartCoroutine(AfterDie());
+        _co_afterDie = StartCoroutine(AfterDie());
     }
 
     internal void DelegateCommander(List<Monster> list_monster)
@@ -296,16 +304,28 @@ public class Monster : BaseController
     }
 
     /// <summary>
-    /// ally 세팅
-    /// Init 시
-    /// 포획 버튼 클릭 시 
+    /// 포획 시 ally 세팅
     /// </summary>
-    public void AllySetting()
+    internal void AllySetting(Vector3 playerPosition, bool setting = false)
     {
-        isAlly = true;
+        if (_co_afterDie != null)
+        {
+            StopCoroutine(_co_afterDie);
+            _co_afterDie = null;
+        }
+        _go_capture.SetActive(false);
+
         gameObject.tag = "AllyMonster";
         gameObject.layer = LayerMask.NameToLayer("Ally");
         detectionLayer = LayerMask.NameToLayer("Enemy");
+
+        _hp = _orgHp;
+
+        if (setting)
+            transform.position = playerPosition + Random.insideUnitSphere * Random.Range(5f, 10f);
+
+        isAlly = true;
+        isDie = false;
     }
 
     private void BaseSetting()

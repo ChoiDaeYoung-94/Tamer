@@ -1,5 +1,9 @@
+using System;
+using System.Linq;
+using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
 
 public class Player : BaseController
@@ -35,6 +39,7 @@ public class Player : BaseController
     [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
     [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle;
     [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget;
+    [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
 
     /// <summary>
     /// LoginCheck.cs 에서 생성
@@ -83,7 +88,10 @@ public class Player : BaseController
         _maxCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
 
         if (AD.Managers.DataM._dic_player["AllyMonsters"] != "null")
+        {
             isAllyAvailable = true;
+            SettingAllyMonster();
+        }
 
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
@@ -256,7 +264,83 @@ public class Player : BaseController
         AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
+
+    #region AllyMonsters
+    internal void Capture()
+    {
+        captureMonster.AllySetting(playerPosition: transform.position);
+        AddAllyMonster(captureMonster);
+    }
+
+    private void SettingAllyMonster()
+    {
+        string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
+
+        List<string> temp_monsters = temp_ally.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+        foreach (string temp_monster in temp_monsters)
+        {
+            Monster monster = AD.Managers.PoolM.PopFromPool(temp_monster, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
+            monster.AllySetting(playerPosition: transform.position, setting: true);
+
+            _list_groupMonsters.Add(monster);
+        }
+    }
+
+    private void AddAllyMonster(Monster monster)
+    {
+        _list_groupMonsters.Add(captureMonster);
+        monster.transform.SetParent(AD.Managers.PoolM._root_Player);
+
+        string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
+        string temp_monster = monster._monster.ToString();
+
+        if (temp_ally.Equals("null"))
+        {
+            isAllyAvailable = true;
+            temp_ally = temp_monster;
+        }
+        else
+            temp_ally += $",{temp_monster}";
+
+        AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
+    }
+
+    internal void RemoveAllyMonster(Monster monster)
+    {
+        _list_groupMonsters.Remove(monster);
+
+        string temp_ally = string.Empty;
+
+        if (_list_groupMonsters.Count <= 0)
+        {
+            isAllyAvailable = false;
+            temp_ally = "null";
+        }
+        else
+        {
+            StringBuilder sb = new StringBuilder("n");
+
+            foreach (Monster _monster in _list_groupMonsters)
+                sb.Append($",{_monster._monster.ToString()}");
+
+            temp_ally = sb.ToString();
+        }
+
+        AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
+    }
     #endregion
+
+    #endregion
+
+    private void OnTriggerEnter(Collider col)
+    {
+        if (col.CompareTag("Capture"))
+        {
+            PlayerUICanvas.Instance.EnableCapture();
+            captureMonster = col.gameObject.GetComponentInParent<Monster>();
+        }
+    }
 
     private void OnTriggerStay(Collider col)
     {
@@ -267,6 +351,14 @@ public class Player : BaseController
                 _go_targetMonster = col.gameObject;
                 targetMonster = _go_targetMonster.GetComponent<Monster>();
             }
+        }
+    }
+
+    private void OnTriggerExit(Collider col)
+    {
+        if (col.CompareTag("Capture"))
+        {
+            PlayerUICanvas.Instance.DisableCapture();
         }
     }
 
