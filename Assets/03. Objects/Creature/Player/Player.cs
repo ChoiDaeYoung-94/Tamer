@@ -329,6 +329,27 @@ public class Player : BaseController
 
         AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
     }
+
+    internal void ActiveControl(bool active)
+    {
+        if (active)
+        {
+            AD.Managers.PoolM._root_Player.transform.position = Vector3.zero;
+
+            foreach (Monster monster in _list_groupMonsters)
+            {
+                monster._navAgent.enabled = true;
+                monster.transform.position = transform.position + UnityEngine.Random.insideUnitSphere * UnityEngine.Random.Range(1f, 3f);
+            }
+        }
+        else
+        {
+            foreach (Monster monster in _list_groupMonsters)
+                monster._navAgent.enabled = false;
+
+            AD.Managers.PoolM._root_Player.transform.position = new Vector3(100f, 100f, 100f);
+        }
+    }
     #endregion
 
     #endregion
