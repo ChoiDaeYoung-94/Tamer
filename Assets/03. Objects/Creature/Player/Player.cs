@@ -256,9 +256,16 @@ public class Player : BaseController
             Vector3 position = startRowPosition + positionOffset;
 
             _list_groupMonsters[i]._navAgent.SetDestination(position);
+            _list_groupMonsters[i].CrtState = CreatureState.Move;
 
             countInRow++;
         }
+    }
+
+    internal void AllyIdle()
+    {
+        foreach (Monster monster in _list_groupMonsters)
+            monster.CrtState = CreatureState.Idle;
     }
 
     internal void Capture()

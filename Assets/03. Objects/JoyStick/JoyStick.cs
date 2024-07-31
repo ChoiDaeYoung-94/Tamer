@@ -150,7 +150,10 @@ public class JoyStick : MonoBehaviour
         if (_joystickDistance > 5f)
             Player.Instance.CrtState = BaseController.CreatureState.Move;
         else
+        {
             Player.Instance.CrtState = BaseController.CreatureState.Idle;
+            Player.Instance.AllyIdle();
+        }
     }
 
     public void PointUp(BaseEventData baseEventData)
@@ -164,6 +167,7 @@ public class JoyStick : MonoBehaviour
 
         // Player Ani 설정 (Idle)
         Player.Instance.CrtState = BaseController.CreatureState.Idle;
+        Player.Instance.AllyIdle();
     }
     #endregion
 }

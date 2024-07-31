@@ -16,6 +16,7 @@ public class Monster : BaseController
 
     [Header("--- 참고 ---")]
     [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
+    [SerializeField, Tooltip("Commander Monster 목적지 도착 여부")] bool isCommanderArrived = false;
     [SerializeField, Tooltip("Commander Monster가 아닐 경우")] internal Monster _commanderMonster = null;
     [SerializeField, Tooltip("Boss Monster 여부")] internal bool isBoss = false;
     [SerializeField, Tooltip("Commander Monster의 random 이동 최대 반경")] float moveRadius = 5.0f;
@@ -110,6 +111,21 @@ public class Monster : BaseController
                 CommanderMove();
                 updateTimer = 0;
             }
+
+            if (_navAgent.remainingDistance <= _navAgent.stoppingDistance)
+            {
+                if (!_navAgent.hasPath || _navAgent.velocity.sqrMagnitude == 0f)
+                    if (!isCommanderArrived)
+                    {
+                        isCommanderArrived = true;
+
+                        CrtState = CreatureState.Idle;
+                        foreach (Monster monster in _list_groupMonsters)
+                            monster.CrtState = CreatureState.Idle;
+                    }
+            }
+            else
+                isCommanderArrived = false;
         }
     }
 
@@ -165,6 +181,7 @@ public class Monster : BaseController
         {
             finalPosition = hit.position;
             _navAgent.SetDestination(finalPosition);
+            CrtState = CreatureState.Move;
         }
 
         GroupMonsterMove(finalPosition);
@@ -201,7 +218,10 @@ public class Monster : BaseController
 
             NavMeshHit hit;
             if (NavMesh.SamplePosition(position, out hit, 5f, 1))
+            {
                 _list_groupMonsters[i]._navAgent.SetDestination(hit.position);
+                _list_groupMonsters[i].CrtState = CreatureState.Move;
+            }
 
             countInRow++;
         }
