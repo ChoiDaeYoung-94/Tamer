@@ -70,7 +70,8 @@ public class Monster : BaseController
             GoldSetting();
         }
 
-        _co_detection = StartCoroutine(Detection());
+        if (isCommander || isAlly)
+            _co_detection = StartCoroutine(Detection());
     }
 
     public override void Clear()
@@ -87,17 +88,7 @@ public class Monster : BaseController
         isDie = false;
         _go_capture.SetActive(false);
 
-        if (_co_detection != null)
-        {
-            StopCoroutine(_co_detection);
-            _co_detection = null;
-        }
-
-        if (_co_afterDie != null)
-        {
-            StopCoroutine(_co_afterDie);
-            _co_afterDie = null;
-        }
+        DisableCoroutine();
     }
 
     #region MonsterAI
@@ -158,8 +149,8 @@ public class Monster : BaseController
 
         if (distance > 20f && !isBoss)
         {
-            Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
-            temp_randomDirection = Player.Instance.transform.position - directionToPlayer * 15f;
+            Warp();
+            return;
         }
         else
         {
@@ -215,6 +206,16 @@ public class Monster : BaseController
             countInRow++;
         }
     }
+    private void Warp()
+    {
+        Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
+
+        _navAgent.Warp(transform.position + directionToPlayer * 5);
+
+        foreach (Monster monster in _list_groupMonsters)
+            monster._navAgent.Warp(transform.position + directionToPlayer * 5);
+    }
+
     #endregion
 
     internal void GetDamage(float damage)
@@ -232,8 +233,10 @@ public class Monster : BaseController
     {
         if (isAlly)
         {
-            AD.Managers.PoolM.PushToPool(gameObject);
             Player.Instance.RemoveAllyMonster(this);
+            AD.Managers.PoolM.PushToPool(gameObject);
+
+            return;
         }
 
         if (isBoss)
@@ -252,17 +255,13 @@ public class Monster : BaseController
 
         gameObject.layer = LayerMask.NameToLayer("Die");
 
-        if (isAbleAlly)
-            _go_capture.SetActive(true);
-
         Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: gold);
-
-        _co_afterDie = StartCoroutine(AfterDie());
     }
 
     internal void DelegateCommander(List<Monster> list_monster)
     {
         isCommander = true;
+        _co_detection = StartCoroutine(Detection());
 
         for (int i = -1; ++i < list_monster.Count;)
         {
@@ -280,19 +279,32 @@ public class Monster : BaseController
         _list_groupMonsters.Remove(monster);
     }
 
-    IEnumerator AfterDie()
+    /// <summary>
+    /// Die ani 호출
+    /// </summary>
+    private void AfterDie()
+    {
+        if (isAbleAlly)
+        {
+            _go_capture.SetActive(true);
+            _co_afterDie = StartCoroutine(Co_AfterDie());
+        }
+        else
+            AD.Managers.PoolM.PushToPool(gameObject);
+    }
+
+    IEnumerator Co_AfterDie()
     {
         while (true)
         {
-            if (!isDetection)
-            {
-                AD.Managers.PoolM.PushToPool(gameObject);
-                yield break;
-            }
+            yield return new WaitForSeconds(5f);
 
-            yield return null;
+            float distance = Vector3.Distance(Player.Instance.transform.position, transform.position);
+            if (distance > 10f)
+                AD.Managers.PoolM.PushToPool(gameObject);
         }
     }
+    #endregion
 
     #region Setting
     private void GoldSetting()
@@ -340,6 +352,23 @@ public class Monster : BaseController
     }
     #endregion
 
+    #region Control
+    private void DisableCoroutine()
+    {
+        if (_co_detection != null)
+        {
+            StopCoroutine(_co_detection);
+            _co_detection = null;
+        }
+
+        if (_co_afterDie != null)
+        {
+            StopCoroutine(_co_afterDie);
+            _co_afterDie = null;
+        }
+    }
+    #endregion
+
     #endregion
 
     private void OnTriggerEnter(Collider col)
@@ -364,7 +393,7 @@ public class Monster : BaseController
         public override void OnInspectorGUI()
         {
             EditorGUILayout.HelpBox("Monster " +
-                "\n Layer를 통해 Ally, Enemy로 구분" +
+                "\n Tag, Layer를 통해 Ally, Enemy로 구분" +
                 "\n 군집이동은 commander monster를 통해 이동하며 최대 몬스터 객체 수는 4", MessageType.Info);
 
             base.OnInspectorGUI();

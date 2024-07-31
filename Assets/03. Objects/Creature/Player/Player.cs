@@ -99,6 +99,7 @@ public class Player : BaseController
         AD.Managers.UpdateM._update += TouchEvent;
     }
 
+    #region Events
     /// <summary>
     /// 화면을 클릭하여 대응해야할 부분
     /// 버프, 몬스터 포획 등
@@ -148,43 +149,13 @@ public class Player : BaseController
 
         _buff.SetActive(false);
     }
+    #endregion
 
-    /// <summary>
-    /// Monster.cs -> GroupMonsterMove()와 동일
-    /// </summary>
-    private void AllyMove()
-    {
-        int row = 2;
-        int countInRow = 0;
-        int listCount = _list_groupMonsters.Count;
-        Vector3 startRowPosition = transform.position + (-transform.forward * _list_groupMonsters[0].flockingRadius);
-
-        for (int i = -1; ++i < listCount;)
-        {
-            if (countInRow >= row)
-            {
-                row++;
-                countInRow = 0;
-                startRowPosition += (-transform.forward * _list_groupMonsters[i].flockingRadius);
-            }
-
-            int plusrow = AD.Utils.Plus(row, 0);
-            int curRow = listCount + 1 - plusrow;
-            int maxCountInRow = curRow > row ? row : curRow;
-
-            Vector3 positionOffset = transform.right * (countInRow - (maxCountInRow - 1) / 2.0f) * _list_groupMonsters[i].flockingRadius;
-            Vector3 position = startRowPosition + positionOffset;
-
-            _list_groupMonsters[i]._navAgent.SetDestination(position);
-
-            countInRow++;
-        }
-    }
-
+    #region Player
     /// <summary>
     /// 플레이어 공격 애니메이션에서 진행
     /// </summary>
-    private void AttackTarget()
+    protected override void AttackTarget()
     {
         if (_go_targetMonster != null)
         {
@@ -251,21 +222,45 @@ public class Player : BaseController
         }
     }
 
-    /// <summary>
-    /// monster가 죽은 뒤 호출
-    /// </summary>
-    /// <param name="target"></param>
-    internal void NotifyPlayerOfDeath(GameObject target, int gold)
+    internal override void GetDamage(float damage)
     {
-        if (target == _go_targetMonster)
-            _go_targetMonster = null;
 
-        _gold += gold;
-        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
-        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
+    #endregion
 
     #region AllyMonsters
+    /// <summary>
+    /// Monster.cs -> GroupMonsterMove()와 동일
+    /// </summary>
+    private void AllyMove()
+    {
+        int row = 2;
+        int countInRow = 0;
+        int listCount = _list_groupMonsters.Count;
+        Vector3 startRowPosition = transform.position + (-transform.forward * _list_groupMonsters[0].flockingRadius);
+
+        for (int i = -1; ++i < listCount;)
+        {
+            if (countInRow >= row)
+            {
+                row++;
+                countInRow = 0;
+                startRowPosition += (-transform.forward * _list_groupMonsters[i].flockingRadius);
+            }
+
+            int plusrow = AD.Utils.Plus(row, 0);
+            int curRow = listCount + 1 - plusrow;
+            int maxCountInRow = curRow > row ? row : curRow;
+
+            Vector3 positionOffset = transform.right * (countInRow - (maxCountInRow - 1) / 2.0f) * _list_groupMonsters[i].flockingRadius;
+            Vector3 position = startRowPosition + positionOffset;
+
+            _list_groupMonsters[i]._navAgent.SetDestination(position);
+
+            countInRow++;
+        }
+    }
+
     internal void Capture()
     {
         captureMonster.AllySetting(playerPosition: transform.position);
@@ -352,6 +347,20 @@ public class Player : BaseController
     }
     #endregion
 
+    /// <summary>
+    /// monster가 죽은 뒤 호출
+    /// </summary>
+    /// <param name="target"></param>
+    internal void NotifyPlayerOfDeath(GameObject target, int gold)
+    {
+        if (target == _go_targetMonster)
+            _go_targetMonster = null;
+
+        _gold += gold;
+        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
+    }
+
     #endregion
 
     private void OnTriggerEnter(Collider col)
@@ -365,7 +374,7 @@ public class Player : BaseController
 
     private void OnTriggerStay(Collider col)
     {
-        if (col.CompareTag("Monster") && col.gameObject.layer == 11)
+        if (col.CompareTag("Monster") && col.gameObject.layer == LayerMask.NameToLayer("Enemy"))
         {
             if (_go_targetMonster == null)
             {

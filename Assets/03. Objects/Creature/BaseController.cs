@@ -105,6 +105,10 @@ public abstract class BaseController : MonoBehaviour
 
     public abstract void Clear();
 
+    protected abstract void AttackTarget();
+
+    internal abstract void GetDamage(float damage);
+
     private void State_Attack()
     {
         string str_tag = gameObject.tag;
