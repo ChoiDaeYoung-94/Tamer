@@ -284,6 +284,7 @@ public class Player : BaseController
         {
             Monster monster = AD.Managers.PoolM.PopFromPool(temp_monster, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
             monster.AllySetting(playerPosition: transform.position, setting: true);
+            monster.StartDetectionCoroutine();
 
             _list_groupMonsters.Add(monster);
         }
@@ -381,7 +382,7 @@ public class Player : BaseController
 
     private void OnTriggerStay(Collider col)
     {
-        if (col.CompareTag("Monster") && col.gameObject.layer == LayerMask.NameToLayer("Enemy"))
+        if (col.CompareTag("Monster") && col.gameObject.layer == enemyLayer)
         {
             if (_go_targetMonster == null)
             {

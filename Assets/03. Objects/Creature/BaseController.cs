@@ -43,6 +43,9 @@ public abstract class BaseController : MonoBehaviour
 
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
     [SerializeField] Animator _crtAni = null;
+    protected int allyLayer = 0;
+    protected int enemyLayer = 0;
+    protected int dieLayer = 0;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected float _orgHp = 0;
@@ -62,7 +65,7 @@ public abstract class BaseController : MonoBehaviour
 
     private void Awake()
     {
-
+        SetLayer();
     }
 
     private void Start()
@@ -101,6 +104,13 @@ public abstract class BaseController : MonoBehaviour
             _attackSpeed = float.Parse(dic_temp["AttackSpeed"].ToString());
             _moveSpeed = float.Parse(dic_temp["MoveSpeed"].ToString());
         }
+    }
+
+    private void SetLayer()
+    {
+        allyLayer = LayerMask.NameToLayer("Ally");
+        enemyLayer = LayerMask.NameToLayer("Enemy");
+        dieLayer = LayerMask.NameToLayer("Die");
     }
 
     public abstract void Clear();

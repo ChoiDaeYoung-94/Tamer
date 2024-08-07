@@ -113,6 +113,7 @@ public class MonsterGenerator : MonoBehaviour
                 string temp_name = Enum.GetValues(typeof(AD.Define.Creature)).GetValue(temp_random).ToString();
                 Monster commanderMonster = AD.Managers.PoolM.PopFromPool(temp_name).GetComponent<Monster>();
                 commanderMonster.isCommander = true;
+                commanderMonster.StartDetectionCoroutine();
                 commanderMonster.transform.position = CheckPosition();
 
                 PlusMonster(commanderMonster.gameObject);
