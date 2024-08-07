@@ -322,7 +322,7 @@ public class Player : BaseController
         }
         else
         {
-            StringBuilder sb = new StringBuilder("n");
+            StringBuilder sb = new StringBuilder();
 
             foreach (Monster _monster in _list_groupMonsters)
                 sb.Append($",{_monster._monster.ToString()}");

@@ -16,17 +16,20 @@ public class Monster : BaseController
 
     [Header("--- 참고 ---")]
     [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
+    [SerializeField, Tooltip("Commander Monster 전투 타겟")] BaseController commanderTarget = null;
     [SerializeField, Tooltip("Commander Monster 목적지 도착 여부")] bool isCommanderArrived = false;
     [SerializeField, Tooltip("Commander Monster가 아닐 경우")] internal Monster _commanderMonster = null;
-    [SerializeField, Tooltip("Boss Monster 여부")] internal bool isBoss = false;
+    [SerializeField, Tooltip("Follower Monster 전투 타겟")] BaseController followerTarget = null;
+    [SerializeField, Tooltip("Boss Monster 여부")] bool isBoss = false;
     [SerializeField, Tooltip("Commander Monster의 random 이동 최대 반경")] float moveRadius = 5.0f;
     [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] internal List<Monster> _list_groupMonsters = new List<Monster>();
     [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] internal float flockingRadius = 2f;
     [SerializeField, Tooltip("포획 가능한 몬스터인지 여부")] bool isAbleAlly = false;
     [SerializeField, Tooltip("포획된 몬스터인지 여부")] bool isAlly = false;
+    [SerializeField, Tooltip("포획된 몬스터의 전투 타겟")] BaseController allyTarget = null;
     [Tooltip("player 및 monster 감지를 위한 Coroutine")] Coroutine _co_detection = null;
     [Tooltip("죽은 뒤 pool로 돌아가기 위한 Coroutine")] Coroutine _co_afterDie = null;
-    [SerializeField, Tooltip("player 및 monster 감지 범위")] float detectionRadius = 10.0f;
+    [SerializeField, Tooltip("player 및 monster 감지 범위")] float detectionRadius = 5.0f;
     [SerializeField, Tooltip("감지 여부")] bool isDetection = false;
     [SerializeField, Tooltip("감지 layer")] int detectionLayer = 0;
     [SerializeField, Tooltip("감지한 오브젝트의 position")] Vector3 _vec_detection = Vector3.zero;
@@ -83,7 +86,7 @@ public class Monster : BaseController
     {
         if (isDetection)
         {
-            AD.Debug.Log("monster", "catch player");
+            AfterDetection();
 
             return;
         }
@@ -188,14 +191,27 @@ public class Monster : BaseController
             countInRow++;
         }
     }
+
+    private void GroupMonsterBattleMove(Vector3 targetDestination)
+    {
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(targetDestination, out hit, 3f, 1))
+        {
+            _navAgent.SetDestination(hit.position);
+            CrtState = CreatureState.Move;
+        }
+    }
+
     private void Warp()
     {
         Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
-
         _navAgent.Warp(transform.position + directionToPlayer * 5f);
 
         foreach (Monster monster in _list_groupMonsters)
-            monster._navAgent.Warp(transform.position + directionToPlayer * 5f);
+        {
+            directionToPlayer = (Player.Instance.transform.position - monster.transform.position).normalized;
+            monster._navAgent.Warp(monster.transform.position + directionToPlayer * 5f);
+        }
     }
 
     private Vector3 GetRandomDirection()
@@ -225,9 +241,63 @@ public class Monster : BaseController
         else
             isCommanderArrived = false;
     }
+
+    private void AfterDetection()
+    {
+        if (isCommander)
+            CommanderMove(_vec_detection);
+
+        if (isAlly)
+        {
+
+        }
+    }
+
+    private void StartBattle(GameObject go)
+    {
+        _navAgent.isStopped = true;
+        BaseController basectl = go.GetComponent<BaseController>();
+
+        if (isCommander)
+        {
+            commanderTarget = basectl;
+
+            foreach (Monster monster in _list_groupMonsters)
+                if (monster._navAgent.isStopped == false)
+                    GroupMonsterBattleMove(go.transform.position);
+        }
+        else
+            followerTarget = basectl;
+    }
+
+    private void ResetAfterBattle()
+    {
+        _navAgent.isStopped = false;
+
+        if (isCommander)
+            commanderTarget = null;
+        else
+            followerTarget = null;
+    }
     #endregion
 
-    internal void GetDamage(float damage)
+    #region life cycle
+    /// <summary>
+    /// 몬스터 공격 애니메이션에서 진행
+    /// </summary>
+    protected override void AttackTarget()
+    {
+        if (isCommander && commanderTarget)
+            commanderTarget.GetDamage(Power);
+
+        if (!isCommander && followerTarget)
+            followerTarget.GetDamage(Power);
+
+        if (isAlly && allyTarget)
+            allyTarget.GetDamage(Power);
+    }
+
+    internal override void GetDamage(float damage)
     {
         if (Hp <= 0)
             return;
@@ -269,7 +339,7 @@ public class Monster : BaseController
     internal void DelegateCommander(List<Monster> list_monster)
     {
         isCommander = true;
-        _co_detection = StartCoroutine(Detection());
+        StartDetectionCoroutine();
 
         for (int i = -1; ++i < list_monster.Count;)
         {
@@ -398,17 +468,35 @@ public class Monster : BaseController
 
     private void OnTriggerEnter(Collider col)
     {
+        if (gameObject.CompareTag("Monster") && col.gameObject.layer == allyLayer)
+            StartBattle(col.gameObject);
 
+        if (gameObject.CompareTag("AllyMonster") && col.gameObject.layer == enemyLayer)
+        {
+
+        }
     }
 
     private void OnTriggerStay(Collider col)
     {
+        if (gameObject.CompareTag("Monster") && col.gameObject.layer == dieLayer)
+            ResetAfterBattle();
 
+        if (gameObject.CompareTag("AllyMonster") && col.gameObject.layer == dieLayer)
+        {
+
+        }
     }
 
     private void OnTriggerExit(Collider col)
     {
+        if (gameObject.CompareTag("Monster") && col.gameObject.layer == allyLayer)
+            ResetAfterBattle();
 
+        if (gameObject.CompareTag("AllyMonster") && col.gameObject.layer == enemyLayer)
+        {
+
+        }
     }
 
 #if UNITY_EDITOR
