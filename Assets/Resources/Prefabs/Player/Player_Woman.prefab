@@ -1248,6 +1248,7 @@ GameObject:
   - component: {fileID: 4030967739036099423}
   - component: {fileID: 2832193533728742536}
   - component: {fileID: 4143679188092503573}
+  - component: {fileID: 3785164528392772703}
   m_Layer: 10
   m_Name: FemaleCharacter
   m_TagString: Player
@@ -1289,11 +1290,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _crtState: 0
   _crtAni: {fileID: 4030967739036099423}
+  allyLayer: 0
+  enemyLayer: 0
+  dieLayer: 0
   _orgHp: 0
   _hp: 0
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
+  isDie: 0
   _gold: 0
   _curCaptureCapacity: 0
   _maxCaptureCapacity: 0
@@ -1310,6 +1315,7 @@ MonoBehaviour:
   isAllyAvailable: 0
   _go_targetMonster: {fileID: 0}
   targetMonster: {fileID: 0}
+  captureMonster: {fileID: 0}
 --- !u!95 &4030967739036099423
 Animator:
   serializedVersion: 3
@@ -1357,6 +1363,20 @@ CapsuleCollider:
   m_Enabled: 1
   m_Radius: 0.4
   m_Height: 1.5
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.75, z: 0}
+--- !u!136 &3785164528392772703
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4265390555638271167}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  m_Radius: 0.8
+  m_Height: 2.5
   m_Direction: 1
   m_Center: {x: 0, y: 0.75, z: 0}
 --- !u!1 &4285386216893690998
