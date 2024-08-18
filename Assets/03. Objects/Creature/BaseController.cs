@@ -23,29 +23,31 @@ public abstract class BaseController : MonoBehaviour
         {
             _crtState = value;
 
-            switch (_crtState)
+            if (!isDie)
             {
-                case CreatureState.Idle:
-                    _crtAni.CrossFade("Idle", 0f);
-                    break;
-                case CreatureState.Move:
-                    _crtAni.CrossFade("Move", 0f);
-                    break;
-                case CreatureState.Attack:
-                    State_Attack();
-                    break;
-                case CreatureState.Die:
-                    _crtAni.CrossFade("Die", 0f);
-                    break;
+                switch (_crtState)
+                {
+                    case CreatureState.Idle:
+                        _crtAni.CrossFade("Idle", 0f);
+                        break;
+                    case CreatureState.Move:
+                        _crtAni.CrossFade("Move", 0f);
+                        break;
+                    case CreatureState.Attack:
+                        State_Attack();
+                        break;
+                }
             }
+            else
+                _crtAni.CrossFade("Die", 0f);
         }
     }
 
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
     [SerializeField] Animator _crtAni = null;
-    protected int allyLayer = 0;
-    protected int enemyLayer = 0;
-    protected int dieLayer = 0;
+    [SerializeField] protected int allyLayer = 0;
+    [SerializeField] protected int enemyLayer = 0;
+    [SerializeField] protected int dieLayer = 0;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected float _orgHp = 0;
@@ -62,8 +64,9 @@ public abstract class BaseController : MonoBehaviour
 
     [SerializeField] protected float _moveSpeed = 0f;
     public float MoveSpeed { get { return _moveSpeed; } }
+    [SerializeField] protected bool isDie = false;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         SetLayer();
     }

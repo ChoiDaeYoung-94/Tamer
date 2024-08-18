@@ -44,8 +44,10 @@ public class Player : BaseController
     /// <summary>
     /// LoginCheck.cs 에서 생성
     /// </summary>
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
+
         instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
 
@@ -181,6 +183,10 @@ public class Player : BaseController
         {
             if (_go_targetMonster != null)
             {
+                Vector3 direction = _go_targetMonster.transform.position - transform.position;
+                direction.y = 0;
+                transform.rotation = Quaternion.LookRotation(direction);
+
                 CrtState = CreatureState.Attack;
                 yield return new WaitForSeconds(1f / _attackSpeed);
             }
@@ -202,7 +208,7 @@ public class Player : BaseController
             {
                 float distance = Vector3.Distance(Player.Instance.transform.position, _go_targetMonster.transform.position);
 
-                if (distance > 1.5f)
+                if (distance > 3.0f)
                     _go_targetMonster = null;
             }
 
@@ -224,7 +230,7 @@ public class Player : BaseController
 
     internal override void GetDamage(float damage)
     {
-
+        AD.Debug.Log("Player", $"get damage -> {damage}");
     }
     #endregion
 
@@ -341,8 +347,8 @@ public class Player : BaseController
 
             foreach (Monster monster in _list_groupMonsters)
             {
-                monster._navAgent.enabled = true;
                 monster.transform.position = transform.position + UnityEngine.Random.insideUnitSphere * UnityEngine.Random.Range(1f, 3f);
+                monster._navAgent.enabled = true;
             }
         }
         else
