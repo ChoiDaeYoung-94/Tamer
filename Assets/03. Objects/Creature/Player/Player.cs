@@ -37,8 +37,8 @@ public class Player : BaseController
     [SerializeField] bool isAllyAvailable = false;
     [SerializeField, Tooltip("현재 타겟 몬스터")] GameObject _go_targetMonster = null;
     [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
-    [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle;
-    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget;
+    [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle = null;
+    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget = null;
     [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
 
     /// <summary>
