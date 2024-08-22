@@ -120,7 +120,22 @@ public abstract class BaseController : MonoBehaviour
 
     protected abstract void AttackTarget();
 
-    internal abstract void GetDamage(float damage);
+    public void GetDamage(float damage)
+
+    {
+        if (Hp <= 0)
+            return;
+
+        Hp -= damage;
+
+        if (Hp <= 0)
+        {
+            isDie = true;
+            gameObject.layer = dieLayer;
+
+            CrtState = CreatureState.Die;
+        }
+    }
 
     private void State_Attack()
     {

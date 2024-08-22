@@ -407,22 +407,6 @@ public class Monster : BaseController
         target?.GetDamage(Power);
     }
 
-    internal override void GetDamage(float damage)
-    {
-        if (Hp <= 0)
-            return;
-
-        Hp -= damage;
-
-        if (Hp <= 0)
-        {
-            isDie = true;
-            gameObject.layer = dieLayer;
-
-            CrtState = CreatureState.Die;
-        }
-    }
-
     internal void DelegateCommander(List<Monster> list_monster)
     {
         isCommander = true;

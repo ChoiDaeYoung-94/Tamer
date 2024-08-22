@@ -101,6 +101,16 @@ public class Player : BaseController
         AD.Managers.UpdateM._update += TouchEvent;
     }
 
+    internal void ReSetPlayer()
+    {
+        isDie = false;
+        gameObject.layer = allyLayer;
+
+        CrtState = CreatureState.Idle;
+
+        Hp = OrgHp;
+    }
+
     #region Events
     /// <summary>
     /// 화면을 클릭하여 대응해야할 부분
@@ -159,6 +169,9 @@ public class Player : BaseController
     /// </summary>
     protected override void AttackTarget()
     {
+        if (isDie)
+            return;
+
         if (_go_targetMonster != null)
         {
             float power = isBuffing ? _buffPower : Power;
@@ -226,11 +239,6 @@ public class Player : BaseController
             StopCoroutine(_co_distanceOfTarget);
             _co_distanceOfTarget = null;
         }
-    }
-
-    internal override void GetDamage(float damage)
-    {
-        AD.Debug.Log("Player", $"get damage -> {damage}");
     }
     #endregion
 
@@ -339,6 +347,12 @@ public class Player : BaseController
         AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
     }
 
+    internal void RemoveAllAllyMonster()
+    {
+        foreach (Monster monster in _list_groupMonsters)
+            monster.GetDamage(1000f);
+    }
+
     internal void ActiveControl(bool active)
     {
         if (active)
@@ -375,10 +389,20 @@ public class Player : BaseController
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
+    /// <summary>
+    /// Die ani
+    /// </summary>
+    private void GameOver()
+    {
+        AD.Managers.GameM.GameOver();
+    }
     #endregion
 
     private void OnTriggerEnter(Collider col)
     {
+        if (isDie)
+            return;
+
         if (col.CompareTag("Capture"))
         {
             PlayerUICanvas.Instance.EnableCapture();
@@ -388,6 +412,9 @@ public class Player : BaseController
 
     private void OnTriggerStay(Collider col)
     {
+        if (isDie)
+            return;
+
         if (col.CompareTag("Monster") && col.gameObject.layer == enemyLayer)
         {
             if (_go_targetMonster == null)
@@ -400,6 +427,9 @@ public class Player : BaseController
 
     private void OnTriggerExit(Collider col)
     {
+        if (isDie)
+            return;
+
         if (col.CompareTag("Capture"))
         {
             PlayerUICanvas.Instance.DisableCapture();

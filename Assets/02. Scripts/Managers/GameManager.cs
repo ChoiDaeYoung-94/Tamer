@@ -57,6 +57,18 @@ namespace AD
             Player.Instance.ActiveControl(true);
             Player.Instance.HandleAttackCoroutine(isGame: _isGame);
         }
+
+        internal void GameOver()
+        {
+            Player.Instance.RemoveAllAllyMonster();
+            AD.Managers.PopupM.PopupGameOver();
+        }
+
+        internal void GameOverGoLobby()
+        {
+            Player.Instance.ReSetPlayer();
+            SwitchMainOrGameScene(AD.Define.Scenes.Main);
+        }
         #endregion
     }
 }
