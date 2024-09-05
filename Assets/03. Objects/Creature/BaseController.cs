@@ -21,6 +21,9 @@ public abstract class BaseController : MonoBehaviour
         get { return _crtState; }
         set
         {
+            if (value != CreatureState.Attack && _crtState == value)
+                return;
+
             _crtState = value;
 
             if (!isDie)
@@ -48,6 +51,7 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] protected int allyLayer = 0;
     [SerializeField] protected int enemyLayer = 0;
     [SerializeField] protected int dieLayer = 0;
+    [SerializeField] protected CapsuleCollider _capsuleCollider = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected float _orgHp = 0;
@@ -121,7 +125,6 @@ public abstract class BaseController : MonoBehaviour
     protected abstract void AttackTarget();
 
     public void GetDamage(float damage)
-
     {
         if (Hp <= 0)
             return;
@@ -132,6 +135,7 @@ public abstract class BaseController : MonoBehaviour
         {
             isDie = true;
             gameObject.layer = dieLayer;
+            _capsuleCollider.enabled = false;
 
             CrtState = CreatureState.Die;
         }

@@ -105,6 +105,7 @@ public class Player : BaseController
     {
         isDie = false;
         gameObject.layer = allyLayer;
+        _capsuleCollider.enabled = true;
 
         CrtState = CreatureState.Idle;
 
@@ -269,6 +270,7 @@ public class Player : BaseController
             Vector3 positionOffset = transform.right * (countInRow - (maxCountInRow - 1) / 2.0f) * _list_groupMonsters[i].flockingRadius;
             Vector3 position = startRowPosition + positionOffset;
 
+            _list_groupMonsters[i]._navAgent.isStopped = false;
             _list_groupMonsters[i]._navAgent.SetDestination(position);
             _list_groupMonsters[i].CrtState = CreatureState.Move;
 
@@ -298,7 +300,6 @@ public class Player : BaseController
         {
             Monster monster = AD.Managers.PoolM.PopFromPool(temp_monster, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
             monster.AllySetting(playerPosition: transform.position, setting: true);
-            monster.StartDetectionCoroutine();
 
             _list_groupMonsters.Add(monster);
         }

@@ -28,7 +28,9 @@ public class Monster : BaseController
     [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] internal float flockingRadius = 2f;
     [SerializeField, Tooltip("포획 가능한 몬스터인지 여부")] bool isAbleAlly = false;
     [SerializeField, Tooltip("포획된 몬스터인지 여부")] bool isAlly = false;
-    [SerializeField, Tooltip("포획된 몬스터의 전투 타겟")] BaseController allyTarget = null;
+    [SerializeField, Tooltip("포획된 몬스터의 전투 타겟")] GameObject _go_allyTarget = null;
+    private BaseController allyTarget = null;
+    private bool isTarget = false;
     [Tooltip("player 및 monster 감지를 위한 Coroutine")] Coroutine _co_detection = null;
     [Tooltip("감지한 대상 공격을 위한 Coroutine")] Coroutine _co_battle = null;
     [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget = null;
@@ -77,14 +79,14 @@ public class Monster : BaseController
             GoldSetting();
         }
 
-        _co_battle = StartCoroutine(Battle());
-        _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
+        BaseCoroutineSetting();
     }
 
     public override void Clear()
     {
-        ResetMonster();
         DisableCoroutine();
+        RemoveTarget();
+        ResetMonster();
     }
 
     #region MonsterAI
@@ -116,22 +118,42 @@ public class Monster : BaseController
     /// </summary>
     IEnumerator Detection()
     {
-        while (true)
+        while (!isDie)
         {
             Collider[] col = Physics.OverlapSphere(transform.position, detectionRadius, 1 << detectionLayer);
 
-            if (col.Length > 0)
-            {
-                isDetection = true;
-                _vec_detection = col[0].transform.position;
-            }
-            else
+            if (col.Length <= 0)
                 isDetection = false;
+            else
+            {
+                bool temp_detection = false;
+
+                foreach (Collider detection in col)
+                {
+                    if (detection.gameObject.activeSelf)
+                    {
+                        temp_detection = true;
+                        _vec_detection = detection.transform.position;
+                        break;
+                    }
+                }
+
+                isDetection = temp_detection;
+            }
 
             yield return new WaitForSeconds(1f);
         }
     }
 
+    private void AfterDetection()
+    {
+        if (isCommander)
+            CommanderDetectionMove(_vec_detection);
+        else if (isAlly && !_go_allyTarget)
+            BattleMove(this, _vec_detection);
+    }
+
+    #region normal move
     /// <summary>
     /// commander가 플레이어와 특정 거리 이상 멀어질 경우 가까워지도록 하고
     /// commander를 이동시킨 후 나머지 구성원들이 군집형태로 이동
@@ -212,30 +234,6 @@ public class Monster : BaseController
         }
     }
 
-    private void CommanderDetectionMove(Vector3 targetPosition)
-    {
-        if (!_go_commanderTarget)
-        {
-            _navAgent.SetDestination(targetPosition);
-            CrtState = CreatureState.Move;
-        }
-
-        foreach (Monster monster in _list_groupMonsters)
-        {
-            if (monster.isDie)
-                continue;
-
-            if (!monster.followerTarget)
-                GroupMonsterBattleMove(monster, targetPosition);
-        }
-    }
-
-    private void GroupMonsterBattleMove(Monster monster, Vector3 targetDestination)
-    {
-        monster._navAgent.SetDestination(targetDestination);
-        CrtState = CreatureState.Move;
-    }
-
     private void Warp()
     {
         Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
@@ -278,80 +276,125 @@ public class Monster : BaseController
         else
             isCommanderArrived = false;
     }
+    #endregion
 
-    private void AfterDetection()
+    #region detection move
+    private void CommanderDetectionMove(Vector3 targetPosition)
     {
-        if (isCommander)
-            CommanderDetectionMove(_vec_detection);
-
-        if (isAlly)
+        if (!_go_commanderTarget)
         {
+            _navAgent.SetDestination(targetPosition);
+            CrtState = CreatureState.Move;
+        }
 
+        foreach (Monster monster in _list_groupMonsters)
+        {
+            if (monster.isDie)
+                continue;
+
+            if (!monster._go_followerTarget)
+                BattleMove(monster, targetPosition);
         }
     }
 
+    private void BattleMove(Monster monster, Vector3 targetDestination)
+    {
+        monster._navAgent.SetDestination(targetDestination);
+
+        CrtState = CreatureState.Move;
+    }
+    #endregion
+
+    #region target
     private void SetTarget(GameObject go)
+    {
+        if (isTarget)
+            return;
+
+        isTarget = true;
+
+        bool isNewTarget = SetNewTarget(go);
+
+        if (!isNewTarget)
+            return;
+
+        AfterSetTarget();
+
+        BaseController temp_bs = go.GetComponent<BaseController>();
+        if (isCommander)
+        {
+            commanderTarget = temp_bs;
+
+            foreach (Monster monster in _list_groupMonsters)
+            {
+                if (monster.isDie || monster._navAgent.isStopped)
+                    continue;
+
+                BattleMove(monster, go.transform.position);
+            }
+        }
+        else if (!isCommander && !isAlly)
+            followerTarget = temp_bs;
+        else if (isAlly)
+            allyTarget = temp_bs;
+    }
+
+    private bool SetNewTarget(GameObject go)
     {
         if (isCommander)
         {
             if (_go_commanderTarget == null || _go_commanderTarget != go)
             {
-                AfterSetTarget();
-
                 _go_commanderTarget = go;
-                commanderTarget = go.GetComponent<BaseController>();
-
-                foreach (Monster monster in _list_groupMonsters)
-                {
-                    if (monster.isDie)
-                        continue;
-
-                    if (!monster._navAgent.isStopped)
-                        GroupMonsterBattleMove(monster, go.transform.position);
-                }
+                return true;
             }
         }
-        else
+        else if (!isCommander && !isAlly)
         {
             if (_go_followerTarget == null || _go_followerTarget != go)
             {
-                AfterSetTarget();
-
                 _go_followerTarget = go;
-                followerTarget = go.GetComponent<BaseController>();
+                return true;
             }
         }
+        else if (isAlly)
+        {
+            if (_go_allyTarget == null || _go_allyTarget != go)
+            {
+                _go_allyTarget = go;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void AfterSetTarget()
     {
         if (!_navAgent.isStopped)
         {
-            _navAgent.isStopped = true;
             CrtState = CreatureState.Idle;
+            _navAgent.isStopped = true;
         }
     }
 
     private void ResetTarget()
     {
-        if (isCommander)
-        {
-            _go_commanderTarget = null;
-            commanderTarget = null;
-        }
-        else
-        {
-            _go_followerTarget = null;
-            followerTarget = null;
-        }
+        if (!isTarget)
+            return;
 
-        _navAgent.isStopped = false;
+        isTarget = false;
+
+        RemoveTarget();
+
         CrtState = CreatureState.Idle;
+        _navAgent.isStopped = false;
     }
+    #endregion
 
     IEnumerator Battle()
     {
-        while (true)
+        while (!isDie)
         {
             BaseController target = null;
 
@@ -359,7 +402,9 @@ public class Monster : BaseController
             else if (isAlly) target = allyTarget;
             else target = followerTarget;
 
-            if (target != null)
+            if (target != null && (!target.gameObject.activeSelf || target.gameObject.layer == dieLayer))
+                ResetTarget();
+            else if (target != null)
             {
                 Vector3 direction = target.transform.position - transform.position;
                 direction.y = 0;
@@ -377,20 +422,22 @@ public class Monster : BaseController
     {
         while (!isDie)
         {
-            float distance = 0f;
+            Vector3 position = Vector3.zero;
 
             if (isCommander && _go_commanderTarget)
-                distance = Vector3.Distance(transform.position, _go_commanderTarget.transform.position);
+                position = _go_commanderTarget.transform.position;
             else if (!isCommander && _go_followerTarget)
-                distance = Vector3.Distance(transform.position, _go_followerTarget.transform.position);
+                position = _go_followerTarget.transform.position;
+            else if (isAlly && _go_allyTarget)
+                position = _go_allyTarget.transform.position;
 
+            float distance = Vector3.Distance(transform.position, position);
             if (distance > 3.0f)
                 ResetTarget();
 
             yield return null;
         }
     }
-
     #endregion
 
     #region life cycle
@@ -399,6 +446,9 @@ public class Monster : BaseController
     /// </summary>
     protected override void AttackTarget()
     {
+        if (isDie)
+            return;
+
         BaseController target = null;
         if (isCommander && commanderTarget) target = commanderTarget;
         else if (!isCommander && followerTarget) target = followerTarget;
@@ -453,6 +503,7 @@ public class Monster : BaseController
             _commanderMonster.UpdateMonsterList(this);
 
         _navAgent.enabled = false;
+        isDetection = false;
         Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: gold);
 
         if (isAbleAlly)
@@ -478,6 +529,20 @@ public class Monster : BaseController
     #endregion
 
     #region Setting
+    private void BaseSetting()
+    {
+        detectionLayer = allyLayer;
+
+        int temp_probability = isCommander ? 40 : 20;
+        isAbleAlly = isBoss ? Random.Range(0, 100) < 5 : Random.Range(0, 100) < temp_probability;
+    }
+
+    private void BaseCoroutineSetting()
+    {
+        _co_battle = StartCoroutine(Battle());
+        _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
+    }
+
     private void GoldSetting()
     {
         Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_monster.ToString()] as Dictionary<string, object>;
@@ -491,15 +556,14 @@ public class Monster : BaseController
     /// </summary>
     internal void AllySetting(Vector3 playerPosition, bool setting = false)
     {
-        isAlly = true;
-        isDie = false;
+        ResetMonster();
+        RemoveTarget();
 
         if (_co_afterDie != null)
         {
             StopCoroutine(_co_afterDie);
             _co_afterDie = null;
         }
-        _go_capture.SetActive(false);
 
         gameObject.tag = "AllyMonster";
         gameObject.layer = allyLayer;
@@ -507,38 +571,46 @@ public class Monster : BaseController
 
         _hp = _orgHp;
 
+        isAlly = true;
+
         if (setting)
             transform.position = playerPosition + Random.insideUnitSphere * Random.Range(5f, 10f);
 
-        if (_navAgent.enabled == false)
-        {
-            CrtState = CreatureState.Idle;
-            _navAgent.enabled = true;
-        }
-    }
+        CrtState = CreatureState.Idle;
 
-    private void BaseSetting()
-    {
-        detectionLayer = allyLayer;
-
-        int temp_probability = isCommander ? 40 : 20;
-        isAbleAlly = isBoss ? Random.Range(0, 100) < 5 : Random.Range(0, 100) < temp_probability;
+        BaseCoroutineSetting();
+        StartDetectionCoroutine();
     }
 
     private void ResetMonster()
     {
-        if (isAlly)
-        {
-            isAlly = false;
-            gameObject.tag = "Monster";
-            gameObject.layer = enemyLayer;
-        }
+        isAlly = false;
+        gameObject.tag = "Monster";
+        gameObject.layer = enemyLayer;
 
         _navAgent.enabled = true;
+        _capsuleCollider.enabled = true;
+
         updateTimer = 0f;
+        isCommanderArrived = false;
+
         _list_groupMonsters.Clear();
-        isDie = false;
+
         _go_capture.SetActive(false);
+
+        isDie = false;
+    }
+
+    private void RemoveTarget()
+    {
+        _go_commanderTarget = null;
+        commanderTarget = null;
+
+        _go_followerTarget = null;
+        followerTarget = null;
+
+        _go_allyTarget = null;
+        allyTarget = null;
     }
     #endregion
 
@@ -549,6 +621,8 @@ public class Monster : BaseController
         {
             StopCoroutine(_co_detection);
             _co_detection = null;
+
+            isDetection = false;
         }
 
         if (_co_battle != null)
@@ -580,21 +654,13 @@ public class Monster : BaseController
         if (isDie)
             return;
 
-        if (gameObject.CompareTag("Monster") && col.gameObject.layer == allyLayer)
+        if (gameObject.CompareTag("Monster") && col.gameObject.layer == allyLayer ||
+            gameObject.CompareTag("AllyMonster") && col.gameObject.layer == enemyLayer)
             SetTarget(col.gameObject);
 
-        if (gameObject.CompareTag("AllyMonster") && col.gameObject.layer == enemyLayer)
-        {
-
-        }
-
-        if (gameObject.CompareTag("Monster") && !col.gameObject.CompareTag("Monster") && col.gameObject.layer == dieLayer)
+        if (gameObject.CompareTag("Monster") && !col.gameObject.CompareTag("Monster") && col.gameObject.layer == dieLayer ||
+            gameObject.CompareTag("AllyMonster") && !col.gameObject.CompareTag("AllyMonster") && col.gameObject.layer == dieLayer)
             ResetTarget();
-
-        if (gameObject.CompareTag("AllyMonster") && col.gameObject.layer == dieLayer)
-        {
-
-        }
     }
 
     private void OnTriggerExit(Collider col)
@@ -602,13 +668,9 @@ public class Monster : BaseController
         if (isDie)
             return;
 
-        if (gameObject.CompareTag("Monster") && col.gameObject.layer == allyLayer)
+        if (gameObject.CompareTag("Monster") && col.gameObject.layer == allyLayer ||
+            gameObject.CompareTag("AllyMonster") && col.gameObject.layer == enemyLayer)
             ResetTarget();
-
-        if (gameObject.CompareTag("AllyMonster") && col.gameObject.layer == enemyLayer)
-        {
-
-        }
     }
 
 #if UNITY_EDITOR
