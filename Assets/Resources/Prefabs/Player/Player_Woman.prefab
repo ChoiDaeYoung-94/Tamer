@@ -1293,6 +1293,7 @@ MonoBehaviour:
   allyLayer: 0
   enemyLayer: 0
   dieLayer: 0
+  _capsuleCollider: {fileID: 3785164528392772703}
   _orgHp: 0
   _hp: 0
   _power: 0

@@ -227,31 +227,35 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _crtState: 0
   _crtAni: {fileID: 5236718036424258973}
+  allyLayer: 0
+  enemyLayer: 0
+  dieLayer: 0
+  _capsuleCollider: {fileID: 7596044772776327162}
   _orgHp: 0
   _hp: 0
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
+  isDie: 0
   _monster: 1
   _navAgent: {fileID: 2224596187608030025}
   _go_capture: {fileID: 5439540531191495227}
   isCommander: 0
-  commanderTarget: {fileID: 0}
+  _go_commanderTarget: {fileID: 0}
   isCommanderArrived: 0
   _commanderMonster: {fileID: 0}
-  followerTarget: {fileID: 0}
+  _go_followerTarget: {fileID: 0}
   isBoss: 0
   moveRadius: 5
   _list_groupMonsters: []
   flockingRadius: 2
   isAbleAlly: 0
   isAlly: 0
-  allyTarget: {fileID: 0}
+  _go_allyTarget: {fileID: 0}
   detectionRadius: 5
   isDetection: 0
   detectionLayer: 0
   _vec_detection: {x: 0, y: 0, z: 0}
-  isDie: 0
   gold: 0
 --- !u!136 &7596044772776327162
 CapsuleCollider:
