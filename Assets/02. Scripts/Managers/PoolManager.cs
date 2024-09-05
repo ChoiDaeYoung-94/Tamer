@@ -113,6 +113,8 @@ namespace AD
         public Transform _root_GO;
         [Tooltip("UI Pool의 root Transform")]
         public Transform _root_UI;
+        [Tooltip("Player가 사용 할 object root Transform")]
+        public Transform _root_Player;
 
         /// <summary>
         /// Managers - Awake() -> Init()
@@ -127,6 +129,9 @@ namespace AD
             // UI root 생성
             _root_UI = new GameObject { name = "Pool_UI" }.transform;
             Object.DontDestroyOnLoad(_root_UI);
+
+            _root_Player = new GameObject { name = "Pool_Player" }.transform;
+            Object.DontDestroyOnLoad(_root_Player);
 
             for (int i = -1; ++i < Managers.Instance._go_poolGOs.Length;)
                 CreatePool(Managers.Instance._go_poolGOs[i], isGO: true, count: 20);

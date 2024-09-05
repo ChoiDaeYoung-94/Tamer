@@ -4,83 +4,95 @@
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "10"
     },
 	"Magma": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "10"
     },
 	"Chest": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "15"
     },
 	"Crab": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "20"
     },
 	"RatAssassin": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "20"
     },
 	"Spider": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "30"
     },
 	"SpiderToxin": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "30"
     },
 	"SpiderKing": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "40"
     },
 	"LizardWarrior": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "50"
     },
 	"Werewolf": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "50"
     },
 	"FylingDemon": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "100"
     },
 	"Beholder": 
 	{
 		"Hp": "100",
         "Power": "1",
         "AttackSpeed": "0.5",
-        "MoveSpeed": "3.0"
+        "MoveSpeed": "3.0",
+		"Gold": "10"
     }
 }

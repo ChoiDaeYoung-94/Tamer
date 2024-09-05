@@ -111,23 +111,28 @@ namespace AD
             {
                 yield return new WaitForSeconds(60f);
 
-                UpdateLocalData();
+                UpdateLocalData(key: "null", value: "null", all: true);
             }
         }
 
         /// <summary>
         /// Player가 가지고 있는 고유 Data들을 _dic_player에 갱신 후 Json 저장
         /// </summary>
-        internal void UpdateLocalData()
+        internal void UpdateLocalData(string key, string value, bool all = false)
         {
             if (Player.Instance)
             {
-                _dic_player["Gold"] = Player.Instance.Gold.ToString();
-                _dic_player["CurCaptureCapacity"] = Player.Instance.CurCaptureCapacity.ToString();
-                _dic_player["MaxCaptureCapacity"] = Player.Instance.MaxCaptureCapacity.ToString();
-                _dic_player["Power"] = Player.Instance.Power.ToString();
-                _dic_player["AttackSpeed"] = Player.Instance.AttackSpeed.ToString();
-                _dic_player["MoveSpeed"] = Player.Instance.MoveSpeed.ToString();
+                if (all)
+                {
+                    _dic_player["Gold"] = Player.Instance.Gold.ToString();
+                    _dic_player["CurCaptureCapacity"] = Player.Instance.CurCaptureCapacity.ToString();
+                    _dic_player["MaxCaptureCapacity"] = Player.Instance.MaxCaptureCapacity.ToString();
+                    _dic_player["Power"] = Player.Instance.Power.ToString();
+                    _dic_player["AttackSpeed"] = Player.Instance.AttackSpeed.ToString();
+                    _dic_player["MoveSpeed"] = Player.Instance.MoveSpeed.ToString();
+                }
+                else
+                    _dic_player[key] = value;
 
                 SaveLocalData();
             }
@@ -247,6 +252,9 @@ namespace AD
             temp_result = CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
             if (temp_result < 0)
                 _dic_player["MoveSpeed"] = _dic_PlayFabPlayerData["MoveSpeed"].Value.ToString();
+
+            string temp_ally = _dic_PlayFabPlayerData["AllyMonsters"].Value;
+            CompareValues(_dic_player["AllyMonsters"].ToString(), temp_ally);
 
             if (_isConflict)
                 AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);

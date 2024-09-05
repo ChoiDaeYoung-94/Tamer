@@ -1,5 +1,9 @@
+using System;
+using System.Linq;
+using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
 
 public class Player : BaseController
@@ -24,18 +28,26 @@ public class Player : BaseController
     [SerializeField] private GameObject _buff = null;
 
     [Header("--- 플레이어 버프 시 적용되는 status ---")]
-    [SerializeField] public float _bufPower = 0;
-    [SerializeField] public float _bufAttackSpeed = 0;
-    [SerializeField] public float _bufMoveSpeed = 0;
+    [SerializeField] private bool isBuffing = false;
+    [SerializeField] public float _buffPower = 0;
+    [SerializeField] public float _buffAttackSpeed = 0;
+    [SerializeField] public float _buffMoveSpeed = 0;
 
     [Header("--- 참고 ---")]
     [SerializeField] bool isAllyAvailable = false;
+    [SerializeField, Tooltip("현재 타겟 몬스터")] GameObject _go_targetMonster = null;
+    [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
+    [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle = null;
+    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget = null;
+    [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
 
     /// <summary>
     /// LoginCheck.cs 에서 생성
     /// </summary>
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
+
         instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
 
@@ -51,6 +63,11 @@ public class Player : BaseController
         JoyStick.Instance.StartInit();
         CameraManage.Instance.StartInit();
         PlayerUICanvas.Instance.StartInit();
+    }
+
+    private void OnDisable()
+    {
+        DisableCoroutine();
     }
 
     private void Update()
@@ -73,7 +90,10 @@ public class Player : BaseController
         _maxCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
 
         if (AD.Managers.DataM._dic_player["AllyMonsters"] != "null")
+        {
             isAllyAvailable = true;
+            SettingAllyMonster();
+        }
 
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
@@ -81,6 +101,18 @@ public class Player : BaseController
         AD.Managers.UpdateM._update += TouchEvent;
     }
 
+    internal void ReSetPlayer()
+    {
+        isDie = false;
+        gameObject.layer = allyLayer;
+        _capsuleCollider.enabled = true;
+
+        CrtState = CreatureState.Idle;
+
+        Hp = OrgHp;
+    }
+
+    #region Events
     /// <summary>
     /// 화면을 클릭하여 대응해야할 부분
     /// 버프, 몬스터 포획 등
@@ -112,21 +144,109 @@ public class Player : BaseController
 
     internal void SetBuff()
     {
-        _bufPower = _power * 1.3f;
-        _bufAttackSpeed = _attackSpeed * 1.3f;
-        _bufMoveSpeed = _moveSpeed * 2f;
-        JoyStick.Instance.SetSpeed(_bufMoveSpeed);
+        isBuffing = true;
+
+        _buffPower = _power * 1.3f;
+        _buffAttackSpeed = _attackSpeed * 1.3f;
+        _buffMoveSpeed = _moveSpeed * 2f;
+        JoyStick.Instance.SetSpeed(_buffMoveSpeed);
 
         _buff.SetActive(true);
     }
 
     internal void EndBuff()
     {
+        isBuffing = false;
+
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
         _buff.SetActive(false);
     }
+    #endregion
 
+    #region Player
+    /// <summary>
+    /// 플레이어 공격 애니메이션에서 진행
+    /// </summary>
+    protected override void AttackTarget()
+    {
+        if (isDie)
+            return;
+
+        if (_go_targetMonster != null)
+        {
+            float power = isBuffing ? _buffPower : Power;
+            targetMonster.GetDamage(power);
+        }
+    }
+
+    internal void HandleAttackCoroutine(bool isGame)
+    {
+        if (isGame)
+        {
+            DisableCoroutine();
+
+            _co_battle = StartCoroutine(Battle());
+            _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
+        }
+    }
+
+    IEnumerator Battle()
+    {
+        while (true)
+        {
+            if (_go_targetMonster != null)
+            {
+                Vector3 direction = _go_targetMonster.transform.position - transform.position;
+                direction.y = 0;
+                transform.rotation = Quaternion.LookRotation(direction);
+
+                CrtState = CreatureState.Attack;
+                yield return new WaitForSeconds(1f / _attackSpeed);
+            }
+
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// 추후 몬스터 객체 크기에 따라 distance 비교 차이를 둬야 함
+    /// 몬스터 Data에 추가해도 괜찮을 것 같음
+    /// </summary>
+    /// <returns></returns>
+    IEnumerator DistanceOfTarget()
+    {
+        while (true)
+        {
+            if (_go_targetMonster != null)
+            {
+                float distance = Vector3.Distance(Player.Instance.transform.position, _go_targetMonster.transform.position);
+
+                if (distance > 3.0f)
+                    _go_targetMonster = null;
+            }
+
+            yield return null;
+        }
+    }
+
+    private void DisableCoroutine()
+    {
+        if (_co_battle != null)
+        {
+            StopCoroutine(_co_battle);
+            _co_battle = null;
+
+            StopCoroutine(_co_distanceOfTarget);
+            _co_distanceOfTarget = null;
+        }
+    }
+    #endregion
+
+    #region AllyMonsters
+    /// <summary>
+    /// Monster.cs -> GroupMonsterMove()와 동일
+    /// </summary>
     private void AllyMove()
     {
         int row = 2;
@@ -150,23 +270,170 @@ public class Player : BaseController
             Vector3 positionOffset = transform.right * (countInRow - (maxCountInRow - 1) / 2.0f) * _list_groupMonsters[i].flockingRadius;
             Vector3 position = startRowPosition + positionOffset;
 
+            _list_groupMonsters[i]._navAgent.isStopped = false;
             _list_groupMonsters[i]._navAgent.SetDestination(position);
+            _list_groupMonsters[i].CrtState = CreatureState.Move;
 
             countInRow++;
         }
+    }
+
+    internal void AllyIdle()
+    {
+        foreach (Monster monster in _list_groupMonsters)
+            monster.CrtState = CreatureState.Idle;
+    }
+
+    internal void Capture()
+    {
+        captureMonster.AllySetting(playerPosition: transform.position);
+        AddAllyMonster(captureMonster);
+    }
+
+    private void SettingAllyMonster()
+    {
+        string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
+
+        List<string> temp_monsters = temp_ally.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+        foreach (string temp_monster in temp_monsters)
+        {
+            Monster monster = AD.Managers.PoolM.PopFromPool(temp_monster, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
+            monster.AllySetting(playerPosition: transform.position, setting: true);
+
+            _list_groupMonsters.Add(monster);
+        }
+    }
+
+    private void AddAllyMonster(Monster monster)
+    {
+        _list_groupMonsters.Add(captureMonster);
+        monster.transform.SetParent(AD.Managers.PoolM._root_Player);
+
+        string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
+        string temp_monster = monster._monster.ToString();
+
+        if (temp_ally.Equals("null"))
+        {
+            isAllyAvailable = true;
+            temp_ally = temp_monster;
+        }
+        else
+            temp_ally += $",{temp_monster}";
+
+        AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
+    }
+
+    internal void RemoveAllyMonster(Monster monster)
+    {
+        _list_groupMonsters.Remove(monster);
+
+        string temp_ally = string.Empty;
+
+        if (_list_groupMonsters.Count <= 0)
+        {
+            isAllyAvailable = false;
+            temp_ally = "null";
+        }
+        else
+        {
+            StringBuilder sb = new StringBuilder();
+
+            foreach (Monster _monster in _list_groupMonsters)
+                sb.Append($",{_monster._monster.ToString()}");
+
+            temp_ally = sb.ToString();
+        }
+
+        AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
+    }
+
+    internal void RemoveAllAllyMonster()
+    {
+        foreach (Monster monster in _list_groupMonsters)
+            monster.GetDamage(1000f);
+    }
+
+    internal void ActiveControl(bool active)
+    {
+        if (active)
+        {
+            AD.Managers.PoolM._root_Player.transform.position = Vector3.zero;
+
+            foreach (Monster monster in _list_groupMonsters)
+            {
+                monster.transform.position = transform.position + UnityEngine.Random.insideUnitSphere * UnityEngine.Random.Range(1f, 3f);
+                monster._navAgent.enabled = true;
+            }
+        }
+        else
+        {
+            foreach (Monster monster in _list_groupMonsters)
+                monster._navAgent.enabled = false;
+
+            AD.Managers.PoolM._root_Player.transform.position = new Vector3(100f, 100f, 100f);
+        }
+    }
+    #endregion
+
+    /// <summary>
+    /// monster가 죽은 뒤 호출
+    /// </summary>
+    /// <param name="target"></param>
+    internal void NotifyPlayerOfDeath(GameObject target, int gold)
+    {
+        if (target == _go_targetMonster)
+            _go_targetMonster = null;
+
+        _gold += gold;
+        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
+    }
+
+    /// <summary>
+    /// Die ani
+    /// </summary>
+    private void GameOver()
+    {
+        AD.Managers.GameM.GameOver();
     }
     #endregion
 
     private void OnTriggerEnter(Collider col)
     {
-        if (col.CompareTag("Monster"))
-        {
+        if (isDie)
+            return;
 
+        if (col.CompareTag("Capture"))
+        {
+            PlayerUICanvas.Instance.EnableCapture();
+            captureMonster = col.gameObject.GetComponentInParent<Monster>();
         }
+    }
 
-        if (col.CompareTag("DropItem"))
+    private void OnTriggerStay(Collider col)
+    {
+        if (isDie)
+            return;
+
+        if (col.CompareTag("Monster") && col.gameObject.layer == enemyLayer)
         {
+            if (_go_targetMonster == null)
+            {
+                _go_targetMonster = col.gameObject;
+                targetMonster = _go_targetMonster.GetComponent<Monster>();
+            }
+        }
+    }
 
+    private void OnTriggerExit(Collider col)
+    {
+        if (isDie)
+            return;
+
+        if (col.CompareTag("Capture"))
+        {
+            PlayerUICanvas.Instance.DisableCapture();
         }
     }
 

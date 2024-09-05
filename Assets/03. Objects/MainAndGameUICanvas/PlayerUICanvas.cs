@@ -36,6 +36,7 @@ public class PlayerUICanvas : MonoBehaviour
 
     [Header("--- ETC ---")]
     [SerializeField, Tooltip("Game scene 진입 시")] GameObject _go_panel_gamesceneUI = null;
+    [SerializeField, Tooltip("monster를 포획 가능 할 경우 포획 버튼 활성화")] GameObject _go_capture = null;
 
     [Header("--- 참고용 ---")]
     private bool _isBuff = false;
@@ -63,6 +64,8 @@ public class PlayerUICanvas : MonoBehaviour
     }
 
     #region Functions
+
+    #region Data Setting
     /// <summary>
     /// 뷰 세팅
     /// Main scene 진입 시, Main Game scene 전환 시
@@ -95,24 +98,22 @@ public class PlayerUICanvas : MonoBehaviour
 
         _Slider_HP.maxValue = Player.Instance.OrgHp;
         _Slider_HP.value = Player.Instance.Hp;
-
-        if (_go_Popup_playerInfo.activeSelf)
-            UpdatePopPlayerInfo();
     }
 
     /// <summary>
     /// PlayerInfo Popup Update
     /// </summary>
-    internal void UpdatePopPlayerInfo()
+    private void UpdatePopPlayerInfo()
     {
         _TMP_POPplayerNickName.text = $"NickName - {AD.Managers.DataM._dic_player["NickName"]}";
         _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";
         _TMP_POPgold.text = $"Gold - {Player.Instance.Gold}";
 
-        _TMP_POPpower.text = _isBuff ? $"Power - {Player.Instance._bufPower}" : $"Power - {Player.Instance.Power}";
-        _TMP_POPattackSpeed.text = _isBuff ? $"AttackSpeed - {Player.Instance._bufAttackSpeed}" : $"AttackSpeed - {Player.Instance.AttackSpeed}";
-        _TMP_POPmoveSpeed.text = _isBuff ? $"MoveSpeed - {Player.Instance._bufMoveSpeed}" : $"MoveSpeed - {Player.Instance.MoveSpeed}";
+        _TMP_POPpower.text = _isBuff ? $"Power - {Player.Instance._buffPower}" : $"Power - {Player.Instance.Power}";
+        _TMP_POPattackSpeed.text = _isBuff ? $"AttackSpeed - {Player.Instance._buffAttackSpeed}" : $"AttackSpeed - {Player.Instance.AttackSpeed}";
+        _TMP_POPmoveSpeed.text = _isBuff ? $"MoveSpeed - {Player.Instance._buffMoveSpeed}" : $"MoveSpeed - {Player.Instance.MoveSpeed}";
     }
+    #endregion
 
     /// <summary>
     /// panel_playerInfo 클릭 시
@@ -182,6 +183,16 @@ public class PlayerUICanvas : MonoBehaviour
         UpdatePopPlayerInfo();
     }
     #endregion
+
+    internal void EnableCapture() => _go_capture.SetActive(true);
+
+    internal void DisableCapture() => _go_capture.SetActive(false);
+
+    public void OnClickCapture()
+    {
+        Player.Instance.Capture();
+        _go_capture.SetActive(false);
+    }
 
     #endregion
 

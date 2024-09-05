@@ -38,7 +38,7 @@ namespace AD
         {
             AD.Debug.Log("SceneManager", "Co_UpdateData() -> 데이터 처리 작업 진행");
 
-            AD.Managers.DataM.UpdateLocalData();
+            AD.Managers.DataM.UpdateLocalData(key: "null", value: "null", all: true);
             AD.Managers.DataM.UpdatePlayerData();
             AD.Managers.DataM.SaveLocalData();
 

@@ -30,6 +30,7 @@ namespace AD
             JoyStick.Instance.transform.parent.gameObject.SetActive(false);
             PlayerUICanvas.Instance.gameObject.SetActive(false);
 
+            Player.Instance.ActiveControl(false);
             Player.Instance.transform.parent.gameObject.SetActive(false);
 
             AD.Managers.SceneM.NextScene(scene);
@@ -53,6 +54,20 @@ namespace AD
             Player.Instance.transform.transform.position = _isGame ? _vec_player : Vector3.zero;
             Player.Instance.transform.transform.rotation = Quaternion.identity;
             Player.Instance.transform.parent.gameObject.SetActive(true);
+            Player.Instance.ActiveControl(true);
+            Player.Instance.HandleAttackCoroutine(isGame: _isGame);
+        }
+
+        internal void GameOver()
+        {
+            Player.Instance.RemoveAllAllyMonster();
+            AD.Managers.PopupM.PopupGameOver();
+        }
+
+        internal void GameOverGoLobby()
+        {
+            Player.Instance.ReSetPlayer();
+            SwitchMainOrGameScene(AD.Define.Scenes.Main);
         }
         #endregion
     }

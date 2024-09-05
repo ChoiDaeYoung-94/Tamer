@@ -21,44 +21,58 @@ public abstract class BaseController : MonoBehaviour
         get { return _crtState; }
         set
         {
+            if (value != CreatureState.Attack && _crtState == value)
+                return;
+
             _crtState = value;
 
-            switch (_crtState)
+            if (!isDie)
             {
-                case CreatureState.Idle:
-                    _crtAni.CrossFade("Idle", 0f);
-                    break;
-                case CreatureState.Move:
-                    _crtAni.CrossFade("Move", 0f);
-                    break;
-                case CreatureState.Attack:
-                    State_Attack();
-                    break;
-                case CreatureState.Die:
-                    _crtAni.CrossFade("Die", 0f);
-                    break;
+                switch (_crtState)
+                {
+                    case CreatureState.Idle:
+                        _crtAni.CrossFade("Idle", 0f);
+                        break;
+                    case CreatureState.Move:
+                        _crtAni.CrossFade("Move", 0f);
+                        break;
+                    case CreatureState.Attack:
+                        State_Attack();
+                        break;
+                }
             }
+            else
+                _crtAni.CrossFade("Die", 0f);
         }
     }
 
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
     [SerializeField] Animator _crtAni = null;
+    [SerializeField] protected int allyLayer = 0;
+    [SerializeField] protected int enemyLayer = 0;
+    [SerializeField] protected int dieLayer = 0;
+    [SerializeField] protected CapsuleCollider _capsuleCollider = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
-    [SerializeField] protected int _orgHp = 0;
-    public int OrgHp { get { return _orgHp; } }
-    [SerializeField] protected int _hp = 0;
-    public int Hp { get { return _hp; } }
+    [SerializeField] protected float _orgHp = 0;
+    public float OrgHp { get { return _orgHp; } }
+
+    [SerializeField] protected float _hp = 0;
+    public float Hp { get { return _hp; } set { _hp = value; } }
+
     [SerializeField] protected float _power = 0f;
     public float Power { get { return _power; } }
+
     [SerializeField] protected float _attackSpeed = 0f;
     public float AttackSpeed { get { return _attackSpeed; } }
+
     [SerializeField] protected float _moveSpeed = 0f;
     public float MoveSpeed { get { return _moveSpeed; } }
+    [SerializeField] protected bool isDie = false;
 
-    private void Awake()
+    protected virtual void Awake()
     {
-
+        SetLayer();
     }
 
     private void Start()
@@ -92,14 +106,40 @@ public abstract class BaseController : MonoBehaviour
             string key = creature.ToString();
             Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[key] as Dictionary<string, object>;
 
-            _hp = _orgHp = int.Parse(dic_temp["Hp"].ToString());
+            _hp = _orgHp = float.Parse(dic_temp["Hp"].ToString());
             _power = float.Parse(dic_temp["Power"].ToString());
             _attackSpeed = float.Parse(dic_temp["AttackSpeed"].ToString());
             _moveSpeed = float.Parse(dic_temp["MoveSpeed"].ToString());
         }
     }
 
+    private void SetLayer()
+    {
+        allyLayer = LayerMask.NameToLayer("Ally");
+        enemyLayer = LayerMask.NameToLayer("Enemy");
+        dieLayer = LayerMask.NameToLayer("Die");
+    }
+
     public abstract void Clear();
+
+    protected abstract void AttackTarget();
+
+    public void GetDamage(float damage)
+    {
+        if (Hp <= 0)
+            return;
+
+        Hp -= damage;
+
+        if (Hp <= 0)
+        {
+            isDie = true;
+            gameObject.layer = dieLayer;
+            _capsuleCollider.enabled = false;
+
+            CrtState = CreatureState.Die;
+        }
+    }
 
     private void State_Attack()
     {

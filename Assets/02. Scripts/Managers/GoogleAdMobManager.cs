@@ -162,8 +162,7 @@ namespace AD
         /// </summary>
         internal void ResetAdMob()
         {
-            AD.Managers.DataM._dic_player["GoogleAdMob"] = "null";
-            AD.Managers.DataM.UpdateLocalData();
+            AD.Managers.DataM.UpdateLocalData(key: "GoogleAdMob", value: "null");
 
             PlayerUICanvas.Instance.EndBuff();
             Player.Instance.EndBuff();

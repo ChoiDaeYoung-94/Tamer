@@ -5,11 +5,11 @@ TagManager:
   serializedVersion: 2
   tags:
   - Monster
-  - DropItem
   - GoogleAdMob
   - GoGameScene
   - AllyMonster
   - Portal
+  - Capture
   layers:
   - Default
   - TransparentFX
