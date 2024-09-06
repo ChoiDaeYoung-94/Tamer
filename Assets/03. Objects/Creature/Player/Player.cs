@@ -14,10 +14,7 @@ public class Player : BaseController
     [Header("--- 플레어어 고유 Data ---")]
     [SerializeField] private int _gold = 0;
     public int Gold { get { return instance._gold; } }
-    [SerializeField] private int _curCaptureCapacity = 0;
-    public int CurCaptureCapacity { get { return instance._curCaptureCapacity; } }
-    [SerializeField] private int _maxCaptureCapacity = 0;
-    public int MaxCaptureCapacity { get { return instance._maxCaptureCapacity; } }
+    internal int _maxCaptureCapacity = 10;
     [SerializeField, Tooltip("ally monster 통제")] List<Monster> _list_groupMonsters = new List<Monster>();
 
     [Header("--- 세팅 ---")]
@@ -51,7 +48,7 @@ public class Player : BaseController
         instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
 
-        Init(AD.Define.Creature.Player);
+        Init();
     }
 
     /// <summary>
@@ -81,13 +78,11 @@ public class Player : BaseController
     /// HP는 장비에 맞게 따로 계산
     /// Player의 기본 HP는 100
     /// </summary>
-    protected override void Init(AD.Define.Creature creture)
+    protected override void Init()
     {
-        base.Init(creture);
+        base.Init();
 
         _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
-        _curCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["CurCaptureCapacity"]);
-        _maxCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
 
         if (AD.Managers.DataM._dic_player["AllyMonsters"] != "null")
         {
@@ -311,7 +306,7 @@ public class Player : BaseController
         monster.transform.SetParent(AD.Managers.PoolM._root_Player);
 
         string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
-        string temp_monster = monster._monster.ToString();
+        string temp_monster = monster._creature.ToString();
 
         if (temp_ally.Equals("null"))
         {
@@ -340,7 +335,7 @@ public class Player : BaseController
             StringBuilder sb = new StringBuilder();
 
             foreach (Monster _monster in _list_groupMonsters)
-                sb.Append($",{_monster._monster.ToString()}");
+                sb.Append($",{_monster._creature.ToString()}");
 
             temp_ally = sb.ToString();
         }

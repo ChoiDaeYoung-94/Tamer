@@ -1104,6 +1104,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _crtState: 0
+  _creature: 5
   _crtAni: {fileID: 8420243121178317090}
   allyLayer: 0
   enemyLayer: 0
@@ -1115,7 +1116,6 @@ MonoBehaviour:
   _attackSpeed: 0
   _moveSpeed: 0
   isDie: 0
-  _monster: 5
   _navAgent: {fileID: 6099953079655826109}
   _go_capture: {fileID: 1476362469581774540}
   isCommander: 0

@@ -10,7 +10,6 @@ using UnityEngine.AI;
 public class Monster : BaseController
 {
     [Header("--- 세팅 ---")]
-    [SerializeField] internal AD.Define.Creature _monster;
     [SerializeField] internal NavMeshAgent _navAgent;
     [SerializeField, Tooltip("포획 가능할 시 생기는 effect")] GameObject _go_capture = null;
 
@@ -45,13 +44,13 @@ public class Monster : BaseController
 
     private void Start()
     {
-        base.Init(_monster);
+        base.Init();
         _navAgent.enabled = true;
     }
 
     private void OnEnable()
     {
-        Init(_monster);
+        Init();
     }
 
     private void OnDisable()
@@ -69,7 +68,7 @@ public class Monster : BaseController
     /// <summary>
     /// monster 초기화
     /// </summary>
-    protected override void Init(AD.Define.Creature creature)
+    protected override void Init()
     {
         _hp = _orgHp;
 
@@ -545,7 +544,7 @@ public class Monster : BaseController
 
     private void GoldSetting()
     {
-        Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_monster.ToString()] as Dictionary<string, object>;
+        Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_creature.ToString()] as Dictionary<string, object>;
 
         int temp_gold = int.Parse(dic_temp["Gold"].ToString());
         gold = temp_gold + Random.Range(-temp_gold, temp_gold + 1);

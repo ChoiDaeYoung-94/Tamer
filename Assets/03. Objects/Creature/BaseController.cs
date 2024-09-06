@@ -46,6 +46,8 @@ public abstract class BaseController : MonoBehaviour
         }
     }
 
+    [SerializeField] internal AD.Define.Creature _creature;
+
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
     [SerializeField] Animator _crtAni = null;
     [SerializeField] protected int allyLayer = 0;
@@ -91,9 +93,9 @@ public abstract class BaseController : MonoBehaviour
     }
 
     #region Functions
-    protected virtual void Init(AD.Define.Creature creature)
+    protected virtual void Init()
     {
-        if (creature == AD.Define.Creature.Player)
+        if (_creature == AD.Define.Creature.Player)
         {
             _orgHp = 100;
             _hp = 100;
@@ -103,7 +105,7 @@ public abstract class BaseController : MonoBehaviour
         }
         else
         {
-            string key = creature.ToString();
+            string key = _creature.ToString();
             Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[key] as Dictionary<string, object>;
 
             _hp = _orgHp = float.Parse(dic_temp["Hp"].ToString());
