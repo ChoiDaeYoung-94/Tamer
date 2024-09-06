@@ -132,6 +132,11 @@ public abstract class BaseController : MonoBehaviour
             return;
 
         Hp -= damage;
+        if (Hp < 0)
+            Hp = 0;
+
+        if (_creature == AD.Define.Creature.Player)
+            PlayerUICanvas.Instance.UpdatePlayerInfo();
 
         if (Hp <= 0)
         {

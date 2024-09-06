@@ -283,6 +283,8 @@ public class Player : BaseController
     {
         captureMonster.AllySetting(playerPosition: transform.position);
         AddAllyMonster(captureMonster);
+
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
     private void SettingAllyMonster()
@@ -341,6 +343,8 @@ public class Player : BaseController
         }
 
         AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
+
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
     internal void RemoveAllAllyMonster()
@@ -371,6 +375,11 @@ public class Player : BaseController
     }
     #endregion
 
+    internal int GetCurMonsterCount()
+    {
+        return _list_groupMonsters.Count;
+    }
+
     /// <summary>
     /// monster가 죽은 뒤 호출
     /// </summary>
@@ -399,7 +408,7 @@ public class Player : BaseController
         if (isDie)
             return;
 
-        if (col.CompareTag("Capture"))
+        if (col.CompareTag("Capture") && _list_groupMonsters.Count < _maxCaptureCapacity)
         {
             PlayerUICanvas.Instance.EnableCapture();
             captureMonster = col.gameObject.GetComponentInParent<Monster>();
