@@ -1481,11 +1481,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 70, y: 10, z: 5}
+  m_Extents: {x: 70, y: 10, z: 15}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: 10}
   m_TimeToStationary: 0.5
 --- !u!1001 &474699857
 PrefabInstance:
@@ -1907,11 +1907,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 5, y: 10, z: 47.015}
+  m_Extents: {x: 15, y: 10, z: 47.015}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 10, y: 0, z: 0}
   m_TimeToStationary: 0.5
 --- !u!1001 &578583874
 PrefabInstance:
@@ -2855,9 +2855,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxMonsters: 16
-  curMonsters: 0
   _go_boss: {fileID: 0}
-  _go_curMonsters: []
+  _list_curMonsters: []
   spawnRadius: 12
   curRegionOfPlayer: 1
 --- !u!4 &981742750
@@ -4388,11 +4387,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 5, y: 10, z: 47.015}
+  m_Extents: {x: 15, y: 10, z: 47.015}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: -10, y: 0, z: 0}
   m_TimeToStationary: 0.5
 --- !u!4 &1573473828 stripped
 Transform:
@@ -5479,11 +5478,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 70, y: 10, z: 5}
+  m_Extents: {x: 70, y: 10, z: 15}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: -10}
   m_TimeToStationary: 0.5
 --- !u!1 &1968704048
 GameObject:
