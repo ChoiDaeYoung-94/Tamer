@@ -162,14 +162,8 @@ public class Monster : BaseController
     /// </summary>
     private void CommanderMove()
     {
-        Vector3 targetDirection = GetRandomDirection();
+        Vector3 targetDirection = GetRandomDirection(moveRadius, transform.position);
         float distance = Vector3.Distance(Player.Instance.transform.position, transform.position);
-
-        if (distance > 20f && !isBoss)
-        {
-            Warp();
-            return;
-        }
 
         while (true)
         {
@@ -233,24 +227,64 @@ public class Monster : BaseController
         }
     }
 
-    private void Warp()
+    internal void Warp()
     {
-        Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
-        _navAgent.Warp(transform.position + directionToPlayer * 5f);
+        Vector3 playerPos = Player.Instance.transform.position;
+        float distance = Vector3.Distance(transform.position, playerPos);
+        Vector3 randomDirection = GetRandomDirection(distance, playerPos);
 
-        foreach (Monster monster in _list_groupMonsters)
+        distance = Vector3.Distance(randomDirection, playerPos);
+        Vector3 directionToPlayer = (playerPos - randomDirection).normalized;
+        if (distance > 20f)
+            randomDirection += directionToPlayer * 5f;
+        else if (distance < 10f)
+            randomDirection -= directionToPlayer * 5f;
+
+        Vector3 finalPos = randomDirection;
+
+        int failCount = 0;
+        while (true)
         {
-            if (monster.isDie)
-                continue;
+            failCount++;
 
-            directionToPlayer = (Player.Instance.transform.position - monster.transform.position).normalized;
-            monster._navAgent.Warp(monster.transform.position + directionToPlayer * 5f);
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(finalPos, out hit, 5f, 1))
+            {
+                _navAgent.Warp(hit.position);
+                WarpGroup();
+                break;
+            }
+            else if (failCount > 20)
+            {
+                failCount = 0;
+                break;
+            }
         }
     }
 
-    private Vector3 GetRandomDirection()
+    private void WarpGroup()
     {
-        Vector3 randomDirection = Random.insideUnitSphere * moveRadius + transform.position;
+        for (int i = -1; ++i < _list_groupMonsters.Count;)
+        {
+            if (_list_groupMonsters[i].isDie)
+                continue;
+
+            Vector3 temp_vec = (i + 1) % 2 == 0 ? new Vector3((i + 1) / 2, 0, 0) : new Vector3(0, 0, (i + 1));
+            while (true)
+            {
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(transform.position + temp_vec, out hit, 5f, 1))
+                {
+                    _list_groupMonsters[i]._navAgent.Warp(hit.position);
+                    break;
+                }
+            }
+        }
+    }
+
+    private Vector3 GetRandomDirection(float distance, Vector3 basePos)
+    {
+        Vector3 randomDirection = Random.insideUnitSphere * distance + basePos;
         randomDirection.y = transform.position.y;
         return randomDirection;
     }
@@ -504,6 +538,7 @@ public class Monster : BaseController
         _navAgent.enabled = false;
         isDetection = false;
         Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: gold);
+        MonsterGenerator.Instance.MinusMonster(this);
 
         if (isAbleAlly)
         {
