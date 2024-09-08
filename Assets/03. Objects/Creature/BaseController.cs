@@ -54,6 +54,7 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] protected int enemyLayer = 0;
     [SerializeField] protected int dieLayer = 0;
     [SerializeField] protected CapsuleCollider _capsuleCollider = null;
+    [SerializeField] GameObject _go_heal = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected float _orgHp = 0;
@@ -172,6 +173,11 @@ public abstract class BaseController : MonoBehaviour
         }
         else
             _crtAni.CrossFade("Attack", 0.1f);
+    }
+
+    public void HealEffect()
+    {
+        _go_heal.SetActive(true);
     }
     #endregion
 }

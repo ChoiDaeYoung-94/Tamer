@@ -45,7 +45,7 @@ public class Portal : MonoBehaviour
 
     internal void RewardHeal()
     {
-
+        Player.Instance.Heal();
     }
     #endregion
 

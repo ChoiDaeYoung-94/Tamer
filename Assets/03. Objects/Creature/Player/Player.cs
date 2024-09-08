@@ -157,6 +157,18 @@ public class Player : BaseController
 
         _buff.SetActive(false);
     }
+
+    internal void Heal()
+    {
+        Hp = OrgHp;
+        HealEffect();
+
+        foreach (Monster monster in _list_groupMonsters)
+        {
+            monster.Hp = monster.OrgHp;
+            monster.HealEffect();
+        }
+    }
     #endregion
 
     #region Player
