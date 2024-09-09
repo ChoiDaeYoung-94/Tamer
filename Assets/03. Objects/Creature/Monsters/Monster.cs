@@ -60,7 +60,7 @@ public class Monster : BaseController
 
     private void Update()
     {
-        if (!isDie)
+        if (!isDie || !_navAgent.enabled)
             MonsterAI();
     }
 
@@ -341,7 +341,7 @@ public class Monster : BaseController
     #region target
     private void SetTarget(GameObject go)
     {
-        if (isTarget)
+        if (isTarget || !_navAgent.isOnNavMesh)
             return;
 
         isTarget = true;
@@ -413,7 +413,7 @@ public class Monster : BaseController
 
     private void ResetTarget()
     {
-        if (!isTarget)
+        if (!isTarget || !_navAgent.isOnNavMesh)
             return;
 
         isTarget = false;

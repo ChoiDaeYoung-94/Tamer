@@ -40,10 +40,11 @@ namespace AD
 
             AD.Managers.DataM.UpdateLocalData(key: "null", value: "null", all: true);
             AD.Managers.DataM.UpdatePlayerData();
-            AD.Managers.DataM.SaveLocalData();
 
             while (AD.Managers.ServerM.isInprogress)
                 yield return null;
+
+            AD.Managers.DataM.SaveLocalData();
 
             if (_co_UpdateData != null)
             {
