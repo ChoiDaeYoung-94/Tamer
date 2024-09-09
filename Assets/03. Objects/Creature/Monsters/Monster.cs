@@ -309,16 +309,41 @@ public class Monster : BaseController
         else
             isCommanderArrived = false;
     }
+
+    private void SafeSetDestination(Monster monster, Vector3 targetPosition)
+    {
+        int failCount = 0;
+        float maxDistance = 5f;
+
+        while (true)
+        {
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(targetPosition, out hit, maxDistance, 1))
+            {
+                monster._navAgent.SetDestination(hit.position);
+                monster.CrtState = CreatureState.Move;
+
+                break;
+            }
+            else
+            {
+                ++failCount;
+
+                if (failCount > 10)
+                    maxDistance = 10f;
+
+                if (failCount > 30)
+                    break;
+            }
+        }
+    }
     #endregion
 
     #region detection move
     private void CommanderDetectionMove(Vector3 targetPosition)
     {
         if (!_go_commanderTarget)
-        {
-            _navAgent.SetDestination(targetPosition);
-            CrtState = CreatureState.Move;
-        }
+            SafeSetDestination(this, targetPosition);
 
         foreach (Monster monster in _list_groupMonsters)
         {
@@ -332,9 +357,7 @@ public class Monster : BaseController
 
     private void BattleMove(Monster monster, Vector3 targetDestination)
     {
-        monster._navAgent.SetDestination(targetDestination);
-
-        CrtState = CreatureState.Move;
+        SafeSetDestination(monster, targetDestination);
     }
     #endregion
 
