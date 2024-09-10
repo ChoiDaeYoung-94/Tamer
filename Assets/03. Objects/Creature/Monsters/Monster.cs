@@ -68,6 +68,8 @@ public class Monster : BaseController
     /// </summary>
     protected override void Init()
     {
+        _go_effectSpawn.SetActive(true);
+
         _hp = _orgHp;
 
         if (!isAlly)
@@ -249,6 +251,8 @@ public class Monster : BaseController
             if (NavMesh.SamplePosition(finalPos, out hit, 5f, 1))
             {
                 _navAgent.Warp(hit.position);
+                _go_effectSpawn.SetActive(true);
+
                 WarpGroup();
                 break;
             }
@@ -274,6 +278,7 @@ public class Monster : BaseController
                 if (NavMesh.SamplePosition(transform.position + temp_vec, out hit, 5f, 1))
                 {
                     _list_groupMonsters[i]._navAgent.Warp(hit.position);
+                    _list_groupMonsters[i]._go_effectSpawn.SetActive(true);
                     break;
                 }
             }

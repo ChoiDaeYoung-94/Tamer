@@ -56,6 +56,8 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] protected CapsuleCollider _capsuleCollider = null;
     [SerializeField] GameObject _go_heal = null;
     [SerializeField] Transform _tr_uiCanvas = null;
+    [SerializeField] protected GameObject _go_effectSpawn = null;
+    [SerializeField] protected GameObject _go_effectDie = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected float _orgHp = 0;
@@ -160,6 +162,8 @@ public abstract class BaseController : MonoBehaviour
 
         if (Hp <= 0)
         {
+            _go_effectDie.SetActive(true);
+
             isDie = true;
             gameObject.layer = dieLayer;
             _capsuleCollider.enabled = false;
