@@ -31,8 +31,6 @@ public class Monster : BaseController
     private BaseController allyTarget = null;
     private bool isTarget = false;
     [Tooltip("player 및 monster 감지를 위한 Coroutine")] Coroutine _co_detection = null;
-    [Tooltip("감지한 대상 공격을 위한 Coroutine")] Coroutine _co_battle = null;
-    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget = null;
     [Tooltip("죽은 뒤 pool로 돌아가기 위한 Coroutine")] Coroutine _co_afterDie = null;
     [SerializeField, Tooltip("player 및 monster 감지 범위")] float detectionRadius = 5.0f;
     [SerializeField, Tooltip("감지 여부")] bool isDetection = false;
@@ -78,7 +76,7 @@ public class Monster : BaseController
             GoldSetting();
         }
 
-        BaseCoroutineSetting();
+        StartBattleCoroutine();
     }
 
     public override void Clear()
@@ -448,7 +446,7 @@ public class Monster : BaseController
     }
     #endregion
 
-    IEnumerator Battle()
+    protected override IEnumerator Battle()
     {
         while (!isDie)
         {
@@ -474,7 +472,7 @@ public class Monster : BaseController
         }
     }
 
-    IEnumerator DistanceOfTarget()
+    protected override IEnumerator DistanceOfTarget()
     {
         while (!isDie)
         {
@@ -594,12 +592,6 @@ public class Monster : BaseController
         isAbleAlly = isBoss ? Random.Range(0, 100) < 5 : Random.Range(0, 100) < temp_probability;
     }
 
-    private void BaseCoroutineSetting()
-    {
-        _co_battle = StartCoroutine(Battle());
-        _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
-    }
-
     private void GoldSetting()
     {
         Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_creature.ToString()] as Dictionary<string, object>;
@@ -635,7 +627,7 @@ public class Monster : BaseController
 
         CrtState = CreatureState.Idle;
 
-        BaseCoroutineSetting();
+        StartBattleCoroutine();
         StartDetectionCoroutine();
     }
 
@@ -674,24 +666,14 @@ public class Monster : BaseController
     #region Control
     private void DisableCoroutine()
     {
+        StopBattleCoroutine();
+
         if (_co_detection != null)
         {
             StopCoroutine(_co_detection);
             _co_detection = null;
 
             isDetection = false;
-        }
-
-        if (_co_battle != null)
-        {
-            StopCoroutine(_co_battle);
-            _co_battle = null;
-        }
-
-        if (_co_distanceOfTarget != null)
-        {
-            StopCoroutine(_co_distanceOfTarget);
-            _co_distanceOfTarget = null;
         }
 
         if (_co_afterDie != null)

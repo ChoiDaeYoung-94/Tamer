@@ -34,8 +34,6 @@ public class Player : BaseController
     [SerializeField] bool isAllyAvailable = false;
     [SerializeField, Tooltip("현재 타겟 몬스터")] GameObject _go_targetMonster = null;
     [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
-    [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle = null;
-    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget = null;
     [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
 
     /// <summary>
@@ -64,7 +62,7 @@ public class Player : BaseController
 
     private void OnDisable()
     {
-        DisableCoroutine();
+        StopBattleCoroutine();
     }
 
     private void Update()
@@ -191,14 +189,12 @@ public class Player : BaseController
     {
         if (isGame)
         {
-            DisableCoroutine();
-
-            _co_battle = StartCoroutine(Battle());
-            _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
+            StopBattleCoroutine();
+            StartBattleCoroutine();
         }
     }
 
-    IEnumerator Battle()
+    protected override IEnumerator Battle()
     {
         while (true)
         {
@@ -221,7 +217,7 @@ public class Player : BaseController
     /// 몬스터 Data에 추가해도 괜찮을 것 같음
     /// </summary>
     /// <returns></returns>
-    IEnumerator DistanceOfTarget()
+    protected override IEnumerator DistanceOfTarget()
     {
         while (true)
         {
@@ -234,18 +230,6 @@ public class Player : BaseController
             }
 
             yield return null;
-        }
-    }
-
-    private void DisableCoroutine()
-    {
-        if (_co_battle != null)
-        {
-            StopCoroutine(_co_battle);
-            _co_battle = null;
-
-            StopCoroutine(_co_distanceOfTarget);
-            _co_distanceOfTarget = null;
         }
     }
     #endregion

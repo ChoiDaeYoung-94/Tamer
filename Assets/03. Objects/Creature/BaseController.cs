@@ -73,6 +73,10 @@ public abstract class BaseController : MonoBehaviour
     public float MoveSpeed { get { return _moveSpeed; } }
     [SerializeField] protected bool isDie = false;
 
+    [Header("--- Coroutine ---")]
+    protected Coroutine _co_battle;
+    protected Coroutine _co_distanceOfTarget;
+
     protected virtual void Awake()
     {
         SetLayer();
@@ -94,6 +98,8 @@ public abstract class BaseController : MonoBehaviour
     }
 
     #region Functions
+
+    #region Settings
     protected virtual void Init()
     {
         if (_creature == AD.Define.Creature.Player)
@@ -122,11 +128,14 @@ public abstract class BaseController : MonoBehaviour
         enemyLayer = LayerMask.NameToLayer("Enemy");
         dieLayer = LayerMask.NameToLayer("Die");
     }
+    #endregion
 
-    public abstract void Clear();
+    public void HealEffect()
+    {
+        _go_heal.SetActive(true);
+    }
 
-    protected abstract void AttackTarget();
-
+    #region Battle
     public void GetDamage(float damage)
     {
         if (Hp <= 0)
@@ -174,10 +183,38 @@ public abstract class BaseController : MonoBehaviour
         else
             _crtAni.CrossFade("Attack", 0.1f);
     }
+    #endregion
 
-    public void HealEffect()
+    #region Coroutine
+    protected void StartBattleCoroutine()
     {
-        _go_heal.SetActive(true);
+        _co_battle = StartCoroutine(Battle());
+        _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
     }
+
+    protected void StopBattleCoroutine()
+    {
+        if (_co_battle != null)
+        {
+            StopCoroutine(_co_battle);
+            _co_battle = null;
+        }
+
+        if (_co_distanceOfTarget != null)
+        {
+            StopCoroutine(_co_distanceOfTarget);
+            _co_distanceOfTarget = null;
+        }
+    }
+
+    protected abstract IEnumerator Battle();
+
+    protected abstract IEnumerator DistanceOfTarget();
+    #endregion
+
+    public abstract void Clear();
+
+    protected abstract void AttackTarget();
+
     #endregion
 }
