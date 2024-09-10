@@ -755,6 +755,10 @@ PrefabInstance:
       value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolUIs.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
       propertyPath: _go_poolGOs.Array.data[0]
       value: 
       objectReference: {fileID: 5236718036414858801, guid: 4eba08bbb9b1dd54ea3cc4ad66ab40e3, type: 3}
@@ -794,6 +798,10 @@ PrefabInstance:
       propertyPath: _go_poolGOs.Array.data[9]
       value: 
       objectReference: {fileID: 2107389947689620278, guid: 569e405f7ce4b7d44804b641fcf36c9b, type: 3}
+    - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
+      propertyPath: _go_poolUIs.Array.data[0]
+      value: 
+      objectReference: {fileID: 8012766747485909324, guid: 5020eb249e3332d4281da111d78d702b, type: 3}
     - target: {fileID: 2814803996975980489, guid: 84b95496f0d56e14bbd6e9fb231b31ca, type: 3}
       propertyPath: _go_poolGOs.Array.data[10]
       value: 

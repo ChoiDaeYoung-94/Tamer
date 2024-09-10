@@ -55,6 +55,7 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] protected int dieLayer = 0;
     [SerializeField] protected CapsuleCollider _capsuleCollider = null;
     [SerializeField] GameObject _go_heal = null;
+    [SerializeField] Transform _tr_uiCanvas = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected float _orgHp = 0;
@@ -140,6 +141,15 @@ public abstract class BaseController : MonoBehaviour
     {
         if (Hp <= 0)
             return;
+
+        if (gameObject.layer == enemyLayer)
+        {
+            _tr_uiCanvas.LookAt(Camera.main.transform);
+
+            GameObject go_damage = AD.Managers.PoolM.PopFromPool(AD.Define.ETC.TMP_Damage.ToString());
+            go_damage.transform.SetParent(_tr_uiCanvas, false);
+            go_damage.GetComponent<TMP_Damage>().Init(damage);
+        }
 
         Hp -= damage;
         if (Hp < 0)
