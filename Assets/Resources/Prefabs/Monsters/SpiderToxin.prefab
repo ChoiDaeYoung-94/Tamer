@@ -801,7 +801,7 @@ MonoBehaviour:
   isBoss: 0
   moveRadius: 5
   _list_groupMonsters: []
-  flockingRadius: 2
+  flockingRadius: 2.5
   isAbleAlly: 0
   isAlly: 0
   _go_allyTarget: {fileID: 0}

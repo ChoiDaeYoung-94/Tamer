@@ -225,7 +225,7 @@ public class Player : BaseController
             {
                 float distance = Vector3.Distance(Player.Instance.transform.position, _go_targetMonster.transform.position);
 
-                if (distance > 3.0f)
+                if (distance > targetMonster.flockingRadius + 0.3f)
                     _go_targetMonster = null;
             }
 

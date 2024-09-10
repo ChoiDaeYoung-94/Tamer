@@ -10,7 +10,7 @@ public class MonsterGenerator : MonoBehaviour
 
     [Header("--- 참고용 ---")]
     private Coroutine _co_settingMonster = null;
-    [SerializeField, Tooltip("최대 몬스터 객체 수")] int maxMonsters = 16;
+    [SerializeField, Tooltip("최대 몬스터 객체 수")] int maxMonsters = 15;
     [SerializeField, Tooltip("보스 몬스터 관리")] internal GameObject _go_boss = null;
     [SerializeField, Tooltip("현재 사용중인 몬스터 배열")] List<Monster> _list_curMonsters = new List<Monster>();
     [SerializeField, Tooltip("몬스터 생성 범위")] float spawnRadius = 12f;
@@ -57,7 +57,7 @@ public class MonsterGenerator : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(10f);
+            yield return new WaitForSeconds(15f);
 
             int region = RegionOfPlayer();
 
@@ -75,23 +75,23 @@ public class MonsterGenerator : MonoBehaviour
 
     #region set monsters
     /// <summary>
-    /// 몬스터는 최대 16마리 세팅
-    /// 플레이어 주위에는 4개의 그룹이 존재하며 각 그룹의 최대 객체수는 4
+    /// 몬스터는 최대 15마리 세팅
+    /// 플레이어 주위에는 5개의 그룹이 존재하며 각 그룹의 최대 객체수는 3
     /// </summary>
     /// <param name="region"></param>
     private void SettingMonsters(int region)
     {
-        if (_list_curMonsters.Count + 4 > maxMonsters)
+        if (_list_curMonsters.Count + 3 > maxMonsters)
             return;
 
         if (_dic_numOfMonster.TryGetValue(region, out (int min, int max) num))
         {
-            int temp_groupMaxCount = (maxMonsters - _list_curMonsters.Count) / 4;
+            int temp_groupMaxCount = (maxMonsters - _list_curMonsters.Count) / 3;
             int groupMaxCount = temp_groupMaxCount > 0 ? temp_groupMaxCount : 1;
 
             for (int j = -1; ++j < groupMaxCount;)
             {
-                int groupSize = UnityEngine.Random.Range(1, 5);
+                int groupSize = UnityEngine.Random.Range(1, 4);
 
                 int temp_random = UnityEngine.Random.Range(num.min, num.max + 1);
                 string temp_name = Enum.GetValues(typeof(AD.Define.Creature)).GetValue(temp_random).ToString();

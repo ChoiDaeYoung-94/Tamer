@@ -54,6 +54,9 @@ namespace AD
             Player.Instance.transform.parent.gameObject.SetActive(true);
             Player.Instance.ActiveControl(true);
             Player.Instance.HandleAttackCoroutine(isGame: _isGame);
+
+            if (!_isGame)
+                Player.Instance.Heal();
         }
 
         private void BeforeOrAfterEnter(bool isEnter)
