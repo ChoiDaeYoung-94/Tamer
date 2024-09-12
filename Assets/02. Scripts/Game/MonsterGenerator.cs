@@ -189,7 +189,10 @@ public class MonsterGenerator : MonoBehaviour
 
         Vector3 screenPos = Camera.main.WorldToScreenPoint(pos);
 
-        if (screenPos.x < 0 || screenPos.x > Screen.width || screenPos.y < 0 || screenPos.y > Screen.height)
+        float x = Screen.width * 0.3f;
+        float y = Screen.height * 0.3f;
+
+        if (screenPos.x < 0 - x || screenPos.x > Screen.width + x || screenPos.y < 0 - y || screenPos.y > Screen.height + y)
             include = false;
         else if (screenPos.x >= 0 && screenPos.x <= Screen.width && screenPos.y >= 0 && screenPos.y <= Screen.height)
             include = true;
