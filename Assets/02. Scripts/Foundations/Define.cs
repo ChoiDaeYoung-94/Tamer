@@ -43,5 +43,10 @@ namespace AD
             Beholder,
             FylingDemon
         }
+
+        public enum ETC
+        {
+            TMP_Damage
+        }
     }
 }

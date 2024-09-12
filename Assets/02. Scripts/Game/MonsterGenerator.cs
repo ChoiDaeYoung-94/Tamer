@@ -10,10 +10,9 @@ public class MonsterGenerator : MonoBehaviour
 
     [Header("--- 참고용 ---")]
     private Coroutine _co_settingMonster = null;
-    [SerializeField, Tooltip("최대 몬스터 객체 수")] int maxMonsters = 16;
-    [SerializeField, Tooltip("현재 몬스터 객체 수")] int curMonsters = 0;
+    [SerializeField, Tooltip("최대 몬스터 객체 수")] int maxMonsters = 15;
     [SerializeField, Tooltip("보스 몬스터 관리")] internal GameObject _go_boss = null;
-    [SerializeField, Tooltip("현재 사용중인 몬스터 배열")] GameObject[] _go_curMonsters = null;
+    [SerializeField, Tooltip("현재 사용중인 몬스터 배열")] List<Monster> _list_curMonsters = new List<Monster>();
     [SerializeField, Tooltip("몬스터 생성 범위")] float spawnRadius = 12f;
     [SerializeField, Tooltip("현재 플레이어의 지역 위치")] int curRegionOfPlayer = 1;
     [SerializeField, Tooltip("현재 플레이어의 지역에 따른 생성 가능한 몬스터(Define.Creature)")]
@@ -50,7 +49,6 @@ public class MonsterGenerator : MonoBehaviour
     /// </summary>
     internal void Init()
     {
-        _go_curMonsters = new GameObject[maxMonsters];
         SettingMonsters(curRegionOfPlayer);
         _co_settingMonster = StartCoroutine(Generator());
     }
@@ -59,64 +57,50 @@ public class MonsterGenerator : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(5f);
+            yield return new WaitForSeconds(15f);
 
             int region = RegionOfPlayer();
 
             SetBoss(region);
 
             if (curRegionOfPlayer != region)
-            {
                 curRegionOfPlayer = region;
-                ResetMonsters();
-            }
-            else if (curMonsters <= 8)
+
+            ResetMonster();
+
+            if (_list_curMonsters.Count <= 8)
                 SettingMonsters(curRegionOfPlayer);
         }
     }
 
-    private void ResetMonsters()
-    {
-        for (int i = -1; ++i < _go_curMonsters.Length;)
-        {
-            if (_go_curMonsters[i] == null)
-                break;
-
-            AD.Managers.PoolM.PushToPool(_go_curMonsters[i]);
-            _go_curMonsters[i] = null;
-            --curMonsters;
-        }
-
-        SettingMonsters(curRegionOfPlayer);
-    }
-
+    #region set monsters
     /// <summary>
-    /// 몬스터는 최대 16마리 세팅
-    /// 플레이어 주위에는 4개의 그룹이 존재하며 각 그룹의 최대 객체수는 4
+    /// 몬스터는 최대 15마리 세팅
+    /// 플레이어 주위에는 5개의 그룹이 존재하며 각 그룹의 최대 객체수는 3
     /// </summary>
     /// <param name="region"></param>
     private void SettingMonsters(int region)
     {
-        if (curMonsters + 4 > maxMonsters)
+        if (_list_curMonsters.Count + 3 > maxMonsters)
             return;
 
         if (_dic_numOfMonster.TryGetValue(region, out (int min, int max) num))
         {
-            int temp_groupMaxCount = (maxMonsters - curMonsters) / 4;
+            int temp_groupMaxCount = (maxMonsters - _list_curMonsters.Count) / 3;
             int groupMaxCount = temp_groupMaxCount > 0 ? temp_groupMaxCount : 1;
 
             for (int j = -1; ++j < groupMaxCount;)
             {
-                int groupSize = UnityEngine.Random.Range(2, 5);
+                int groupSize = UnityEngine.Random.Range(1, 4);
 
                 int temp_random = UnityEngine.Random.Range(num.min, num.max + 1);
                 string temp_name = Enum.GetValues(typeof(AD.Define.Creature)).GetValue(temp_random).ToString();
                 Monster commanderMonster = AD.Managers.PoolM.PopFromPool(temp_name).GetComponent<Monster>();
                 commanderMonster.isCommander = true;
                 commanderMonster.StartDetectionCoroutine();
-                commanderMonster.transform.position = CheckPosition();
+                commanderMonster.transform.position = SetPosition();
 
-                PlusMonster(commanderMonster.gameObject);
+                PlusMonster(commanderMonster);
 
                 for (int i = 0; ++i < groupSize;)
                 {
@@ -129,7 +113,7 @@ public class MonsterGenerator : MonoBehaviour
                     commanderMonster._list_groupMonsters.Add(monster);
                     monster._commanderMonster = commanderMonster;
 
-                    PlusMonster(go_monster);
+                    PlusMonster(monster);
                 }
             }
         }
@@ -152,13 +136,13 @@ public class MonsterGenerator : MonoBehaviour
         }
     }
 
-    private void PlusMonster(GameObject monster)
-    {
-        _go_curMonsters[curMonsters] = monster.gameObject;
-        ++curMonsters;
-    }
+    private void PlusMonster(Monster monster) => _list_curMonsters.Add(monster);
 
-    private Vector3 CheckPosition()
+    internal void MinusMonster(Monster monster) => _list_curMonsters.Remove(monster);
+    #endregion
+
+    #region position
+    private Vector3 SetPosition()
     {
         float x = 0, z = 0;
         if (UnityEngine.Random.value > 0.5f)
@@ -175,6 +159,55 @@ public class MonsterGenerator : MonoBehaviour
         Vector3 temp_vec = Player.Instance.transform.position + new Vector3(x, 0, z) * spawnRadius;
 
         return new Vector3(Mathf.Clamp(temp_vec.x, -50f, 55.5f), 2f, Mathf.Clamp(temp_vec.z, -25f, 20f));
+    }
+
+    private void ResetMonster()
+    {
+        foreach (Monster monster in _list_curMonsters)
+        {
+            if (!monster.isCommander)
+                continue;
+
+            if (!CheckViewPort(monster.transform.position))
+            {
+                if (!RegionOfMonster(monster))
+                {
+                    foreach (Monster follower in monster._list_groupMonsters)
+                        follower.GetDamage(1000f);
+
+                    monster.GetDamage(1000f);
+                }
+                else
+                    monster.Warp();
+            }
+        }
+    }
+
+    bool CheckViewPort(Vector3 pos)
+    {
+        bool include = false;
+
+        Vector3 screenPos = Camera.main.WorldToScreenPoint(pos);
+
+        float x = Screen.width * 0.3f;
+        float y = Screen.height * 0.3f;
+
+        if (screenPos.x < 0 - x || screenPos.x > Screen.width + x || screenPos.y < 0 - y || screenPos.y > Screen.height + y)
+            include = false;
+        else if (screenPos.x >= 0 && screenPos.x <= Screen.width && screenPos.y >= 0 && screenPos.y <= Screen.height)
+            include = true;
+
+        return include;
+    }
+
+    bool RegionOfMonster(Monster monster)
+    {
+        int value = (int)monster._creature;
+
+        if (_dic_numOfMonster.TryGetValue(curRegionOfPlayer, out (int min, int max) num))
+            return value >= num.min && value <= num.max;
+
+        return false;
     }
 
     private int RegionOfPlayer()
@@ -198,5 +231,7 @@ public class MonsterGenerator : MonoBehaviour
 
         return 1;
     }
+    #endregion
+
     #endregion
 }

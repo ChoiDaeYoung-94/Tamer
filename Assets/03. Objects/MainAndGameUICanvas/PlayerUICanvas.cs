@@ -92,7 +92,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     internal void UpdatePlayerInfo()
     {
-        _TMP_captureCapacity.text = $"{AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";
+        _TMP_captureCapacity.text = $"{Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
         _TMP_gold.text = $"Gold - {Player.Instance.Gold}";
         _TMP_HP.text = $"{Player.Instance.Hp} / {Player.Instance.OrgHp}";
 
@@ -106,7 +106,7 @@ public class PlayerUICanvas : MonoBehaviour
     private void UpdatePopPlayerInfo()
     {
         _TMP_POPplayerNickName.text = $"NickName - {AD.Managers.DataM._dic_player["NickName"]}";
-        _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {AD.Managers.DataM._dic_player["CurCaptureCapacity"]} / {AD.Managers.DataM._dic_player["MaxCaptureCapacity"]}";
+        _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
         _TMP_POPgold.text = $"Gold - {Player.Instance.Gold}";
 
         _TMP_POPpower.text = _isBuff ? $"Power - {Player.Instance._buffPower}" : $"Power - {Player.Instance.Power}";

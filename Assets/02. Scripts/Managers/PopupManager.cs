@@ -114,7 +114,7 @@ namespace AD
                 }
                 else
                 {
-                    AD.Debug.Log("PopupManager", "lobby  scene-> go lobby popup");
+                    AD.Debug.Log("PopupManager", "game scene-> go lobby popup");
 
                     if (!_go_popupLobby.activeSelf)
                         _go_popupLobby.SetActive(true);

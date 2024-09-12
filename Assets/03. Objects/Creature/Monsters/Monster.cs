@@ -10,7 +10,6 @@ using UnityEngine.AI;
 public class Monster : BaseController
 {
     [Header("--- 세팅 ---")]
-    [SerializeField] internal AD.Define.Creature _monster;
     [SerializeField] internal NavMeshAgent _navAgent;
     [SerializeField, Tooltip("포획 가능할 시 생기는 effect")] GameObject _go_capture = null;
 
@@ -32,8 +31,6 @@ public class Monster : BaseController
     private BaseController allyTarget = null;
     private bool isTarget = false;
     [Tooltip("player 및 monster 감지를 위한 Coroutine")] Coroutine _co_detection = null;
-    [Tooltip("감지한 대상 공격을 위한 Coroutine")] Coroutine _co_battle = null;
-    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget = null;
     [Tooltip("죽은 뒤 pool로 돌아가기 위한 Coroutine")] Coroutine _co_afterDie = null;
     [SerializeField, Tooltip("player 및 monster 감지 범위")] float detectionRadius = 5.0f;
     [SerializeField, Tooltip("감지 여부")] bool isDetection = false;
@@ -43,15 +40,21 @@ public class Monster : BaseController
     private float updateTimer = 0f;
     [SerializeField, Tooltip("죽을 시 플레이어 보상 골드")] int gold = 0;
 
+    protected override void Awake()
+    {
+        base.Awake();
+
+        base.Init();
+    }
+
     private void Start()
     {
-        base.Init(_monster);
         _navAgent.enabled = true;
     }
 
     private void OnEnable()
     {
-        Init(_monster);
+        Init();
     }
 
     private void OnDisable()
@@ -61,7 +64,7 @@ public class Monster : BaseController
 
     private void Update()
     {
-        if (!isDie)
+        if (!isDie || !_navAgent.enabled)
             MonsterAI();
     }
 
@@ -69,9 +72,12 @@ public class Monster : BaseController
     /// <summary>
     /// monster 초기화
     /// </summary>
-    protected override void Init(AD.Define.Creature creature)
+    protected override void Init()
     {
+        _go_effectSpawn.SetActive(true);
+
         _hp = _orgHp;
+        _navAgent.speed = _moveSpeed;
 
         if (!isAlly)
         {
@@ -79,7 +85,7 @@ public class Monster : BaseController
             GoldSetting();
         }
 
-        BaseCoroutineSetting();
+        StartBattleCoroutine();
     }
 
     public override void Clear()
@@ -120,7 +126,8 @@ public class Monster : BaseController
     {
         while (!isDie)
         {
-            Collider[] col = Physics.OverlapSphere(transform.position, detectionRadius, 1 << detectionLayer);
+            float temp_detectionRadius = isAlly ? 5f : detectionRadius;
+            Collider[] col = Physics.OverlapSphere(transform.position, temp_detectionRadius, 1 << detectionLayer);
 
             if (col.Length <= 0)
                 isDetection = false;
@@ -150,7 +157,10 @@ public class Monster : BaseController
         if (isCommander)
             CommanderDetectionMove(_vec_detection);
         else if (isAlly && !_go_allyTarget)
-            BattleMove(this, _vec_detection);
+        {
+            if (Vector3.Distance(transform.position, Player.Instance.transform.position) < 10f)
+                BattleMove(this, _vec_detection);
+        }
     }
 
     #region normal move
@@ -163,14 +173,8 @@ public class Monster : BaseController
     /// </summary>
     private void CommanderMove()
     {
-        Vector3 targetDirection = GetRandomDirection();
+        Vector3 targetDirection = GetRandomDirection(moveRadius, transform.position);
         float distance = Vector3.Distance(Player.Instance.transform.position, transform.position);
-
-        if (distance > 20f && !isBoss)
-        {
-            Warp();
-            return;
-        }
 
         while (true)
         {
@@ -234,24 +238,67 @@ public class Monster : BaseController
         }
     }
 
-    private void Warp()
+    internal void Warp()
     {
-        Vector3 directionToPlayer = (Player.Instance.transform.position - transform.position).normalized;
-        _navAgent.Warp(transform.position + directionToPlayer * 5f);
+        Vector3 playerPos = Player.Instance.transform.position;
+        float distance = Vector3.Distance(transform.position, playerPos);
+        Vector3 randomDirection = GetRandomDirection(distance, playerPos);
 
-        foreach (Monster monster in _list_groupMonsters)
+        distance = Vector3.Distance(randomDirection, playerPos);
+        Vector3 directionToPlayer = (playerPos - randomDirection).normalized;
+        if (distance > 20f)
+            randomDirection += directionToPlayer * 5f;
+        else if (distance < 10f)
+            randomDirection -= directionToPlayer * 5f;
+
+        Vector3 finalPos = randomDirection;
+
+        int failCount = 0;
+        while (true)
         {
-            if (monster.isDie)
-                continue;
+            failCount++;
 
-            directionToPlayer = (Player.Instance.transform.position - monster.transform.position).normalized;
-            monster._navAgent.Warp(monster.transform.position + directionToPlayer * 5f);
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(finalPos, out hit, 5f, 1))
+            {
+                _navAgent.Warp(hit.position);
+                _go_effectSpawn.SetActive(true);
+
+                WarpGroup();
+                break;
+            }
+            else if (failCount > 20)
+            {
+                failCount = 0;
+                break;
+            }
         }
     }
 
-    private Vector3 GetRandomDirection()
+    private void WarpGroup()
     {
-        Vector3 randomDirection = Random.insideUnitSphere * moveRadius + transform.position;
+        for (int i = -1; ++i < _list_groupMonsters.Count;)
+        {
+            if (_list_groupMonsters[i].isDie)
+                continue;
+
+            Vector3 temp_vec = (i + 1) % 2 == 0 ? new Vector3((i + 1) / 2, 0, 0) : new Vector3(0, 0, (i + 1));
+            while (true)
+            {
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(transform.position + temp_vec, out hit, 5f, 1))
+                {
+                    _list_groupMonsters[i]._navAgent.Warp(hit.position);
+                    _list_groupMonsters[i]._go_effectSpawn.SetActive(true);
+                    break;
+                }
+            }
+        }
+    }
+
+    private Vector3 GetRandomDirection(float distance, Vector3 basePos)
+    {
+        Vector3 randomDirection = Random.insideUnitSphere * distance + basePos;
         randomDirection.y = transform.position.y;
         return randomDirection;
     }
@@ -276,16 +323,41 @@ public class Monster : BaseController
         else
             isCommanderArrived = false;
     }
+
+    private void SafeSetDestination(Monster monster, Vector3 targetPosition)
+    {
+        int failCount = 0;
+        float maxDistance = 5f;
+
+        while (true)
+        {
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(targetPosition, out hit, maxDistance, 1))
+            {
+                monster._navAgent.SetDestination(hit.position);
+                monster.CrtState = CreatureState.Move;
+
+                break;
+            }
+            else
+            {
+                ++failCount;
+
+                if (failCount > 10)
+                    maxDistance = 10f;
+
+                if (failCount > 30)
+                    break;
+            }
+        }
+    }
     #endregion
 
     #region detection move
     private void CommanderDetectionMove(Vector3 targetPosition)
     {
         if (!_go_commanderTarget)
-        {
-            _navAgent.SetDestination(targetPosition);
-            CrtState = CreatureState.Move;
-        }
+            SafeSetDestination(this, targetPosition);
 
         foreach (Monster monster in _list_groupMonsters)
         {
@@ -299,16 +371,14 @@ public class Monster : BaseController
 
     private void BattleMove(Monster monster, Vector3 targetDestination)
     {
-        monster._navAgent.SetDestination(targetDestination);
-
-        CrtState = CreatureState.Move;
+        SafeSetDestination(monster, targetDestination);
     }
     #endregion
 
     #region target
     private void SetTarget(GameObject go)
     {
-        if (isTarget)
+        if (isTarget || !_navAgent.isOnNavMesh)
             return;
 
         isTarget = true;
@@ -380,7 +450,7 @@ public class Monster : BaseController
 
     private void ResetTarget()
     {
-        if (!isTarget)
+        if (!isTarget || !_navAgent.isOnNavMesh)
             return;
 
         isTarget = false;
@@ -392,7 +462,7 @@ public class Monster : BaseController
     }
     #endregion
 
-    IEnumerator Battle()
+    protected override IEnumerator Battle()
     {
         while (!isDie)
         {
@@ -418,7 +488,7 @@ public class Monster : BaseController
         }
     }
 
-    IEnumerator DistanceOfTarget()
+    protected override IEnumerator DistanceOfTarget()
     {
         while (!isDie)
         {
@@ -505,6 +575,7 @@ public class Monster : BaseController
         _navAgent.enabled = false;
         isDetection = false;
         Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: gold);
+        MonsterGenerator.Instance.MinusMonster(this);
 
         if (isAbleAlly)
         {
@@ -537,15 +608,9 @@ public class Monster : BaseController
         isAbleAlly = isBoss ? Random.Range(0, 100) < 5 : Random.Range(0, 100) < temp_probability;
     }
 
-    private void BaseCoroutineSetting()
-    {
-        _co_battle = StartCoroutine(Battle());
-        _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
-    }
-
     private void GoldSetting()
     {
-        Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_monster.ToString()] as Dictionary<string, object>;
+        Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_creature.ToString()] as Dictionary<string, object>;
 
         int temp_gold = int.Parse(dic_temp["Gold"].ToString());
         gold = temp_gold + Random.Range(-temp_gold, temp_gold + 1);
@@ -570,6 +635,7 @@ public class Monster : BaseController
         detectionLayer = enemyLayer;
 
         _hp = _orgHp;
+        _navAgent.speed = Player.Instance.MoveSpeed + 0.5f;
 
         isAlly = true;
 
@@ -578,7 +644,7 @@ public class Monster : BaseController
 
         CrtState = CreatureState.Idle;
 
-        BaseCoroutineSetting();
+        StartBattleCoroutine();
         StartDetectionCoroutine();
     }
 
@@ -617,24 +683,14 @@ public class Monster : BaseController
     #region Control
     private void DisableCoroutine()
     {
+        StopBattleCoroutine();
+
         if (_co_detection != null)
         {
             StopCoroutine(_co_detection);
             _co_detection = null;
 
             isDetection = false;
-        }
-
-        if (_co_battle != null)
-        {
-            StopCoroutine(_co_battle);
-            _co_battle = null;
-        }
-
-        if (_co_distanceOfTarget != null)
-        {
-            StopCoroutine(_co_distanceOfTarget);
-            _co_distanceOfTarget = null;
         }
 
         if (_co_afterDie != null)

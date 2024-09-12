@@ -27,8 +27,7 @@ namespace AD
 
             _isGame = !_isGame;
 
-            JoyStick.Instance.transform.parent.gameObject.SetActive(false);
-            PlayerUICanvas.Instance.gameObject.SetActive(false);
+            BeforeOrAfterEnter(isEnter: false);
 
             Player.Instance.ActiveControl(false);
             Player.Instance.transform.parent.gameObject.SetActive(false);
@@ -41,13 +40,12 @@ namespace AD
         /// </summary>
         internal void InitMainOrGameScene()
         {
-            JoyStick.Instance.transform.parent.gameObject.SetActive(true);
-
             CameraManage.Instance.CM_cameras[0].transform.position =
                 _isGame ? _vec_gameCmCam : _vec_mainCmCam;
 
             PlayerUICanvas.Instance.StartInit();
-            PlayerUICanvas.Instance.gameObject.SetActive(true);
+
+            BeforeOrAfterEnter(isEnter: true);
 
             Player.Instance._tr_cameraArm.transform.position = _isGame ? new Vector3(_vec_player.x, Player.Instance._tr_cameraArm.transform.position.y, _vec_player.z)
                 : new Vector3(0f, Player.Instance._tr_cameraArm.transform.position.y, 0f);
@@ -56,6 +54,15 @@ namespace AD
             Player.Instance.transform.parent.gameObject.SetActive(true);
             Player.Instance.ActiveControl(true);
             Player.Instance.HandleAttackCoroutine(isGame: _isGame);
+
+            if (!_isGame)
+                Player.Instance.Heal();
+        }
+
+        private void BeforeOrAfterEnter(bool isEnter)
+        {
+            JoyStick.Instance.transform.parent.gameObject.SetActive(isEnter);
+            PlayerUICanvas.Instance.gameObject.SetActive(isEnter);
         }
 
         internal void GameOver()

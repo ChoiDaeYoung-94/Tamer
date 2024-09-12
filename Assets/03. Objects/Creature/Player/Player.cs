@@ -14,10 +14,7 @@ public class Player : BaseController
     [Header("--- 플레어어 고유 Data ---")]
     [SerializeField] private int _gold = 0;
     public int Gold { get { return instance._gold; } }
-    [SerializeField] private int _curCaptureCapacity = 0;
-    public int CurCaptureCapacity { get { return instance._curCaptureCapacity; } }
-    [SerializeField] private int _maxCaptureCapacity = 0;
-    public int MaxCaptureCapacity { get { return instance._maxCaptureCapacity; } }
+    internal int _maxCaptureCapacity = 10;
     [SerializeField, Tooltip("ally monster 통제")] List<Monster> _list_groupMonsters = new List<Monster>();
 
     [Header("--- 세팅 ---")]
@@ -37,8 +34,6 @@ public class Player : BaseController
     [SerializeField] bool isAllyAvailable = false;
     [SerializeField, Tooltip("현재 타겟 몬스터")] GameObject _go_targetMonster = null;
     [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
-    [Tooltip("플레이어 공격 감지 coroutine")] Coroutine _co_battle = null;
-    [Tooltip("타겟 몬스터 거리 감지 coroutine")] Coroutine _co_distanceOfTarget = null;
     [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
 
     /// <summary>
@@ -51,7 +46,7 @@ public class Player : BaseController
         instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
 
-        Init(AD.Define.Creature.Player);
+        Init();
     }
 
     /// <summary>
@@ -67,7 +62,7 @@ public class Player : BaseController
 
     private void OnDisable()
     {
-        DisableCoroutine();
+        StopBattleCoroutine();
     }
 
     private void Update()
@@ -81,13 +76,11 @@ public class Player : BaseController
     /// HP는 장비에 맞게 따로 계산
     /// Player의 기본 HP는 100
     /// </summary>
-    protected override void Init(AD.Define.Creature creture)
+    protected override void Init()
     {
-        base.Init(creture);
+        base.Init();
 
         _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
-        _curCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["CurCaptureCapacity"]);
-        _maxCaptureCapacity = int.Parse(AD.Managers.DataM._dic_player["MaxCaptureCapacity"]);
 
         if (AD.Managers.DataM._dic_player["AllyMonsters"] != "null")
         {
@@ -162,6 +155,18 @@ public class Player : BaseController
 
         _buff.SetActive(false);
     }
+
+    internal void Heal()
+    {
+        Hp = OrgHp;
+        HealEffect();
+
+        foreach (Monster monster in _list_groupMonsters)
+        {
+            monster.Hp = monster.OrgHp;
+            monster.HealEffect();
+        }
+    }
     #endregion
 
     #region Player
@@ -184,14 +189,12 @@ public class Player : BaseController
     {
         if (isGame)
         {
-            DisableCoroutine();
-
-            _co_battle = StartCoroutine(Battle());
-            _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
+            StopBattleCoroutine();
+            StartBattleCoroutine();
         }
     }
 
-    IEnumerator Battle()
+    protected override IEnumerator Battle()
     {
         while (true)
         {
@@ -214,7 +217,7 @@ public class Player : BaseController
     /// 몬스터 Data에 추가해도 괜찮을 것 같음
     /// </summary>
     /// <returns></returns>
-    IEnumerator DistanceOfTarget()
+    protected override IEnumerator DistanceOfTarget()
     {
         while (true)
         {
@@ -222,23 +225,11 @@ public class Player : BaseController
             {
                 float distance = Vector3.Distance(Player.Instance.transform.position, _go_targetMonster.transform.position);
 
-                if (distance > 3.0f)
+                if (distance > targetMonster.flockingRadius + 0.3f)
                     _go_targetMonster = null;
             }
 
             yield return null;
-        }
-    }
-
-    private void DisableCoroutine()
-    {
-        if (_co_battle != null)
-        {
-            StopCoroutine(_co_battle);
-            _co_battle = null;
-
-            StopCoroutine(_co_distanceOfTarget);
-            _co_distanceOfTarget = null;
         }
     }
     #endregion
@@ -288,6 +279,8 @@ public class Player : BaseController
     {
         captureMonster.AllySetting(playerPosition: transform.position);
         AddAllyMonster(captureMonster);
+
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
     private void SettingAllyMonster()
@@ -311,7 +304,7 @@ public class Player : BaseController
         monster.transform.SetParent(AD.Managers.PoolM._root_Player);
 
         string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
-        string temp_monster = monster._monster.ToString();
+        string temp_monster = monster._creature.ToString();
 
         if (temp_ally.Equals("null"))
         {
@@ -340,12 +333,14 @@ public class Player : BaseController
             StringBuilder sb = new StringBuilder();
 
             foreach (Monster _monster in _list_groupMonsters)
-                sb.Append($",{_monster._monster.ToString()}");
+                sb.Append($",{_monster._creature.ToString()}");
 
             temp_ally = sb.ToString();
         }
 
         AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
+
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
     internal void RemoveAllAllyMonster()
@@ -376,6 +371,11 @@ public class Player : BaseController
     }
     #endregion
 
+    internal int GetCurMonsterCount()
+    {
+        return _list_groupMonsters.Count;
+    }
+
     /// <summary>
     /// monster가 죽은 뒤 호출
     /// </summary>
@@ -404,7 +404,7 @@ public class Player : BaseController
         if (isDie)
             return;
 
-        if (col.CompareTag("Capture"))
+        if (col.CompareTag("Capture") && _list_groupMonsters.Count < _maxCaptureCapacity)
         {
             PlayerUICanvas.Instance.EnableCapture();
             captureMonster = col.gameObject.GetComponentInParent<Monster>();

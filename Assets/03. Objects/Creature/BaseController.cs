@@ -46,12 +46,18 @@ public abstract class BaseController : MonoBehaviour
         }
     }
 
+    [SerializeField] internal AD.Define.Creature _creature;
+
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
     [SerializeField] Animator _crtAni = null;
     [SerializeField] protected int allyLayer = 0;
     [SerializeField] protected int enemyLayer = 0;
     [SerializeField] protected int dieLayer = 0;
     [SerializeField] protected CapsuleCollider _capsuleCollider = null;
+    [SerializeField] GameObject _go_heal = null;
+    [SerializeField] Transform _tr_uiCanvas = null;
+    [SerializeField] protected GameObject _go_effectSpawn = null;
+    [SerializeField] protected GameObject _go_effectDie = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
     [SerializeField] protected float _orgHp = 0;
@@ -69,6 +75,10 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] protected float _moveSpeed = 0f;
     public float MoveSpeed { get { return _moveSpeed; } }
     [SerializeField] protected bool isDie = false;
+
+    [Header("--- Coroutine ---")]
+    protected Coroutine _co_battle;
+    protected Coroutine _co_distanceOfTarget;
 
     protected virtual void Awake()
     {
@@ -91,9 +101,11 @@ public abstract class BaseController : MonoBehaviour
     }
 
     #region Functions
-    protected virtual void Init(AD.Define.Creature creature)
+
+    #region Settings
+    protected virtual void Init()
     {
-        if (creature == AD.Define.Creature.Player)
+        if (_creature == AD.Define.Creature.Player)
         {
             _orgHp = 100;
             _hp = 100;
@@ -103,7 +115,7 @@ public abstract class BaseController : MonoBehaviour
         }
         else
         {
-            string key = creature.ToString();
+            string key = _creature.ToString();
             Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[key] as Dictionary<string, object>;
 
             _hp = _orgHp = float.Parse(dic_temp["Hp"].ToString());
@@ -119,20 +131,39 @@ public abstract class BaseController : MonoBehaviour
         enemyLayer = LayerMask.NameToLayer("Enemy");
         dieLayer = LayerMask.NameToLayer("Die");
     }
+    #endregion
 
-    public abstract void Clear();
+    public void HealEffect()
+    {
+        _go_heal.SetActive(true);
+    }
 
-    protected abstract void AttackTarget();
-
+    #region Battle
     public void GetDamage(float damage)
     {
         if (Hp <= 0)
             return;
 
+        if (gameObject.layer == enemyLayer)
+        {
+            _tr_uiCanvas.LookAt(Camera.main.transform);
+
+            GameObject go_damage = AD.Managers.PoolM.PopFromPool(AD.Define.ETC.TMP_Damage.ToString());
+            go_damage.transform.SetParent(_tr_uiCanvas, false);
+            go_damage.GetComponent<TMP_Damage>().Init(damage);
+        }
+
         Hp -= damage;
+        if (Hp < 0)
+            Hp = 0;
+
+        if (_creature == AD.Define.Creature.Player)
+            PlayerUICanvas.Instance.UpdatePlayerInfo();
 
         if (Hp <= 0)
         {
+            _go_effectDie.SetActive(true);
+
             isDie = true;
             gameObject.layer = dieLayer;
             _capsuleCollider.enabled = false;
@@ -166,5 +197,38 @@ public abstract class BaseController : MonoBehaviour
         else
             _crtAni.CrossFade("Attack", 0.1f);
     }
+    #endregion
+
+    #region Coroutine
+    protected void StartBattleCoroutine()
+    {
+        _co_battle = StartCoroutine(Battle());
+        _co_distanceOfTarget = StartCoroutine(DistanceOfTarget());
+    }
+
+    protected void StopBattleCoroutine()
+    {
+        if (_co_battle != null)
+        {
+            StopCoroutine(_co_battle);
+            _co_battle = null;
+        }
+
+        if (_co_distanceOfTarget != null)
+        {
+            StopCoroutine(_co_distanceOfTarget);
+            _co_distanceOfTarget = null;
+        }
+    }
+
+    protected abstract IEnumerator Battle();
+
+    protected abstract IEnumerator DistanceOfTarget();
+    #endregion
+
+    public abstract void Clear();
+
+    protected abstract void AttackTarget();
+
     #endregion
 }
