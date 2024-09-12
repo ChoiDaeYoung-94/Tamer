@@ -811,7 +811,7 @@ MonoBehaviour:
   isAbleAlly: 0
   isAlly: 0
   _go_allyTarget: {fileID: 0}
-  detectionRadius: 5
+  detectionRadius: 4
   isDetection: 0
   detectionLayer: 0
   _vec_detection: {x: 0, y: 0, z: 0}

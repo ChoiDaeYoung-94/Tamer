@@ -40,9 +40,15 @@ public class Monster : BaseController
     private float updateTimer = 0f;
     [SerializeField, Tooltip("죽을 시 플레이어 보상 골드")] int gold = 0;
 
+    protected override void Awake()
+    {
+        base.Awake();
+
+        base.Init();
+    }
+
     private void Start()
     {
-        base.Init();
         _navAgent.enabled = true;
     }
 
@@ -71,6 +77,7 @@ public class Monster : BaseController
         _go_effectSpawn.SetActive(true);
 
         _hp = _orgHp;
+        _navAgent.speed = _moveSpeed;
 
         if (!isAlly)
         {
@@ -119,7 +126,8 @@ public class Monster : BaseController
     {
         while (!isDie)
         {
-            Collider[] col = Physics.OverlapSphere(transform.position, detectionRadius, 1 << detectionLayer);
+            float temp_detectionRadius = isAlly ? 5f : detectionRadius;
+            Collider[] col = Physics.OverlapSphere(transform.position, temp_detectionRadius, 1 << detectionLayer);
 
             if (col.Length <= 0)
                 isDetection = false;
@@ -149,7 +157,10 @@ public class Monster : BaseController
         if (isCommander)
             CommanderDetectionMove(_vec_detection);
         else if (isAlly && !_go_allyTarget)
-            BattleMove(this, _vec_detection);
+        {
+            if (Vector3.Distance(transform.position, Player.Instance.transform.position) < 10f)
+                BattleMove(this, _vec_detection);
+        }
     }
 
     #region normal move
@@ -624,6 +635,7 @@ public class Monster : BaseController
         detectionLayer = enemyLayer;
 
         _hp = _orgHp;
+        _navAgent.speed = Player.Instance.MoveSpeed + 0.5f;
 
         isAlly = true;
 
