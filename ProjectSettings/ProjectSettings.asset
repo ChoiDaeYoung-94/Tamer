@@ -160,8 +160,8 @@ PlayerSettings:
     tvOS: 0
   overrideDefaultApplicationIdentifier: 1
   AndroidBundleVersionCode: 3
-  AndroidMinSdkVersion: 19
-  AndroidTargetSdkVersion: 0
+  AndroidMinSdkVersion: 21
+  AndroidTargetSdkVersion: 34
   AndroidPreferredInstallLocation: 1
   aotOptions: 
   stripEngineCode: 1
@@ -691,7 +691,21 @@ PlayerSettings:
   webGLThreadsSupport: 0
   webGLDecompressionFallback: 0
   scriptingDefineSymbols:
-    7: Debug
+    1: DOTWEEN
+    4: DOTWEEN
+    7: Debug;DOTWEEN
+    13: DOTWEEN
+    14: DOTWEEN
+    19: DOTWEEN
+    21: DOTWEEN
+    25: DOTWEEN
+    27: DOTWEEN
+    28: DOTWEEN
+    29: DOTWEEN
+    30: DOTWEEN
+    31: DOTWEEN
+    32: DOTWEEN
+    33: DOTWEEN
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
