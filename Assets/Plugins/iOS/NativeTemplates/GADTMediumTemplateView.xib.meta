@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-guid: 1c0d8a6c9b36440eaa4c01518670217f
+guid: 766f36c9503c48e5915b2dbb1b312f64
 labels:
 - gvh
 - gvh_version-9.2.0
-- gvhp_exportpath-Plugins/iOS/GADUAdNetworkExtras.h
+- gvhp_exportpath-Plugins/iOS/NativeTemplates/GADTMediumTemplateView.xib
 timeCreated: 1480838400
 PluginImporter:
   serializedVersion: 1
