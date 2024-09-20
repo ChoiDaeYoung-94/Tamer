@@ -11,7 +11,7 @@ TODO
 ## Getting Started
 
 1. Clone
-2. [Download Assets]([https://drive.google.com/file/d/1U0U3VVj5v4aMPq1CzgJaeC-nNKrx9yES/view?usp=share_link](https://drive.google.com/file/d/1FlWJMulVhiTL4zQylb7FeI6ByE9IX05v/view?usp=sharing))
+2. [Download Assets](https://drive.google.com/file/d/1FlWJMulVhiTL4zQylb7FeI6ByE9IX05v/view?usp=sharing)
 3. Open Project in Unity
 
 
