@@ -44,7 +44,7 @@ TODO
 ## Download
 
 - TODO > GOOGLE PLAY
-- [APK](https://drive.google.com/file/d/1bV78lKlD4uujYy79wkdofEt0yIv41Dr2/view?usp=drive_link)
+- [APK](https://drive.google.com/file/d/1vO4T298v3-kJDS6mKek2EU3KaPkw9tWj/view?usp=sharing)
 - Clone the repository locally:
 ~~~
 git clone https://github.com/ChoiDaeYoung-94/Tamer.git
