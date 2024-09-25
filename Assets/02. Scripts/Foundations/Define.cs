@@ -44,6 +44,19 @@ namespace AD
             FylingDemon
         }
 
+        /// <summary>
+        /// 상점 아이템
+        /// </summary>
+        public enum Items
+        {
+            None,
+            SimpleSword,
+            MasterSword,
+            SimpleShield,
+            MasterShield,
+            NoADs
+        }
+
         public enum ETC
         {
             TMP_Damage

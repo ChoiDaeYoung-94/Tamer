@@ -1,0 +1,38 @@
+{
+    "SimpleSword": 
+	{
+		"Hp": "0",
+        "Power": "20",
+        "AttackSpeed": "0.2",
+        "MoveSpeed": "0",
+		"Price": "3000"
+    },
+	"MasterSword": 
+	{
+		"Hp": "0",
+        "Power": "50",
+        "AttackSpeed": "1",
+        "MoveSpeed": "0",
+		"Price": "15000"
+    },
+	"SimpleShield": 
+	{
+		"Hp": "50",
+        "Power": "0",
+        "AttackSpeed": "0",
+        "MoveSpeed": "0",
+		"Price": "5000"
+    },
+	"MasterShield": 
+	{
+		"Hp": "100",
+        "Power": "0",
+        "AttackSpeed": "0",
+        "MoveSpeed": "0",
+		"Price": "10000"
+    },
+	"NoADs": 
+	{
+		"Price": "1000"
+    }
+}
