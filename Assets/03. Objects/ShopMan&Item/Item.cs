@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 public class Item : MonoBehaviour
@@ -8,6 +9,11 @@ public class Item : MonoBehaviour
     [SerializeField] AD.Define.Items _items;
     [SerializeField] AD.Define.Creature _creature;
     [SerializeField] TMP_Text _TMP_info = null;
+    string _str_itemName = string.Empty;
+    string _str_price = string.Empty;
+    [SerializeField] GameObject _go_lock = null;
+    bool isUnlocked = false;
+    bool isEquipped = false;
 
     private void Awake()
     {
@@ -15,52 +21,90 @@ public class Item : MonoBehaviour
     }
 
     #region Functions
-
     private void Init()
     {
-        string str_itemName = _items == AD.Define.Items.None ? _creature.ToString() : _items.ToString();
-        string str_price = _items == AD.Define.Items.None ? ((Dictionary<string, object>)AD.Managers.DataM._dic_monsters[str_itemName])["Price"].ToString()
-                                                      : ((Dictionary<string, object>)AD.Managers.DataM._dic_items[str_itemName])["Price"].ToString();
+        _str_itemName = _items == AD.Define.Items.None ? _creature.ToString() : _items.ToString();
+        ItemState();
+        ItemSetting();
+    }
 
-        string str_currency = str_itemName == AD.Define.Items.NoADs.ToString() ? "$" : "G";
+    private void ItemState()
+    {
+        if (ShopMan.Instance._list_currentItems.Contains(_str_itemName) ||
+            Player.Instance._list_playerMonsters.Contains(_str_itemName))
+            isUnlocked = true;
 
-        _TMP_info.text = $"{str_itemName}\nPrice - {str_price}{str_currency}";
+        if (Player.Instance._list_playerEquippedItems.Contains(_str_itemName))
+            isEquipped = true;
+    }
+
+    private void ItemSetting()
+    {
+        string str_totalInfo = string.Empty;
+        str_totalInfo = returnInfo();
+
+        if (isUnlocked)
+        {
+            _go_lock.SetActive(false);
+
+            if (_creature == AD.Define.Creature.Player)
+                str_totalInfo = $"{_str_itemName}";
+        }
+
+        if (isEquipped)
+            str_totalInfo += "\nEquipped";
+
+        _TMP_info.text = str_totalInfo;
+    }
+
+    private string returnInfo()
+    {
+        string str_temp = string.Empty;
+
+        _str_price = _items == AD.Define.Items.None ? ((Dictionary<string, object>)AD.Managers.DataM._dic_monsters[_str_itemName])["Price"].ToString()
+                                          : ((Dictionary<string, object>)AD.Managers.DataM._dic_items[_str_itemName])["Price"].ToString();
+
+        str_temp = $"{_str_itemName}\nPrice - {_str_price}G";
+
+        return str_temp;
     }
 
     public void ChooseItem()
     {
+        if ((isUnlocked && isEquipped) || (!isUnlocked && _items == AD.Define.Items.None))
+            return;
+        else if (isUnlocked && !isEquipped && _creature == AD.Define.Creature.Player)
+            Equip();
+        else
+            ItemInfo();
+    }
+
+    private void Equip()
+    {
+        AD.Debug.Log("item", "test");
+    }
+
+    private void ItemInfo()
+    {
         string str_info = "item info\n";
-        string str_itemName = string.Empty;
         string str_plus = string.Empty;
         Dictionary<string, object> dic_item = null;
 
         if (_items == AD.Define.Items.None)
-        {
             dic_item = AD.Managers.DataM._dic_monsters[_creature.ToString()] as Dictionary<string, object>;
-            str_itemName = _creature.ToString();
-        }
         else
         {
             dic_item = AD.Managers.DataM._dic_items[_items.ToString()] as Dictionary<string, object>;
-            str_itemName = _items.ToString();
             str_plus = "Plus ";
         }
 
-        if (_items == AD.Define.Items.NoADs)
-        {
-            str_info += $"- {str_itemName}\nEarn rewards without watching in-game ads.";
-        }
-        else
-        {
-            str_info += $"- {str_itemName}\n" +
-            $"- {str_plus}HP : {dic_item["Hp"]}\n" +
-            $"- {str_plus}Power : {dic_item["Power"]}\n" +
-            $"- {str_plus}AttackSpeed : {dic_item["AttackSpeed"]}\n" +
-            $"- {str_plus}MoveSpeed : {dic_item["MoveSpeed"]}";
-        }
+        str_info += $"- {_str_itemName}\n" +
+        $"- {str_plus}HP : {dic_item["Hp"]}\n" +
+        $"- {str_plus}Power : {dic_item["Power"]}\n" +
+        $"- {str_plus}AttackSpeed : {dic_item["AttackSpeed"]}\n" +
+        $"- {str_plus}MoveSpeed : {dic_item["MoveSpeed"]}";
 
-        ShopMan.Instance.ChooseItem(str_info);
+        ShopMan.Instance.ChooseItem(_str_itemName, _str_price, str_info);
     }
-
     #endregion
 }

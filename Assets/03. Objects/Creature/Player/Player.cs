@@ -36,6 +36,12 @@ public class Player : BaseController
     [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
     [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
 
+    [Header("--- Shop PlayerPrefs ---")]
+    public string _str_playerMonsters = string.Empty;
+    public List<string> _list_playerMonsters = new List<string>();
+    public string _str_playerEquippedItems = string.Empty;
+    public List<string> _list_playerEquippedItems = new List<string>();
+
     /// <summary>
     /// LoginCheck.cs 에서 생성
     /// </summary>
@@ -92,6 +98,8 @@ public class Player : BaseController
 
         AD.Managers.UpdateM._update -= TouchEvent;
         AD.Managers.UpdateM._update += TouchEvent;
+
+        InitPrefs();
     }
 
     internal void ReSetPlayer()
@@ -371,6 +379,30 @@ public class Player : BaseController
     }
     #endregion
 
+    #region PlayerPrefs
+    private void InitPrefs()
+    {
+        _str_playerMonsters = PlayerPrefs.GetString("playerMonsters");
+        _list_playerMonsters = _str_playerMonsters.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        _str_playerEquippedItems = PlayerPrefs.GetString("playerEquippedItems");
+        _list_playerEquippedItems = _str_playerEquippedItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
+
+    private void SavePrefs(List<string> list, string str, string data, string key)
+    {
+        if (list.Contains(data))
+            return;
+
+        if (string.IsNullOrEmpty(str))
+            str = $"{data}";
+        else
+            str += $",{data}";
+
+        PlayerPrefs.SetString(key, str);
+        list.Add(str);
+    }
+    #endregion
+
     internal int GetCurMonsterCount()
     {
         return _list_groupMonsters.Count;
@@ -383,7 +415,10 @@ public class Player : BaseController
     internal void NotifyPlayerOfDeath(GameObject target, int gold)
     {
         if (target == _go_targetMonster)
+        {
+            SavePrefs(_list_playerMonsters, _str_playerMonsters, targetMonster._creature.ToString(), "playerMonsters");
             _go_targetMonster = null;
+        }
 
         _gold += gold;
         AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
@@ -396,6 +431,13 @@ public class Player : BaseController
     private void GameOver()
     {
         AD.Managers.GameM.GameOver();
+    }
+
+    public void MinusGold(int gold)
+    {
+        _gold -= gold;
+        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
     #endregion
 

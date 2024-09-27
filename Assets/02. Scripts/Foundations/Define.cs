@@ -53,8 +53,7 @@ namespace AD
             SimpleSword,
             MasterSword,
             SimpleShield,
-            MasterShield,
-            NoADs
+            MasterShield
         }
 
         public enum ETC
