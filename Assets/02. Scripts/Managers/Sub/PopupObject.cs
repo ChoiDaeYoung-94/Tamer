@@ -27,7 +27,8 @@ namespace AD
                     AD.Managers.PopupM.SetException();
                     break;
                 case CheckType.Flow:
-                    AD.Managers.PopupM.SetException();
+                    AD.Managers.PopupM.EnablePop(gameObject);
+                    AD.Managers.PopupM.SetFLow();
                     break;
             }
         }
@@ -42,6 +43,9 @@ namespace AD
         {
             if (_checkType == CheckType.Exception)
                 AD.Managers.PopupM.ReleaseException();
+
+            if (_checkType == CheckType.Flow)
+                AD.Managers.PopupM.ReleaseFLow();
         }
     }
 }

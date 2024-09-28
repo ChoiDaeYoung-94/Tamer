@@ -233,9 +233,7 @@ namespace AD
             _dic_player["Sex"] = _dic_PlayFabPlayerData["Sex"].Value;
             _dic_player["Tutorial"] = _dic_PlayFabPlayerData["Tutorial"].Value;
 
-            temp_result = CompareValues(int.Parse(_dic_player["Gold"]), int.Parse(_dic_PlayFabPlayerData["Gold"].Value));
-            if (temp_result < 0)
-                _dic_player["Gold"] = _dic_PlayFabPlayerData["Gold"].Value.ToString();
+            CompareValues(int.Parse(_dic_player["Gold"]), int.Parse(_dic_PlayFabPlayerData["Gold"].Value));
 
             temp_result = CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
             if (temp_result < 0)

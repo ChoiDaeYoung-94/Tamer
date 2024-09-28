@@ -34,6 +34,7 @@ namespace AD
         /// Flow상 MainScene 진입 시 InitializeMain.cs에서 false
         /// </summary>
         bool isException = true;
+        bool isFLow = false;
 
         /// <summary>
         /// Managers - Awake() -> Init()
@@ -64,7 +65,7 @@ namespace AD
         {
             if (Application.platform == RuntimePlatform.Android)
             {
-                if (Input.GetKeyDown(KeyCode.Escape))
+                if (Input.GetKeyDown(KeyCode.Escape) && !isFLow)
                 {
                     DisablePop();
                 }
@@ -145,6 +146,10 @@ namespace AD
         internal void SetException() => isException = true;
 
         internal void ReleaseException() => isException = false;
+
+        internal void SetFLow() => isFLow = true;
+
+        internal void ReleaseFLow() => isFLow = false;
         #endregion
     }
 }
