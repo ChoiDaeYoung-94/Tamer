@@ -179,7 +179,7 @@ public abstract class BaseController : MonoBehaviour
         if (str_tag == "Player")
         {
             int index = 0;
-            if (Player.Instance._sword.activeInHierarchy)
+            if (Player.Instance.isEquippedSword)
             {
                 index = Random.Range(1, 4);
                 _crtAni.CrossFade($"Attack0{index}_sword", 0f);

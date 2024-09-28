@@ -20,8 +20,11 @@ public class Player : BaseController
     [Header("--- 세팅 ---")]
     [SerializeField] internal GameObject _go_player = null;
     [SerializeField] internal Transform _tr_cameraArm = null;
-    [SerializeField] internal GameObject _sword = null;
-    [SerializeField] internal GameObject _shield = null;
+    [SerializeField] internal GameObject _simpleSword = null;
+    [SerializeField] internal GameObject _masterSword = null;
+    internal bool isEquippedSword = false;
+    [SerializeField] internal GameObject _simpleshield = null;
+    [SerializeField] internal GameObject _mastershield = null;
     [SerializeField] private GameObject _buff = null;
 
     [Header("--- 플레이어 버프 시 적용되는 status ---")]
@@ -53,6 +56,11 @@ public class Player : BaseController
         DontDestroyOnLoad(transform.parent.gameObject);
 
         Init();
+    }
+
+    private void Start()
+    {
+        AD.Managers.EquipmentM.Init();
     }
 
     /// <summary>
@@ -388,7 +396,7 @@ public class Player : BaseController
         _list_playerEquippedItems = _str_playerEquippedItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
-    private void SavePrefs(List<string> list, string str, string data, string key)
+    public void SavePrefs(List<string> list, string str, string data, string key)
     {
         if (list.Contains(data))
             return;
@@ -399,7 +407,20 @@ public class Player : BaseController
             str += $",{data}";
 
         PlayerPrefs.SetString(key, str);
-        list.Add(str);
+        list.Add(data);
+    }
+
+    public void RemovePrefs(List<string> list, string str, string data, string key)
+    {
+        if (!list.Contains(data))
+            return;
+
+        list.Remove(data);
+        str = string.Empty;
+        foreach (string temp_str in list)
+            str += $"{temp_str},";
+
+        PlayerPrefs.SetString(key, str);
     }
     #endregion
 
@@ -437,6 +458,7 @@ public class Player : BaseController
     {
         _gold -= gold;
         AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        AD.Managers.DataM.UpdatePlayerData();
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
     #endregion
