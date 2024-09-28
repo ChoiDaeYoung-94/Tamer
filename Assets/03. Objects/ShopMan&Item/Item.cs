@@ -12,18 +12,27 @@ public class Item : MonoBehaviour
     string _str_itemName = string.Empty;
     string _str_price = string.Empty;
     [SerializeField] GameObject _go_lock = null;
+    bool isItem = false;
     bool isUnlocked = false;
     bool isEquipped = false;
 
     private void Awake()
     {
+        ShopMan.Instance._list_item.Add(this);
         Init();
     }
 
     #region Functions
-    private void Init()
+    public void Init()
     {
+        isItem = false;
+        isUnlocked = false;
+        isEquipped = false;
+
         _str_itemName = _items == AD.Define.Items.None ? _creature.ToString() : _items.ToString();
+        if (_creature == AD.Define.Creature.Player)
+            isItem = true;
+
         ItemState();
         ItemSetting();
     }
@@ -81,7 +90,7 @@ public class Item : MonoBehaviour
 
     private void Equip()
     {
-        AD.Debug.Log("item", "test");
+        AD.Managers.EquipmentM.Equip(_str_itemName);
     }
 
     private void ItemInfo()
@@ -104,7 +113,7 @@ public class Item : MonoBehaviour
         $"- {str_plus}AttackSpeed : {dic_item["AttackSpeed"]}\n" +
         $"- {str_plus}MoveSpeed : {dic_item["MoveSpeed"]}";
 
-        ShopMan.Instance.ChooseItem(_str_itemName, _str_price, str_info);
+        ShopMan.Instance.ChooseItem(_str_itemName, _str_price, str_info, isItem);
     }
     #endregion
 }

@@ -823,9 +823,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 420795229116766349}
-        m_TargetAssemblyTypeName: AD.PopupObject, Assembly-CSharp
-        m_MethodName: DisablePop
+      - m_Target: {fileID: 3251275858990964042}
+        m_TargetAssemblyTypeName: ShopMan, Assembly-CSharp
+        m_MethodName: CheckSuccessBuy
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -969,6 +969,7 @@ MonoBehaviour:
   _TMP_afterBuy: {fileID: 4260035469887084569}
   _str_currentItems: 
   _list_currentItems: []
+  _list_item: []
 --- !u!135 &3663946190443309156
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -7321,7 +7322,7 @@ GameObject:
   - component: {fileID: 2566160890621200438}
   - component: {fileID: 7969582631828040102}
   - component: {fileID: 1679718792655380016}
-  - component: {fileID: 420795229116766349}
+  - component: {fileID: 5547711460689199463}
   m_Layer: 5
   m_Name: Popup_AfterBuy
   m_TagString: Untagged
@@ -7431,9 +7432,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 420795229116766349}
-        m_TargetAssemblyTypeName: AD.PopupObject, Assembly-CSharp
-        m_MethodName: DisablePop
+      - m_Target: {fileID: 3251275858990964042}
+        m_TargetAssemblyTypeName: ShopMan, Assembly-CSharp
+        m_MethodName: CheckSuccessBuy
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -7443,7 +7444,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
---- !u!114 &420795229116766349
+--- !u!114 &5547711460689199463
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -7455,7 +7456,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22b59f7ed92cf6142ad0895bab48139d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _checkType: 0
+  _checkType: 2
 --- !u!1 &4981954710119972285
 GameObject:
   m_ObjectHideFlags: 0
