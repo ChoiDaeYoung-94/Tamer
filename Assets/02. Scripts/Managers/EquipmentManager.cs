@@ -21,6 +21,14 @@ namespace AD
             equipmentMapping.Add("MasterSword", Player.Instance._masterSword);
             equipmentMapping.Add("SimpleShield", Player.Instance._simpleshield);
             equipmentMapping.Add("MasterShield", Player.Instance._mastershield);
+
+            InitEquip();
+        }
+
+        private void InitEquip()
+        {
+            foreach(string itme in Player.Instance._list_playerEquippedItems)
+                equipmentMapping[itme].SetActive(true);
         }
 
         public void Equip(string item)
@@ -31,6 +39,7 @@ namespace AD
             ChcekSlotAndEquip(item);
 
             ShopMan.Instance.ResetItem();
+            PlayerUICanvas.Instance.UpdatePlayerInfo();
         }
 
         private void ChcekSlotAndEquip(string item)
@@ -43,14 +52,18 @@ namespace AD
                 if (_dic_segmentedEquipment["Sword"].Contains(temp_str) && _dic_segmentedEquipment["Sword"].Contains(item) ||
                     _dic_segmentedEquipment["Shield"].Contains(temp_str) && _dic_segmentedEquipment["Shield"].Contains(item))
                 {
-                    Player.Instance.RemovePrefs(Player.Instance._list_playerEquippedItems, Player.Instance._str_playerEquippedItems, temp_str, "playerEquippedItems");
+                    Player.Instance._str_playerEquippedItems = 
+                        Player.Instance.RemovePrefs(Player.Instance._list_playerEquippedItems, Player.Instance._str_playerEquippedItems, temp_str, "playerEquippedItems");
                     equipmentMapping[temp_str].SetActive(false);
+                    Player.Instance.UnequipEquipment(temp_str);
                     break;
                 }
             }
 
-            Player.Instance.SavePrefs(Player.Instance._list_playerEquippedItems, Player.Instance._str_playerEquippedItems, item, "playerEquippedItems");
+            Player.Instance._str_playerEquippedItems = 
+                Player.Instance.SavePrefs(Player.Instance._list_playerEquippedItems, Player.Instance._str_playerEquippedItems, item, "playerEquippedItems");
             equipmentMapping[item].SetActive(true);
+            Player.Instance.ApplyEquipment(item);
         }
     }
 }

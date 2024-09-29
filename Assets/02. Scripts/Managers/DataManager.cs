@@ -129,12 +129,7 @@ namespace AD
             if (Player.Instance)
             {
                 if (all)
-                {
                     _dic_player["Gold"] = Player.Instance.Gold.ToString();
-                    _dic_player["Power"] = Player.Instance.Power.ToString();
-                    _dic_player["AttackSpeed"] = Player.Instance.AttackSpeed.ToString();
-                    _dic_player["MoveSpeed"] = Player.Instance.MoveSpeed.ToString();
-                }
                 else
                     _dic_player[key] = value;
 
@@ -234,18 +229,9 @@ namespace AD
             _dic_player["Tutorial"] = _dic_PlayFabPlayerData["Tutorial"].Value;
 
             CompareValues(int.Parse(_dic_player["Gold"]), int.Parse(_dic_PlayFabPlayerData["Gold"].Value));
-
-            temp_result = CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
-            if (temp_result < 0)
-                _dic_player["Power"] = _dic_PlayFabPlayerData["Power"].Value.ToString();
-
-            temp_result = CompareValues(float.Parse(_dic_player["AttackSpeed"]), float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value));
-            if (temp_result < 0)
-                _dic_player["AttackSpeed"] = _dic_PlayFabPlayerData["AttackSpeed"].Value.ToString();
-
-            temp_result = CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
-            if (temp_result < 0)
-                _dic_player["MoveSpeed"] = _dic_PlayFabPlayerData["MoveSpeed"].Value.ToString();
+            CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
+            CompareValues(float.Parse(_dic_player["AttackSpeed"]), float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value));
+            CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
 
             string temp_ally = _dic_PlayFabPlayerData["AllyMonsters"].Value;
             CompareValues(_dic_player["AllyMonsters"].ToString(), temp_ally);

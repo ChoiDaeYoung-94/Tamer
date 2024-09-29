@@ -60,6 +60,9 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField] protected GameObject _go_effectDie = null;
 
     [Header("--- 공용 데이터 초기화 시 세팅 ---")]
+    [SerializeField] protected float _itemHp = 0;
+    public float ItemHp { get { return _itemHp; } }
+
     [SerializeField] protected float _orgHp = 0;
     public float OrgHp { get { return _orgHp; } }
 
@@ -107,7 +110,7 @@ public abstract class BaseController : MonoBehaviour
     {
         if (_creature == AD.Define.Creature.Player)
         {
-            _orgHp = 100;
+            _itemHp = _orgHp = 100;
             _hp = 100;
             _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
             _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);

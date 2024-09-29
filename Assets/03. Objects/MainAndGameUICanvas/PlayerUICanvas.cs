@@ -94,9 +94,11 @@ public class PlayerUICanvas : MonoBehaviour
     {
         _TMP_captureCapacity.text = $"{Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
         _TMP_gold.text = $"Gold - {Player.Instance.Gold}";
-        _TMP_HP.text = $"{Player.Instance.Hp} / {Player.Instance.OrgHp}";
 
-        _Slider_HP.maxValue = Player.Instance.OrgHp;
+        float maxHP = Player.Instance.ItemHp > Player.Instance.OrgHp ? Player.Instance.ItemHp : Player.Instance.OrgHp;
+        _TMP_HP.text = $"{Player.Instance.Hp} / {maxHP}";
+
+        _Slider_HP.maxValue = maxHP;
         _Slider_HP.value = Player.Instance.Hp;
     }
 

@@ -56,10 +56,7 @@ public class Player : BaseController
         DontDestroyOnLoad(transform.parent.gameObject);
 
         Init();
-    }
 
-    private void Start()
-    {
         AD.Managers.EquipmentM.Init();
     }
 
@@ -102,12 +99,13 @@ public class Player : BaseController
             SettingAllyMonster();
         }
 
+        InitPrefs();
+        foreach (string item in _list_playerEquippedItems)
+            ApplyEquipment(item);
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
         AD.Managers.UpdateM._update -= TouchEvent;
         AD.Managers.UpdateM._update += TouchEvent;
-
-        InitPrefs();
     }
 
     internal void ReSetPlayer()
@@ -118,7 +116,7 @@ public class Player : BaseController
 
         CrtState = CreatureState.Idle;
 
-        Hp = OrgHp;
+        Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
     }
 
     #region Events
@@ -174,8 +172,9 @@ public class Player : BaseController
 
     internal void Heal()
     {
-        Hp = OrgHp;
+        Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
         HealEffect();
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
 
         foreach (Monster monster in _list_groupMonsters)
         {
@@ -247,6 +246,26 @@ public class Player : BaseController
 
             yield return null;
         }
+    }
+
+    public void ApplyEquipment(string item)
+    {
+        Dictionary<string, object> temp_dic = AD.Managers.DataM._dic_items[item] as Dictionary<string, object>;
+
+        _itemHp = _hp += float.Parse(temp_dic["Hp"].ToString());
+        _power += float.Parse(temp_dic["Power"].ToString());
+        _attackSpeed += float.Parse(temp_dic["AttackSpeed"].ToString());
+        _moveSpeed += float.Parse(temp_dic["MoveSpeed"].ToString());
+    }
+
+    public void UnequipEquipment(string item)
+    {
+        Dictionary<string, object> temp_dic = AD.Managers.DataM._dic_items[item] as Dictionary<string, object>;
+
+        _itemHp = _hp -= float.Parse(temp_dic["Hp"].ToString());
+        _power -= float.Parse(temp_dic["Power"].ToString());
+        _attackSpeed -= float.Parse(temp_dic["AttackSpeed"].ToString());
+        _moveSpeed -= float.Parse(temp_dic["MoveSpeed"].ToString());
     }
     #endregion
 
@@ -396,10 +415,10 @@ public class Player : BaseController
         _list_playerEquippedItems = _str_playerEquippedItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
-    public void SavePrefs(List<string> list, string str, string data, string key)
+    public string SavePrefs(List<string> list, string str, string data, string key)
     {
         if (list.Contains(data))
-            return;
+            return string.Empty;
 
         if (string.IsNullOrEmpty(str))
             str = $"{data}";
@@ -408,12 +427,14 @@ public class Player : BaseController
 
         PlayerPrefs.SetString(key, str);
         list.Add(data);
+
+        return str;
     }
 
-    public void RemovePrefs(List<string> list, string str, string data, string key)
+    public string RemovePrefs(List<string> list, string str, string data, string key)
     {
         if (!list.Contains(data))
-            return;
+            return string.Empty;
 
         list.Remove(data);
         str = string.Empty;
@@ -421,6 +442,8 @@ public class Player : BaseController
             str += $"{temp_str},";
 
         PlayerPrefs.SetString(key, str);
+
+        return str;
     }
     #endregion
 
@@ -437,7 +460,8 @@ public class Player : BaseController
     {
         if (target == _go_targetMonster)
         {
-            SavePrefs(_list_playerMonsters, _str_playerMonsters, targetMonster._creature.ToString(), "playerMonsters");
+            _str_playerMonsters =
+                SavePrefs(_list_playerMonsters, _str_playerMonsters, targetMonster._creature.ToString(), "playerMonsters");
             _go_targetMonster = null;
         }
 
