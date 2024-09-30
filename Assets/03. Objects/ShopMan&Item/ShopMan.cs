@@ -121,7 +121,7 @@ public class ShopMan : MonoBehaviour
         }
         else
         {
-            // 몬스터 구매
+            Player.Instance.BuyAllyMonster(_str_currnetItemName);
             ResetItem();
         }
 

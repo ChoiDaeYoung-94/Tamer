@@ -267,6 +267,13 @@ public class Player : BaseController
         _attackSpeed -= float.Parse(temp_dic["AttackSpeed"].ToString());
         _moveSpeed -= float.Parse(temp_dic["MoveSpeed"].ToString());
     }
+
+    public void BuyAllyMonster(string name)
+    {
+        Monster monster = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
+        monster.AllySetting(playerPosition: transform.position, setting: true);
+        AddAllyMonster(monster);
+    }
     #endregion
 
     #region AllyMonsters
@@ -335,7 +342,7 @@ public class Player : BaseController
 
     private void AddAllyMonster(Monster monster)
     {
-        _list_groupMonsters.Add(captureMonster);
+        _list_groupMonsters.Add(monster);
         monster.transform.SetParent(AD.Managers.PoolM._root_Player);
 
         string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
