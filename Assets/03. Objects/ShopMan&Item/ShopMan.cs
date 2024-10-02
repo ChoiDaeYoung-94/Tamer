@@ -133,6 +133,11 @@ public class ShopMan : MonoBehaviour
         foreach (Item item in _list_item)
             item.Init();
     }
+
+    #region IAP
+    public void IAP_NoAds() => AD.Managers.IAPM.BuyProductID(AD.Managers.IAPM.PRODUCT_NO_ADS);
+    #endregion
+
     #endregion
 
     private void OnTriggerEnter(Collider col)

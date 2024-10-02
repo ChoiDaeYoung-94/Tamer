@@ -44,9 +44,12 @@ namespace AD
 
         [SerializeField] GoogleAdMobManager _googleAdMobM = null;
         public static GoogleAdMobManager GoogleAdMobM { get { return instance._googleAdMobM; } }
-        
+
         EquipmentManager _equipmentM = new EquipmentManager();
         public static EquipmentManager EquipmentM { get { return instance._equipmentM; } }
+
+        IAPManager _IAPM = new IAPManager();
+        public static IAPManager IAPM { get { return instance._IAPM; } }
 
         [Header("--- 미리 가지고 있어야 할 data ---")]
         [Tooltip("Pool에 사용할 GameObject")]
@@ -87,6 +90,7 @@ namespace AD
             PoolM.Init();
             PopupM.Init();
             GoogleAdMobM.Init();
+            IAPM.Init();
         }
 
         /// <summary>

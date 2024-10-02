@@ -33,3 +33,4 @@ Resources/Data/PlayerData.json 에 Player의 시작 데이터가 저장된다.
 - AttackSpeed > "0.5"
 - MoveSpeed > "3.0"
 - AllyMonsters > "null or monster name"
+- GooglePlay > "null or bought items"

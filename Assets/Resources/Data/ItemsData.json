@@ -30,9 +30,5 @@
         "AttackSpeed": "0",
         "MoveSpeed": "0",
 		"Price": "10000"
-    },
-	"NoADs": 
-	{
-		"Price": "1000"
     }
 }
