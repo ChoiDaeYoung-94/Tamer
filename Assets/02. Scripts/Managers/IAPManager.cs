@@ -80,6 +80,8 @@ namespace AD
 
             storeController = controller;
             storeExtensionProvider = extensions;
+
+            CheckProduct();
         }
 
         public void OnInitializeFailed(InitializationFailureReason error)
@@ -110,6 +112,20 @@ namespace AD
         public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
         {
             AD.Debug.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
+        }
+
+        private void CheckProduct()
+        {
+            if (CheckProductID(PRODUCT_NO_ADS))
+            {
+                string temp_str = AD.Managers.DataM._dic_player["GooglePlay"];
+                if (string.IsNullOrEmpty(temp_str))
+                    temp_str = $"{AD.Define.IAPItems.PRODUCT_NO_ADS}";
+                else
+                    temp_str += $",{AD.Define.IAPItems.PRODUCT_NO_ADS}";
+
+                AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: temp_str);
+            }
         }
 
         public bool CheckProductID(string productId)

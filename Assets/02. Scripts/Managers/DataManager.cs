@@ -232,9 +232,11 @@ namespace AD
             CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
             CompareValues(float.Parse(_dic_player["AttackSpeed"]), float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value));
             CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
+            CompareValues(_dic_player["AllyMonsters"], _dic_PlayFabPlayerData["AllyMonsters"].Value.ToString());
 
-            string temp_ally = _dic_PlayFabPlayerData["AllyMonsters"].Value;
-            CompareValues(_dic_player["AllyMonsters"].ToString(), temp_ally);
+            temp_result = CompareValues(_dic_player["GooglePlay"], _dic_PlayFabPlayerData["GooglePlay"].Value.ToString());
+            if (temp_result < 0)
+                _dic_player["GooglePlay"] = _dic_PlayFabPlayerData["GooglePlay"].Value.ToString();
 
             if (_isConflict)
                 AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);

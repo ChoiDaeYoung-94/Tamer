@@ -56,6 +56,11 @@ namespace AD
             MasterShield
         }
 
+        public enum IAPItems
+        {
+            PRODUCT_NO_ADS
+        }
+
         public enum ETC
         {
             TMP_Damage
