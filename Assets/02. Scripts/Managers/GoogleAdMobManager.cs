@@ -102,11 +102,18 @@ namespace AD
             const string rewardMsg =
                 "Rewarded ad rewarded the user. Type: {0}, amount: {1}.";
 
+            if (AD.Managers.DataM._dic_player["GooglePlay"].Contains(AD.Define.IAPItems.PRODUCT_NO_ADS.ToString()))
+            {
+                isInprogress = false;
+                isReceive = true;
+
+                return;
+            }
+
             if (_rewardedAd != null && _rewardedAd.CanShowAd())
             {
                 _rewardedAd.Show((Reward reward) =>
                 {
-                    // TODO: Reward the user.
                     AD.Debug.Log("GoogleAdMobManager", String.Format(rewardMsg, reward.Type, reward.Amount));
 
                     isReceive = true;

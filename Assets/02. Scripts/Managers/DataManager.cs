@@ -19,6 +19,8 @@ namespace AD
         public Dictionary<string, string> _dic_player = null;
         [Tooltip("Dictionary<string, object> - monster data")]
         public Dictionary<string, object> _dic_monsters = null;
+        [Tooltip("Dictionary<string, object> - item data")]
+        public Dictionary<string, object> _dic_items = null;
 
         [Header("--- 참고용 ---")]
         [Tooltip("현재 Player가 PlayFab에 접속한 ID")]
@@ -42,6 +44,7 @@ namespace AD
         {
             LoadPlayerData();
             LoadMonstersData();
+            LoadItemsData();
 
             StartCoroutine(Co_UpdateFewMinutes());
         }
@@ -97,11 +100,14 @@ namespace AD
         {
             _str_reMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString();
 
-            _dic_monsters = new Dictionary<string, object>();
+            _dic_monsters = AD.Utils.JsonToObject(_str_reMonstersData) as Dictionary<string, object>;
+        }
 
-            Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(_str_reMonstersData) as Dictionary<string, object>;
-            foreach (KeyValuePair<string, object> content in dic_temp)
-                _dic_monsters.Add(content.Key, content.Value);
+        private void LoadItemsData()
+        {
+            _str_reMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString();
+
+            _dic_items = AD.Utils.JsonToObject(_str_reMonstersData) as Dictionary<string, object>;
         }
 
         #region Local Data
@@ -123,12 +129,7 @@ namespace AD
             if (Player.Instance)
             {
                 if (all)
-                {
                     _dic_player["Gold"] = Player.Instance.Gold.ToString();
-                    _dic_player["Power"] = Player.Instance.Power.ToString();
-                    _dic_player["AttackSpeed"] = Player.Instance.AttackSpeed.ToString();
-                    _dic_player["MoveSpeed"] = Player.Instance.MoveSpeed.ToString();
-                }
                 else
                     _dic_player[key] = value;
 
@@ -227,24 +228,16 @@ namespace AD
             _dic_player["Sex"] = _dic_PlayFabPlayerData["Sex"].Value;
             _dic_player["Tutorial"] = _dic_PlayFabPlayerData["Tutorial"].Value;
 
-            temp_result = CompareValues(int.Parse(_dic_player["Gold"]), int.Parse(_dic_PlayFabPlayerData["Gold"].Value));
-            if (temp_result < 0)
-                _dic_player["Gold"] = _dic_PlayFabPlayerData["Gold"].Value.ToString();
+            CompareValues(int.Parse(_dic_player["Gold"]), int.Parse(_dic_PlayFabPlayerData["Gold"].Value));
+            CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
+            CompareValues(float.Parse(_dic_player["AttackSpeed"]), float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value));
+            CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
+            CompareValues(_dic_player["AllyMonsters"], _dic_PlayFabPlayerData["AllyMonsters"].Value.ToString());
 
-            temp_result = CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
-            if (temp_result < 0)
-                _dic_player["Power"] = _dic_PlayFabPlayerData["Power"].Value.ToString();
-
-            temp_result = CompareValues(float.Parse(_dic_player["AttackSpeed"]), float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value));
-            if (temp_result < 0)
-                _dic_player["AttackSpeed"] = _dic_PlayFabPlayerData["AttackSpeed"].Value.ToString();
-
-            temp_result = CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
-            if (temp_result < 0)
-                _dic_player["MoveSpeed"] = _dic_PlayFabPlayerData["MoveSpeed"].Value.ToString();
-
-            string temp_ally = _dic_PlayFabPlayerData["AllyMonsters"].Value;
-            CompareValues(_dic_player["AllyMonsters"].ToString(), temp_ally);
+            string temp_str = _dic_PlayFabPlayerData["GooglePlay"].Value.ToString();
+            temp_result = CompareValues(_dic_player["GooglePlay"], temp_str);
+            if (temp_result < 0 && !string.IsNullOrEmpty(temp_str) && !string.Equals(temp_str, "null"))
+                _dic_player["GooglePlay"] = _dic_PlayFabPlayerData["GooglePlay"].Value.ToString();
 
             if (_isConflict)
                 AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);

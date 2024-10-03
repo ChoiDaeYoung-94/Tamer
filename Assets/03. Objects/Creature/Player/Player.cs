@@ -20,8 +20,11 @@ public class Player : BaseController
     [Header("--- 세팅 ---")]
     [SerializeField] internal GameObject _go_player = null;
     [SerializeField] internal Transform _tr_cameraArm = null;
-    [SerializeField] internal GameObject _sword = null;
-    [SerializeField] internal GameObject _shield = null;
+    [SerializeField] internal GameObject _simpleSword = null;
+    [SerializeField] internal GameObject _masterSword = null;
+    internal bool isEquippedSword = false;
+    [SerializeField] internal GameObject _simpleshield = null;
+    [SerializeField] internal GameObject _mastershield = null;
     [SerializeField] private GameObject _buff = null;
 
     [Header("--- 플레이어 버프 시 적용되는 status ---")]
@@ -36,6 +39,12 @@ public class Player : BaseController
     [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
     [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
 
+    [Header("--- Shop PlayerPrefs ---")]
+    public string _str_playerMonsters = string.Empty;
+    public List<string> _list_playerMonsters = new List<string>();
+    public string _str_playerEquippedItems = string.Empty;
+    public List<string> _list_playerEquippedItems = new List<string>();
+
     /// <summary>
     /// LoginCheck.cs 에서 생성
     /// </summary>
@@ -47,6 +56,8 @@ public class Player : BaseController
         DontDestroyOnLoad(transform.parent.gameObject);
 
         Init();
+
+        AD.Managers.EquipmentM.Init();
     }
 
     /// <summary>
@@ -88,6 +99,9 @@ public class Player : BaseController
             SettingAllyMonster();
         }
 
+        InitPrefs();
+        foreach (string item in _list_playerEquippedItems)
+            ApplyEquipment(item);
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
         AD.Managers.UpdateM._update -= TouchEvent;
@@ -102,7 +116,7 @@ public class Player : BaseController
 
         CrtState = CreatureState.Idle;
 
-        Hp = OrgHp;
+        Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
     }
 
     #region Events
@@ -158,8 +172,9 @@ public class Player : BaseController
 
     internal void Heal()
     {
-        Hp = OrgHp;
+        Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
         HealEffect();
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
 
         foreach (Monster monster in _list_groupMonsters)
         {
@@ -232,6 +247,33 @@ public class Player : BaseController
             yield return null;
         }
     }
+
+    public void ApplyEquipment(string item)
+    {
+        Dictionary<string, object> temp_dic = AD.Managers.DataM._dic_items[item] as Dictionary<string, object>;
+
+        _itemHp = _hp += float.Parse(temp_dic["Hp"].ToString());
+        _power += float.Parse(temp_dic["Power"].ToString());
+        _attackSpeed += float.Parse(temp_dic["AttackSpeed"].ToString());
+        _moveSpeed += float.Parse(temp_dic["MoveSpeed"].ToString());
+    }
+
+    public void UnequipEquipment(string item)
+    {
+        Dictionary<string, object> temp_dic = AD.Managers.DataM._dic_items[item] as Dictionary<string, object>;
+
+        _itemHp = _hp -= float.Parse(temp_dic["Hp"].ToString());
+        _power -= float.Parse(temp_dic["Power"].ToString());
+        _attackSpeed -= float.Parse(temp_dic["AttackSpeed"].ToString());
+        _moveSpeed -= float.Parse(temp_dic["MoveSpeed"].ToString());
+    }
+
+    public void BuyAllyMonster(string name)
+    {
+        Monster monster = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
+        monster.AllySetting(playerPosition: transform.position, setting: true);
+        AddAllyMonster(monster);
+    }
     #endregion
 
     #region AllyMonsters
@@ -300,7 +342,7 @@ public class Player : BaseController
 
     private void AddAllyMonster(Monster monster)
     {
-        _list_groupMonsters.Add(captureMonster);
+        _list_groupMonsters.Add(monster);
         monster.transform.SetParent(AD.Managers.PoolM._root_Player);
 
         string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
@@ -371,6 +413,47 @@ public class Player : BaseController
     }
     #endregion
 
+    #region PlayerPrefs
+    private void InitPrefs()
+    {
+        _str_playerMonsters = PlayerPrefs.GetString("playerMonsters");
+        _list_playerMonsters = _str_playerMonsters.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        _str_playerEquippedItems = PlayerPrefs.GetString("playerEquippedItems");
+        _list_playerEquippedItems = _str_playerEquippedItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
+
+    public string SavePrefs(List<string> list, string str, string data, string key)
+    {
+        if (list.Contains(data))
+            return string.Empty;
+
+        if (string.IsNullOrEmpty(str))
+            str = $"{data}";
+        else
+            str += $",{data}";
+
+        PlayerPrefs.SetString(key, str);
+        list.Add(data);
+
+        return str;
+    }
+
+    public string RemovePrefs(List<string> list, string str, string data, string key)
+    {
+        if (!list.Contains(data))
+            return string.Empty;
+
+        list.Remove(data);
+        str = string.Empty;
+        foreach (string temp_str in list)
+            str += $"{temp_str},";
+
+        PlayerPrefs.SetString(key, str);
+
+        return str;
+    }
+    #endregion
+
     internal int GetCurMonsterCount()
     {
         return _list_groupMonsters.Count;
@@ -383,7 +466,11 @@ public class Player : BaseController
     internal void NotifyPlayerOfDeath(GameObject target, int gold)
     {
         if (target == _go_targetMonster)
+        {
+            _str_playerMonsters =
+                SavePrefs(_list_playerMonsters, _str_playerMonsters, targetMonster._creature.ToString(), "playerMonsters");
             _go_targetMonster = null;
+        }
 
         _gold += gold;
         AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
@@ -396,6 +483,14 @@ public class Player : BaseController
     private void GameOver()
     {
         AD.Managers.GameM.GameOver();
+    }
+
+    public void MinusGold(int gold)
+    {
+        _gold -= gold;
+        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        AD.Managers.DataM.UpdatePlayerData();
+        PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
     #endregion
 

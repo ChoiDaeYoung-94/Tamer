@@ -5,7 +5,8 @@
         "Power": "5",
         "AttackSpeed": "0.3",
         "MoveSpeed": "2.0",
-		"Gold": "10"
+		"Gold": "10",
+		"Price": "100"
     },
 	"Magma": 
 	{
@@ -13,7 +14,8 @@
         "Power": "10",
         "AttackSpeed": "0.5",
         "MoveSpeed": "1.5",
-		"Gold": "10"
+		"Gold": "10",
+		"Price": "100"
     },
 	"Chest": 
 	{
@@ -21,7 +23,8 @@
         "Power": "10",
         "AttackSpeed": "0.4",
         "MoveSpeed": "1.5",
-		"Gold": "15"
+		"Gold": "15",
+		"Price": "150"
     },
 	"Crab": 
 	{
@@ -29,7 +32,8 @@
         "Power": "15",
         "AttackSpeed": "0.5",
         "MoveSpeed": "1.8",
-		"Gold": "20"
+		"Gold": "20",
+		"Price": "200"
     },
 	"RatAssassin": 
 	{
@@ -37,7 +41,8 @@
         "Power": "5",
         "AttackSpeed": "0.7",
         "MoveSpeed": "2.5",
-		"Gold": "20"
+		"Gold": "20",
+		"Price": "200"
     },
 	"Spider": 
 	{
@@ -45,7 +50,8 @@
         "Power": "10",
         "AttackSpeed": "0.5",
         "MoveSpeed": "1.5",
-		"Gold": "30"
+		"Gold": "30",
+		"Price": "300"
     },
 	"SpiderToxin": 
 	{
@@ -53,7 +59,8 @@
         "Power": "15",
         "AttackSpeed": "0.6",
         "MoveSpeed": "1.7",
-		"Gold": "30"
+		"Gold": "30",
+		"Price": "300"
     },
 	"SpiderKing": 
 	{
@@ -61,7 +68,8 @@
         "Power": "20",
         "AttackSpeed": "0.7",
         "MoveSpeed": "2.0",
-		"Gold": "40"
+		"Gold": "40",
+		"Price": "400"
     },
 	"LizardWarrior": 
 	{
@@ -69,7 +77,8 @@
         "Power": "20",
         "AttackSpeed": "0.7",
         "MoveSpeed": "2.0",
-		"Gold": "50"
+		"Gold": "50",
+		"Price": "500"
     },
 	"Werewolf": 
 	{
@@ -77,7 +86,8 @@
         "Power": "25",
         "AttackSpeed": "0.3",
         "MoveSpeed": "2.0",
-		"Gold": "50"
+		"Gold": "50",
+		"Price": "500"
     },
 	"FylingDemon": 
 	{
@@ -85,7 +95,8 @@
         "Power": "30",
         "AttackSpeed": "1.0",
         "MoveSpeed": "3.0",
-		"Gold": "100"
+		"Gold": "100",
+		"Price": "1500"
     },
 	"Beholder": 
 	{
@@ -93,6 +104,7 @@
         "Power": "1",
         "AttackSpeed": "0.5",
         "MoveSpeed": "3.0",
-		"Gold": "10"
+		"Gold": "10",
+		"Price": "100"
     }
 }

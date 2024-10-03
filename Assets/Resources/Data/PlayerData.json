@@ -7,5 +7,6 @@
 	"Power": "10",
 	"AttackSpeed": "0.5",
 	"MoveSpeed": "3.0",
-	"AllyMonsters": "null"
+	"AllyMonsters": "null",
+	"GooglePlay": ""
 }
