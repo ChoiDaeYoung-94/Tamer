@@ -27,6 +27,7 @@ public class ShopMan : MonoBehaviour
     public List<string> _list_currentItems = new List<string>();
     bool isItem = false;
     public List<Item> _list_item = new List<Item>();
+    public List<IAPItem> _list_IAPitem = new List<IAPItem>();
 
     private void Awake()
     {
@@ -135,7 +136,17 @@ public class ShopMan : MonoBehaviour
     }
 
     #region IAP
-    public void IAP_NoAds() => AD.Managers.IAPM.BuyProductID(AD.Managers.IAPM.PRODUCT_NO_ADS);
+    public void IAP(string id)
+    {
+        if (id == AD.Define.IAPItems.PRODUCT_NO_ADS.ToString())
+            AD.Managers.IAPM.BuyProductID(AD.Managers.IAPM.PRODUCT_NO_ADS);
+    }
+
+    public void IAPReset()
+    {
+        foreach (IAPItem IAPitem in _list_IAPitem)
+            IAPitem.Init();
+    }
     #endregion
 
     #endregion

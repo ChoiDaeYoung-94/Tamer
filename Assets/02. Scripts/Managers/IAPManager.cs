@@ -80,8 +80,6 @@ namespace AD
 
             storeController = controller;
             storeExtensionProvider = extensions;
-
-            CheckProduct();
         }
 
         public void OnInitializeFailed(InitializationFailureReason error)
@@ -114,43 +112,23 @@ namespace AD
             AD.Debug.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
         }
 
-        private void CheckProduct()
+        private void RegisterIAPData(AD.Define.IAPItems IAPitem)
         {
-            if (CheckProductID(PRODUCT_NO_ADS))
-            {
-                string temp_str = AD.Managers.DataM._dic_player["GooglePlay"];
-                if (string.IsNullOrEmpty(temp_str))
-                    temp_str = $"{AD.Define.IAPItems.PRODUCT_NO_ADS}";
-                else
-                    temp_str += $",{AD.Define.IAPItems.PRODUCT_NO_ADS}";
-
-                AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: temp_str);
-            }
-        }
-
-        public bool CheckProductID(string productId)
-        {
-            if (IsInitialized())
-            {
-                Product product = storeController.products.WithID(productId);
-
-                if (product != null)
-                {
-                    return product.hasReceipt;
-                }
-            }
+            string temp_str = AD.Managers.DataM._dic_player["GooglePlay"];
+            if (string.IsNullOrEmpty(temp_str))
+                temp_str = $"{IAPitem}";
             else
-            {
-                AD.Debug.Log("IAPManager", "BuyProductID FAIL. Not initialized.");
-                return false;
-            }
+                temp_str += $",{IAPitem}";
 
-            return false;
+            AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: temp_str);
         }
 
         private void GrantNoAds()
         {
+            RegisterIAPData(AD.Define.IAPItems.PRODUCT_NO_ADS);
+            AD.Managers.DataM.UpdatePlayerData();
 
+            ShopMan.Instance.IAPReset();
         }
     }
 }

@@ -8,6 +8,12 @@ public class IAPItem : MonoBehaviour
 
     private void Awake()
     {
+        ShopMan.Instance._list_IAPitem.Add(this);
+        Init();
+    }
+
+    public void Init()
+    {
         if (AD.Managers.DataM._dic_player["GooglePlay"].Contains(_IAPItem.ToString()))
             gameObject.SetActive(false);
     }

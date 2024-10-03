@@ -234,8 +234,9 @@ namespace AD
             CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
             CompareValues(_dic_player["AllyMonsters"], _dic_PlayFabPlayerData["AllyMonsters"].Value.ToString());
 
-            temp_result = CompareValues(_dic_player["GooglePlay"], _dic_PlayFabPlayerData["GooglePlay"].Value.ToString());
-            if (temp_result < 0)
+            string temp_str = _dic_PlayFabPlayerData["GooglePlay"].Value.ToString();
+            temp_result = CompareValues(_dic_player["GooglePlay"], temp_str);
+            if (temp_result < 0 && !string.IsNullOrEmpty(temp_str) && !string.Equals(temp_str, "null"))
                 _dic_player["GooglePlay"] = _dic_PlayFabPlayerData["GooglePlay"].Value.ToString();
 
             if (_isConflict)
