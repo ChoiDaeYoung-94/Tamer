@@ -36,6 +36,8 @@ public class CanvasSelectCharacter : MonoBehaviour
         if (_co_play != null)
             return;
 
+        AD.Managers.SoundM.UI_Ok();
+
         _co_play = StartCoroutine(Play());
     }
 
@@ -43,6 +45,8 @@ public class CanvasSelectCharacter : MonoBehaviour
     {
         if (_co_move != null || _co_play != null)
             return;
+
+        AD.Managers.SoundM.UI_Click();
 
         SetPosition(direction);
 

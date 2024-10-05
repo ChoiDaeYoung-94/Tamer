@@ -88,6 +88,8 @@ namespace AD
         /// </summary>
         public void DisablePop()
         {
+            AD.Managers.SoundM.UI_Click();
+
             if (isException)
             {
                 AD.Debug.Log("PopupManager", isException + " - isException");

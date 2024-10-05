@@ -138,10 +138,12 @@ public class Player : BaseController
                 switch (str_temp)
                 {
                     case "GoogleAdMob":
+                        AD.Managers.SoundM.UI_Click();
                         if (!AD.Managers.GoogleAdMobM.isInprogress)
                             AD.Managers.GoogleAdMobM.ShowRewardedAd();
                         break;
                     case "GoGameScene":
+                        AD.Managers.SoundM.UI_Click();
                         AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Game);
                         break;
                 }
@@ -151,6 +153,8 @@ public class Player : BaseController
 
     internal void SetBuff()
     {
+        PlaySFX(AD.Managers.SoundM._AC_sfx_buff);
+
         isBuffing = true;
 
         _buffPower = _power * 1.3f;
@@ -172,6 +176,8 @@ public class Player : BaseController
 
     internal void Heal()
     {
+        PlaySFX(AD.Managers.SoundM._AC_sfx_heal);
+
         Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
         HealEffect();
         PlayerUICanvas.Instance.UpdatePlayerInfo();
@@ -274,6 +280,8 @@ public class Player : BaseController
         monster.AllySetting(playerPosition: transform.position, setting: true);
         AddAllyMonster(monster);
     }
+
+    public void MoveSound() => PlaySFX(AD.Managers.SoundM._AC_sfx_walk);
     #endregion
 
     #region AllyMonsters

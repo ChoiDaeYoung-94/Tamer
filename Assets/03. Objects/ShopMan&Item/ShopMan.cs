@@ -60,6 +60,7 @@ public class ShopMan : MonoBehaviour
 
     public void OpenShop1()
     {
+        AD.Managers.SoundM.UI_Click();
         _go_shop1.SetActive(true);
         _go_shop2.SetActive(false);
         _go_shop3.SetActive(false);
@@ -67,20 +68,24 @@ public class ShopMan : MonoBehaviour
 
     public void OpenShop2()
     {
-        _go_shop1.SetActive(false);
+        AD.Managers.SoundM.UI_Click();
         _go_shop2.SetActive(true);
+        _go_shop1.SetActive(false);
         _go_shop3.SetActive(false);
     }
 
     public void OpenShop3()
     {
+        AD.Managers.SoundM.UI_Click();
+        _go_shop3.SetActive(true);
         _go_shop1.SetActive(false);
         _go_shop2.SetActive(false);
-        _go_shop3.SetActive(true);
     }
 
     public void ChooseItem(string itemName, string price, string info, bool isitem)
     {
+        AD.Managers.SoundM.UI_Click();
+
         _str_currnetItemName = itemName;
         _currnetItemPrice = int.Parse(price);
         _TMP_itemInfo.text = info;
@@ -90,6 +95,8 @@ public class ShopMan : MonoBehaviour
 
     public void ClickBuy()
     {
+        AD.Managers.SoundM.UI_Click();
+
         if (_currnetItemPrice > Player.Instance.Gold)
         {
             _TMP_afterBuy.text = _str_failedBuy;
@@ -103,6 +110,8 @@ public class ShopMan : MonoBehaviour
 
     public void CheckSuccessBuy()
     {
+        AD.Managers.SoundM.UI_Click();
+
         if (_TMP_afterBuy.text != _str_successBuy)
         {
             AD.Managers.PopupM.DisablePop();
@@ -138,6 +147,8 @@ public class ShopMan : MonoBehaviour
     #region IAP
     public void IAP(string id)
     {
+        AD.Managers.SoundM.UI_Click();
+
         if (id == AD.Define.IAPItems.PRODUCT_NO_ADS.ToString())
             AD.Managers.IAPM.BuyProductID(AD.Managers.IAPM.PRODUCT_NO_ADS);
     }

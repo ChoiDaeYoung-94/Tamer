@@ -51,6 +51,9 @@ namespace AD
         IAPManager _IAPM = new IAPManager();
         public static IAPManager IAPM { get { return instance._IAPM; } }
 
+        [SerializeField] SoundManager _soundM = null;
+        public static SoundManager SoundM { get { return instance._soundM; } }
+
         [Header("--- 미리 가지고 있어야 할 data ---")]
         [Tooltip("Pool에 사용할 GameObject")]
         public GameObject[] _go_poolGOs = null;

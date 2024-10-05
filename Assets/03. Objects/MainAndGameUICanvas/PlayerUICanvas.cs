@@ -122,6 +122,8 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void OpenPopupPlayerInfo()
     {
+        AD.Managers.SoundM.UI_Click();
+
         UpdatePopPlayerInfo();
 
         _go_Popup_playerInfo.SetActive(true);
@@ -132,6 +134,8 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void OpenMap()
     {
+        AD.Managers.SoundM.UI_Click();
+
         MiniMap.Instance.OpenMap();
     }
 
@@ -140,6 +144,8 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void GoMainScene()
     {
+        AD.Managers.SoundM.UI_Click();
+
         AD.Managers.PopupM.PopupGoLobby();
     }
 
@@ -192,6 +198,8 @@ public class PlayerUICanvas : MonoBehaviour
 
     public void OnClickCapture()
     {
+        AD.Managers.SoundM.UI_Click();
+
         Player.Instance.Capture();
         _go_capture.SetActive(false);
     }

@@ -45,6 +45,8 @@ public class Portal : MonoBehaviour
 
     internal void RewardHeal()
     {
+        AD.Managers.SoundM.UnpauseBGM();
+
         Player.Instance.Heal();
     }
     #endregion
