@@ -65,6 +65,11 @@ namespace AD
             Init();
         }
 
+        private void Start()
+        {
+            SoundM.Init();
+        }
+
         void Init()
         {
             instance = this;

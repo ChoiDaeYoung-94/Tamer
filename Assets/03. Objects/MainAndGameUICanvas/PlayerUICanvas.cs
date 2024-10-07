@@ -126,7 +126,15 @@ public class PlayerUICanvas : MonoBehaviour
 
         UpdatePopPlayerInfo();
 
+        Time.timeScale = 0;
         _go_Popup_playerInfo.SetActive(true);
+    }
+
+    public void OpenSetting()
+    {
+        AD.Managers.SoundM.UI_Click();
+
+        AD.Managers.PopupM.PopupSetting();
     }
 
     /// <summary>
@@ -148,6 +156,8 @@ public class PlayerUICanvas : MonoBehaviour
 
         AD.Managers.PopupM.PopupGoLobby();
     }
+
+    public void ClosePopupSetting() => Time.timeScale = 1;
 
     #region GoogleAdMob Buff
     /// <summary>

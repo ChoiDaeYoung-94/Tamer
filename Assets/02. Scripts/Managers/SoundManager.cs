@@ -70,14 +70,14 @@ namespace AD
 
         internal void SetBGMVolume(float volume)
         {
-            _audioMixer.SetFloat("BGM", Mathf.Log10(volume) * 20);
+            _audioMixer.SetFloat("BGM", Mathf.Log10(Mathf.Clamp(volume, 0.0001f, 1f)) * 20);
 
             PlayerPrefs.SetFloat("BGM", volume);
         }
 
         internal void SetSFXVolume(float volume)
         {
-            _audioMixer.SetFloat("SFX", Mathf.Log10(volume) * 20);
+            _audioMixer.SetFloat("SFX", Mathf.Log10(Mathf.Clamp(volume, 0.0001f, 1f)) * 20);
 
             PlayerPrefs.SetFloat("SFX", volume);
         }

@@ -65,6 +65,8 @@ public class MiniMap : MonoBehaviour
 
     internal void OpenMap()
     {
+        Time.timeScale = 0;
+
         _go_minimapCamera.transform.localPosition = new Vector3(_tr_player.localPosition.x, _tr_player.localPosition.y, -31f);
         _go_minimapCamera.SetActive(true);
 
@@ -81,6 +83,8 @@ public class MiniMap : MonoBehaviour
 
     public void CloseMap()
     {
+        Time.timeScale = 1;
+
         AD.Managers.UpdateM._update -= MiniMapDrag;
 
         JoyStick.Instance.transform.parent.gameObject.SetActive(true);
