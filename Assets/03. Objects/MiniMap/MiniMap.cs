@@ -115,14 +115,12 @@ public class MiniMap : MonoBehaviour
                     float x = orgCameraPosition.x + offsetPosition.x;
                     float y = orgCameraPosition.y + offsetPosition.z;
 
-                    if (x >= 70f) x = 70f;
-                    if (x <= -70f) x = -70f;
-                    if (y >= 18f) y = 18f;
-                    if (y <= -18f) y = -18f;
+                    x = Mathf.Clamp(x, -70f, 70f);
+                    y = Mathf.Clamp(y, -18f, 18f);
 
                     targetPosition = new Vector3(x, y, orgCameraPosition.z);
 
-                    _go_minimapCamera.transform.localPosition = Vector3.Lerp(_go_minimapCamera.transform.localPosition, targetPosition, Time.deltaTime * 10f);
+                    _go_minimapCamera.transform.localPosition = Vector3.Lerp(_go_minimapCamera.transform.localPosition, targetPosition, 0.7f);
                     break;
 
                 case TouchPhase.Ended:

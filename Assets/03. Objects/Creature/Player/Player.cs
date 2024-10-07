@@ -28,7 +28,7 @@ public class Player : BaseController
     [SerializeField] private GameObject _buff = null;
 
     [Header("--- 플레이어 버프 시 적용되는 status ---")]
-    [SerializeField] private bool isBuffing = false;
+    [SerializeField] public bool isBuffing = false;
     [SerializeField] public float _buffPower = 0;
     [SerializeField] public float _buffAttackSpeed = 0;
     [SerializeField] public float _buffMoveSpeed = 0;
@@ -162,6 +162,9 @@ public class Player : BaseController
         _buffMoveSpeed = _moveSpeed * 2f;
         JoyStick.Instance.SetSpeed(_buffMoveSpeed);
 
+        foreach (Monster monster in _list_groupMonsters)
+            monster.SetSpeed();
+
         _buff.SetActive(true);
     }
 
@@ -170,6 +173,9 @@ public class Player : BaseController
         isBuffing = false;
 
         JoyStick.Instance.SetSpeed(_moveSpeed);
+
+        foreach (Monster monster in _list_groupMonsters)
+            monster.SetSpeed();
 
         _buff.SetActive(false);
     }
@@ -226,6 +232,8 @@ public class Player : BaseController
                 transform.rotation = Quaternion.LookRotation(direction);
 
                 CrtState = CreatureState.Attack;
+
+                float attackspeed = isBuffing ? _buffAttackSpeed : _attackSpeed;
                 yield return new WaitForSeconds(1f / _attackSpeed);
             }
 

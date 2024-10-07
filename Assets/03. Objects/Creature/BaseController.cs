@@ -201,9 +201,11 @@ public abstract class BaseController : MonoBehaviour
                 _crtAni.CrossFade($"Punch0{index}", 0f);
             }
         }
-        else if (str_tag == "Boss")
+        else if (_creature == AD.Define.Creature.FylingDemon)
         {
+            int index = Random.Range(1, 3);
 
+            _crtAni.CrossFade($"Attack{index}", 0f);
         }
         else
             _crtAni.CrossFade("Attack", 0.1f);

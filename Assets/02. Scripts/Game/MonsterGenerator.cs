@@ -132,6 +132,11 @@ public class MonsterGenerator : MonoBehaviour
         if (region == 4 && !_go_boss && UnityEngine.Random.Range(0, 100) < 5f)
         {
             _go_boss = AD.Managers.PoolM.PopFromPool("FylingDemon");
+
+            Monster boss = _go_boss.GetComponent<Monster>();
+            boss.isCommander = true;
+            boss.StartDetectionCoroutine();
+
             _go_boss.transform.position = new Vector3(-40f, 2f, 20f);
         }
     }

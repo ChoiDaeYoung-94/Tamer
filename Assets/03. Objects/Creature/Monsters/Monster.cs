@@ -561,7 +561,10 @@ public class Monster : BaseController
         }
 
         if (isBoss)
+        {
+            isCommander = false;
             MonsterGenerator.Instance._go_boss = null;
+        }
         else if (isCommander)
         {
             isCommander = false;
@@ -635,7 +638,7 @@ public class Monster : BaseController
         detectionLayer = enemyLayer;
 
         _hp = _orgHp;
-        _navAgent.speed = Player.Instance.MoveSpeed + 0.5f;
+        SetSpeed();
 
         isAlly = true;
 
@@ -646,6 +649,14 @@ public class Monster : BaseController
 
         StartBattleCoroutine();
         StartDetectionCoroutine();
+    }
+
+    public void SetSpeed()
+    {
+        if (Player.Instance.isBuffing)
+            _navAgent.speed = Player.Instance._buffMoveSpeed + 0.5f;
+        else
+            _navAgent.speed = Player.Instance.MoveSpeed + 0.5f;
     }
 
     private void ResetMonster()

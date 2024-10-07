@@ -6,10 +6,14 @@ public class IAPItem : MonoBehaviour
 {
     [SerializeField] AD.Define.IAPItems _IAPItem;
 
-    private void Awake()
+    private void OnEnable()
+    {
+        Init();
+    }
+
+    private void Start()
     {
         ShopMan.Instance._list_IAPitem.Add(this);
-        Init();
     }
 
     public void Init()

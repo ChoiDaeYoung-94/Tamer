@@ -98,7 +98,6 @@ namespace AD
             PoolM.Init();
             PopupM.Init();
             GoogleAdMobM.Init();
-            IAPM.Init();
         }
 
         /// <summary>
