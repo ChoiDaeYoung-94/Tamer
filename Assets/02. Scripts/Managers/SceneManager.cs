@@ -17,6 +17,7 @@ namespace AD
         {
             AD.Debug.Log("SceneManager", "NextScene으로 전환");
 
+            AD.Managers.SoundM.PauseBGM();
             AD.Managers.PopupM.SetException();
 
             _scene = scene;
@@ -83,6 +84,8 @@ namespace AD
 
                 Resources.UnloadUnusedAssets();
             }
+
+            AD.Managers.SoundM.UnpauseBGM();
         }
     }
 }

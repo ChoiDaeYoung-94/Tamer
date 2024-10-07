@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Audio;
 
 public abstract class BaseController : MonoBehaviour
 {
@@ -83,6 +84,9 @@ public abstract class BaseController : MonoBehaviour
     protected Coroutine _co_battle;
     protected Coroutine _co_distanceOfTarget;
 
+    [Header("--- AudioSource ---")]
+    [SerializeField] protected AudioSource _AS_sfx = null;
+
     protected virtual void Awake()
     {
         SetLayer();
@@ -141,7 +145,7 @@ public abstract class BaseController : MonoBehaviour
         _go_heal.SetActive(true);
     }
 
-    #region Battle
+    #region Battle & State
     public void GetDamage(float damage)
     {
         if (Hp <= 0)
@@ -185,11 +189,15 @@ public abstract class BaseController : MonoBehaviour
             if (Player.Instance.isEquippedSword)
             {
                 index = Random.Range(1, 4);
+
+                PlaySFX(AD.Managers.SoundM._AC_sfx_sword);
                 _crtAni.CrossFade($"Attack0{index}_sword", 0f);
             }
             else
             {
                 index = Random.Range(1, 3);
+
+                PlaySFX(AD.Managers.SoundM._AC_sfx_punch);
                 _crtAni.CrossFade($"Punch0{index}", 0f);
             }
         }
@@ -232,6 +240,12 @@ public abstract class BaseController : MonoBehaviour
     public abstract void Clear();
 
     protected abstract void AttackTarget();
+
+    protected void PlaySFX(AudioClip clip)
+    {
+        _AS_sfx.clip = clip;
+        _AS_sfx.Play();
+    }
 
     #endregion
 }

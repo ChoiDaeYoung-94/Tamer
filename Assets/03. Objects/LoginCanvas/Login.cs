@@ -317,6 +317,7 @@ public class Login : MonoBehaviour
     }
     #endregion
 
+    public void ClickedOK() => AD.Managers.SoundM.UI_Ok();
     #endregion
 
 #if UNITY_EDITOR

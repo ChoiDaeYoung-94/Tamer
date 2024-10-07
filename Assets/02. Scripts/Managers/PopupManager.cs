@@ -23,6 +23,10 @@ namespace AD
         GameObject _go_popupHeal = null;
         [SerializeField, Tooltip("게임 오버 팝업")]
         GameObject _go_popupGameOver = null;
+        [SerializeField, Tooltip("세팅 팝업")]
+        GameObject _go_popupSetting = null;
+        [SerializeField] GameObject _go_bgm = null;
+        [SerializeField] GameObject _go_sfx = null;
 
         [Tooltip("popup을 관리할 Stack, Enable - Push, Disable - Pop")]
         Stack<GameObject> _popupStack = new Stack<GameObject>();
@@ -88,6 +92,8 @@ namespace AD
         /// </summary>
         public void DisablePop()
         {
+            AD.Managers.SoundM.UI_Click();
+
             if (isException)
             {
                 AD.Debug.Log("PopupManager", isException + " - isException");
@@ -111,27 +117,63 @@ namespace AD
                     AD.Debug.Log("PopupManager", "lobby scene -> quit popup");
 
                     if (!_go_popupExit.activeSelf)
-                        _go_popupExit.SetActive(true);
+                        PopupExit();
                 }
                 else
                 {
                     AD.Debug.Log("PopupManager", "game scene-> go lobby popup");
 
                     if (!_go_popupLobby.activeSelf)
-                        _go_popupLobby.SetActive(true);
+                        PopupGoLobby();
                 }
             }
         }
 
-        internal void PopupGoLobby() => _go_popupLobby.SetActive(true);
+        internal void PopupGoLobby()
+        {
+            UnityEngine.Time.timeScale = 0;
 
-        internal void PopupExit() => _go_popupExit.SetActive(true);
+            _go_popupLobby.SetActive(true);
+        }
+
+        internal void PopupExit()
+        {
+            UnityEngine.Time.timeScale = 0;
+
+            _go_popupExit.SetActive(true);
+        }
 
         internal void PopupHeal() => _go_popupHeal.SetActive(true);
 
         internal void PopupGameOver() => _go_popupGameOver.SetActive(true);
 
-        public void GoLobby() => AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Main);
+        internal void PopupSetting()
+        {
+            UnityEngine.Time.timeScale = 0;
+
+            float bgm = PlayerPrefs.GetFloat("BGM", 1f);
+            float sfx = PlayerPrefs.GetFloat("SFX", 1f);
+
+            if (bgm == 1)
+                _go_bgm.SetActive(false);
+            else
+                _go_bgm.SetActive(true);
+            if (sfx == 1)
+                _go_sfx.SetActive(false);
+            else
+                _go_sfx.SetActive(true);
+
+            _go_popupSetting.SetActive(true);
+        }
+
+        public void ClosePopupSetting() => UnityEngine.Time.timeScale = 1;
+
+        public void GoLobby()
+        {
+            UnityEngine.Time.timeScale = 1;
+
+            AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Main);
+        }
 
         public void GameOver() => AD.Managers.GameM.GameOverGoLobby();
 
@@ -150,6 +192,44 @@ namespace AD
         internal void SetFLow() => isFLow = true;
 
         internal void ReleaseFLow() => isFLow = false;
+
+        public void BGM()
+        {
+            float bgm = PlayerPrefs.GetFloat("BGM", 1f);
+
+            if (bgm == 1)
+            {
+                _go_bgm.SetActive(true);
+                bgm = 0;
+            }
+            else
+            {
+                _go_bgm.SetActive(false);
+                bgm = 1;
+            }
+
+            AD.Managers.SoundM.SetBGMVolume(bgm);
+            PlayerPrefs.SetFloat("BGM", bgm);
+        }
+
+        public void SFX()
+        {
+            float sfx = PlayerPrefs.GetFloat("SFX", 1f);
+
+            if (sfx == 1)
+            {
+                _go_sfx.SetActive(true);
+                sfx = 0;
+            }
+            else
+            {
+                _go_sfx.SetActive(false);
+                sfx = 1;
+            }
+
+            AD.Managers.SoundM.SetSFXVolume(sfx);
+            PlayerPrefs.SetFloat("SFX", sfx);
+        }
         #endregion
     }
 }

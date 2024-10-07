@@ -122,9 +122,19 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void OpenPopupPlayerInfo()
     {
+        AD.Managers.SoundM.UI_Click();
+
         UpdatePopPlayerInfo();
 
+        Time.timeScale = 0;
         _go_Popup_playerInfo.SetActive(true);
+    }
+
+    public void OpenSetting()
+    {
+        AD.Managers.SoundM.UI_Click();
+
+        AD.Managers.PopupM.PopupSetting();
     }
 
     /// <summary>
@@ -132,6 +142,8 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void OpenMap()
     {
+        AD.Managers.SoundM.UI_Click();
+
         MiniMap.Instance.OpenMap();
     }
 
@@ -140,8 +152,12 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void GoMainScene()
     {
+        AD.Managers.SoundM.UI_Click();
+
         AD.Managers.PopupM.PopupGoLobby();
     }
+
+    public void ClosePopupSetting() => Time.timeScale = 1;
 
     #region GoogleAdMob Buff
     /// <summary>
@@ -192,6 +208,8 @@ public class PlayerUICanvas : MonoBehaviour
 
     public void OnClickCapture()
     {
+        AD.Managers.SoundM.UI_Click();
+
         Player.Instance.Capture();
         _go_capture.SetActive(false);
     }

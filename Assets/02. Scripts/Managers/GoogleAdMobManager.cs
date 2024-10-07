@@ -112,15 +112,20 @@ namespace AD
 
             if (_rewardedAd != null && _rewardedAd.CanShowAd())
             {
+                AD.Managers.SoundM.PauseBGM();
                 _rewardedAd.Show((Reward reward) =>
                 {
                     AD.Debug.Log("GoogleAdMobManager", String.Format(rewardMsg, reward.Type, reward.Amount));
+
+                    AD.Managers.SoundM.UnpauseBGM();
 
                     isReceive = true;
                 });
             }
             else
             {
+                AD.Managers.SoundM.UnpauseBGM();
+
                 BuffingMan.Instance.OnAdFailure();
                 isInprogress = false;
             }
