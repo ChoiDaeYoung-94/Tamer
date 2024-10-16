@@ -27,20 +27,18 @@ public class FogOfWarRenderer : MonoBehaviour
     private RenderTexture output_persistent;
     private Material upscaleShader;
     private Material blurShader;
-    [SerializeField]
     private Material fogOfWarMaterial;
-
-    [SerializeField] Shader sh_upScale = null;
-    [SerializeField] Shader sh_blur = null;
 
     private void Awake()
     {
+        fogOfWarMaterial = new Material(Shader.Find("Custom/FogOfWar"));
+
         output_dynamic = new RenderTexture(data.Grid.CellCount.x * 4, data.Grid.CellCount.y * 4, 0);
         output_persistent = new RenderTexture(data.Grid.CellCount.x * 4, data.Grid.CellCount.y * 4, 0);
 
-        upscaleShader = new Material(sh_upScale);
+        upscaleShader = new Material(Shader.Find("Custom/Upscale"));
         upscaleShader.SetTexture("_LUT", LUT);
-        blurShader = new Material(sh_blur);
+        blurShader = new Material(Shader.Find("Custom/Blur"));
 
         CreateFoWPlane();
     }

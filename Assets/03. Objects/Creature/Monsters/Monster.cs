@@ -561,7 +561,10 @@ public class Monster : BaseController
         }
 
         if (isBoss)
+        {
+            isCommander = false;
             MonsterGenerator.Instance._go_boss = null;
+        }
         else if (isCommander)
         {
             isCommander = false;
@@ -596,6 +599,26 @@ public class Monster : BaseController
             if (distance > 10f)
                 AD.Managers.PoolM.PushToPool(gameObject);
         }
+    }
+
+    public void BackPool()
+    {
+        isDie = true;
+        gameObject.layer = dieLayer;
+        _capsuleCollider.enabled = false;
+
+        if (isBoss)
+            MonsterGenerator.Instance._go_boss = null;
+
+        isCommander = false;
+        _list_groupMonsters.Clear();
+
+        _navAgent.enabled = false;
+        isDetection = false;
+
+        MonsterGenerator.Instance.MinusMonster(this);
+
+        AD.Managers.PoolM.PushToPool(gameObject);
     }
     #endregion
 
@@ -635,7 +658,7 @@ public class Monster : BaseController
         detectionLayer = enemyLayer;
 
         _hp = _orgHp;
-        _navAgent.speed = Player.Instance.MoveSpeed + 0.5f;
+        SetSpeed();
 
         isAlly = true;
 
@@ -646,6 +669,14 @@ public class Monster : BaseController
 
         StartBattleCoroutine();
         StartDetectionCoroutine();
+    }
+
+    public void SetSpeed()
+    {
+        if (Player.Instance.isBuffing)
+            _navAgent.speed = Player.Instance._buffMoveSpeed + 0.5f;
+        else
+            _navAgent.speed = Player.Instance.MoveSpeed + 0.5f;
     }
 
     private void ResetMonster()

@@ -60,14 +60,14 @@ public class MiniMap : MonoBehaviour
     {
         Transform tr_temp = Player.Instance.transform;
 
-        _tr_player.localPosition = new Vector3(tr_temp.position.x, tr_temp.position.z, -1f);
+        _tr_player.localPosition = new Vector3(tr_temp.position.x, 1f, tr_temp.position.z);
     }
 
     internal void OpenMap()
     {
         Time.timeScale = 0;
 
-        _go_minimapCamera.transform.localPosition = new Vector3(_tr_player.localPosition.x, _tr_player.localPosition.y, -31f);
+        _go_minimapCamera.transform.localPosition = new Vector3(_tr_player.localPosition.x, 31f, _tr_player.localPosition.z);
         _go_minimapCamera.SetActive(true);
 
         JoyStick.Instance.transform.parent.gameObject.SetActive(false);
@@ -113,16 +113,14 @@ public class MiniMap : MonoBehaviour
                     offsetPosition = touchPosition - dragPosition;
 
                     float x = orgCameraPosition.x + offsetPosition.x;
-                    float y = orgCameraPosition.y + offsetPosition.z;
+                    float z = orgCameraPosition.z + offsetPosition.z;
 
-                    if (x >= 70f) x = 70f;
-                    if (x <= -70f) x = -70f;
-                    if (y >= 18f) y = 18f;
-                    if (y <= -18f) y = -18f;
+                    x = Mathf.Clamp(x, -70f, 70f);
+                    z = Mathf.Clamp(z, -18f, 18f);
 
-                    targetPosition = new Vector3(x, y, orgCameraPosition.z);
+                    targetPosition = new Vector3(x, orgCameraPosition.y, z);
 
-                    _go_minimapCamera.transform.localPosition = Vector3.Lerp(_go_minimapCamera.transform.localPosition, targetPosition, Time.deltaTime * 10f);
+                    _go_minimapCamera.transform.localPosition = Vector3.Lerp(_go_minimapCamera.transform.localPosition, targetPosition, 0.7f);
                     break;
 
                 case TouchPhase.Ended:

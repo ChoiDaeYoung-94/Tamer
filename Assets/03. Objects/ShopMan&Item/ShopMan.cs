@@ -33,6 +33,8 @@ public class ShopMan : MonoBehaviour
     {
         instance = this;
         Init();
+
+        AD.Managers.IAPM.Init();
     }
 
     private void OnDestroy()

@@ -19,7 +19,7 @@ public class FogOfWar : MonoBehaviour
         data.DynamicFogCells.Clear();
         data.BlockedCells.Clear();
 
-        HashSet<Vector2Int> potentiallyVisibleCells = new HashSet<Vector2Int>();
+        HashSet<Vector2Int> potentiallyVisibleCells = new();
         foreach (var fogEntity in unitGroup.FogOfWarEntities)
         {
             if (fogEntity.BlocksView)
@@ -40,7 +40,7 @@ public class FogOfWar : MonoBehaviour
             data.StaticFogCells.UnionWith(visibleCells);
         }
 
-        List<Vector2Int> expansionCells = new List<Vector2Int>();
+        List<Vector2Int> expansionCells = new();
         foreach (var cell in potentiallyVisibleCells)
         {
             if (HasVisibleCellsAround(cell))

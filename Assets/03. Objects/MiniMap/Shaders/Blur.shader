@@ -4,7 +4,7 @@ Shader "Custom/Blur"
 	{
 		_MainTex("Texture", 2D) = "white" {}
 	}
-	SubShader
+		SubShader
 	{
 		Cull Off
 		ZWrite Off

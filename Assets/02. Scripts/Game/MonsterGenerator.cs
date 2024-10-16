@@ -132,6 +132,11 @@ public class MonsterGenerator : MonoBehaviour
         if (region == 4 && !_go_boss && UnityEngine.Random.Range(0, 100) < 5f)
         {
             _go_boss = AD.Managers.PoolM.PopFromPool("FylingDemon");
+
+            Monster boss = _go_boss.GetComponent<Monster>();
+            boss.isCommander = true;
+            boss.StartDetectionCoroutine();
+
             _go_boss.transform.position = new Vector3(-40f, 2f, 20f);
         }
     }
@@ -163,8 +168,10 @@ public class MonsterGenerator : MonoBehaviour
 
     private void ResetMonster()
     {
-        foreach (Monster monster in _list_curMonsters)
+        for (int i = -1; ++i < _list_curMonsters.Count;)
         {
+            Monster monster = _list_curMonsters[i];
+
             if (!monster.isCommander)
                 continue;
 
@@ -173,13 +180,20 @@ public class MonsterGenerator : MonoBehaviour
                 if (!RegionOfMonster(monster))
                 {
                     foreach (Monster follower in monster._list_groupMonsters)
-                        follower.GetDamage(1000f);
+                    {
+                        follower.BackPool();
+                        --i;
+                    }
 
-                    monster.GetDamage(1000f);
+                    monster.BackPool();
+                    --i;
                 }
                 else
                     monster.Warp();
             }
+
+            if (i < 0)
+                i = 0;
         }
     }
 
