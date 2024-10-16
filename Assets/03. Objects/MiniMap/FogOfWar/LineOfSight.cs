@@ -5,7 +5,7 @@ public static class LineOfSight
 {
     public static HashSet<Vector2Int> CircleOutline(Vector2Int startPoint, int radius)
     {
-        HashSet<Vector2Int> points = new HashSet<Vector2Int>();
+        HashSet<Vector2Int> points = new();
 
         int x = radius;
         int y = 0;
@@ -49,7 +49,7 @@ public static class LineOfSight
 
     public static HashSet<Vector2Int> Trace(Vector2Int start, Vector2Int end, HashSet<Vector2Int> blockedCells)
     {
-        HashSet<Vector2Int> tracedCells = new HashSet<Vector2Int>();
+        HashSet<Vector2Int> tracedCells = new();
 
         int dx = Mathf.Abs(end.x - start.x);
         int dy = Mathf.Abs(end.y - start.y);

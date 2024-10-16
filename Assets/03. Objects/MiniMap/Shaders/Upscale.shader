@@ -5,7 +5,7 @@ Shader "Custom/Upscale"
 		_MainTex("Texture", 2D) = "white" {}
 		_LUT("Texture", 2D) = "white" {}
 	}
-	SubShader
+		SubShader
 	{
 		Cull Off
 		ZWrite Off

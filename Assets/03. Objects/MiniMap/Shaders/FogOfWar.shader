@@ -1,13 +1,13 @@
 Shader "Custom/FogOfWar"
 {
-    Properties
-    {
-        _Persistent_FoW("Texture", 2D) = "white" {}
-        _Dynamic_FoW("Texture", 2D) = "white" {}
-    }
-    SubShader
-    {
-        Tags { "RenderType"="Opaque" }
+	Properties
+	{
+		_Persistent_FoW("Texture", 2D) = "white" {}
+		_Dynamic_FoW("Texture", 2D) = "white" {}
+	}
+		SubShader
+	{
+		Tags { "RenderType" = "Opaque" }
 		Blend SrcAlpha OneMinusSrcAlpha
 		Cull Off
 		ZWrite Off
