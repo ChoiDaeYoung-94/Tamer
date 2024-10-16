@@ -600,6 +600,26 @@ public class Monster : BaseController
                 AD.Managers.PoolM.PushToPool(gameObject);
         }
     }
+
+    public void BackPool()
+    {
+        isDie = true;
+        gameObject.layer = dieLayer;
+        _capsuleCollider.enabled = false;
+
+        if (isBoss)
+            MonsterGenerator.Instance._go_boss = null;
+
+        isCommander = false;
+        _list_groupMonsters.Clear();
+
+        _navAgent.enabled = false;
+        isDetection = false;
+
+        MonsterGenerator.Instance.MinusMonster(this);
+
+        AD.Managers.PoolM.PushToPool(gameObject);
+    }
     #endregion
 
     #region Setting
