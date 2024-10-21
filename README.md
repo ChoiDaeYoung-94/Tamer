@@ -1,26 +1,24 @@
 # About
 
-unity 3d game project
+unity(2022.3.43f1 LTS) 3d game project
 
 
 ### Trailer
 
-TODO
+https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd
 
 
 ## Getting Started
 
 1. Clone
-2. [Download Assets](https://drive.google.com/file/d/1FlWJMulVhiTL4zQylb7FeI6ByE9IX05v/view?usp=sharing)
+~~~
+git clone https://github.com/ChoiDaeYoung-94/Tamer.git
+~~~
+2. [Download Assets](https://drive.google.com/file/d/1Uf0BY7eUKvNS3aNMrFp-G1Bj6n61p1Fk/view?usp=sharing)
 3. Open Project in Unity
 
 
-## Requirements
-
-- Unity2020.3.25f1 LTS
-
-
-## SDK, Package, Library ...
+## SDK, Package ...
 
 - [PlayFabEditorExtensions, PlayFabSDK](https://docs.microsoft.com/ko-kr/gaming/playfab/sdks/unity3d/installing-unity3d-sdk)
 - [play games plugin](https://github.com/playgameservices/play-games-plugin-for-unity/releases)
@@ -31,24 +29,30 @@ TODO
 
 
 ## Technologies and Techniques
-- MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
+
 - 몬스터 군집이동 구현
-- CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리
-- Singleton 기법 개선(Managers.cs) 및 사용하는 Manager코드 개선
-- Login 시 체크해야 할 부분을 State Pattern으로 구현
-- PoolManager.cs를 통해 Object Pooling 적용
+- MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
+- 인앱결제
 - google, playfab 로그인 적용
   - playfab 데이터 저장을 위해 사용
+- Singleton 개선(Managers.cs) 및 사용하는 Manager코드 개선
+- PoolManager.cs를 통해 Object Pooling 적용
+- Login 시 체크해야 할 부분 State Pattern
+- CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리
 
 
 ## Download
 
 - TODO > GOOGLE PLAY
-- [APK](https://drive.google.com/file/d/1vO4T298v3-kJDS6mKek2EU3KaPkw9tWj/view?usp=sharing)
-- Clone the repository locally:
-~~~
-git clone https://github.com/ChoiDaeYoung-94/Tamer.git
-~~~
+- [APK](https://drive.google.com/file/d/1wlvrgaqbnP74TGHeWDy8xSW0fiXAfK79/view?usp=sharing)
+
+
+## Self Feedback
+- prefab 잘 사용하여 여러 monster 유지보수 용의하도록
+  - 추후 프로젝트 진행 시 겹치는 부분 활용 잘 해야 함
+- 장착 아이템 코드 확장 관련 개선 필요
+    - FPS 프로젝트에서 각 부위별 무기로 개선해보기
+- 데이터 관리 시 로컬, 서버 데이터 잘 구분해둬야 함
 
 
 ## Build
