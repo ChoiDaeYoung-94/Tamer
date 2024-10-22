@@ -11,8 +11,8 @@ using UnityEditor.Build.Reporting;
 public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 {
     // AOS build시 필요한 data
-    private const string PRODUCT_NAME = "Tamer";
-    private const string IDENTIFIER = "com.AeDeong.Tamer";
+    private const string PRODUCT_NAME = "MonsterTamer";
+    private const string IDENTIFIER = "com.AeDeong.MonsterTamer";
     private const string KEYSTORE_NAME = "src/AeDeong.keystore";
     private const string KEYSTORE_PASS = "";
     private const string KEYALIAS_NAME = "aedeong";
@@ -106,7 +106,15 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
         string extension = isAAB == true ? ".aab" : ".apk";
         buildPlayerOptions.locationPathName = AOS_BUILD_PATH + "/" + $"{VERSION}{_str_buildInfo[0]}.{_str_buildInfo[1]}" + extension;
 
-        buildPlayerOptions.options = BuildOptions.None;
+
+        if (isAAB)
+        {
+            buildPlayerOptions.options = BuildOptions.CompressWithLz4HC;
+            buildPlayerOptions.options &= ~BuildOptions.Development;
+        }
+        else
+            buildPlayerOptions.options = BuildOptions.CompressWithLz4 | BuildOptions.Development;
+
         buildPlayerOptions.scenes = GetScenes();
         buildPlayerOptions.target = BuildTarget.Android;
         buildPlayerOptions.targetGroup = BuildTargetGroup.Android;
