@@ -19,7 +19,7 @@ namespace AD
         // GoogleAdMob에서 제공하는 TestID
         private string _adUnitId = "ca-app-pub-3940256099942544/5224354917";
 #elif UNITY_ANDROID && !Debug
-        private string _adUnitId = "ca-app-pub-4045654268115042~2814857605";
+        private string _adUnitId = "ca-app-pub-4045654268115042/5756715712";
 #endif
 
         private RewardedAd _rewardedAd;
