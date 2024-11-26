@@ -1,6 +1,6 @@
 # About
 
-unity(2022.3.43f1 LTS) 3d game project
+unity(2022.3.52f1 LTS) 3d game project
 
 
 ### Trailer
@@ -43,7 +43,7 @@ git clone https://github.com/ChoiDaeYoung-94/Tamer.git
 
 ## Download
 
-- TODO > GOOGLE PLAY
+- [GOOGLE PLAY](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)
 - [APK](https://drive.google.com/file/d/1QRBccQp2nN7IfOA2lUJiDJoxs_siM7ew/view?usp=sharing)
 
 
