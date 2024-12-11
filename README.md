@@ -2,13 +2,15 @@
 
 unity(2022.3.52f1 LTS) 3d game project
 
+[WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko) 를 3d로 재구성한 게임입니다.
+
 
 ### Trailer
 
 https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd
 
 
-## Getting Started
+### Getting Started
 
 1. Clone
 ~~~
@@ -16,6 +18,43 @@ git clone https://github.com/ChoiDaeYoung-94/Tamer.git
 ~~~
 2. [Download Assets](https://drive.google.com/file/d/1Uf0BY7eUKvNS3aNMrFp-G1Bj6n61p1Fk/view?usp=sharing)
 3. Open Project in Unity
+
+
+### Download
+
+- [GOOGLE PLAY](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)
+- [APK](https://drive.google.com/file/d/1QRBccQp2nN7IfOA2lUJiDJoxs_siM7ew/view?usp=sharing)
+
+
+## Technologies and Techniques (링크 클릭 시 해당 내용 코드로 이동합니다.)
+
+- [Creature code](https://github.com/ChoiDaeYoung-94/Tamer/tree/main/Assets/03.%20Objects/Creature)
+  - Player, Monster 군집이동 구현
+    - [Player](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/Creature/Player/Player.cs)
+    - [Monster](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/Creature/Monsters/Monster.cs)
+- Manager Singleton 개선
+- [씬 전환 시 빈씬 거친 후 전환](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/SceneManager.cs)
+- [stack 으로 팝업 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/PopupManager.cs)
+- [Object pooling 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/PoolManager.cs)
+- [GoogleAdMob 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/GoogleAdMobManager.cs)
+  - [admob buff 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/BuffingMan/BuffingMan.cs)
+- [간단한 장비 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/EquipmentManager.cs)
+- [IAP 인앱 결제 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/IAPManager.cs)
+- [AudioMixer로 사운드 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/SoundManager.cs)
+- [Login 시 체크해야 할 부분 State Pattern](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Main/LoginCheck.cs)
+- [위치 별 몬스터 생성 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Game/MonsterGenerator.cs)
+- MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
+- [google v1, playfab 로그인 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/LoginCanvas/Login.cs)
+  - playfab 데이터 저장을 위해 사용
+- [CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Editor/BuildScript.cs)
+
+
+## Self Feedback
+- prefab 잘 사용하여 여러 monster 유지보수 용의하도록
+  - 추후 프로젝트 진행 시 겹치는 부분 활용 잘 해야 함
+- 장착 아이템 코드 확장 관련 개선 필요
+    - FPS 프로젝트에서 각 부위별 무기로 개선해보기
+- 데이터 관리 시 로컬, 서버 데이터 잘 구분해둬야 함
 
 
 ## SDK, Package ...
@@ -26,33 +65,6 @@ git clone https://github.com/ChoiDaeYoung-94/Tamer.git
 - [MiniJson ](https://github.com/Unity-Technologies/UnityCsReference/blob/master/External/JsonParsers/MiniJson/MiniJSON.cs)
 - [IngameDebugConsole](https://assetstore.unity.com/packages/tools/gui/in-game-debug-console-68068)
 - [Safe Area Helper](https://assetstore.unity.com/packages/tools/gui/safe-area-helper-130488)
-
-
-## Technologies and Techniques
-
-- 몬스터 군집이동 구현
-- MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
-- 인앱결제
-- google, playfab 로그인 적용
-  - playfab 데이터 저장을 위해 사용
-- Singleton 개선(Managers.cs) 및 사용하는 Manager코드 개선
-- PoolManager.cs를 통해 Object Pooling 적용
-- Login 시 체크해야 할 부분 State Pattern
-- CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리
-
-
-## Download
-
-- [GOOGLE PLAY](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)
-- [APK](https://drive.google.com/file/d/1QRBccQp2nN7IfOA2lUJiDJoxs_siM7ew/view?usp=sharing)
-
-
-## Self Feedback
-- prefab 잘 사용하여 여러 monster 유지보수 용의하도록
-  - 추후 프로젝트 진행 시 겹치는 부분 활용 잘 해야 함
-- 장착 아이템 코드 확장 관련 개선 필요
-    - FPS 프로젝트에서 각 부위별 무기로 개선해보기
-- 데이터 관리 시 로컬, 서버 데이터 잘 구분해둬야 함
 
 
 ## Build
