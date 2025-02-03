@@ -21,7 +21,7 @@ namespace AD
         /// <summary>
         /// Main scene -> Game scene, Game scene -> Main scene으로 전환 시 사용
         /// </summary>
-        internal void SwitchMainOrGameScene(AD.Define.Scenes scene)
+        internal void SwitchMainOrGameScene(AD.GameConstants.Scene scene)
         {
             AD.Managers.PopupM.SetException();
 
@@ -74,7 +74,7 @@ namespace AD
         internal void GameOverGoLobby()
         {
             Player.Instance.ReSetPlayer();
-            SwitchMainOrGameScene(AD.Define.Scenes.Main);
+            SwitchMainOrGameScene(AD.GameConstants.Scene.Main);
         }
         #endregion
     }

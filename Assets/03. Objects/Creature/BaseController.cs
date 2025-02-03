@@ -47,7 +47,7 @@ public abstract class BaseController : MonoBehaviour
         }
     }
 
-    [SerializeField] internal AD.Define.Creature _creature;
+    [SerializeField] internal AD.GameConstants.Creature _creature;
 
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
     [SerializeField] Animator _crtAni = null;
@@ -112,7 +112,7 @@ public abstract class BaseController : MonoBehaviour
     #region Settings
     protected virtual void Init()
     {
-        if (_creature == AD.Define.Creature.Player)
+        if (_creature == AD.GameConstants.Creature.Player)
         {
             _itemHp = _orgHp = 100;
             _hp = 100;
@@ -155,7 +155,7 @@ public abstract class BaseController : MonoBehaviour
         {
             _tr_uiCanvas.LookAt(Camera.main.transform);
 
-            GameObject go_damage = AD.Managers.PoolM.PopFromPool(AD.Define.ETC.TMP_Damage.ToString());
+            GameObject go_damage = AD.Managers.PoolM.PopFromPool(AD.GameConstants.ETC.TMPDamage.ToString());
             go_damage.transform.SetParent(_tr_uiCanvas, false);
             go_damage.GetComponent<TMP_Damage>().Init(damage);
         }
@@ -164,7 +164,7 @@ public abstract class BaseController : MonoBehaviour
         if (Hp < 0)
             Hp = 0;
 
-        if (_creature == AD.Define.Creature.Player)
+        if (_creature == AD.GameConstants.Creature.Player)
             PlayerUICanvas.Instance.UpdatePlayerInfo();
 
         if (Hp <= 0)
@@ -201,7 +201,7 @@ public abstract class BaseController : MonoBehaviour
                 _crtAni.CrossFade($"Punch0{index}", 0f);
             }
         }
-        else if (_creature == AD.Define.Creature.FylingDemon)
+        else if (_creature == AD.GameConstants.Creature.FylingDemon)
         {
             int index = Random.Range(1, 3);
 

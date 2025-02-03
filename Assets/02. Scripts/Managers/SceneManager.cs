@@ -9,11 +9,11 @@ namespace AD
     /// </summary>
     public class SceneManager : MonoBehaviour
     {
-        AD.Define.Scenes _scene;
+        AD.GameConstants.Scene _scene;
         Coroutine _co_UpdateData = null;
         Coroutine _co_GoScene = null;
 
-        public void NextScene(AD.Define.Scenes scene)
+        public void NextScene(AD.GameConstants.Scene scene)
         {
             AD.DebugLogger.Log("SceneManager", "NextScene으로 전환");
 
@@ -21,7 +21,7 @@ namespace AD
             AD.Managers.PopupM.SetException();
 
             _scene = scene;
-            UnityEngine.SceneManagement.SceneManager.LoadScene(AD.Define.Scenes.NextScene.ToString());
+            UnityEngine.SceneManagement.SceneManager.LoadScene(AD.GameConstants.Scene.NextScene.ToString());
         }
 
         /// <summary>

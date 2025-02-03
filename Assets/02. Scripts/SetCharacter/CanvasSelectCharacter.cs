@@ -120,7 +120,7 @@ public class CanvasSelectCharacter : MonoBehaviour
             StopCoroutine(_co_play);
             _co_play = null;
 
-            AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
+            AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.Main);
         }
     }
     #endregion

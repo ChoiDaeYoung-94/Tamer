@@ -48,13 +48,13 @@ namespace AD
         {
             string temp_scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 
-            if (temp_scene.Equals(AD.Define.Scenes.Login.ToString()))
+            if (temp_scene.Equals(AD.GameConstants.Scene.Login.ToString()))
                 PlayBGM(_AC_bgm_login);
-            else if (temp_scene.Equals(AD.Define.Scenes.Main.ToString()))
+            else if (temp_scene.Equals(AD.GameConstants.Scene.Main.ToString()))
                 PlayBGM(_AC_bgm_main);
-            else if (temp_scene.Equals(AD.Define.Scenes.SetCharacter.ToString()))
+            else if (temp_scene.Equals(AD.GameConstants.Scene.SetCharacter.ToString()))
                 PlayBGM(_AC_bgm_setCharacter);
-            else if (temp_scene.Equals(AD.Define.Scenes.Game.ToString()))
+            else if (temp_scene.Equals(AD.GameConstants.Scene.Game.ToString()))
                 PlayBGM(_AC_bgm_game);
         }
 

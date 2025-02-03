@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class IAPItem : MonoBehaviour
 {
-    [SerializeField] AD.Define.IAPItems _IAPItem;
+    [SerializeField] AD.GameConstants.IAPItem _IAPItem;
 
     private void OnEnable()
     {

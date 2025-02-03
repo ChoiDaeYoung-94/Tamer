@@ -6,8 +6,8 @@ using TMPro;
 
 public class Item : MonoBehaviour
 {
-    [SerializeField] AD.Define.Items _items;
-    [SerializeField] AD.Define.Creature _creature;
+    [SerializeField] AD.GameConstants.Item _items;
+    [SerializeField] AD.GameConstants.Creature _creature;
     [SerializeField] TMP_Text _TMP_info = null;
     string _str_itemName = string.Empty;
     string _str_price = string.Empty;
@@ -29,8 +29,8 @@ public class Item : MonoBehaviour
         isUnlocked = false;
         isEquipped = false;
 
-        _str_itemName = _items == AD.Define.Items.None ? _creature.ToString() : _items.ToString();
-        if (_creature == AD.Define.Creature.Player)
+        _str_itemName = _items == AD.GameConstants.Item.None ? _creature.ToString() : _items.ToString();
+        if (_creature == AD.GameConstants.Creature.Player)
             isItem = true;
 
         ItemState();
@@ -56,7 +56,7 @@ public class Item : MonoBehaviour
         {
             _go_lock.SetActive(false);
 
-            if (_creature == AD.Define.Creature.Player)
+            if (_creature == AD.GameConstants.Creature.Player)
                 str_totalInfo = $"{_str_itemName}";
         }
 
@@ -70,7 +70,7 @@ public class Item : MonoBehaviour
     {
         string str_temp = string.Empty;
 
-        _str_price = _items == AD.Define.Items.None ? ((Dictionary<string, object>)AD.Managers.DataM._dic_monsters[_str_itemName])["Price"].ToString()
+        _str_price = _items == AD.GameConstants.Item.None ? ((Dictionary<string, object>)AD.Managers.DataM._dic_monsters[_str_itemName])["Price"].ToString()
                                           : ((Dictionary<string, object>)AD.Managers.DataM._dic_items[_str_itemName])["Price"].ToString();
 
         str_temp = $"{_str_itemName}\nPrice - {_str_price}G";
@@ -80,9 +80,9 @@ public class Item : MonoBehaviour
 
     public void ChooseItem()
     {
-        if ((isUnlocked && isEquipped) || (!isUnlocked && _items == AD.Define.Items.None))
+        if ((isUnlocked && isEquipped) || (!isUnlocked && _items == AD.GameConstants.Item.None))
             return;
-        else if (isUnlocked && !isEquipped && _creature == AD.Define.Creature.Player)
+        else if (isUnlocked && !isEquipped && _creature == AD.GameConstants.Creature.Player)
             Equip();
         else
             ItemInfo();
@@ -99,7 +99,7 @@ public class Item : MonoBehaviour
         string str_plus = string.Empty;
         Dictionary<string, object> dic_item = null;
 
-        if (_items == AD.Define.Items.None)
+        if (_items == AD.GameConstants.Item.None)
             dic_item = AD.Managers.DataM._dic_monsters[_creature.ToString()] as Dictionary<string, object>;
         else
         {

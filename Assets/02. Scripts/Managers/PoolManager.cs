@@ -97,7 +97,7 @@ namespace AD
                 poolObj.gameObject.SetActive(true);
 
                 if (parent == null)
-                    parent = GameObject.Find(AD.Define._activePool).transform;
+                    parent = GameObject.Find(AD.GameConstants.ActivePool).transform;
 
                 poolObj.transform.SetParent(parent);
 

@@ -144,7 +144,7 @@ public class Player : BaseController
                         break;
                     case "GoGameScene":
                         AD.Managers.SoundM.UI_Click();
-                        AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Game);
+                        AD.Managers.GameM.SwitchMainOrGameScene(AD.GameConstants.Scene.Game);
                         break;
                 }
             }

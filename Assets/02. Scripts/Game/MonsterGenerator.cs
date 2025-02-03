@@ -94,7 +94,7 @@ public class MonsterGenerator : MonoBehaviour
                 int groupSize = UnityEngine.Random.Range(1, 4);
 
                 int temp_random = UnityEngine.Random.Range(num.min, num.max + 1);
-                string temp_name = Enum.GetValues(typeof(AD.Define.Creature)).GetValue(temp_random).ToString();
+                string temp_name = Enum.GetValues(typeof(AD.GameConstants.Creature)).GetValue(temp_random).ToString();
                 Monster commanderMonster = AD.Managers.PoolM.PopFromPool(temp_name).GetComponent<Monster>();
                 commanderMonster.isCommander = true;
                 commanderMonster.StartDetectionCoroutine();

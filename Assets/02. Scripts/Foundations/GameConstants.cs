@@ -1,21 +1,19 @@
-using UnityEngine;
-
 namespace AD
 {
     /// <summary>
-    /// 미리 정의하고 사용할 것들
+    /// 게임에서 사용될 상수를 정의하는 클래스
     /// </summary>
-    public class Define : MonoBehaviour
+    public static class GameConstants
     {
         /// <summary>
-        /// Pool에서 가져온 객체 기본으로 담아두는 go.name
+        /// Pool에서 가져온 객체 기본으로 담아두는 GameObject의 이름
         /// </summary>
-        public static string _activePool = "ActivePool";
+        public const string ActivePool = "ActivePool";
 
         /// <summary>
-        /// 사용중인 Scene
+        /// 사용 중인 Scene 목록
         /// </summary>
-        public enum Scenes
+        public enum Scene
         {
             NextScene,
             Login,
@@ -25,7 +23,7 @@ namespace AD
         }
 
         /// <summary>
-        /// 모든 객체
+        /// 모든 객체 (몬스터, 플레이어 등)
         /// </summary>
         public enum Creature
         {
@@ -47,7 +45,7 @@ namespace AD
         /// <summary>
         /// 상점 아이템
         /// </summary>
-        public enum Items
+        public enum Item
         {
             None,
             SimpleSword,
@@ -56,14 +54,20 @@ namespace AD
             MasterShield
         }
 
-        public enum IAPItems
+        /// <summary>
+        /// 인앱 결제 아이템
+        /// </summary>
+        public enum IAPItem
         {
-            PRODUCT_NO_ADS
+            ProductNoAds
         }
 
+        /// <summary>
+        /// 기타 요소
+        /// </summary>
         public enum ETC
         {
-            TMP_Damage
+            TMPDamage
         }
     }
 }

@@ -310,9 +310,9 @@ public class Login : MonoBehaviour
             _co_Login = null;
 
             if (!AD.Managers.DataM._dic_player["Sex"].Equals("null"))
-                AD.Managers.SceneM.NextScene(AD.Define.Scenes.Main);
+                AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.Main);
             else
-                AD.Managers.SceneM.NextScene(AD.Define.Scenes.SetCharacter);
+                AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.SetCharacter);
         }
     }
     #endregion
