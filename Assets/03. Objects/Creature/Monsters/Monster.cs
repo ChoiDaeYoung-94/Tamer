@@ -214,7 +214,7 @@ public class Monster : BaseController
             // 현재 행에서 정렬해야 하는 남은 몬스터의 수를 반환하고
             // 그 수가 현재 행에서 정렬할 수 있는 수 보다 많을 시 현재 행에서 정렬할 수 있는 몬스터 수를 반환 하도록
             // 첫 번째 행은 commander이므로 2번 째 행 부터 시작하고 list에는 commander를 포함하지 않기 때문에 1을 더해줘서 계산
-            int plusrow = AD.Utils.Plus(row, 0);
+            int plusrow = AD.Utility.GetSortedMonsterCount(row, 0);
             int curRow = listCount + 1 - plusrow;
             int maxCountInRow = curRow > row ? row : curRow;
 

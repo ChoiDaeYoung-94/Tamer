@@ -70,7 +70,7 @@ namespace AD
 
         private void InitPlayerData(string data)
         {
-            Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(data) as Dictionary<string, object>;
+            Dictionary<string, object> dic_temp = AD.Utility.DeserializeFromJson(data) as Dictionary<string, object>;
             foreach (KeyValuePair<string, object> content in dic_temp)
                 _dic_player.Add(content.Key, content.Value.ToString());
 
@@ -86,7 +86,7 @@ namespace AD
         {
             AD.DebugLogger.Log("DataManager", "CheckNewPlayerData() -> 새로운 PlayerData 검출");
 
-            Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(_str_rePlayerData) as Dictionary<string, object>;
+            Dictionary<string, object> dic_temp = AD.Utility.DeserializeFromJson(_str_rePlayerData) as Dictionary<string, object>;
 
             if (dic_temp.Count > _dic_player.Count)
             {
@@ -100,14 +100,14 @@ namespace AD
         {
             _str_reMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString();
 
-            _dic_monsters = AD.Utils.JsonToObject(_str_reMonstersData) as Dictionary<string, object>;
+            _dic_monsters = AD.Utility.DeserializeFromJson(_str_reMonstersData) as Dictionary<string, object>;
         }
 
         private void LoadItemsData()
         {
             _str_reMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString();
 
-            _dic_items = AD.Utils.JsonToObject(_str_reMonstersData) as Dictionary<string, object>;
+            _dic_items = AD.Utility.DeserializeFromJson(_str_reMonstersData) as Dictionary<string, object>;
         }
 
         #region Local Data
@@ -139,7 +139,7 @@ namespace AD
 
         internal void SaveLocalData()
         {
-            string str_temp = AD.Utils.ObjectToJson(_dic_player);
+            string str_temp = AD.Utility.SerializeToJson(_dic_player);
             File.WriteAllText(_str_apPlayerDataPath, str_temp);
 
             AD.DebugLogger.Log("DataManager", "SaveLocalData() -> PlayerData json저장 완료");

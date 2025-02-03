@@ -312,7 +312,7 @@ public class Player : BaseController
                 startRowPosition += (-transform.forward * _list_groupMonsters[i].flockingRadius);
             }
 
-            int plusrow = AD.Utils.Plus(row, 0);
+            int plusrow = AD.Utility.GetSortedMonsterCount(row, 0);
             int curRow = listCount + 1 - plusrow;
             int maxCountInRow = curRow > row ? row : curRow;
 
