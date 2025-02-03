@@ -84,7 +84,7 @@ namespace AD
         public void EnablePop(GameObject pop)
         {
             _popupStack.Push(pop);
-            AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> push");
+            AD.DebugLogger.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> push");
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace AD
 
             if (isException)
             {
-                AD.Debug.Log("PopupManager", isException + " - isException");
+                AD.DebugLogger.Log("PopupManager", isException + " - isException");
                 return;
             }
 
@@ -106,7 +106,7 @@ namespace AD
                 GameObject popup = null;
 
                 popup = _popupStack.Pop();
-                AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> pop");
+                AD.DebugLogger.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> pop");
 
                 popup.SetActive(false);
             }
@@ -114,14 +114,14 @@ namespace AD
             {
                 if (!AD.Managers.GameM.IsGame)
                 {
-                    AD.Debug.Log("PopupManager", "lobby scene -> quit popup");
+                    AD.DebugLogger.Log("PopupManager", "lobby scene -> quit popup");
 
                     if (!_go_popupExit.activeSelf)
                         PopupExit();
                 }
                 else
                 {
-                    AD.Debug.Log("PopupManager", "game scene-> go lobby popup");
+                    AD.DebugLogger.Log("PopupManager", "game scene-> go lobby popup");
 
                     if (!_go_popupLobby.activeSelf)
                         PopupGoLobby();

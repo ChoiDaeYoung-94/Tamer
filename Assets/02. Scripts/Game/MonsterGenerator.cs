@@ -118,7 +118,7 @@ public class MonsterGenerator : MonoBehaviour
             }
         }
         else
-            AD.Debug.LogError("MonsterGenerator", "Invalid region number");
+            AD.DebugLogger.LogError("MonsterGenerator", "Invalid region number");
     }
 
     private void SetBoss(int region)

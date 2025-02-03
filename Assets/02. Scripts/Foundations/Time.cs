@@ -93,7 +93,7 @@ namespace AD
         {
             double _time = 0;
             if (!double.TryParse(time.ToString(), out _time))
-                AD.Debug.Parse("Time", time.ToString());
+                AD.DebugLogger.LogParseError("Time", time.ToString());
 
             StringBuilder temp = new StringBuilder();
 

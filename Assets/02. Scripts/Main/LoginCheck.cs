@@ -67,7 +67,7 @@ class SetCharacterState : State
 
     public override void Handle()
     {
-        AD.Debug.Log("LoginCheck", "SetCharacterState 진입");
+        AD.DebugLogger.Log("LoginCheck", "SetCharacterState 진입");
 
         string sex = AD.Managers.DataM._dic_player["Sex"];
         AD.Managers.ResourceM.Instantiate_("Player", "JoyStick/Canvas");
@@ -85,11 +85,11 @@ class CheckTutorialState : State
 
     public override void Handle()
     {
-        AD.Debug.Log("LoginCheck", "CheckTutorialState 진입");
+        AD.DebugLogger.Log("LoginCheck", "CheckTutorialState 진입");
 
         if (AD.Managers.DataM._dic_player["Tutorial"].Equals("null"))
         {
-            AD.Debug.Log("FirstLogin", "TODO - TUTORIAL");
+            AD.DebugLogger.Log("FirstLogin", "TODO - TUTORIAL");
         }
     }
 }

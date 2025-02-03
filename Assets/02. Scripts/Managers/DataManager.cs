@@ -56,7 +56,7 @@ namespace AD
         /// </summary>
         private void LoadPlayerData()
         {
-            AD.Debug.Log("DataManager", "LoadPlayerData() -> PlayerData 초기화");
+            AD.DebugLogger.Log("DataManager", "LoadPlayerData() -> PlayerData 초기화");
 
             _dic_player = new Dictionary<string, string>();
 
@@ -79,12 +79,12 @@ namespace AD
 
             File.WriteAllText(_str_apPlayerDataPath, data);
 
-            AD.Debug.Log("DataManager", "InitPlayerData() -> PlayerData 초기화 완료");
+            AD.DebugLogger.Log("DataManager", "InitPlayerData() -> PlayerData 초기화 완료");
         }
 
         private void CheckNewPlayerData()
         {
-            AD.Debug.Log("DataManager", "CheckNewPlayerData() -> 새로운 PlayerData 검출");
+            AD.DebugLogger.Log("DataManager", "CheckNewPlayerData() -> 새로운 PlayerData 검출");
 
             Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(_str_rePlayerData) as Dictionary<string, object>;
 
@@ -142,7 +142,7 @@ namespace AD
             string str_temp = AD.Utils.ObjectToJson(_dic_player);
             File.WriteAllText(_str_apPlayerDataPath, str_temp);
 
-            AD.Debug.Log("DataManager", "SaveLocalData() -> PlayerData json저장 완료");
+            AD.DebugLogger.Log("DataManager", "SaveLocalData() -> PlayerData json저장 완료");
         }
         #endregion
 
@@ -153,7 +153,7 @@ namespace AD
         /// </summary>
         internal void UpdatePlayerData()
         {
-            AD.Debug.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
+            AD.DebugLogger.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
 
             AD.Managers.ServerM.GetAllData(Update: true);
         }
@@ -220,7 +220,7 @@ namespace AD
         /// </summary>
         private void SanitizeData()
         {
-            AD.Debug.Log("DataManager", "SanitizeData() -> local, server 비교하여 PlayerData 최신화");
+            AD.DebugLogger.Log("DataManager", "SanitizeData() -> local, server 비교하여 PlayerData 최신화");
 
             int temp_result;
 

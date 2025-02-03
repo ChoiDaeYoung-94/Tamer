@@ -34,7 +34,7 @@ namespace AD
             PlayFabClientAPI.GetUserData(request,
                 (result) =>
                 {
-                    AD.Debug.Log("ServerManager", $"Successfully GetAllData with PlayFab");
+                    AD.DebugLogger.Log("ServerManager", $"Successfully GetAllData with PlayFab");
 
                     AD.Managers.DataM._dic_PlayFabPlayerData = result.Data;
 
@@ -48,7 +48,7 @@ namespace AD
 
                     isInprogress = false;
                 },
-                (error) => AD.Debug.LogWarning("ServerManager", $"Failed to GetAllData with PlayFab: {error}"));
+                (error) => AD.DebugLogger.LogWarning("ServerManager", $"Failed to GetAllData with PlayFab: {error}"));
         }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace AD
                         {
                             if (isFinal)
                             {
-                                AD.Debug.Log("ServerManager", "Successfully SetData with PlayFab");
+                                AD.DebugLogger.Log("ServerManager", "Successfully SetData with PlayFab");
                                 _curindex = 0;
                                 _tempData.Clear();
 
@@ -97,7 +97,7 @@ namespace AD
                         },
                         (error) =>
                         {
-                            AD.Debug.LogWarning("ServerManager", "Failed to SetData with PlayFab");
+                            AD.DebugLogger.LogWarning("ServerManager", "Failed to SetData with PlayFab");
                             this.SetData(dic, GetAllData: GetAllData, Update: Update);
                         });
 
@@ -123,12 +123,12 @@ namespace AD
             PlayFabClientAPI.UpdateUserData(request,
                 (result) =>
                 {
-                    AD.Debug.Log("ServerManager", "Successfully NewData with PlayFab");
+                    AD.DebugLogger.Log("ServerManager", "Successfully NewData with PlayFab");
                     _tempData.Clear();
                     GetAllData(Update: false);
                 },
                 (error) =>
-                    AD.Debug.LogWarning("ServerManager", "Failed to NewData with PlayFab - " + error));
+                    AD.DebugLogger.LogWarning("ServerManager", "Failed to NewData with PlayFab - " + error));
         }
 
         /// <summary>
@@ -144,12 +144,12 @@ namespace AD
             PlayFabClientAPI.UpdateUserData(request,
                 (result) =>
                 {
-                    AD.Debug.Log("ServerManager", "Successfully DeleteData with PlayFab");
+                    AD.DebugLogger.Log("ServerManager", "Successfully DeleteData with PlayFab");
                     GetAllData(Update: Update);
                 },
                 (error) =>
                 {
-                    AD.Debug.LogWarning("ServerManager", "Failed to DeleteData with PlayFab");
+                    AD.DebugLogger.LogWarning("ServerManager", "Failed to DeleteData with PlayFab");
                     this.DeleteData(dic, Update: Update);
                 });
         }

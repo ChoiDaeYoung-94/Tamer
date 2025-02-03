@@ -25,13 +25,13 @@ namespace AD
             try
             {
                 await UnityServices.InitializeAsync();
-                AD.Debug.Log("IAPManager", "Unity Gaming Services initialized successfully.");
+                AD.DebugLogger.Log("IAPManager", "Unity Gaming Services initialized successfully.");
 
                 InitializePurchasing();
             }
             catch (Exception e)
             {
-                AD.Debug.LogError("IAPManager", "Unity Gaming Services 초기화 실패: " + e.Message);
+                AD.DebugLogger.LogError("IAPManager", "Unity Gaming Services 초기화 실패: " + e.Message);
             }
         }
 
@@ -60,23 +60,23 @@ namespace AD
 
                 if (product != null && product.availableToPurchase)
                 {
-                    AD.Debug.Log("IAPManager", $"Purchasing product asynchronously: {product.definition.id}");
+                    AD.DebugLogger.Log("IAPManager", $"Purchasing product asynchronously: {product.definition.id}");
                     storeController.InitiatePurchase(product);
                 }
                 else
                 {
-                    AD.Debug.Log("IAPManager", "BuyProductID: FAIL. Not purchasing product, either is not found or is not available for purchase");
+                    AD.DebugLogger.Log("IAPManager", "BuyProductID: FAIL. Not purchasing product, either is not found or is not available for purchase");
                 }
             }
             else
             {
-                AD.Debug.Log("IAPManager", "BuyProductID FAIL. Not initialized.");
+                AD.DebugLogger.Log("IAPManager", "BuyProductID FAIL. Not initialized.");
             }
         }
 
         public void OnInitialized(IStoreController controller, IExtensionProvider extensions)
         {
-            AD.Debug.Log("IAPManager", "OnInitialized: PASS");
+            AD.DebugLogger.Log("IAPManager", "OnInitialized: PASS");
 
             storeController = controller;
             storeExtensionProvider = extensions;
@@ -84,24 +84,24 @@ namespace AD
 
         public void OnInitializeFailed(InitializationFailureReason error)
         {
-            AD.Debug.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}");
+            AD.DebugLogger.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}");
         }
 
         public void OnInitializeFailed(InitializationFailureReason error, string message)
         {
-            AD.Debug.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}\nmessage:{message}");
+            AD.DebugLogger.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}\nmessage:{message}");
         }
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
         {
             if (String.Equals(args.purchasedProduct.definition.id, PRODUCT_NO_ADS, StringComparison.Ordinal))
             {
-                AD.Debug.Log("IAPManager", "ProcessPurchase: PASS. No Ads purchased.");
+                AD.DebugLogger.Log("IAPManager", "ProcessPurchase: PASS. No Ads purchased.");
                 GrantNoAds();
             }
             else
             {
-                AD.Debug.Log("IAPManager", $"ProcessPurchase: FAIL. Unrecognized product: {args.purchasedProduct.definition.id}");
+                AD.DebugLogger.Log("IAPManager", $"ProcessPurchase: FAIL. Unrecognized product: {args.purchasedProduct.definition.id}");
             }
 
             return PurchaseProcessingResult.Complete;
@@ -109,7 +109,7 @@ namespace AD
 
         public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
         {
-            AD.Debug.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
+            AD.DebugLogger.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
         }
 
         private void RegisterIAPData(AD.Define.IAPItems IAPitem)

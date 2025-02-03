@@ -10,7 +10,7 @@ namespace AD
         public T Load<T>(string where, string path) where T : Object
         {
             if (Resources.Load<T>(path) == null)
-                AD.Debug.Load(where, path);
+                AD.DebugLogger.LogLoadError(where, path);
 
             return Resources.Load<T>(path);
         }
@@ -20,7 +20,7 @@ namespace AD
             GameObject go = Load<GameObject>(where, "Prefabs/" + path);
             if (go == null)
             {
-                AD.Debug.Instantiate(where, path);
+                AD.DebugLogger.LogInstantiateError(where, path);
                 return null;
             }
 

@@ -17,7 +17,7 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     private const string KEYSTORE_PASS = "";
     private const string KEYALIAS_NAME = "aedeong";
     private const string KEYALIAS_PASS = "";
-    private static string[] DEFINESYMBOLS_APK = { "Debug" };
+    private static string[] DEFINESYMBOLS_APK = { "DEBUG" };
     private static string[] DEFINESYMBOLS_AAB = { "" };
 
     // version 자동화 관련

@@ -15,7 +15,7 @@ namespace AD
 
         public void NextScene(AD.Define.Scenes scene)
         {
-            AD.Debug.Log("SceneManager", "NextScene으로 전환");
+            AD.DebugLogger.Log("SceneManager", "NextScene으로 전환");
 
             AD.Managers.SoundM.PauseBGM();
             AD.Managers.PopupM.SetException();
@@ -30,14 +30,14 @@ namespace AD
         /// </summary>
         public void GoScene()
         {
-            AD.Debug.Log("SceneManager", "GoScene() -> " + _scene.ToString() + "씬으로 전환");
+            AD.DebugLogger.Log("SceneManager", "GoScene() -> " + _scene.ToString() + "씬으로 전환");
 
             _co_UpdateData = StartCoroutine(Co_UpdateData());
         }
 
         IEnumerator Co_UpdateData()
         {
-            AD.Debug.Log("SceneManager", "Co_UpdateData() -> 데이터 처리 작업 진행");
+            AD.DebugLogger.Log("SceneManager", "Co_UpdateData() -> 데이터 처리 작업 진행");
 
             AD.Managers.DataM.UpdateLocalData(key: "null", value: "null", all: true);
             AD.Managers.DataM.UpdatePlayerData();
@@ -65,7 +65,7 @@ namespace AD
 
             while (!ao.isDone)
             {
-                AD.Debug.Log("SceneManager", $"{ao.progress} - progress");
+                AD.DebugLogger.Log("SceneManager", $"{ao.progress} - progress");
 
                 if (ao.progress >= 0.9f)
                 {

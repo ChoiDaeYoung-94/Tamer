@@ -187,7 +187,7 @@ namespace AD
         {
             if (!_dic_pool.ContainsKey(go_name))
             {
-                AD.Debug.Contain("PoolManager", $"{go_name} in _dic_pool");
+                AD.DebugLogger.LogNotFound("PoolManager", $"{go_name} in _dic_pool");
                 return null;
             }
 
