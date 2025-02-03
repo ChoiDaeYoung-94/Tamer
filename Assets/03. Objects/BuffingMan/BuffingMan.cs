@@ -46,7 +46,7 @@ public class BuffingMan : MonoBehaviour
         string str_temp = AD.Managers.DataM._dic_player["GoogleAdMob"];
         if (str_temp != "null")
         {
-            double remainTime = AD.Time.GetGoogleAdMobRewardBuffRemainingTime(str_temp);
+            double remainTime = AD.TimeUtility.GetAdBuffRemainingTime(str_temp);
             if (remainTime >= 0f)
             {
                 PlayerUICanvas.Instance.SetBuff(remainTime);

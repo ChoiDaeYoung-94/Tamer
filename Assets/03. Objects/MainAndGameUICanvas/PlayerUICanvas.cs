@@ -168,7 +168,7 @@ public class PlayerUICanvas : MonoBehaviour
     {
         if (_isBuff)
         {
-            _TMP_remainingBuffTime.text = AD.Time.TimeToString(_remainBuffTime, plusZero: true, plusSecond: true, colon: true);
+            _TMP_remainingBuffTime.text = AD.TimeUtility.FormatTimeString(_remainBuffTime, padZero: true, includeSeconds: true, useColon: true);
 
             _remainBuffTime -= Time.deltaTime;
             if (_remainBuffTime <= 0f)
