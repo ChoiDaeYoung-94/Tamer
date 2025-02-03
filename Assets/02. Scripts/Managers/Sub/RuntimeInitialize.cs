@@ -1,8 +1,6 @@
 // _go_console never used warning
 #pragma warning disable 0414
 
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
