@@ -1,14 +1,18 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Extension Methods
-/// </summary>
-public static class Extension
+namespace AD
 {
-    public static T GetComponent_<T>(this GameObject go) where T : Component
+    /// <summary>
+    /// GameObject 확장 메서드
+    /// </summary>
+    public static class Extension
     {
-        return AD.Utility.GetOrAddComponent<T>(go);
+        /// <summary>
+        /// GameObject에서 특정 컴포넌트를 가져오거나, 없으면 추가 후 반환
+        /// </summary>
+        public static T GetOrAddComponent<T>(this GameObject gameObject) where T : Component
+        {
+            return AD.Utility.GetOrAddComponent<T>(gameObject);
+        }
     }
 }

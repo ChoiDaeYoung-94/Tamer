@@ -62,7 +62,7 @@ namespace AD
                 GameObject go = Object.Instantiate(GO_poolTarget);
                 go.name = GO_poolTarget.name;
 
-                PoolObject poolObj = go.GetComponent_<PoolObject>();
+                PoolObject poolObj = go.GetOrAddComponent<PoolObject>();
 
                 return poolObj;
             }
