@@ -45,8 +45,8 @@ namespace AD
         /// </summary>
         internal void Init()
         {
-            AD.Managers.UpdateM._update -= Onupdate;
-            AD.Managers.UpdateM._update += Onupdate;
+            AD.Managers.UpdateM.OnUpdateEvent -= Onupdate;
+            AD.Managers.UpdateM.OnUpdateEvent += Onupdate;
 
             SetPopup();
         }

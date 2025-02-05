@@ -104,8 +104,8 @@ public class Player : BaseController
             ApplyEquipment(item);
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
-        AD.Managers.UpdateM._update -= TouchEvent;
-        AD.Managers.UpdateM._update += TouchEvent;
+        AD.Managers.UpdateM.OnUpdateEvent -= TouchEvent;
+        AD.Managers.UpdateM.OnUpdateEvent += TouchEvent;
     }
 
     internal void ReSetPlayer()

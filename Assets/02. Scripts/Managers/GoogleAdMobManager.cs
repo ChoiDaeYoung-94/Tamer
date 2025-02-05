@@ -37,8 +37,8 @@ namespace AD
                 LoadRewardedAd();
             });
 
-            AD.Managers.UpdateM._update -= CheckReward;
-            AD.Managers.UpdateM._update += CheckReward;
+            AD.Managers.UpdateM.OnUpdateEvent -= CheckReward;
+            AD.Managers.UpdateM.OnUpdateEvent += CheckReward;
         }
 
         private void CheckReward()

@@ -30,8 +30,8 @@ public class MiniMap : MonoBehaviour
     {
         if (AD.Managers.Instance)
         {
-            AD.Managers.UpdateM._update -= SetPlayerIcon;
-            AD.Managers.UpdateM._update -= MiniMapDrag;
+            AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
+            AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
         }
     }
 
@@ -52,8 +52,8 @@ public class MiniMap : MonoBehaviour
     {
         _sprR_player.sprite = AD.Managers.DataM._dic_player["Sex"] == "Man" ? _spr_player[0] : _spr_player[1];
 
-        AD.Managers.UpdateM._update -= SetPlayerIcon;
-        AD.Managers.UpdateM._update += SetPlayerIcon;
+        AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
+        AD.Managers.UpdateM.OnUpdateEvent += SetPlayerIcon;
     }
 
     private void SetPlayerIcon()
@@ -77,15 +77,15 @@ public class MiniMap : MonoBehaviour
 
         _go_mainCamera.SetActive(false);
 
-        AD.Managers.UpdateM._update -= MiniMapDrag;
-        AD.Managers.UpdateM._update += MiniMapDrag;
+        AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
+        AD.Managers.UpdateM.OnUpdateEvent += MiniMapDrag;
     }
 
     public void CloseMap()
     {
         Time.timeScale = 1;
 
-        AD.Managers.UpdateM._update -= MiniMapDrag;
+        AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
 
         JoyStick.Instance.transform.parent.gameObject.SetActive(true);
         PlayerUICanvas.Instance.gameObject.SetActive(true);

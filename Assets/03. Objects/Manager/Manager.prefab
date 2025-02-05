@@ -881,6 +881,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 2564081725672228114}
+        m_TargetAssemblyTypeName: AD.PopupManager, Assembly-CSharp
+        m_MethodName: ClosePopupSetting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2274146504843867979
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1178,6 +1190,7 @@ GameObject:
   - component: {fileID: 7786132074681424376}
   - component: {fileID: 2564081725672228114}
   - component: {fileID: 1361109501700885724}
+  - component: {fileID: 6384740638412989238}
   - component: {fileID: 6179718557516177910}
   - component: {fileID: 5955854799130765890}
   - component: {fileID: 5423540460568587340}
@@ -1292,6 +1305,7 @@ MonoBehaviour:
   _dataM: {fileID: 7786132074681424376}
   _popupM: {fileID: 2564081725672228114}
   _sceneM: {fileID: 1361109501700885724}
+  _updateM: {fileID: 6384740638412989238}
   _googleAdMobM: {fileID: 6179718557516177910}
   _soundM: {fileID: 5955854799130765890}
   _go_poolGOs:
@@ -1350,6 +1364,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9653ae4c1721949418409c7c6626bfb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &6384740638412989238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2690547222155295020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77a89226a2040904e9e622d50951e07f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!114 &6179718557516177910
@@ -1855,6 +1881,18 @@ MonoBehaviour:
       - m_Target: {fileID: 8057221933549753090}
         m_TargetAssemblyTypeName: AD.PopupObject, Assembly-CSharp
         m_MethodName: DisablePop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 2564081725672228114}
+        m_TargetAssemblyTypeName: AD.PopupManager, Assembly-CSharp
+        m_MethodName: ClosePopupSetting
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3405,6 +3443,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 2564081725672228114}
+        m_TargetAssemblyTypeName: AD.PopupManager, Assembly-CSharp
+        m_MethodName: ClosePopupSetting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &6031923858935550562
 GameObject:
   m_ObjectHideFlags: 0
@@ -3530,6 +3580,18 @@ MonoBehaviour:
       - m_Target: {fileID: 2604154541169594590}
         m_TargetAssemblyTypeName: AD.PopupObject, Assembly-CSharp
         m_MethodName: DisablePop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 2564081725672228114}
+        m_TargetAssemblyTypeName: AD.PopupManager, Assembly-CSharp
+        m_MethodName: ClosePopupSetting
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4466,6 +4528,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 2564081725672228114}
+        m_TargetAssemblyTypeName: AD.PopupManager, Assembly-CSharp
+        m_MethodName: ClosePopupSetting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 5955854799130765890}
         m_TargetAssemblyTypeName: AD.SoundManager, Assembly-CSharp
         m_MethodName: UI_Click
@@ -4603,6 +4677,18 @@ MonoBehaviour:
       - m_Target: {fileID: 8057221933549753090}
         m_TargetAssemblyTypeName: AD.PopupObject, Assembly-CSharp
         m_MethodName: DisablePop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 2564081725672228114}
+        m_TargetAssemblyTypeName: AD.PopupManager, Assembly-CSharp
+        m_MethodName: ClosePopupSetting
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

@@ -59,8 +59,8 @@ public class PlayerUICanvas : MonoBehaviour
         ViewSettings();
         DataSettings();
 
-        AD.Managers.UpdateM._update -= UpdateBuffPanel;
-        AD.Managers.UpdateM._update += UpdateBuffPanel;
+        AD.Managers.UpdateM.OnUpdateEvent -= UpdateBuffPanel;
+        AD.Managers.UpdateM.OnUpdateEvent += UpdateBuffPanel;
     }
 
     #region Functions

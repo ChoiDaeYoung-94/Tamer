@@ -32,7 +32,7 @@ namespace AD
         ServerManager _serverM = new ServerManager();
         public static ServerManager ServerM { get { return instance._serverM; } }
 
-        UpdateManager _updateM = new UpdateManager();
+        [SerializeField] UpdateManager _updateM = null;
         public static UpdateManager UpdateM { get { return instance._updateM; } }
 
         GameManager _gameM = new GameManager();
