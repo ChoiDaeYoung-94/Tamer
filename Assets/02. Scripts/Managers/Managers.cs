@@ -1,7 +1,3 @@
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
 using UnityEngine;
 
 namespace AD
@@ -70,7 +66,7 @@ namespace AD
             SoundM.Init();
         }
 
-        void Init()
+        private void Init()
         {
             instance = this;
             DontDestroyOnLoad(this);
@@ -80,12 +76,9 @@ namespace AD
 
         private void OnDestroy()
         {
+#if UNITY_EDITOR
             instance = null;
-        }
-
-        private void Update()
-        {
-            _updateM.OnUpdate();
+#endif
         }
 
         /// <summary>
@@ -99,27 +92,5 @@ namespace AD
             PopupM.Init();
             GoogleAdMobM.Init();
         }
-
-        /// <summary>
-        /// 씬 전환 시 필요에 의하면 클리어
-        /// </summary>
-        public void Clear()
-        {
-            UpdateM.Clear();
-            //PoolM.Clear();
-        }
-
-#if UNITY_EDITOR
-        [CustomEditor(typeof(Managers))]
-        public class customEditor : Editor
-        {
-            public override void OnInspectorGUI()
-            {
-                EditorGUILayout.HelpBox("초기 메니저 세팅", MessageType.Info);
-
-                base.OnInspectorGUI();
-            }
-        }
-#endif
     }
 }
