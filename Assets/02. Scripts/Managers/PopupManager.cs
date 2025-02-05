@@ -172,7 +172,7 @@ namespace AD
         {
             UnityEngine.Time.timeScale = 1;
 
-            AD.Managers.GameM.SwitchMainOrGameScene(AD.GameConstants.Scene.Main);
+            AD.Managers.GameM.SwitchMainOrGameScene();
         }
 
         public void GameOver() => AD.Managers.GameM.GameOverGoLobby();
