@@ -155,7 +155,7 @@ namespace AD
         {
             AD.DebugLogger.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
 
-            AD.Managers.ServerM.GetAllData(Update: true);
+            AD.Managers.ServerM.GetAllData(update: true);
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace AD
         {
             if (_dic_PlayFabPlayerData.Count == 1)
             {
-                AD.Managers.ServerM.isInprogress = false;
+                AD.Managers.ServerM.SetInProgress(false);
                 return;
             }
 
@@ -187,7 +187,7 @@ namespace AD
 
             if (_dic_PlayFabPlayerData.Count > 2 && _dic_player.Count > _dic_PlayFabPlayerData.Count)
             {
-                AD.Managers.ServerM.NewData();
+                AD.Managers.ServerM.UpdateNewPlayerData();
                 return;
             }
 
@@ -196,7 +196,7 @@ namespace AD
 
         IEnumerator RefreshData()
         {
-            while (AD.Managers.ServerM.isInprogress)
+            while (AD.Managers.ServerM.IsInProgress)
                 yield return null;
 
             StopRefreshDataCoroutine();
@@ -242,7 +242,7 @@ namespace AD
             if (_isConflict)
                 AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);
             else
-                AD.Managers.ServerM.isInprogress = false;
+                AD.Managers.ServerM.SetInProgress(false);
         }
 
         private int CompareValues<T>(T value1, T value2) where T : System.IComparable

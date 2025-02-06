@@ -256,7 +256,7 @@ namespace AD
             _nicknameCheckSubscription?.Dispose();
             _nicknameCheckSubscription = Observable.EveryUpdate()
                 .TakeUntilDestroy(this)
-                .Where(_ => !AD.Managers.ServerM.isInprogress)
+                .Where(_ => !AD.Managers.ServerM.IsInProgress)
                 .First()
                 .Subscribe(_ => GoNext());
         }
@@ -273,7 +273,7 @@ namespace AD
 
         private async UniTask InitPlayerDataAsync()
         {
-            await UniTask.WaitUntil(() => !AD.Managers.ServerM.isInprogress);
+            await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress);
             AD.Managers.SceneM.NextScene(
                 AD.Managers.DataM._dic_player["Sex"] != "null"
                 ? AD.GameConstants.Scene.Main

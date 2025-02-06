@@ -107,12 +107,12 @@ public class CanvasSelectCharacter : MonoBehaviour
         _maleAni.CrossFade("Select", 0.1f);
         _femaleAni.CrossFade("Select", 0.1f);
 
-        while (AD.Managers.ServerM.isInprogress)
+        while (AD.Managers.ServerM.IsInProgress)
             yield return null;
 
         AD.Managers.DataM.UpdatePlayerData();
 
-        while (AD.Managers.ServerM.isInprogress)
+        while (AD.Managers.ServerM.IsInProgress)
             yield return null;
 
         if (_co_play != null)
