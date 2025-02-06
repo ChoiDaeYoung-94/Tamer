@@ -35,7 +35,7 @@ public class InitializeMain : MonoBehaviour
             }
         }
 
-        AD.Managers.GameM._loginCheck = false;
+        AD.Managers.GameM.LoginCheck = false;
 
         AD.Managers.GameM.InitMainOrGameScene();
         AD.Managers.PopupM.ReleaseException();

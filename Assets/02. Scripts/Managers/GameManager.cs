@@ -8,7 +8,7 @@ namespace AD
     public class GameManager
     {
         // 로그인 체크 여부 (첫 진입 시)
-        public bool _loginCheck = true;
+        public bool LoginCheck = true;
 
         // 현재 씬 상태 (Main / Game)
         private AD.GameConstants.Scene _currentScene = AD.GameConstants.Scene.Main;

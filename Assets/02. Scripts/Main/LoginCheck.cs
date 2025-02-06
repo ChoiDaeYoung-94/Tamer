@@ -15,7 +15,7 @@ public class LoginCheck : MonoBehaviour
     /// </summary>
     private void StartInit()
     {
-        if (!AD.Managers.GameM._loginCheck)
+        if (!AD.Managers.GameM.LoginCheck)
             return;
 
         _state = new SetCharacterState(this);
