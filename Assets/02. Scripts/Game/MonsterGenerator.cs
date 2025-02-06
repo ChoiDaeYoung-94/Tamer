@@ -11,7 +11,7 @@ public class MonsterGenerator : MonoBehaviour
     [Header("--- 참고용 ---")]
     private Coroutine _co_settingMonster = null;
     [SerializeField, Tooltip("최대 몬스터 객체 수")] int maxMonsters = 15;
-    [SerializeField, Tooltip("보스 몬스터 관리")] internal GameObject _go_boss = null;
+    [SerializeField, Tooltip("보스 몬스터 관리")] public GameObject _go_boss = null;
     [SerializeField, Tooltip("현재 사용중인 몬스터 배열")] List<Monster> _list_curMonsters = new List<Monster>();
     [SerializeField, Tooltip("몬스터 생성 범위")] float spawnRadius = 12f;
     [SerializeField, Tooltip("현재 플레이어의 지역 위치")] int curRegionOfPlayer = 1;
@@ -47,7 +47,7 @@ public class MonsterGenerator : MonoBehaviour
     /// <summary>
     /// InitializeGame.cs에서 호출
     /// </summary>
-    internal void Init()
+    public void Init()
     {
         SettingMonsters(curRegionOfPlayer);
         _co_settingMonster = StartCoroutine(Generator());
@@ -143,7 +143,7 @@ public class MonsterGenerator : MonoBehaviour
 
     private void PlusMonster(Monster monster) => _list_curMonsters.Add(monster);
 
-    internal void MinusMonster(Monster monster) => _list_curMonsters.Remove(monster);
+    public void MinusMonster(Monster monster) => _list_curMonsters.Remove(monster);
     #endregion
 
     #region position

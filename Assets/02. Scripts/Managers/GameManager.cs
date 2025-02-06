@@ -8,7 +8,7 @@ namespace AD
     public class GameManager
     {
         // 로그인 체크 여부 (첫 진입 시)
-        internal bool _loginCheck = true;
+        public bool _loginCheck = true;
 
         // 현재 씬 상태 (Main / Game)
         private AD.GameConstants.Scene _currentScene = AD.GameConstants.Scene.Main;
@@ -24,7 +24,7 @@ namespace AD
         /// <summary>
         /// Main Scene ↔ Game Scene 전환
         /// </summary>
-        internal void SwitchMainOrGameScene()
+        public void SwitchMainOrGameScene()
         {
             AD.Managers.PopupM.SetException();
 
@@ -46,7 +46,7 @@ namespace AD
         /// <summary>
         /// Main Scene 또는 Game Scene 진입 후 초기화
         /// </summary>
-        internal void InitMainOrGameScene()
+        public void InitMainOrGameScene()
         {
             var player = Player.Instance;
             var cameraArm = player._tr_cameraArm;
@@ -80,7 +80,7 @@ namespace AD
         /// <summary>
         /// 게임 오버 처리
         /// </summary>
-        internal void GameOver()
+        public void GameOver()
         {
             Player.Instance.RemoveAllAllyMonster();
             AD.Managers.PopupM.PopupGameOver();
@@ -89,7 +89,7 @@ namespace AD
         /// <summary>
         /// 게임 오버 후 로비로 이동
         /// </summary>
-        internal void GameOverGoLobby()
+        public void GameOverGoLobby()
         {
             Player.Instance.ReSetPlayer();
             SwitchMainOrGameScene();

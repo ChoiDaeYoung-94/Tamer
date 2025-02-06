@@ -43,7 +43,7 @@ public class MiniMap : MonoBehaviour
     /// <summary>
     /// InitializeGame.cs에서 호출
     /// </summary>
-    internal void StartInit()
+    public void StartInit()
     {
         Settings();
     }
@@ -63,7 +63,7 @@ public class MiniMap : MonoBehaviour
         _tr_player.localPosition = new Vector3(tr_temp.position.x, 1f, tr_temp.position.z);
     }
 
-    internal void OpenMap()
+    public void OpenMap()
     {
         Time.timeScale = 0;
 

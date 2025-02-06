@@ -12,7 +12,7 @@ namespace AD
 
         public Dictionary<string, GameObject> equipmentMapping = new Dictionary<string, GameObject>();
 
-        internal void Init()
+        public void Init()
         {
             _dic_segmentedEquipment.Add("Sword", _list_sword);
             _dic_segmentedEquipment.Add("Shield", _list_shield);

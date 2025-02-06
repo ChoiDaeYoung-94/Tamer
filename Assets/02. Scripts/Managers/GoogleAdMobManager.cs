@@ -11,9 +11,9 @@ namespace AD
     public class GoogleAdMobManager : MonoBehaviour
     {
         [SerializeField, Tooltip("비동기 AD 실행 확인")]
-        internal bool isInprogress = false;
+        public bool isInprogress = false;
         [SerializeField, Tooltip("보상 받은 여부 확인")]
-        internal bool isReceive = false;
+        public bool isReceive = false;
 
 #if UNITY_ANDROID && Debug
         // GoogleAdMob에서 제공하는 TestID
@@ -28,7 +28,7 @@ namespace AD
         /// Managers - Awake() -> Init()
         /// 필요한 데이터 미리 받아 둠
         /// </summary>
-        internal void Init()
+        public void Init()
         {
             // Initialize the Google Mobile Ads SDK.
             MobileAds.Initialize((InitializationStatus initStatus) =>
@@ -172,7 +172,7 @@ namespace AD
         /// 해당 데이터는 로컬을 우선시하게 됨 즉 서버를 통해 Player data를 갱신하게 되더라도
         /// 서버에 있는 GoogleAdMob가 우선이 아니라 로컬에 있는 GoogleAdMob를 우선시 하게 됨
         /// </summary>
-        internal void ResetAdMob()
+        public void ResetAdMob()
         {
             AD.Managers.DataM.UpdateLocalData(key: "GoogleAdMob", value: "null");
 

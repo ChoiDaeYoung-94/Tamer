@@ -47,7 +47,7 @@ public abstract class BaseController : MonoBehaviour
         }
     }
 
-    [SerializeField] internal AD.GameConstants.Creature _creature;
+    [SerializeField] public AD.GameConstants.Creature _creature;
 
     [Header("--- 미리 가지고 있어야 할 공용 data ---")]
     [SerializeField] Animator _crtAni = null;

@@ -14,17 +14,17 @@ public class Player : BaseController
     [Header("--- 플레어어 고유 Data ---")]
     [SerializeField] private int _gold = 0;
     public int Gold { get { return instance._gold; } }
-    internal int _maxCaptureCapacity = 10;
+    public int _maxCaptureCapacity = 10;
     [SerializeField, Tooltip("ally monster 통제")] List<Monster> _list_groupMonsters = new List<Monster>();
 
     [Header("--- 세팅 ---")]
-    [SerializeField] internal GameObject _go_player = null;
-    [SerializeField] internal Transform _tr_cameraArm = null;
-    [SerializeField] internal GameObject _simpleSword = null;
-    [SerializeField] internal GameObject _masterSword = null;
-    internal bool isEquippedSword = false;
-    [SerializeField] internal GameObject _simpleshield = null;
-    [SerializeField] internal GameObject _mastershield = null;
+    [SerializeField] public GameObject _go_player = null;
+    [SerializeField] public Transform _tr_cameraArm = null;
+    [SerializeField] public GameObject _simpleSword = null;
+    [SerializeField] public GameObject _masterSword = null;
+    public bool isEquippedSword = false;
+    [SerializeField] public GameObject _simpleshield = null;
+    [SerializeField] public GameObject _mastershield = null;
     [SerializeField] private GameObject _buff = null;
 
     [Header("--- 플레이어 버프 시 적용되는 status ---")]
@@ -108,7 +108,7 @@ public class Player : BaseController
         AD.Managers.UpdateM.OnUpdateEvent += TouchEvent;
     }
 
-    internal void ReSetPlayer()
+    public void ReSetPlayer()
     {
         isDie = false;
         gameObject.layer = allyLayer;
@@ -151,7 +151,7 @@ public class Player : BaseController
         }
     }
 
-    internal void SetBuff()
+    public void SetBuff()
     {
         PlaySFX(AD.Managers.SoundM._AC_sfx_buff);
 
@@ -168,7 +168,7 @@ public class Player : BaseController
         _buff.SetActive(true);
     }
 
-    internal void EndBuff()
+    public void EndBuff()
     {
         isBuffing = false;
 
@@ -180,7 +180,7 @@ public class Player : BaseController
         _buff.SetActive(false);
     }
 
-    internal void Heal()
+    public void Heal()
     {
         PlaySFX(AD.Managers.SoundM._AC_sfx_heal);
 
@@ -212,7 +212,7 @@ public class Player : BaseController
         }
     }
 
-    internal void HandleAttackCoroutine(bool isGame)
+    public void HandleAttackCoroutine(bool isGame)
     {
         if (isGame)
         {
@@ -327,13 +327,13 @@ public class Player : BaseController
         }
     }
 
-    internal void AllyIdle()
+    public void AllyIdle()
     {
         foreach (Monster monster in _list_groupMonsters)
             monster.CrtState = CreatureState.Idle;
     }
 
-    internal void Capture()
+    public void Capture()
     {
         captureMonster.AllySetting(playerPosition: transform.position);
         AddAllyMonster(captureMonster);
@@ -375,7 +375,7 @@ public class Player : BaseController
         AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
     }
 
-    internal void RemoveAllyMonster(Monster monster)
+    public void RemoveAllyMonster(Monster monster)
     {
         _list_groupMonsters.Remove(monster);
 
@@ -401,13 +401,13 @@ public class Player : BaseController
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
-    internal void RemoveAllAllyMonster()
+    public void RemoveAllAllyMonster()
     {
         foreach (Monster monster in _list_groupMonsters)
             monster.GetDamage(1000f);
     }
 
-    internal void ActiveControl(bool active)
+    public void ActiveControl(bool active)
     {
         if (active)
         {
@@ -470,7 +470,7 @@ public class Player : BaseController
     }
     #endregion
 
-    internal int GetCurMonsterCount()
+    public int GetCurMonsterCount()
     {
         return _list_groupMonsters.Count;
     }
@@ -479,7 +479,7 @@ public class Player : BaseController
     /// monster가 죽은 뒤 호출
     /// </summary>
     /// <param name="target"></param>
-    internal void NotifyPlayerOfDeath(GameObject target, int gold)
+    public void NotifyPlayerOfDeath(GameObject target, int gold)
     {
         if (target == _go_targetMonster)
         {

@@ -10,21 +10,21 @@ using UnityEngine.AI;
 public class Monster : BaseController
 {
     [Header("--- 세팅 ---")]
-    [SerializeField] internal NavMeshAgent _navAgent;
+    [SerializeField] public NavMeshAgent _navAgent;
     [SerializeField, Tooltip("포획 가능할 시 생기는 effect")] GameObject _go_capture = null;
 
     [Header("--- 참고 ---")]
-    [SerializeField, Tooltip("Commander Monster 여부")] internal bool isCommander = false;
+    [SerializeField, Tooltip("Commander Monster 여부")] public bool isCommander = false;
     [SerializeField, Tooltip("Commander Monster 전투 타겟")] GameObject _go_commanderTarget = null;
     private BaseController commanderTarget = null;
     [SerializeField, Tooltip("Commander Monster 목적지 도착 여부")] bool isCommanderArrived = false;
-    [SerializeField, Tooltip("Commander Monster가 아닐 경우")] internal Monster _commanderMonster = null;
+    [SerializeField, Tooltip("Commander Monster가 아닐 경우")] public Monster _commanderMonster = null;
     [SerializeField, Tooltip("Follower Monster 전투 타겟")] GameObject _go_followerTarget = null;
     private BaseController followerTarget = null;
     [SerializeField, Tooltip("Boss Monster 여부")] bool isBoss = false;
     [SerializeField, Tooltip("Commander Monster의 random 이동 최대 반경")] float moveRadius = 5.0f;
-    [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] internal List<Monster> _list_groupMonsters = new List<Monster>();
-    [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] internal float flockingRadius = 2f;
+    [SerializeField, Tooltip("통솔 오브젝트 위임 및 다른 monster 통제")] public List<Monster> _list_groupMonsters = new List<Monster>();
+    [SerializeField, Tooltip("군집이동 반경 기본 2f, monster 크기에 따라 변경 됨")] public float flockingRadius = 2f;
     [SerializeField, Tooltip("포획 가능한 몬스터인지 여부")] bool isAbleAlly = false;
     [SerializeField, Tooltip("포획된 몬스터인지 여부")] bool isAlly = false;
     [SerializeField, Tooltip("포획된 몬스터의 전투 타겟")] GameObject _go_allyTarget = null;
@@ -238,7 +238,7 @@ public class Monster : BaseController
         }
     }
 
-    internal void Warp()
+    public void Warp()
     {
         Vector3 playerPos = Player.Instance.transform.position;
         float distance = Vector3.Distance(transform.position, playerPos);
@@ -527,7 +527,7 @@ public class Monster : BaseController
         target?.GetDamage(Power);
     }
 
-    internal void DelegateCommander(List<Monster> list_monster)
+    public void DelegateCommander(List<Monster> list_monster)
     {
         isCommander = true;
         StartDetectionCoroutine();
@@ -542,7 +542,7 @@ public class Monster : BaseController
         }
     }
 
-    internal void UpdateMonsterList(Monster monster)
+    public void UpdateMonsterList(Monster monster)
     {
         _list_groupMonsters.Remove(monster);
     }
@@ -642,7 +642,7 @@ public class Monster : BaseController
     /// <summary>
     /// 포획 시 ally 세팅
     /// </summary>
-    internal void AllySetting(Vector3 playerPosition, bool setting = false)
+    public void AllySetting(Vector3 playerPosition, bool setting = false)
     {
         ResetMonster();
         RemoveTarget();
@@ -731,7 +731,7 @@ public class Monster : BaseController
         }
     }
 
-    internal void StartDetectionCoroutine() => _co_detection = StartCoroutine(Detection());
+    public void StartDetectionCoroutine() => _co_detection = StartCoroutine(Detection());
     #endregion
 
     #endregion

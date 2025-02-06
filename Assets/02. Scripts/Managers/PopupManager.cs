@@ -43,7 +43,7 @@ namespace AD
         /// <summary>
         /// Managers - Awake() -> Init()
         /// </summary>
-        internal void Init()
+        public void Init()
         {
             AD.Managers.UpdateM.OnUpdateEvent -= Onupdate;
             AD.Managers.UpdateM.OnUpdateEvent += Onupdate;
@@ -129,25 +129,25 @@ namespace AD
             }
         }
 
-        internal void PopupGoLobby()
+        public void PopupGoLobby()
         {
             UnityEngine.Time.timeScale = 0;
 
             _go_popupLobby.SetActive(true);
         }
 
-        internal void PopupExit()
+        public void PopupExit()
         {
             UnityEngine.Time.timeScale = 0;
 
             _go_popupExit.SetActive(true);
         }
 
-        internal void PopupHeal() => _go_popupHeal.SetActive(true);
+        public void PopupHeal() => _go_popupHeal.SetActive(true);
 
-        internal void PopupGameOver() => _go_popupGameOver.SetActive(true);
+        public void PopupGameOver() => _go_popupGameOver.SetActive(true);
 
-        internal void PopupSetting()
+        public void PopupSetting()
         {
             UnityEngine.Time.timeScale = 0;
 
@@ -185,13 +185,13 @@ namespace AD
                 AD.Managers.GoogleAdMobM.ShowRewardedAd();
         }
 
-        internal void SetException() => isException = true;
+        public void SetException() => isException = true;
 
-        internal void ReleaseException() => isException = false;
+        public void ReleaseException() => isException = false;
 
-        internal void SetFLow() => isFLow = true;
+        public void SetFLow() => isFLow = true;
 
-        internal void ReleaseFLow() => isFLow = false;
+        public void ReleaseFLow() => isFLow = false;
 
         public void BGM()
         {

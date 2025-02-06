@@ -43,7 +43,7 @@ public class Portal : MonoBehaviour
         AD.Managers.PopupM.PopupHeal();
     }
 
-    internal void RewardHeal()
+    public void RewardHeal()
     {
         AD.Managers.SoundM.UnpauseBGM();
 

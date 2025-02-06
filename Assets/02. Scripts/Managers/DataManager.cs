@@ -27,7 +27,7 @@ namespace AD
         private string _str_ID = string.Empty;
         public string StrID { get { return _str_ID; } set { _str_ID = value; } }
         [Tooltip("PlayerData 초기화 시 server, local 충돌 여부")]
-        internal bool _isConflict = false;
+        public bool _isConflict = false;
         [Tooltip("Application.persistentDataPath.PlayerData.json 위치")]
         private string _str_apPlayerDataPath = string.Empty;
         [Tooltip("Resources/Data/PlayerData.json 내용")]
@@ -40,7 +40,7 @@ namespace AD
         /// Managers - Awake() -> Init()
         /// 필요한 데이터 미리 받고 세팅 및 데이터 갱신 코루틴 실행
         /// </summary>
-        internal void Init()
+        public void Init()
         {
             LoadPlayerData();
             LoadMonstersData();
@@ -124,7 +124,7 @@ namespace AD
         /// <summary>
         /// Player가 가지고 있는 고유 Data들을 _dic_player에 갱신 후 Json 저장
         /// </summary>
-        internal void UpdateLocalData(string key, string value, bool all = false)
+        public void UpdateLocalData(string key, string value, bool all = false)
         {
             if (Player.Instance)
             {
@@ -137,7 +137,7 @@ namespace AD
             }
         }
 
-        internal void SaveLocalData()
+        public void SaveLocalData()
         {
             string str_temp = AD.Utility.SerializeToJson(_dic_player);
             File.WriteAllText(_str_apPlayerDataPath, str_temp);
@@ -151,7 +151,7 @@ namespace AD
         /// 서버에 존재하는 플레이어 데이터 받아옴
         /// * 게임 씬 진입 전, 씬 전환 시 데이터를 갱신하기 위해 호출 됨
         /// </summary>
-        internal void UpdatePlayerData()
+        public void UpdatePlayerData()
         {
             AD.DebugLogger.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
 
@@ -165,7 +165,7 @@ namespace AD
         /// 만약 데이터가 추가 된다면(10개 이상 추가되지 않는다고 가정) PlayerData.json을 통해 데이터를 추가하고 이 경우 서버에 데이터를 다시 세팅
         /// RefreshData() 후 데이터가 다를 경우 데이터 갱신
         /// </summary>
-        internal void UpdateData()
+        public void UpdateData()
         {
             if (_dic_PlayFabPlayerData.Count == 1)
             {

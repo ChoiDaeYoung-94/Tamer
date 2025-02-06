@@ -120,7 +120,7 @@ namespace AD
         /// Managers - Awake() -> Init()
         /// Pool에 둬야 할 것들 미리 생성
         /// </summary>
-        internal void Init()
+        public void Init()
         {
             // GO root 생성
             _root_GO = new GameObject { name = "Pool_GO" }.transform;

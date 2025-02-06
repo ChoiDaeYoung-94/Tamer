@@ -50,7 +50,7 @@ public class JoyStick : MonoBehaviour
     /// <summary>
     /// Player.cs 에서 플레이어 초기화 후 호출
     /// </summary>
-    internal void StartInit()
+    public void StartInit()
     {
         _go_player = Player.Instance._go_player;
         _tr_cameraArm = Player.Instance._tr_cameraArm;
@@ -104,7 +104,7 @@ public class JoyStick : MonoBehaviour
         }
     }
 
-    internal void SetSpeed(float speed) => _speed = speed;
+    public void SetSpeed(float speed) => _speed = speed;
     #endregion
 
     #region EventTrigger

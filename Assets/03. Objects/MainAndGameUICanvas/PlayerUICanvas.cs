@@ -54,7 +54,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// <summary>
     /// Player.cs, GameManager.cs 에서 호출
     /// </summary>
-    internal void StartInit()
+    public void StartInit()
     {
         ViewSettings();
         DataSettings();
@@ -70,7 +70,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// 뷰 세팅
     /// Main scene 진입 시, Main Game scene 전환 시
     /// </summary>
-    internal void ViewSettings()
+    public void ViewSettings()
     {
         _go_Popup_playerInfo.SetActive(false);
         _go_panel_gamesceneUI.SetActive(AD.Managers.GameM.IsGame);
@@ -90,7 +90,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// <summary>
     /// PlayerInfo Update
     /// </summary>
-    internal void UpdatePlayerInfo()
+    public void UpdatePlayerInfo()
     {
         _TMP_captureCapacity.text = $"{Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
         _TMP_gold.text = $"Gold - {Player.Instance.Gold}";
@@ -179,7 +179,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// <summary>
     /// AdMob 광고 시청 후 buff 시작 or Main 씬 진입 후 buff시간이 남아 있을 경우
     /// </summary>
-    internal void SetBuff(double remainTime)
+    public void SetBuff(double remainTime)
     {
         _remainBuffTime = remainTime;
         _isBuff = true;
@@ -192,7 +192,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// <summary>
     /// AdMob buff 종료 시
     /// </summary>
-    internal void EndBuff()
+    public void EndBuff()
     {
         _go_panelAdMobBuff.SetActive(false);
 
@@ -202,9 +202,9 @@ public class PlayerUICanvas : MonoBehaviour
     }
     #endregion
 
-    internal void EnableCapture() => _go_capture.SetActive(true);
+    public void EnableCapture() => _go_capture.SetActive(true);
 
-    internal void DisableCapture() => _go_capture.SetActive(false);
+    public void DisableCapture() => _go_capture.SetActive(false);
 
     public void OnClickCapture()
     {

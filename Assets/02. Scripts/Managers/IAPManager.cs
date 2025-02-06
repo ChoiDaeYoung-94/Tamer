@@ -15,7 +15,7 @@ namespace AD
 
         public string PRODUCT_NO_ADS = "com.aedeong.monstertamer.no_ads";
 
-        async internal void Init()
+        async public void Init()
         {
             await InitializeUGS();
         }

@@ -9,7 +9,7 @@ public class CameraManage : MonoBehaviour
     public static CameraManage Instance { get { return instance; } }
 
     [Header("사용하는 시네머신 카메라 세팅")]
-    [SerializeField] internal CinemachineVirtualCamera[] CM_cameras = null;
+    [SerializeField] public CinemachineVirtualCamera[] CM_cameras = null;
 
     /// <summary>
     /// LoginCheck.cs 에서 생성
@@ -23,7 +23,7 @@ public class CameraManage : MonoBehaviour
     /// <summary>
     /// Player.cs 에서 플레이어 초기화 후 호출
     /// </summary>
-    internal void StartInit()
+    public void StartInit()
     {
         foreach (CinemachineVirtualCamera cm in CM_cameras)
         {
