@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5715148919974353272}
   - component: {fileID: 8012766747485909326}
   m_Layer: 5
-  m_Name: TMP_Damage
+  m_Name: TMPDamage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
