@@ -70,10 +70,10 @@ class SetCharacterState : State
         AD.DebugLogger.Log("LoginCheck", "SetCharacterState 진입");
 
         string sex = AD.Managers.DataM.LocalPlayerData["Sex"];
-        AD.Managers.ResourceM.Instantiate_("Player", "JoyStick/Canvas");
-        AD.Managers.ResourceM.Instantiate_("Player", "CMvcams/CM vcams");
-        AD.Managers.ResourceM.Instantiate_("Player", "MainAndGameUICanvas/Canvas");
-        AD.Managers.ResourceM.Instantiate_("Player", "Player/Player_" + sex);
+        AD.Managers.ResourceM.InstantiatePrefab("Player", "JoyStick/Canvas");
+        AD.Managers.ResourceM.InstantiatePrefab("Player", "CMvcams/CM vcams");
+        AD.Managers.ResourceM.InstantiatePrefab("Player", "MainAndGameUICanvas/Canvas");
+        AD.Managers.ResourceM.InstantiatePrefab("Player", "Player/Player_" + sex);
 
         _loginCheck.SetState(new CheckTutorialState(_loginCheck));
     }
