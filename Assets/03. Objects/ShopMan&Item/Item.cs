@@ -70,8 +70,8 @@ public class Item : MonoBehaviour
     {
         string str_temp = string.Empty;
 
-        _str_price = _items == AD.GameConstants.Item.None ? ((Dictionary<string, object>)AD.Managers.DataM._dic_monsters[_str_itemName])["Price"].ToString()
-                                          : ((Dictionary<string, object>)AD.Managers.DataM._dic_items[_str_itemName])["Price"].ToString();
+        _str_price = _items == AD.GameConstants.Item.None ? ((Dictionary<string, object>)AD.Managers.DataM.MonsterData[_str_itemName])["Price"].ToString()
+                                          : ((Dictionary<string, object>)AD.Managers.DataM.ItemData[_str_itemName])["Price"].ToString();
 
         str_temp = $"{_str_itemName}\nPrice - {_str_price}G";
 
@@ -100,10 +100,10 @@ public class Item : MonoBehaviour
         Dictionary<string, object> dic_item = null;
 
         if (_items == AD.GameConstants.Item.None)
-            dic_item = AD.Managers.DataM._dic_monsters[_creature.ToString()] as Dictionary<string, object>;
+            dic_item = AD.Managers.DataM.MonsterData[_creature.ToString()] as Dictionary<string, object>;
         else
         {
-            dic_item = AD.Managers.DataM._dic_items[_items.ToString()] as Dictionary<string, object>;
+            dic_item = AD.Managers.DataM.ItemData[_items.ToString()] as Dictionary<string, object>;
             str_plus = "Plus ";
         }
 

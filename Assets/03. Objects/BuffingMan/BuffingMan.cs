@@ -43,7 +43,7 @@ public class BuffingMan : MonoBehaviour
     /// </summary>
     private void CheckAdMob()
     {
-        string str_temp = AD.Managers.DataM._dic_player["GoogleAdMob"];
+        string str_temp = AD.Managers.DataM.LocalPlayerData["GoogleAdMob"];
         if (str_temp != "null")
         {
             double remainTime = AD.TimeUtility.GetAdBuffRemainingTime(str_temp);
@@ -109,7 +109,7 @@ public class BuffingMan : MonoBehaviour
     {
         if (col.CompareTag("Player"))
         {
-            if (AD.Managers.DataM._dic_player["GoogleAdMob"] == "null")
+            if (AD.Managers.DataM.LocalPlayerData["GoogleAdMob"] == "null")
             {
                 _TM_admob.text = _str_normalState;
                 _go_admob.SetActive(true);

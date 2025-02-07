@@ -102,7 +102,7 @@ public class CanvasSelectCharacter : MonoBehaviour
     IEnumerator Play()
     {
         string sex = _tr_male.position.x == 0 ? "Man" : "Woman";
-        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", sex } }, GetAllData: false, Update: false);
+        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", sex } }, getAllData: false, update: false);
 
         _maleAni.CrossFade("Select", 0.1f);
         _femaleAni.CrossFade("Select", 0.1f);

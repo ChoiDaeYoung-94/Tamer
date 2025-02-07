@@ -69,7 +69,7 @@ class SetCharacterState : State
     {
         AD.DebugLogger.Log("LoginCheck", "SetCharacterState 진입");
 
-        string sex = AD.Managers.DataM._dic_player["Sex"];
+        string sex = AD.Managers.DataM.LocalPlayerData["Sex"];
         AD.Managers.ResourceM.Instantiate_("Player", "JoyStick/Canvas");
         AD.Managers.ResourceM.Instantiate_("Player", "CMvcams/CM vcams");
         AD.Managers.ResourceM.Instantiate_("Player", "MainAndGameUICanvas/Canvas");
@@ -87,7 +87,7 @@ class CheckTutorialState : State
     {
         AD.DebugLogger.Log("LoginCheck", "CheckTutorialState 진입");
 
-        if (AD.Managers.DataM._dic_player["Tutorial"].Equals("null"))
+        if (AD.Managers.DataM.LocalPlayerData["Tutorial"].Equals("null"))
         {
             AD.DebugLogger.Log("FirstLogin", "TODO - TUTORIAL");
         }

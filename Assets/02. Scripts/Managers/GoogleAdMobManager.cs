@@ -102,7 +102,7 @@ namespace AD
             const string rewardMsg =
                 "Rewarded ad rewarded the user. Type: {0}, amount: {1}.";
 
-            if (AD.Managers.DataM._dic_player["GooglePlay"].Contains(AD.GameConstants.IAPItem.ProductNoAds.ToString()))
+            if (AD.Managers.DataM.LocalPlayerData["GooglePlay"].Contains(AD.GameConstants.IAPItem.ProductNoAds.ToString()))
             {
                 isInprogress = false;
                 isReceive = true;

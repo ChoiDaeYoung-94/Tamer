@@ -29,13 +29,13 @@ namespace AD
         {
             IsInProgress = true;
 
-            var request = new GetUserDataRequest() { PlayFabId = AD.Managers.DataM.StrID };
+            var request = new GetUserDataRequest() { PlayFabId = AD.Managers.DataM.PlayFabId };
             PlayFabClientAPI.GetUserData(request,
                 (result) =>
                 {
                     AD.DebugLogger.Log("ServerManager", $"Successfully GetAllData from PlayFab");
 
-                    AD.Managers.DataM._dic_PlayFabPlayerData = result.Data;
+                    AD.Managers.DataM.PlayFabPlayerData = result.Data;
 
                     if (update)
                     {
@@ -43,7 +43,7 @@ namespace AD
                         return;
                     }
                     else
-                        AD.Managers.DataM._isConflict = false;
+                        AD.Managers.DataM.IsConflict = false;
 
                     IsInProgress = false;
                 },
@@ -54,7 +54,7 @@ namespace AD
         /// 서버에 데이터 저장
         /// </summary>
         /// <param name="dic"></param>
-        public void SetData(Dictionary<string, string> dic, bool GetAllData = false, bool Update = false)
+        public void SetData(Dictionary<string, string> dic, bool getAllData = false, bool update = false)
         {
             IsInProgress = true;
 
@@ -83,21 +83,21 @@ namespace AD
                                 _currentIndex = 0;
                                 _tempData.Clear();
 
-                                if (GetAllData)
+                                if (getAllData)
                                 {
-                                    this.GetAllData(update: Update);
+                                    this.GetAllData(update: update);
                                     return;
                                 }
 
                                 IsInProgress = false;
                             }
                             else
-                                this.SetData(dic, GetAllData: GetAllData, Update: Update);
+                                this.SetData(dic, getAllData: getAllData, update: update);
                         },
                         (error) =>
                         {
                             AD.DebugLogger.LogWarning("ServerManager", "Failed to SetData to PlayFab");
-                            this.SetData(dic, GetAllData: GetAllData, Update: Update);
+                            this.SetData(dic, getAllData: getAllData, update: update);
                         });
 
                     break;
@@ -112,9 +112,9 @@ namespace AD
         {
             _tempData.Clear();
 
-            foreach (KeyValuePair<string, string> data in AD.Managers.DataM._dic_player)
+            foreach (KeyValuePair<string, string> data in AD.Managers.DataM.LocalPlayerData)
             {
-                if (!AD.Managers.DataM._dic_PlayFabPlayerData.ContainsKey(data.Key))
+                if (!AD.Managers.DataM.PlayFabPlayerData.ContainsKey(data.Key))
                     _tempData.Add(data.Key, data.Value);
             }
 
@@ -136,19 +136,19 @@ namespace AD
         /// 지워야 할 Data의 경우 value를 null로 보내면 됨
         /// ex > DeleteData(new Dictionary<string, string> { { key, null } });
         /// </summary>
-        public void DeleteData(Dictionary<string, string> dic, bool Update = false)
+        public void DeleteData(Dictionary<string, string> dic, bool update = false)
         {
             var request = new UpdateUserDataRequest() { Data = dic, Permission = UserDataPermission.Public };
             PlayFabClientAPI.UpdateUserData(request,
                 (result) =>
                 {
                     AD.DebugLogger.Log("ServerManager", "Successfully DeleteData from PlayFab");
-                    GetAllData(update: Update);
+                    GetAllData(update: update);
                 },
                 (error) =>
                 {
                     AD.DebugLogger.LogWarning("ServerManager", "Failed to DeleteData from PlayFab");
-                    this.DeleteData(dic, Update: Update);
+                    this.DeleteData(dic, update: update);
                 });
         }
 

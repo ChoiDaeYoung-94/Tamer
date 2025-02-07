@@ -100,7 +100,7 @@ namespace AD
             PlayFabClientAPI.LoginWithEmailAddress(request,
                 (success) =>
                 {
-                    AD.Managers.DataM.StrID = success.PlayFabId;
+                    AD.Managers.DataM.PlayFabId = success.PlayFabId;
                     GoNext();
                 },
                 (failed) => SignUpWithTestAccount());
@@ -112,7 +112,7 @@ namespace AD
             PlayFabClientAPI.RegisterPlayFabUser(request,
                 (success) =>
                 {
-                    AD.Managers.DataM.StrID = success.PlayFabId;
+                    AD.Managers.DataM.PlayFabId = success.PlayFabId;
                     UpdateDisplayName("testAccount");
                 },
                 (failed) => AD.DebugLogger.Log("Login", "Failed SignUpWithTestAccount  " + failed.ErrorMessage));
@@ -153,9 +153,9 @@ namespace AD
                     AD.DebugLogger.Log("Login", "Success LoginWithPlayFab");
                     _loadingText.text = "Success!!";
 
-                    AD.Managers.DataM.StrID = result.PlayFabId;
+                    AD.Managers.DataM.PlayFabId = result.PlayFabId;
 
-                    GetPlayerProfileAsync(AD.Managers.DataM.StrID).Forget();
+                    GetPlayerProfileAsync(AD.Managers.DataM.PlayFabId).Forget();
                 },
                 error =>
                 {
@@ -173,7 +173,7 @@ namespace AD
                     AD.DebugLogger.Log("Login", "Success SignUpWithPlayFab");
                     _loadingText.text = "Success!!";
 
-                    AD.Managers.DataM.StrID = result.PlayFabId;
+                    AD.Managers.DataM.PlayFabId = result.PlayFabId;
 
                     _nicknamePanel.SetActive(true);
                 },
@@ -275,7 +275,7 @@ namespace AD
         {
             await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress);
             AD.Managers.SceneM.NextScene(
-                AD.Managers.DataM._dic_player["Sex"] != "null"
+                AD.Managers.DataM.LocalPlayerData["Sex"] != "null"
                 ? AD.GameConstants.Scene.Main
                 : AD.GameConstants.Scene.SetCharacter
             );

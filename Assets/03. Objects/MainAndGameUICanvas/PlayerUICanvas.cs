@@ -81,7 +81,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     private void DataSettings()
     {
-        _TMP_playerNickName.text = $"{AD.Managers.DataM._dic_player["NickName"]}";
+        _TMP_playerNickName.text = $"{AD.Managers.DataM.LocalPlayerData["NickName"]}";
 
         UpdatePlayerInfo();
         UpdatePopPlayerInfo();
@@ -107,7 +107,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     private void UpdatePopPlayerInfo()
     {
-        _TMP_POPplayerNickName.text = $"NickName - {AD.Managers.DataM._dic_player["NickName"]}";
+        _TMP_POPplayerNickName.text = $"NickName - {AD.Managers.DataM.LocalPlayerData["NickName"]}";
         _TMP_POPcaptureCapacity.text = $"CaptureCapacity - {Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
         _TMP_POPgold.text = $"Gold - {Player.Instance.Gold}";
 

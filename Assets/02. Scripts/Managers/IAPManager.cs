@@ -114,7 +114,7 @@ namespace AD
 
         private void RegisterIAPData(AD.GameConstants.IAPItem IAPitem)
         {
-            string temp_str = AD.Managers.DataM._dic_player["GooglePlay"];
+            string temp_str = AD.Managers.DataM.LocalPlayerData["GooglePlay"];
             if (string.IsNullOrEmpty(temp_str))
                 temp_str = $"{IAPitem}";
             else

@@ -116,14 +116,14 @@ public abstract class BaseController : MonoBehaviour
         {
             _itemHp = _orgHp = 100;
             _hp = 100;
-            _power = float.Parse(AD.Managers.DataM._dic_player["Power"]);
-            _attackSpeed = float.Parse(AD.Managers.DataM._dic_player["AttackSpeed"]);
-            _moveSpeed = float.Parse(AD.Managers.DataM._dic_player["MoveSpeed"]);
+            _power = float.Parse(AD.Managers.DataM.LocalPlayerData["Power"]);
+            _attackSpeed = float.Parse(AD.Managers.DataM.LocalPlayerData["AttackSpeed"]);
+            _moveSpeed = float.Parse(AD.Managers.DataM.LocalPlayerData["MoveSpeed"]);
         }
         else
         {
             string key = _creature.ToString();
-            Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[key] as Dictionary<string, object>;
+            Dictionary<string, object> dic_temp = AD.Managers.DataM.MonsterData[key] as Dictionary<string, object>;
 
             _hp = _orgHp = float.Parse(dic_temp["Hp"].ToString());
             _power = float.Parse(dic_temp["Power"].ToString());

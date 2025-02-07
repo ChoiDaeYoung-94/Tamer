@@ -50,7 +50,7 @@ public class MiniMap : MonoBehaviour
 
     private void Settings()
     {
-        _sprR_player.sprite = AD.Managers.DataM._dic_player["Sex"] == "Man" ? _spr_player[0] : _spr_player[1];
+        _sprR_player.sprite = AD.Managers.DataM.LocalPlayerData["Sex"] == "Man" ? _spr_player[0] : _spr_player[1];
 
         AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
         AD.Managers.UpdateM.OnUpdateEvent += SetPlayerIcon;

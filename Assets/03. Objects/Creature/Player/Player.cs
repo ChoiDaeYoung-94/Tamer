@@ -91,9 +91,9 @@ public class Player : BaseController
     {
         base.Init();
 
-        _gold = int.Parse(AD.Managers.DataM._dic_player["Gold"]);
+        _gold = int.Parse(AD.Managers.DataM.LocalPlayerData["Gold"]);
 
-        if (AD.Managers.DataM._dic_player["AllyMonsters"] != "null")
+        if (AD.Managers.DataM.LocalPlayerData["AllyMonsters"] != "null")
         {
             isAllyAvailable = true;
             SettingAllyMonster();
@@ -264,7 +264,7 @@ public class Player : BaseController
 
     public void ApplyEquipment(string item)
     {
-        Dictionary<string, object> temp_dic = AD.Managers.DataM._dic_items[item] as Dictionary<string, object>;
+        Dictionary<string, object> temp_dic = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
 
         _itemHp = _hp += float.Parse(temp_dic["Hp"].ToString());
         _power += float.Parse(temp_dic["Power"].ToString());
@@ -274,7 +274,7 @@ public class Player : BaseController
 
     public void UnequipEquipment(string item)
     {
-        Dictionary<string, object> temp_dic = AD.Managers.DataM._dic_items[item] as Dictionary<string, object>;
+        Dictionary<string, object> temp_dic = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
 
         _itemHp = _hp -= float.Parse(temp_dic["Hp"].ToString());
         _power -= float.Parse(temp_dic["Power"].ToString());
@@ -343,7 +343,7 @@ public class Player : BaseController
 
     private void SettingAllyMonster()
     {
-        string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
+        string temp_ally = AD.Managers.DataM.LocalPlayerData["AllyMonsters"];
 
         List<string> temp_monsters = temp_ally.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
 
@@ -361,7 +361,7 @@ public class Player : BaseController
         _list_groupMonsters.Add(monster);
         monster.transform.SetParent(AD.Managers.PoolM._root_Player);
 
-        string temp_ally = AD.Managers.DataM._dic_player["AllyMonsters"];
+        string temp_ally = AD.Managers.DataM.LocalPlayerData["AllyMonsters"];
         string temp_monster = monster._creature.ToString();
 
         if (temp_ally.Equals("null"))

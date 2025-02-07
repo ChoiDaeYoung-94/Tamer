@@ -18,7 +18,7 @@ public class IAPItem : MonoBehaviour
 
     public void Init()
     {
-        if (AD.Managers.DataM._dic_player["GooglePlay"].Contains(_IAPItem.ToString()))
+        if (AD.Managers.DataM.LocalPlayerData["GooglePlay"].Contains(_IAPItem.ToString()))
             gameObject.SetActive(false);
     }
 }

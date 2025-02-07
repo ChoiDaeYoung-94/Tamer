@@ -633,7 +633,7 @@ public class Monster : BaseController
 
     private void GoldSetting()
     {
-        Dictionary<string, object> dic_temp = AD.Managers.DataM._dic_monsters[_creature.ToString()] as Dictionary<string, object>;
+        Dictionary<string, object> dic_temp = AD.Managers.DataM.MonsterData[_creature.ToString()] as Dictionary<string, object>;
 
         int temp_gold = int.Parse(dic_temp["Gold"].ToString());
         gold = temp_gold + Random.Range(-temp_gold, temp_gold + 1);
