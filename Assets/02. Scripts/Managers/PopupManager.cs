@@ -156,7 +156,7 @@ namespace AD
 
         public void Heal()
         {
-            if (!AD.Managers.GoogleAdMobM.isInprogress)
+            if (!AD.Managers.GoogleAdMobM.IsInProgress)
                 AD.Managers.GoogleAdMobM.ShowRewardedAd();
         }
 

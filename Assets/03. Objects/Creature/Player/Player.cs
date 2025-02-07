@@ -139,7 +139,7 @@ public class Player : BaseController
                 {
                     case "GoogleAdMob":
                         AD.Managers.SoundM.UI_Click();
-                        if (!AD.Managers.GoogleAdMobM.isInprogress)
+                        if (!AD.Managers.GoogleAdMobM.IsInProgress)
                             AD.Managers.GoogleAdMobM.ShowRewardedAd();
                         break;
                     case "GoGameScene":
