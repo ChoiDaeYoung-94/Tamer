@@ -1335,6 +1335,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51897dc58f686f942a3e74b32dd8e8e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IsConflict: 0
 --- !u!114 &2564081725672228114
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1347,13 +1348,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e67b9ac53b066fd4d9f2b6d69b35180a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_popupLobby: {fileID: 7413130641793963779}
-  _go_popupExit: {fileID: 2183110993338969886}
-  _go_popupHeal: {fileID: 1542030922898187455}
-  _go_popupGameOver: {fileID: 6520806926923439913}
-  _go_popupSetting: {fileID: 6031923858935550562}
-  _go_bgm: {fileID: 6799497047502852643}
-  _go_sfx: {fileID: 557228594279799912}
+  _popupLobby: {fileID: 7413130641793963779}
+  _popupExit: {fileID: 2183110993338969886}
+  _popupHeal: {fileID: 1542030922898187455}
+  _popupGameOver: {fileID: 6520806926923439913}
+  _popupSetting: {fileID: 6031923858935550562}
+  _bgmToggle: {fileID: 6799497047502852643}
+  _sfxToggle: {fileID: 557228594279799912}
 --- !u!114 &1361109501700885724
 MonoBehaviour:
   m_ObjectHideFlags: 0
