@@ -284,7 +284,7 @@ public class Player : BaseController
 
     public void BuyAllyMonster(string name)
     {
-        Monster monster = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
+        Monster monster = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM.RootPlayer).GetComponent<Monster>();
         monster.AllySetting(playerPosition: transform.position, setting: true);
         AddAllyMonster(monster);
     }
@@ -349,7 +349,7 @@ public class Player : BaseController
 
         foreach (string temp_monster in temp_monsters)
         {
-            Monster monster = AD.Managers.PoolM.PopFromPool(temp_monster, AD.Managers.PoolM._root_Player).GetComponent<Monster>();
+            Monster monster = AD.Managers.PoolM.PopFromPool(temp_monster, AD.Managers.PoolM.RootPlayer).GetComponent<Monster>();
             monster.AllySetting(playerPosition: transform.position, setting: true);
 
             _list_groupMonsters.Add(monster);
@@ -359,7 +359,7 @@ public class Player : BaseController
     private void AddAllyMonster(Monster monster)
     {
         _list_groupMonsters.Add(monster);
-        monster.transform.SetParent(AD.Managers.PoolM._root_Player);
+        monster.transform.SetParent(AD.Managers.PoolM.RootPlayer);
 
         string temp_ally = AD.Managers.DataM.LocalPlayerData["AllyMonsters"];
         string temp_monster = monster._creature.ToString();
@@ -411,7 +411,7 @@ public class Player : BaseController
     {
         if (active)
         {
-            AD.Managers.PoolM._root_Player.transform.position = Vector3.zero;
+            AD.Managers.PoolM.RootPlayer.transform.position = Vector3.zero;
 
             foreach (Monster monster in _list_groupMonsters)
             {
@@ -424,7 +424,7 @@ public class Player : BaseController
             foreach (Monster monster in _list_groupMonsters)
                 monster._navAgent.enabled = false;
 
-            AD.Managers.PoolM._root_Player.transform.position = new Vector3(100f, 100f, 100f);
+            AD.Managers.PoolM.RootPlayer.transform.position = new Vector3(100f, 100f, 100f);
         }
     }
     #endregion
