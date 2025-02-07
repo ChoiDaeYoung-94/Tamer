@@ -152,7 +152,7 @@ public class ShopMan : MonoBehaviour
         AD.Managers.SoundM.UI_Click();
 
         if (id == AD.GameConstants.IAPItem.ProductNoAds.ToString())
-            AD.Managers.IAPM.BuyProductID(AD.Managers.IAPM.PRODUCT_NO_ADS);
+            AD.Managers.IAPM.BuyProductID(AD.Managers.IAPM.ProductNoAds);
     }
 
     public void IAPReset()

@@ -1,9 +1,9 @@
 #pragma warning disable CS0618 // UnityPurchasing.Initialize(this, builder);
 
 using System;
-using UnityEngine;
+
 using UnityEngine.Purchasing;
-using UnityEngine.Purchasing.Security;
+
 using Unity.Services.Core;
 
 namespace AD
@@ -13,7 +13,7 @@ namespace AD
         private static IStoreController storeController;
         private static IExtensionProvider storeExtensionProvider;
 
-        public string PRODUCT_NO_ADS = "com.aedeong.monstertamer.no_ads";
+        public string ProductNoAds = "com.aedeong.monstertamer.no_ads";
 
         async public void Init()
         {
@@ -31,7 +31,7 @@ namespace AD
             }
             catch (Exception e)
             {
-                AD.DebugLogger.LogError("IAPManager", "Unity Gaming Services 초기화 실패: " + e.Message);
+                AD.DebugLogger.LogError("IAPManager", $"Unity Gaming Services 초기화 실패: {e.Message}");
             }
         }
 
@@ -42,7 +42,7 @@ namespace AD
 
             var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
 
-            builder.AddProduct(PRODUCT_NO_ADS, ProductType.NonConsumable);
+            builder.AddProduct(ProductNoAds, ProductType.NonConsumable);
 
             UnityPurchasing.Initialize(this, builder);
         }
@@ -77,7 +77,6 @@ namespace AD
         public void OnInitialized(IStoreController controller, IExtensionProvider extensions)
         {
             AD.DebugLogger.Log("IAPManager", "OnInitialized: PASS");
-
             storeController = controller;
             storeExtensionProvider = extensions;
         }
@@ -94,7 +93,7 @@ namespace AD
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
         {
-            if (String.Equals(args.purchasedProduct.definition.id, PRODUCT_NO_ADS, StringComparison.Ordinal))
+            if (String.Equals(args.purchasedProduct.definition.id, ProductNoAds, StringComparison.Ordinal))
             {
                 AD.DebugLogger.Log("IAPManager", "ProcessPurchase: PASS. No Ads purchased.");
                 GrantNoAds();
@@ -112,15 +111,12 @@ namespace AD
             AD.DebugLogger.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
         }
 
-        private void RegisterIAPData(AD.GameConstants.IAPItem IAPitem)
+        private void RegisterIAPData(AD.GameConstants.IAPItem iapItem)
         {
-            string temp_str = AD.Managers.DataM.LocalPlayerData["GooglePlay"];
-            if (string.IsNullOrEmpty(temp_str))
-                temp_str = $"{IAPitem}";
-            else
-                temp_str += $",{IAPitem}";
+            string existingData = AD.Managers.DataM.LocalPlayerData["GooglePlay"];
+            string newData = string.IsNullOrEmpty(existingData) ? $"{iapItem}" : $"{existingData},{iapItem}";
 
-            AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: temp_str);
+            AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: newData);
         }
 
         private void GrantNoAds()
