@@ -190,14 +190,14 @@ public abstract class BaseController : MonoBehaviour
             {
                 index = Random.Range(1, 4);
 
-                PlaySFX(AD.Managers.SoundM._AC_sfx_sword);
+                PlaySFX(AD.Managers.SoundM.SFXSwordClip);
                 _crtAni.CrossFade($"Attack0{index}_sword", 0f);
             }
             else
             {
                 index = Random.Range(1, 3);
 
-                PlaySFX(AD.Managers.SoundM._AC_sfx_punch);
+                PlaySFX(AD.Managers.SoundM.SFXPunchClip);
                 _crtAni.CrossFade($"Punch0{index}", 0f);
             }
         }

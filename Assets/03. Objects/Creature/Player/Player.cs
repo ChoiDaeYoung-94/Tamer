@@ -153,7 +153,7 @@ public class Player : BaseController
 
     public void SetBuff()
     {
-        PlaySFX(AD.Managers.SoundM._AC_sfx_buff);
+        PlaySFX(AD.Managers.SoundM.SFXBuffClip);
 
         isBuffing = true;
 
@@ -182,7 +182,7 @@ public class Player : BaseController
 
     public void Heal()
     {
-        PlaySFX(AD.Managers.SoundM._AC_sfx_heal);
+        PlaySFX(AD.Managers.SoundM.SFXHealClip);
 
         Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
         HealEffect();
@@ -289,7 +289,7 @@ public class Player : BaseController
         AddAllyMonster(monster);
     }
 
-    public void MoveSound() => PlaySFX(AD.Managers.SoundM._AC_sfx_walk);
+    public void MoveSound() => PlaySFX(AD.Managers.SoundM.SFXWalkClip);
     #endregion
 
     #region AllyMonsters
