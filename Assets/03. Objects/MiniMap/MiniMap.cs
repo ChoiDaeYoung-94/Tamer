@@ -1,29 +1,27 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class MiniMap : MonoBehaviour
 {
-    static MiniMap instance;
-    public static MiniMap Instance { get { return instance; } }
+    private static MiniMap _instance;
+    public static MiniMap Instance { get { return _instance; } }
 
     [Header("--- 세팅 ---")]
-    [SerializeField] private Sprite[] _spr_player = null;
-    [SerializeField] private Transform _tr_player = null;
-    [SerializeField] private SpriteRenderer _sprR_player = null;
-    [SerializeField] GameObject _go_mainCamera = null;
-    [SerializeField] GameObject _go_minimapCamera = null;
-    [SerializeField] GameObject _go_minimapCanvas = null;
-    private Vector3 touchPosition = Vector3.zero;
-    private Vector3 dragPosition = Vector3.zero;
-    private Vector3 offsetPosition = Vector3.zero;
-    private Vector3 targetPosition = Vector3.zero;
-    private Vector3 orgCameraPosition = Vector3.zero;
+    [SerializeField] private Sprite[] _playerIcons;
+    [SerializeField] private Transform _playerTransform;
+    [SerializeField] private SpriteRenderer _playerIconRenderer;
+    [SerializeField] private GameObject _mainCamera;
+    [SerializeField] private GameObject _minimapCamera;
+    [SerializeField] private GameObject _minimapCanvas;
+
+    private Vector3 _touchStartPos;
+    private Vector3 _dragCurrentPos;
+    private Vector3 _offsetPos;
+    private Vector3 _targetPos;
+    private Vector3 _originalCameraPos;
 
     private void Awake()
     {
-        instance = this;
+        _instance = this;
     }
 
     private void OnDisable()
@@ -37,7 +35,7 @@ public class MiniMap : MonoBehaviour
 
     private void OnDestroy()
     {
-        instance = null;
+        _instance = null;
     }
 
     /// <summary>
@@ -50,7 +48,7 @@ public class MiniMap : MonoBehaviour
 
     private void Settings()
     {
-        _sprR_player.sprite = AD.Managers.DataM.LocalPlayerData["Sex"] == "Man" ? _spr_player[0] : _spr_player[1];
+        _playerIconRenderer.sprite = AD.Managers.DataM.LocalPlayerData["Sex"] == "Man" ? _playerIcons[0] : _playerIcons[1];
 
         AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
         AD.Managers.UpdateM.OnUpdateEvent += SetPlayerIcon;
@@ -58,24 +56,19 @@ public class MiniMap : MonoBehaviour
 
     private void SetPlayerIcon()
     {
-        Transform tr_temp = Player.Instance.transform;
-
-        _tr_player.localPosition = new Vector3(tr_temp.position.x, 1f, tr_temp.position.z);
+        _playerTransform.localPosition = new Vector3(Player.Instance.transform.position.x, 1f, Player.Instance.transform.position.z);
     }
 
     public void OpenMap()
     {
         Time.timeScale = 0;
 
-        _go_minimapCamera.transform.localPosition = new Vector3(_tr_player.localPosition.x, 31f, _tr_player.localPosition.z);
-        _go_minimapCamera.SetActive(true);
+        _minimapCamera.transform.localPosition = new Vector3(_playerTransform.localPosition.x, 31f, _playerTransform.localPosition.z);
+        _minimapCamera.SetActive(true);
 
-        JoyStick.Instance.transform.parent.gameObject.SetActive(false);
-        PlayerUICanvas.Instance.gameObject.SetActive(false);
-
-        _go_minimapCanvas.SetActive(true);
-
-        _go_mainCamera.SetActive(false);
+        ToggleGameUI(false);
+        _minimapCanvas.SetActive(true);
+        _mainCamera.SetActive(false);
 
         AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
         AD.Managers.UpdateM.OnUpdateEvent += MiniMapDrag;
@@ -87,15 +80,20 @@ public class MiniMap : MonoBehaviour
 
         AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
 
-        JoyStick.Instance.transform.parent.gameObject.SetActive(true);
-        PlayerUICanvas.Instance.gameObject.SetActive(true);
+        ToggleGameUI(true);
+        _mainCamera.SetActive(true);
+        _minimapCamera.SetActive(false);
+    }
 
-        _go_mainCamera.SetActive(true);
-        _go_minimapCamera.SetActive(false);
+    private void ToggleGameUI(bool isActive)
+    {
+        JoyStick.Instance.transform.parent.gameObject.SetActive(isActive);
+        PlayerUICanvas.Instance.gameObject.SetActive(isActive);
     }
 
     private void MiniMapDrag()
     {
+        if (Input.touchCount == 0) return;
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
@@ -103,24 +101,24 @@ public class MiniMap : MonoBehaviour
             switch (touch.phase)
             {
                 case TouchPhase.Began:
-                    touchPosition = Camera.main.ScreenToWorldPoint(new Vector3(touch.position.x, touch.position.y, 0f));
-                    orgCameraPosition = _go_minimapCamera.transform.localPosition;
+                    _touchStartPos = Camera.main.ScreenToWorldPoint(new Vector3(touch.position.x, touch.position.y, 0f));
+                    _originalCameraPos = _minimapCamera.transform.localPosition;
                     break;
 
                 case TouchPhase.Moved:
-                    dragPosition = Camera.main.ScreenToWorldPoint(new Vector3(touch.position.x, touch.position.y, 0f));
+                    _dragCurrentPos = Camera.main.ScreenToWorldPoint(new Vector3(touch.position.x, touch.position.y, 0f));
 
-                    offsetPosition = touchPosition - dragPosition;
+                    _offsetPos = _touchStartPos - _dragCurrentPos;
 
-                    float x = orgCameraPosition.x + offsetPosition.x;
-                    float z = orgCameraPosition.z + offsetPosition.z;
+                    float x = _originalCameraPos.x + _offsetPos.x;
+                    float z = _originalCameraPos.z + _offsetPos.z;
 
                     x = Mathf.Clamp(x, -70f, 70f);
                     z = Mathf.Clamp(z, -18f, 18f);
 
-                    targetPosition = new Vector3(x, orgCameraPosition.y, z);
+                    _targetPos = new Vector3(x, _originalCameraPos.y, z);
 
-                    _go_minimapCamera.transform.localPosition = Vector3.Lerp(_go_minimapCamera.transform.localPosition, targetPosition, 0.7f);
+                    _minimapCamera.transform.localPosition = Vector3.Lerp(_minimapCamera.transform.localPosition, _targetPos, 0.7f);
                     break;
 
                 case TouchPhase.Ended:
