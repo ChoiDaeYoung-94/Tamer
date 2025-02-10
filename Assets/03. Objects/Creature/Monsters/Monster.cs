@@ -563,7 +563,7 @@ public class Monster : BaseController
         if (isBoss)
         {
             isCommander = false;
-            MonsterGenerator.Instance._go_boss = null;
+            MonsterGenerator.Instance.BossMonster = null;
         }
         else if (isCommander)
         {
@@ -608,7 +608,7 @@ public class Monster : BaseController
         _capsuleCollider.enabled = false;
 
         if (isBoss)
-            MonsterGenerator.Instance._go_boss = null;
+            MonsterGenerator.Instance.BossMonster = null;
 
         isCommander = false;
         _list_groupMonsters.Clear();
