@@ -18,13 +18,13 @@ public class InitializeGame : MonoBehaviour
     }
 
     [Tooltip("초기화 해야 할 스크립트를 지닌 게임오브젝트")]
-    [SerializeField] GameObject[] _go_initialze = null;
+    [SerializeField] GameObject[] _initializeObjects = null;
 
     private void Start()
     {
         foreach (Scripts script in Enum.GetValues(typeof(Scripts)))
         {
-            foreach (GameObject item in _go_initialze)
+            foreach (GameObject item in _initializeObjects)
             {
                 if (item.GetComponent(script.ToString()) != null)
                 {
@@ -41,7 +41,7 @@ public class InitializeGame : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    [CustomEditor(typeof(Initialize))]
+    [CustomEditor(typeof(InitializeGame))]
     public class customEditor : Editor
     {
         public override void OnInspectorGUI()
