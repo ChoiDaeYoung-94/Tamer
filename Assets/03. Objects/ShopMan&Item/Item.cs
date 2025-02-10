@@ -18,7 +18,7 @@ public class Item : MonoBehaviour
 
     private void Awake()
     {
-        ShopMan.Instance._list_item.Add(this);
+        ShopMan.Instance.ItemList.Add(this);
         Init();
     }
 
@@ -39,7 +39,7 @@ public class Item : MonoBehaviour
 
     private void ItemState()
     {
-        if (ShopMan.Instance._list_currentItems.Contains(_str_itemName) ||
+        if (ShopMan.Instance.CurrentItemsList.Contains(_str_itemName) ||
             Player.Instance._list_playerMonsters.Contains(_str_itemName))
             isUnlocked = true;
 

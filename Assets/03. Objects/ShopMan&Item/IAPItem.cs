@@ -13,7 +13,7 @@ public class IAPItem : MonoBehaviour
 
     private void Start()
     {
-        ShopMan.Instance._list_IAPitem.Add(this);
+        ShopMan.Instance.IAPitemList.Add(this);
     }
 
     public void Init()

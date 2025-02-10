@@ -1,37 +1,39 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+
 using UnityEngine;
+
 using TMPro;
 
 public class ShopMan : MonoBehaviour
 {
-    static ShopMan instance;
-    public static ShopMan Instance { get { return instance; } }
+    private static ShopMan _instance;
+    public static ShopMan Instance { get { return _instance; } }
 
-    [Header("--- 세팅 ---")]
-    [SerializeField] GameObject _go_popupShop = null;
-    [SerializeField] GameObject _go_shop1 = null;
-    [SerializeField] GameObject _go_shop2 = null;
-    [SerializeField] GameObject _go_shop3 = null;
-    [SerializeField] GameObject _go_itemInfo = null;
-    [SerializeField] TMP_Text _TMP_itemInfo = null;
-    [SerializeField] GameObject _go_afterBuy = null;
-    [SerializeField] TMP_Text _TMP_afterBuy = null;
-    string _str_currnetItemName = string.Empty;
-    int _currnetItemPrice = 0;
-    string _str_successBuy = "Purchase completed.";
-    string _str_failedBuy = "You don't have enough Gold.";
-    public string _str_currentItems = string.Empty;
-    public List<string> _list_currentItems = new List<string>();
-    bool isItem = false;
-    public List<Item> _list_item = new List<Item>();
-    public List<IAPItem> _list_IAPitem = new List<IAPItem>();
+    [Header("--- UI Elements ---")]
+    [SerializeField] private GameObject _popupShopUI;
+    [SerializeField] private GameObject[] _shops;
+    [SerializeField] private GameObject _itemInfoPanel;
+    [SerializeField] private TMP_Text _itemInfoText;
+    [SerializeField] private GameObject _afterBuyPanel;
+    [SerializeField] private TMP_Text _afterBuyText;
+
+    private string _currentItemName = string.Empty;
+    private int _currentItemPrice = 0;
+    private const string _successBuyMessage = "Purchase completed.";
+    private const string _failedBuyMessage = "You don't have enough Gold.";
+
+    public string _currentItemsText = string.Empty;
+    public List<string> CurrentItemsList = new List<string>();
+    public List<Item> ItemList = new List<Item>();
+    public List<IAPItem> IAPitemList = new List<IAPItem>();
+
+    private bool _isEquipmentItem;
 
     private void Awake()
     {
-        instance = this;
+        _instance = this;
         Init();
 
         AD.Managers.IAPM.Init();
@@ -39,110 +41,98 @@ public class ShopMan : MonoBehaviour
 
     private void OnDestroy()
     {
-        instance = null;
+        _instance = null;
     }
 
     #region Functions
     private void Init()
     {
-        _str_currentItems = PlayerPrefs.GetString("LocalItem");
-        _list_currentItems = _str_currentItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        _currentItemsText = PlayerPrefs.GetString("LocalItem");
+        CurrentItemsList = _currentItemsText.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
     public void SaveItem(string item)
     {
-        if (string.IsNullOrEmpty(_str_currentItems))
-            _str_currentItems = $"{item}";
+        if (string.IsNullOrEmpty(_currentItemsText))
+            _currentItemsText = item;
         else
-            _str_currentItems += $",{item}";
+            _currentItemsText += $",{item}";
 
-        PlayerPrefs.SetString("LocalItem", _str_currentItems);
-        _list_currentItems.Add(item);
+        PlayerPrefs.SetString("LocalItem", _currentItemsText);
+        CurrentItemsList.Add(item);
     }
 
-    public void OpenShop1()
-    {
-        AD.Managers.SoundM.UI_Click();
-        _go_shop1.SetActive(true);
-        _go_shop2.SetActive(false);
-        _go_shop3.SetActive(false);
-    }
-
-    public void OpenShop2()
-    {
-        AD.Managers.SoundM.UI_Click();
-        _go_shop2.SetActive(true);
-        _go_shop1.SetActive(false);
-        _go_shop3.SetActive(false);
-    }
-
-    public void OpenShop3()
-    {
-        AD.Managers.SoundM.UI_Click();
-        _go_shop3.SetActive(true);
-        _go_shop1.SetActive(false);
-        _go_shop2.SetActive(false);
-    }
-
-    public void ChooseItem(string itemName, string price, string info, bool isitem)
+    public void OpenShop(int index)
     {
         AD.Managers.SoundM.UI_Click();
 
-        _str_currnetItemName = itemName;
-        _currnetItemPrice = int.Parse(price);
-        _TMP_itemInfo.text = info;
-        this.isItem = isitem;
-        _go_itemInfo.SetActive(true);
+        for (int i = 0; i < _shops.Length; i++)
+            _shops[i].SetActive(i == index);
+    }
+
+    public void ChooseItem(string itemName, string price, string info, bool isEquipment)
+    {
+        AD.Managers.SoundM.UI_Click();
+
+        _currentItemName = itemName;
+        _currentItemPrice = int.Parse(price);
+        _itemInfoText.text = info;
+        _isEquipmentItem = isEquipment;
+        _itemInfoPanel.SetActive(true);
     }
 
     public void ClickBuy()
     {
         AD.Managers.SoundM.UI_Click();
 
-        if (_currnetItemPrice > Player.Instance.Gold)
+        if (_currentItemPrice > Player.Instance.Gold)
         {
-            _TMP_afterBuy.text = _str_failedBuy;
-            _go_afterBuy.SetActive(true);
+            ShowPurchaseResult(_failedBuyMessage);
             return;
         }
 
-        _TMP_afterBuy.text = _str_successBuy;
-        _go_afterBuy.SetActive(true);
+        ShowPurchaseResult(_successBuyMessage);
+    }
+
+    private void ShowPurchaseResult(string message)
+    {
+        _afterBuyText.text = message;
+        _afterBuyPanel.SetActive(true);
     }
 
     public void CheckSuccessBuy()
     {
         AD.Managers.SoundM.UI_Click();
 
-        if (_TMP_afterBuy.text != _str_successBuy)
+        if (_afterBuyText.text != _successBuyMessage)
         {
             AD.Managers.PopupM.DisablePop();
             return;
         }
 
-        if (_TMP_afterBuy.text == _str_successBuy)
+        if (_afterBuyText.text == _successBuyMessage)
         {
             AD.Managers.PopupM.DisablePop();
             AD.Managers.PopupM.DisablePop();
         }
 
-        if (isItem)
+        if (_isEquipmentItem)
         {
-            SaveItem(_str_currnetItemName);
-            AD.Managers.EquipmentM.Equip(_str_currnetItemName);
+            SaveItem(_currentItemName);
+            AD.Managers.EquipmentM.Equip(_currentItemName);
         }
         else
         {
-            Player.Instance.BuyAllyMonster(_str_currnetItemName);
-            ResetItem();
+            Player.Instance.BuyAllyMonster(_currentItemName);
+            ResetItems();
         }
 
-        Player.Instance.MinusGold(_currnetItemPrice);
+        Player.Instance.MinusGold(_currentItemPrice);
     }
 
-    public void ResetItem()
+    public void ResetItems()
     {
-        foreach (Item item in _list_item)
+        foreach (Item item in ItemList)
             item.Init();
     }
 
@@ -157,8 +147,8 @@ public class ShopMan : MonoBehaviour
 
     public void IAPReset()
     {
-        foreach (IAPItem IAPitem in _list_IAPitem)
-            IAPitem.Init();
+        foreach (IAPItem iapItem in IAPitemList)
+            iapItem.Init();
     }
     #endregion
 
@@ -167,6 +157,6 @@ public class ShopMan : MonoBehaviour
     private void OnTriggerEnter(Collider col)
     {
         if (col.CompareTag("Player"))
-            _go_popupShop.SetActive(true);
+            _popupShopUI.SetActive(true);
     }
 }

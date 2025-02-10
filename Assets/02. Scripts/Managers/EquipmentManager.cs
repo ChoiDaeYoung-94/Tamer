@@ -53,7 +53,7 @@ namespace AD
 
             CheckSlotAndEquip(item);
 
-            ShopMan.Instance.ResetItem();
+            ShopMan.Instance.ResetItems();
             PlayerUICanvas.Instance.UpdatePlayerInfo();
         }
 
