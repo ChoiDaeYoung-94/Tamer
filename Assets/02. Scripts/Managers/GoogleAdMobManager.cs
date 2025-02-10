@@ -182,7 +182,7 @@ namespace AD
             PlayerUICanvas.Instance.EndBuff();
             Player.Instance.EndBuff();
             if (BuffingMan.Instance != null)
-                BuffingMan.Instance.ableAdMob();
+                BuffingMan.Instance.SetAdmobState(true);
         }
         #endregion
     }

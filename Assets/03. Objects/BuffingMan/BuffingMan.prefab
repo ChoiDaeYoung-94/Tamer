@@ -361,10 +361,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f7203a60e9fa5540b80af7a0329e9a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_ablePortal: {fileID: 8242473419952922660}
-  _go_unablePortal: {fileID: 5062190022928180052}
-  _go_admob: {fileID: 4589691446242531306}
-  _TM_admob: {fileID: 4589691446242531304}
+  _ablePortal: {fileID: 8242473419952922660}
+  _unablePortal: {fileID: 5062190022928180052}
+  _admobObject: {fileID: 4589691446242531306}
+  _admobTextMesh: {fileID: 4589691446242531304}
 --- !u!135 &3765019217794931926
 SphereCollider:
   m_ObjectHideFlags: 0
