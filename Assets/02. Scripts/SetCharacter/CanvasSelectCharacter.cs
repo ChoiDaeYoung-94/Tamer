@@ -1,140 +1,83 @@
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
-using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
+
+using Cysharp.Threading.Tasks;
 
 public class CanvasSelectCharacter : MonoBehaviour
 {
-    [Header("--- 세팅 ---")]
-    [SerializeField] Transform _tr_male = null;
-    [SerializeField] Transform _tr_female = null;
-    [SerializeField] Animator _maleAni = null;
-    [SerializeField] Animator _femaleAni = null;
+    [SerializeField] private Transform _trMale;
+    [SerializeField] private Transform _trFemale;
+    [SerializeField] private Animator _maleAnimator;
+    [SerializeField] private Animator _femaleAnimator;
 
-    Vector3 _vec_male = Vector3.zero;
-    Vector3 _vec_female = Vector3.zero;
-    Coroutine _co_move = null;
+    private Vector3 _targetMalePosition;
+    private Vector3 _targetFemalePosition;
+    private UniTask _moveTask = UniTask.CompletedTask;
 
-    Coroutine _co_play = null;
-
-    /// <summary>
-    /// 이 씬에도 뒤로가기로 게임 종료 가능하도록 하기 위함
-    /// </summary>
     private void Start()
     {
         AD.Managers.PopupM.ReleaseException();
     }
 
-    #region Functions
     public void ButtonPlay()
     {
         AD.Managers.PopupM.SetException();
-
-        if (_co_play != null)
-            return;
-
         AD.Managers.SoundM.UI_Ok();
 
-        _co_play = StartCoroutine(Play());
+        Play().Forget();
     }
 
     public void ButtonDirection(string direction)
     {
-        if (_co_move != null || _co_play != null)
+        if (!_moveTask.Status.IsCompleted())
             return;
 
         AD.Managers.SoundM.UI_Click();
 
-        SetPosition(direction);
-
-        _co_move = StartCoroutine(Move());
+        SetTargetPosition(direction);
+        _moveTask = Move();
     }
 
-    void SetPosition(string direction)
+    private void SetTargetPosition(string direction)
     {
-        if (_tr_male.transform.position.x != 0)
-        {
-            float x = direction.Equals("Right") ? -5 : 5;
-            _tr_male.transform.position = new Vector3(x, _tr_male.position.y, _tr_male.position.z);
-            _vec_male = new Vector3(0f, _tr_male.position.y, _tr_male.position.z);
-        }
-        else
-        {
-            float x = direction.Equals("Right") ? 5 : -5;
-            _vec_male = new Vector3(x, _tr_female.position.y, _tr_female.position.z);
-        }
+        float xOffset = direction.Equals("Right") ? -5f : 5f;
 
-        if (_tr_female.transform.position.x != 0)
-        {
-            float x = direction.Equals("Right") ? -5 : 5;
-            _tr_female.transform.position = new Vector3(x, _tr_female.position.y, _tr_female.position.z);
-            _vec_female = new Vector3(0f, _tr_female.position.y, _tr_female.position.z);
-        }
-        else
-        {
-            float x = direction.Equals("Right") ? 5 : -5;
-            _vec_female = new Vector3(x, _tr_female.position.y, _tr_female.position.z);
-        }
+        _targetMalePosition = Mathf.Approximately(_trMale.position.x, 0)
+            ? new Vector3(xOffset, _trMale.position.y, _trMale.position.z)
+            : new Vector3(0f, _trMale.position.y, _trMale.position.z);
+
+        _targetFemalePosition = Mathf.Approximately(_trFemale.position.x, 0)
+            ? new Vector3(xOffset, _trFemale.position.y, _trFemale.position.z)
+            : new Vector3(0f, _trFemale.position.y, _trFemale.position.z);
     }
 
-    IEnumerator Move()
+    private async UniTask Move()
     {
-        while (Mathf.Abs(_tr_male.position.x - _vec_male.x) > 0.01f)
+        while (Mathf.Abs(_trMale.position.x - _targetMalePosition.x) > 0.01f)
         {
-            _tr_male.position = Vector3.Lerp(_tr_male.position, _vec_male, 0.2f);
-            _tr_female.position = Vector3.Lerp(_tr_female.position, _vec_female, 0.2f);
+            _trMale.position = Vector3.Lerp(_trMale.position, _targetMalePosition, 0.2f);
+            _trFemale.position = Vector3.Lerp(_trFemale.position, _targetFemalePosition, 0.2f);
 
-            yield return null;
+            await UniTask.Yield();
         }
-        _tr_male.position = _vec_male;
-        _tr_female.position = _vec_female;
 
-        if (_co_move != null)
-        {
-            StopCoroutine(_co_move);
-            _co_move = null;
-        }
+        _trMale.position = _targetMalePosition;
+        _trFemale.position = _targetFemalePosition;
     }
 
-    IEnumerator Play()
+    private async UniTaskVoid Play()
     {
-        string sex = _tr_male.position.x == 0 ? "Man" : "Woman";
-        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", sex } }, getAllData: false, update: false);
+        string selectedGender = Mathf.Approximately(_trMale.position.x, 0) ? "Man" : "Woman";
+        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", selectedGender } }, false, false);
 
-        _maleAni.CrossFade("Select", 0.1f);
-        _femaleAni.CrossFade("Select", 0.1f);
+        _maleAnimator.CrossFade("Select", 0.1f);
+        _femaleAnimator.CrossFade("Select", 0.1f);
 
-        while (AD.Managers.ServerM.IsInProgress)
-            yield return null;
-
+        await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress);
         AD.Managers.DataM.UpdatePlayerData();
+        await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress);
 
-        while (AD.Managers.ServerM.IsInProgress)
-            yield return null;
-
-        if (_co_play != null)
-        {
-            StopCoroutine(_co_play);
-            _co_play = null;
-
-            AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.Main);
-        }
+        AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.Main);
     }
-    #endregion
-
-#if UNITY_EDITOR
-    [CustomEditor(typeof(CanvasSelectCharacter))]
-    public class customEditor : Editor
-    {
-        public override void OnInspectorGUI()
-        {
-            EditorGUILayout.HelpBox("CanvasSelectCharacter관련 ", MessageType.Info);
-
-            base.OnInspectorGUI();
-        }
-    }
-#endif
 }
