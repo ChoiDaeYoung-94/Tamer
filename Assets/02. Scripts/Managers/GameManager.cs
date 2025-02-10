@@ -51,7 +51,7 @@ namespace AD
             var player = Player.Instance;
             var cameraArm = player._tr_cameraArm;
 
-            CameraManage.Instance.CM_cameras[0].transform.position = IsGame ? _vecGameCmCam : _vecMainCmCam;
+            CameraManage.Instance.CinemachineCameras[0].transform.position = IsGame ? _vecGameCmCam : _vecMainCmCam;
 
             PlayerUICanvas.Instance.StartInit();
             SetSceneUIActive(true);
