@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class IAPItem : MonoBehaviour
 {
-    [SerializeField] AD.GameConstants.IAPItem _IAPItem;
+    [SerializeField] private AD.GameConstants.IAPItem _IAPItem;
 
     private void OnEnable()
     {
