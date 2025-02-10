@@ -4119,11 +4119,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a03bb9b75be65849af2d1322679c8f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_grass:
+  _grassPrefabs:
   - {fileID: 183222886446776291, guid: 05318b47d927d0544b40839f35bf6175, type: 3}
-  _go_rock:
+  _rockPrefabs:
   - {fileID: 1017761012396978790, guid: 1da0f55ebb78dc64788ebacaa12951cb, type: 3}
-  _go_trees:
+  _treePrefabs:
   - {fileID: 6672665467283729316, guid: cc9254bbbbf20db4ba8ac7298de9ebeb, type: 3}
   - {fileID: 1031951609429618125, guid: 17a679b2a07557544a56b60ad5ac031b, type: 3}
   - {fileID: 4602163295358312130, guid: cd6243626883e7c49871090c0832efc5, type: 3}
@@ -6085,7 +6085,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ba90497789e57c40b9150d5c5dce8c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_initialze: []
+  _initializeObjects: []
 --- !u!4 &1986700268
 Transform:
   m_ObjectHideFlags: 0
