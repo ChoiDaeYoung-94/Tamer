@@ -1,20 +1,21 @@
-using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
-using UnityEngine.UI;
+
 using TMPro;
 
 public class Item : MonoBehaviour
 {
-    [SerializeField] AD.GameConstants.Item _items;
-    [SerializeField] AD.GameConstants.Creature _creature;
-    [SerializeField] TMP_Text _TMP_info = null;
-    string _str_itemName = string.Empty;
-    string _str_price = string.Empty;
-    [SerializeField] GameObject _go_lock = null;
-    bool isItem = false;
-    bool isUnlocked = false;
-    bool isEquipped = false;
+    [SerializeField] private AD.GameConstants.Item _itemType;
+    [SerializeField] private AD.GameConstants.Creature _creatureType;
+    [SerializeField] private TMP_Text _itemInfoText;
+    [SerializeField] private GameObject _lockIcon;
+
+    private string _itemName;
+    private string _itemPrice;
+    private bool _isItem;
+    private bool _isUnlocked;
+    private bool _isEquipped;
 
     private void Awake()
     {
@@ -22,98 +23,89 @@ public class Item : MonoBehaviour
         Init();
     }
 
-    #region Functions
     public void Init()
     {
-        isItem = false;
-        isUnlocked = false;
-        isEquipped = false;
+        _isItem = _creatureType == AD.GameConstants.Creature.Player;
+        _isUnlocked = false;
+        _isEquipped = false;
 
-        _str_itemName = _items == AD.GameConstants.Item.None ? _creature.ToString() : _items.ToString();
-        if (_creature == AD.GameConstants.Creature.Player)
-            isItem = true;
+        _itemName = _itemType == AD.GameConstants.Item.None ? _creatureType.ToString() : _itemType.ToString();
 
-        ItemState();
-        ItemSetting();
+        UpdateItemState();
+        UpdateItemUI();
     }
 
-    private void ItemState()
+    private void UpdateItemState()
     {
-        if (ShopMan.Instance.CurrentItemsList.Contains(_str_itemName) ||
-            Player.Instance._list_playerMonsters.Contains(_str_itemName))
-            isUnlocked = true;
-
-        if (Player.Instance._list_playerEquippedItems.Contains(_str_itemName))
-            isEquipped = true;
-    }
-
-    private void ItemSetting()
-    {
-        string str_totalInfo = string.Empty;
-        str_totalInfo = returnInfo();
-
-        if (isUnlocked)
+        if (ShopMan.Instance.CurrentItemsList.Contains(_itemName) ||
+            Player.Instance._list_playerMonsters.Contains(_itemName))
         {
-            _go_lock.SetActive(false);
-
-            if (_creature == AD.GameConstants.Creature.Player)
-                str_totalInfo = $"{_str_itemName}";
+            _isUnlocked = true;
         }
 
-        if (isEquipped)
-            str_totalInfo += "\nEquipped";
-
-        _TMP_info.text = str_totalInfo;
+        if (Player.Instance._list_playerEquippedItems.Contains(_itemName))
+        {
+            _isEquipped = true;
+        }
     }
 
-    private string returnInfo()
+    private void UpdateItemUI()
     {
-        string str_temp = string.Empty;
+        string itemInfo = GetItemInfo();
 
-        _str_price = _items == AD.GameConstants.Item.None ? ((Dictionary<string, object>)AD.Managers.DataM.MonsterData[_str_itemName])["Price"].ToString()
-                                          : ((Dictionary<string, object>)AD.Managers.DataM.ItemData[_str_itemName])["Price"].ToString();
+        if (_isUnlocked)
+        {
+            _lockIcon.SetActive(false);
+            if (_creatureType == AD.GameConstants.Creature.Player)
+                itemInfo = _itemName;
+        }
 
-        str_temp = $"{_str_itemName}\nPrice - {_str_price}G";
+        if (_isEquipped)
+            itemInfo += "\nEquipped";
 
-        return str_temp;
+        _itemInfoText.text = itemInfo;
+    }
+
+    private string GetItemInfo()
+    {
+        var dataSource = _itemType == AD.GameConstants.Item.None
+            ? AD.Managers.DataM.MonsterData[_itemName] as Dictionary<string, object>
+            : AD.Managers.DataM.ItemData[_itemName] as Dictionary<string, object>;
+
+        _itemPrice = dataSource["Price"].ToString();
+        return $"{_itemName}\nPrice - {_itemPrice}G";
     }
 
     public void ChooseItem()
     {
-        if ((isUnlocked && isEquipped) || (!isUnlocked && _items == AD.GameConstants.Item.None))
+        if ((_isUnlocked && _isEquipped) || (!_isUnlocked && _itemType == AD.GameConstants.Item.None))
             return;
-        else if (isUnlocked && !isEquipped && _creature == AD.GameConstants.Creature.Player)
+        else if (_isUnlocked && !_isEquipped && _creatureType == AD.GameConstants.Creature.Player)
             Equip();
         else
-            ItemInfo();
+            ShowItemInfo();
     }
 
     private void Equip()
     {
-        AD.Managers.EquipmentM.Equip(_str_itemName);
+        AD.Managers.EquipmentM.Equip(_itemName);
     }
 
-    private void ItemInfo()
+    private void ShowItemInfo()
     {
-        string str_info = "item info\n";
-        string str_plus = string.Empty;
-        Dictionary<string, object> dic_item = null;
+        var dataSource = _itemType == AD.GameConstants.Item.None
+            ? AD.Managers.DataM.MonsterData[_creatureType.ToString()] as Dictionary<string, object>
+            : AD.Managers.DataM.ItemData[_itemType.ToString()] as Dictionary<string, object>;
 
-        if (_items == AD.GameConstants.Item.None)
-            dic_item = AD.Managers.DataM.MonsterData[_creature.ToString()] as Dictionary<string, object>;
-        else
-        {
-            dic_item = AD.Managers.DataM.ItemData[_items.ToString()] as Dictionary<string, object>;
-            str_plus = "Plus ";
-        }
+        string prefix = _itemType != AD.GameConstants.Item.None ? "Plus " : "";
 
-        str_info += $"- {_str_itemName}\n" +
-        $"- {str_plus}HP : {dic_item["Hp"]}\n" +
-        $"- {str_plus}Power : {dic_item["Power"]}\n" +
-        $"- {str_plus}AttackSpeed : {dic_item["AttackSpeed"]}\n" +
-        $"- {str_plus}MoveSpeed : {dic_item["MoveSpeed"]}";
+        string itemInfo = $"Item Info\n" +
+            $"- {_itemName}\n" +
+            $"- {prefix}HP : {dataSource["Hp"]}\n" +
+            $"- {prefix}Power : {dataSource["Power"]}\n" +
+            $"- {prefix}AttackSpeed : {dataSource["AttackSpeed"]}\n" +
+            $"- {prefix}MoveSpeed : {dataSource["MoveSpeed"]}";
 
-        ShopMan.Instance.ChooseItem(_str_itemName, _str_price, str_info, isItem);
+        ShopMan.Instance.ChooseItem(_itemName, _itemPrice, itemInfo, _isItem);
     }
-    #endregion
 }
