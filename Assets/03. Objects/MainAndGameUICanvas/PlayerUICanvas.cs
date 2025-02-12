@@ -88,7 +88,7 @@ public class PlayerUICanvas : MonoBehaviour
         _captureCapacityText.text = $"{Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
         _goldText.text = $"Gold - {Player.Instance.Gold}";
 
-        float maxHP = Player.Instance.ItemHp > Player.Instance.OrgHp ? Player.Instance.ItemHp : Player.Instance.OrgHp;
+        float maxHP = Player.Instance.ItmeAdditionalHp > Player.Instance.OriginalHP ? Player.Instance.ItmeAdditionalHp : Player.Instance.OriginalHP;
         _playerHpText.text = $"{Player.Instance.Hp} / {maxHP}";
 
         _playerHpSlider.maxValue = maxHP;

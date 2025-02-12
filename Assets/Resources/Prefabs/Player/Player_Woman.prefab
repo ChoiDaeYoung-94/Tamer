@@ -1407,31 +1407,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: addc26d835617674c95ce70dbbdf3179, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _crtState: 0
-  _creature: 0
-  _crtAni: {fileID: 4030967739036099423}
-  allyLayer: 0
-  enemyLayer: 0
-  dieLayer: 0
-  _capsuleCollider: {fileID: 3785164528392772703}
-  _go_heal: {fileID: 3527724572267886797}
-  _tr_uiCanvas: {fileID: 0}
-  _go_effectSpawn: {fileID: 0}
-  _go_effectDie: {fileID: 93679679610193817}
-  _itemHp: 0
-  _orgHp: 0
+  CreatureType: 0
+  _state: 0
+  _animator: {fileID: 4030967739036099423}
+  _capsuleCollider: {fileID: 4143679188092503573}
+  _healObject: {fileID: 3527724572267886797}
+  _dieEffect: {fileID: 93679679610193817}
+  _spawnEffect: {fileID: 0}
+  _uiCanvas: {fileID: 0}
+  _audioSource: {fileID: 5762705845214044467}
+  _originalHp: 0
   _hp: 0
+  _itemAdditionalHp: 0
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  isDie: 0
-  _AS_sfx: {fileID: 5762705845214044467}
   _gold: 0
+  _maxCaptureCapacity: 10
   _list_groupMonsters: []
   _go_player: {fileID: 4265390555638271167}
   _tr_cameraArm: {fileID: 5803751224327128296}
   _simpleSword: {fileID: 934545058857187036}
   _masterSword: {fileID: 75146002134062875}
+  isEquippedSword: 0
   _simpleshield: {fileID: 8543223585543733381}
   _mastershield: {fileID: 8891111251715097847}
   _buff: {fileID: 1294514411517721087}

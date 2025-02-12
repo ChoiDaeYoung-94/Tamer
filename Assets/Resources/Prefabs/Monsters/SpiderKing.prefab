@@ -946,17 +946,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bc0033ac1b4c6f40861793e1412054e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _crtState: 0
-  _creature: 8
-  _crtAni: {fileID: 3874591938956198990}
-  allyLayer: 0
-  enemyLayer: 0
-  dieLayer: 0
+  CreatureType: 8
+  _state: 0
+  _animator: {fileID: 3874591938956198990}
   _capsuleCollider: {fileID: 708827183014389179}
-  _go_heal: {fileID: 5534052071525347345}
-  _tr_uiCanvas: {fileID: 7481631812497951100}
-  _go_effectSpawn: {fileID: 5704656395293516246}
-  _go_effectDie: {fileID: 7397284795829594436}
+  _healObject: {fileID: 5534052071525347345}
+  _dieEffect: {fileID: 7397284795829594436}
+  _spawnEffect: {fileID: 5704656395293516246}
+  _uiCanvas: {fileID: 7481631812497951100}
   _itemHp: 0
   _orgHp: 0
   _hp: 0
