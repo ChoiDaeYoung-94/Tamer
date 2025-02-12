@@ -111,7 +111,7 @@ namespace AD
             AD.DebugLogger.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
         }
 
-        private void RegisterIAPData(AD.GameConstants.IAPItem iapItem)
+        private void RegisterIAPData(AD.GameConstants.IAPItems iapItem)
         {
             string existingData = AD.Managers.DataM.LocalPlayerData["GooglePlay"];
             string newData = string.IsNullOrEmpty(existingData) ? $"{iapItem}" : $"{existingData},{iapItem}";
@@ -121,7 +121,7 @@ namespace AD
 
         private void GrantNoAds()
         {
-            RegisterIAPData(AD.GameConstants.IAPItem.ProductNoAds);
+            RegisterIAPData(AD.GameConstants.IAPItems.ProductNoAds);
             AD.Managers.DataM.UpdatePlayerData();
 
             ShopMan.Instance.IAPReset();

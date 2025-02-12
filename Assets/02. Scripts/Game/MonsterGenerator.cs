@@ -81,7 +81,7 @@ public class MonsterGenerator : MonoBehaviour
                 int groupSize = UnityEngine.Random.Range(1, 4);
 
                 int temp_random = UnityEngine.Random.Range(range.min, range.max + 1);
-                string temp_name = Enum.GetValues(typeof(AD.GameConstants.Creature)).GetValue(temp_random).ToString();
+                string temp_name = Enum.GetValues(typeof(AD.GameConstants.Creatures)).GetValue(temp_random).ToString();
                 Monster commanderMonster = AD.Managers.PoolM.PopFromPool(temp_name).GetComponent<Monster>();
                 commanderMonster.isCommander = true;
                 commanderMonster.StartDetectionCoroutine();
@@ -203,7 +203,7 @@ public class MonsterGenerator : MonoBehaviour
 
     bool RegionOfMonster(Monster monster)
     {
-        int value = (int)monster._creature;
+        int value = (int)monster.CreatureType;
 
         if (_monsterRegionMap.TryGetValue(_currentRegion, out (int min, int max) num))
             return value >= num.min && value <= num.max;

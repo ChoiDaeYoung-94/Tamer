@@ -25,7 +25,7 @@ namespace AD
         /// <summary>
         /// 모든 객체 (몬스터, 플레이어 등)
         /// </summary>
-        public enum Creature
+        public enum Creatures
         {
             Player,
             Bat,
@@ -45,7 +45,7 @@ namespace AD
         /// <summary>
         /// 상점 아이템
         /// </summary>
-        public enum Item
+        public enum Items
         {
             None,
             SimpleSword,
@@ -57,7 +57,7 @@ namespace AD
         /// <summary>
         /// 인앱 결제 아이템
         /// </summary>
-        public enum IAPItem
+        public enum IAPItems
         {
             ProductNoAds
         }

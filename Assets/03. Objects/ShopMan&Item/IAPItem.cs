@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class IAPItem : MonoBehaviour
 {
-    [SerializeField] private AD.GameConstants.IAPItem _IAPItem;
+    [SerializeField] private AD.GameConstants.IAPItems _IAPItem;
 
     private void OnEnable()
     {

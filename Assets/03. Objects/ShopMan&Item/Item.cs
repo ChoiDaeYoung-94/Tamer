@@ -6,8 +6,8 @@ using TMPro;
 
 public class Item : MonoBehaviour
 {
-    [SerializeField] private AD.GameConstants.Item _itemType;
-    [SerializeField] private AD.GameConstants.Creature _creatureType;
+    [SerializeField] private AD.GameConstants.Items _itemType;
+    [SerializeField] private AD.GameConstants.Creatures _creatureType;
     [SerializeField] private TMP_Text _itemInfoText;
     [SerializeField] private GameObject _lockIcon;
 
@@ -25,11 +25,11 @@ public class Item : MonoBehaviour
 
     public void Init()
     {
-        _isItem = _creatureType == AD.GameConstants.Creature.Player;
+        _isItem = _creatureType == AD.GameConstants.Creatures.Player;
         _isUnlocked = false;
         _isEquipped = false;
 
-        _itemName = _itemType == AD.GameConstants.Item.None ? _creatureType.ToString() : _itemType.ToString();
+        _itemName = _itemType == AD.GameConstants.Items.None ? _creatureType.ToString() : _itemType.ToString();
 
         UpdateItemState();
         UpdateItemUI();
@@ -56,7 +56,7 @@ public class Item : MonoBehaviour
         if (_isUnlocked)
         {
             _lockIcon.SetActive(false);
-            if (_creatureType == AD.GameConstants.Creature.Player)
+            if (_creatureType == AD.GameConstants.Creatures.Player)
                 itemInfo = _itemName;
         }
 
@@ -68,7 +68,7 @@ public class Item : MonoBehaviour
 
     private string GetItemInfo()
     {
-        var dataSource = _itemType == AD.GameConstants.Item.None
+        var dataSource = _itemType == AD.GameConstants.Items.None
             ? AD.Managers.DataM.MonsterData[_itemName] as Dictionary<string, object>
             : AD.Managers.DataM.ItemData[_itemName] as Dictionary<string, object>;
 
@@ -78,9 +78,9 @@ public class Item : MonoBehaviour
 
     public void ChooseItem()
     {
-        if ((_isUnlocked && _isEquipped) || (!_isUnlocked && _itemType == AD.GameConstants.Item.None))
+        if ((_isUnlocked && _isEquipped) || (!_isUnlocked && _itemType == AD.GameConstants.Items.None))
             return;
-        else if (_isUnlocked && !_isEquipped && _creatureType == AD.GameConstants.Creature.Player)
+        else if (_isUnlocked && !_isEquipped && _creatureType == AD.GameConstants.Creatures.Player)
             Equip();
         else
             ShowItemInfo();
@@ -93,11 +93,11 @@ public class Item : MonoBehaviour
 
     private void ShowItemInfo()
     {
-        var dataSource = _itemType == AD.GameConstants.Item.None
+        var dataSource = _itemType == AD.GameConstants.Items.None
             ? AD.Managers.DataM.MonsterData[_creatureType.ToString()] as Dictionary<string, object>
             : AD.Managers.DataM.ItemData[_itemType.ToString()] as Dictionary<string, object>;
 
-        string prefix = _itemType != AD.GameConstants.Item.None ? "Plus " : "";
+        string prefix = _itemType != AD.GameConstants.Items.None ? "Plus " : "";
 
         string itemInfo = $"Item Info\n" +
             $"- {_itemName}\n" +
