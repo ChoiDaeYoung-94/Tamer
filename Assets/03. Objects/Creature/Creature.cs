@@ -195,7 +195,7 @@ public abstract class Creature : MonoBehaviour
     {
         if (CreatureType == AD.GameConstants.Creatures.Player)
         {
-            if (Player.Instance.isEquippedSword)
+            if (Player.Instance.IsEquippedSword)
             {
                 PlaySFX(AD.Managers.SoundM.SFXSwordClip);
                 _animator.CrossFade($"Attack0{Random.Range(1, 4)}_sword", 0f);

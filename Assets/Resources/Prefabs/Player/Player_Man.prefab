@@ -1083,17 +1083,17 @@ MonoBehaviour:
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
+  _buffingObject: {fileID: 3458443669849470792}
+  PlayerObject: {fileID: 2910936018180943768}
+  CameraArm: {fileID: 6470862542266102978}
+  SimpleSword: {fileID: 2059216376282089529}
+  MasterSword: {fileID: 4438411673452262552}
+  Simpleshield: {fileID: 8836720009171455714}
+  Mastershield: {fileID: 6076895598527073128}
+  IsEquippedSword: 0
   _gold: 0
   _maxCaptureCapacity: 10
   _list_groupMonsters: []
-  _go_player: {fileID: 2910936018180943768}
-  _tr_cameraArm: {fileID: 6470862542266102978}
-  _simpleSword: {fileID: 2059216376282089529}
-  _masterSword: {fileID: 4438411673452262552}
-  isEquippedSword: 0
-  _simpleshield: {fileID: 8836720009171455714}
-  _mastershield: {fileID: 6076895598527073128}
-  _buff: {fileID: 3458443669849470792}
   isBuffing: 0
   _buffPower: 0
   _buffAttackSpeed: 0

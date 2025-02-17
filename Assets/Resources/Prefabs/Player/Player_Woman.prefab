@@ -1422,29 +1422,22 @@ MonoBehaviour:
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  _gold: 0
-  _maxCaptureCapacity: 10
-  _list_groupMonsters: []
-  _go_player: {fileID: 4265390555638271167}
-  _tr_cameraArm: {fileID: 5803751224327128296}
-  _simpleSword: {fileID: 934545058857187036}
-  _masterSword: {fileID: 75146002134062875}
-  isEquippedSword: 0
-  _simpleshield: {fileID: 8543223585543733381}
-  _mastershield: {fileID: 8891111251715097847}
-  _buff: {fileID: 1294514411517721087}
-  isBuffing: 0
-  _buffPower: 0
-  _buffAttackSpeed: 0
-  _buffMoveSpeed: 0
-  isAllyAvailable: 0
-  _go_targetMonster: {fileID: 0}
-  targetMonster: {fileID: 0}
-  captureMonster: {fileID: 0}
-  _str_playerMonsters: 
-  _list_playerMonsters: []
-  _str_playerEquippedItems: 
-  _list_playerEquippedItems: []
+  _buffingObject: {fileID: 1294514411517721087}
+  PlayerObject: {fileID: 4265390555638271167}
+  CameraArm: {fileID: 5803751224327128296}
+  SimpleSword: {fileID: 934545058857187036}
+  MasterSword: {fileID: 75146002134062875}
+  Simpleshield: {fileID: 8543223585543733381}
+  Mastershield: {fileID: 8891111251715097847}
+  IsEquippedSword: 0
+  IsBuffing: 0
+  BuffPower: 0
+  BuffAttackSpeed: 0
+  BuffMoveSpeed: 0
+  MaxCaptureCapacity: 10
+  PlayerMonsterCollection: []
+  EquippedItems: 
+  PlayerEquippedItems: []
 --- !u!95 &4030967739036099423
 Animator:
   serializedVersion: 5

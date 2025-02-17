@@ -51,8 +51,8 @@ public class JoyStick : MonoBehaviour
     /// </summary>
     public void StartInit()
     {
-        _playerObject = Player.Instance._go_player;
-        _cameraArmTransform = Player.Instance._tr_cameraArm;
+        _playerObject = Player.Instance.PlayerObject;
+        _cameraArmTransform = Player.Instance.CameraArm;
 
         _handleAreaRadius = _handleAreaTransform.sizeDelta.y * 0.5f;
         _firstTouchPosition = _handleTransform.position;

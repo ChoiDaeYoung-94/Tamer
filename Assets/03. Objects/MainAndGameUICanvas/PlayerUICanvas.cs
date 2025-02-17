@@ -85,7 +85,7 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void UpdatePlayerInfo()
     {
-        _captureCapacityText.text = $"{Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
+        _captureCapacityText.text = $"{Player.Instance.GetCurMonsterCount()} / {Player.Instance.MaxCaptureCapacity}";
         _goldText.text = $"Gold - {Player.Instance.Gold}";
 
         float maxHP = Player.Instance.ItmeAdditionalHp > Player.Instance.OriginalHP ? Player.Instance.ItmeAdditionalHp : Player.Instance.OriginalHP;
@@ -101,12 +101,12 @@ public class PlayerUICanvas : MonoBehaviour
     private void UpdatePopPlayerInfo()
     {
         _popupNickNameText.text = $"NickName - {AD.Managers.DataM.LocalPlayerData["NickName"]}";
-        _popupCaptureCapacityText.text = $"CaptureCapacity - {Player.Instance.GetCurMonsterCount()} / {Player.Instance._maxCaptureCapacity}";
+        _popupCaptureCapacityText.text = $"CaptureCapacity - {Player.Instance.GetCurMonsterCount()} / {Player.Instance.MaxCaptureCapacity}";
         _popupGoldText.text = $"Gold - {Player.Instance.Gold}";
 
-        _popupPowerText.text = GetPlayerStat(Player.Instance.Power, Player.Instance._buffPower, "Power");
-        _popupAttackSpeedText.text = GetPlayerStat(Player.Instance.AttackSpeed, Player.Instance._buffAttackSpeed, "AttackSpeed");
-        _popupMoveSpeedText.text = GetPlayerStat(Player.Instance.MoveSpeed, Player.Instance._buffMoveSpeed, "MoveSpeed");
+        _popupPowerText.text = GetPlayerStat(Player.Instance.Power, Player.Instance.BuffPower, "Power");
+        _popupAttackSpeedText.text = GetPlayerStat(Player.Instance.AttackSpeed, Player.Instance.BuffAttackSpeed, "AttackSpeed");
+        _popupMoveSpeedText.text = GetPlayerStat(Player.Instance.MoveSpeed, Player.Instance.BuffMoveSpeed, "MoveSpeed");
     }
 
     private string GetPlayerStat(float normalStat, float buffStat, string stat)

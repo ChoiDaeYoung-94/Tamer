@@ -26,8 +26,8 @@ public class CameraManage : MonoBehaviour
     {
         foreach (CinemachineVirtualCamera cm in CinemachineCameras)
         {
-            cm.Follow = Player.Instance._tr_cameraArm;
-            cm.LookAt = Player.Instance._go_player.transform;
+            cm.Follow = Player.Instance.CameraArm;
+            cm.LookAt = Player.Instance.PlayerObject.transform;
         }
     }
 }

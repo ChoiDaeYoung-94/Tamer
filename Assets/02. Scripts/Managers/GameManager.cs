@@ -49,7 +49,7 @@ namespace AD
         public void InitMainOrGameScene()
         {
             var player = Player.Instance;
-            var cameraArm = player._tr_cameraArm;
+            var cameraArm = player.CameraArm;
 
             CameraManage.Instance.CinemachineCameras[0].transform.position = IsGame ? _vecGameCmCam : _vecMainCmCam;
 

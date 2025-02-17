@@ -47,7 +47,7 @@ public class BuffingMan : MonoBehaviour
             {
                 PlayerUICanvas.Instance.SetBuff(remainingTime);
 
-                if (!Player.Instance.isBuffing)
+                if (!Player.Instance.IsBuffing)
                     Player.Instance.SetBuff();
 
                 SetAdmobState(false);

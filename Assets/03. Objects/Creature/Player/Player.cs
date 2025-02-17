@@ -1,49 +1,51 @@
 using System;
 using System.Linq;
 using System.Text;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 using UnityEngine;
 
-public class Player : BaseController
+using Cysharp.Threading.Tasks;
+
+public class Player : Creature
 {
-    static Player instance;
-    public static Player Instance { get { return instance; } }
+    private static Player _instance;
+    public static Player Instance { get { return _instance; } }
 
-    [Header("--- 플레어어 고유 Data ---")]
-    [SerializeField] private int _gold = 0;
-    public int Gold { get { return instance._gold; } }
-    public int _maxCaptureCapacity = 10;
-    [SerializeField, Tooltip("ally monster 통제")] List<Monster> _list_groupMonsters = new List<Monster>();
+    [Header("--- Player 데이터 ---")]
+    [SerializeField] private GameObject _buffingObject = null;
 
-    [Header("--- 세팅 ---")]
-    [SerializeField] public GameObject _go_player = null;
-    [SerializeField] public Transform _tr_cameraArm = null;
-    [SerializeField] public GameObject _simpleSword = null;
-    [SerializeField] public GameObject _masterSword = null;
-    public bool isEquippedSword = false;
-    [SerializeField] public GameObject _simpleshield = null;
-    [SerializeField] public GameObject _mastershield = null;
-    [SerializeField] private GameObject _buff = null;
+    [Header("--- Player 공용 데이터 ---")]
+    public GameObject PlayerObject;
+    public Transform CameraArm;
+    public GameObject SimpleSword;
+    public GameObject MasterSword;
+    public GameObject Simpleshield;
+    public GameObject Mastershield;
+    public bool IsEquippedSword = false;
+    public bool IsBuffing = false;
+    public float BuffPower;
+    public float BuffAttackSpeed;
+    public float BuffMoveSpeed;
+    private int _gold;
+    public int Gold { get { return _instance._gold; } }
+    public int MaxCaptureCapacity = 10;
+    public List<string> PlayerMonsterCollection = new List<string>();
+    public string EquippedItems = string.Empty;
+    public List<string> PlayerEquippedItems = new List<string>();
 
-    [Header("--- 플레이어 버프 시 적용되는 status ---")]
-    [SerializeField] public bool isBuffing = false;
-    [SerializeField] public float _buffPower = 0;
-    [SerializeField] public float _buffAttackSpeed = 0;
-    [SerializeField] public float _buffMoveSpeed = 0;
+    // 그 외 접근 불가 데이터
+    private List<Monster> _allyMonsters = new List<Monster>();
+    private bool _isAllyAvailable = false;
+    private GameObject _curTargetMonsterObject;
+    private Monster _curTargetMonster;
+    private Monster _ableCaptureMonster;
+    private string _monsterCollection = string.Empty;
 
-    [Header("--- 참고 ---")]
-    [SerializeField] bool isAllyAvailable = false;
-    [SerializeField, Tooltip("현재 타겟 몬스터")] GameObject _go_targetMonster = null;
-    [SerializeField, Tooltip("현재 타겟 몬스터 cs")] Monster targetMonster = null;
-    [SerializeField, Tooltip("포획 가능한 몬스터 cs")] Monster captureMonster = null;
-
-    [Header("--- Shop PlayerPrefs ---")]
-    public string _str_playerMonsters = string.Empty;
-    public List<string> _list_playerMonsters = new List<string>();
-    public string _str_playerEquippedItems = string.Empty;
-    public List<string> _list_playerEquippedItems = new List<string>();
+    private const string PLAYER_MONSTERS_KEY = "AllyMonsters";
+    private const string PLAYER_EQUIPPED_ITEMS_KEY = "playerEquippedItems";
+    private const string GOLD_KEY = "Gold";
 
     /// <summary>
     /// LoginCheck.cs 에서 생성
@@ -52,17 +54,14 @@ public class Player : BaseController
     {
         base.Awake();
 
-        instance = this;
+        _instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
-
-        Init();
 
         AD.Managers.EquipmentM.Init();
     }
 
     /// <summary>
-    /// 플레이어의 초기화가 끝난 후
-    /// 플레이어와 관련된 요소들 초기화
+    /// 플레이어 초기화 이후 관련 요소 초기화
     /// </summary>
     private void OnEnable()
     {
@@ -73,16 +72,17 @@ public class Player : BaseController
 
     private void OnDisable()
     {
-        StopBattleCoroutine();
+        StopBattle();
     }
 
     private void Update()
     {
-        if (isAllyAvailable && CrtState == CreatureState.Move)
+        if (_isAllyAvailable && State == CreatureState.Move)
             AllyMove();
     }
 
-    #region Functions
+    #region Initialization
+
     /// <summary>
     /// HP는 장비에 맞게 따로 계산
     /// Player의 기본 HP는 100
@@ -91,17 +91,18 @@ public class Player : BaseController
     {
         base.Init();
 
-        _gold = int.Parse(AD.Managers.DataM.LocalPlayerData["Gold"]);
-
-        if (AD.Managers.DataM.LocalPlayerData["AllyMonsters"] != "null")
+        _gold = int.Parse(AD.Managers.DataM.LocalPlayerData[GOLD_KEY]);
+        if (AD.Managers.DataM.LocalPlayerData[PLAYER_MONSTERS_KEY] != "null")
         {
-            isAllyAvailable = true;
+            _isAllyAvailable = true;
             SettingAllyMonster();
         }
 
         InitPrefs();
-        foreach (string item in _list_playerEquippedItems)
+
+        foreach (string item in PlayerEquippedItems)
             ApplyEquipment(item);
+
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
         AD.Managers.UpdateM.OnUpdateEvent -= TouchEvent;
@@ -113,16 +114,16 @@ public class Player : BaseController
         isDie = false;
         gameObject.layer = allyLayer;
         _capsuleCollider.enabled = true;
-
-        CrtState = CreatureState.Idle;
-
-        Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
+        State = CreatureState.Idle;
+        Hp = _itemAdditionalHp > _originalHp ? _itemAdditionalHp : _originalHp;
     }
 
-    #region Events
+    #endregion
+
+    #region Input Events
+
     /// <summary>
-    /// 화면을 클릭하여 대응해야할 부분
-    /// 버프, 몬스터 포획 등
+    /// 화면 클릭 이벤트 처리: 버프, 몬스터 포획 등
     /// </summary>
     private void TouchEvent()
     {
@@ -133,9 +134,7 @@ public class Player : BaseController
 
             if (Physics.Raycast(ray, out hit))
             {
-                string str_temp = hit.collider.tag;
-
-                switch (str_temp)
+                switch (hit.collider.tag)
                 {
                     case "GoogleAdMob":
                         AD.Managers.SoundM.UI_Click();
@@ -151,64 +150,64 @@ public class Player : BaseController
         }
     }
 
+    #endregion
+
+    #region Buff and Heal
+
     public void SetBuff()
     {
         PlaySFX(AD.Managers.SoundM.SFXBuffClip);
+        IsBuffing = true;
+        BuffPower = _power * 1.3f;
+        BuffAttackSpeed = _attackSpeed * 1.3f;
+        BuffMoveSpeed = _moveSpeed * 2f;
+        JoyStick.Instance.SetSpeed(BuffMoveSpeed);
 
-        isBuffing = true;
-
-        _buffPower = _power * 1.3f;
-        _buffAttackSpeed = _attackSpeed * 1.3f;
-        _buffMoveSpeed = _moveSpeed * 2f;
-        JoyStick.Instance.SetSpeed(_buffMoveSpeed);
-
-        foreach (Monster monster in _list_groupMonsters)
+        foreach (Monster monster in _allyMonsters)
             monster.SetSpeed();
 
-        _buff.SetActive(true);
+        _buffingObject.SetActive(true);
     }
 
     public void EndBuff()
     {
-        isBuffing = false;
-
+        IsBuffing = false;
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
-        foreach (Monster monster in _list_groupMonsters)
+        foreach (Monster monster in _allyMonsters)
             monster.SetSpeed();
 
-        _buff.SetActive(false);
+        _buffingObject.SetActive(false);
     }
 
     public void Heal()
     {
         PlaySFX(AD.Managers.SoundM.SFXHealClip);
-
-        Hp = ItemHp > OrgHp ? ItemHp : OrgHp;
+        Hp = _itemAdditionalHp > _originalHp ? _itemAdditionalHp : _originalHp;
         HealEffect();
         PlayerUICanvas.Instance.UpdatePlayerInfo();
 
-        foreach (Monster monster in _list_groupMonsters)
+        foreach (Monster monster in _allyMonsters)
         {
-            monster.Hp = monster.OrgHp;
+            monster.Hp = monster.OriginalHP;
             monster.HealEffect();
         }
     }
+
     #endregion
 
-    #region Player
+    #region Combat
+
     /// <summary>
     /// 플레이어 공격 애니메이션에서 진행
     /// </summary>
     protected override void AttackTarget()
     {
-        if (isDie)
-            return;
-
-        if (_go_targetMonster != null)
+        if (isDie) return;
+        if (_curTargetMonsterObject != null)
         {
-            float power = isBuffing ? _buffPower : Power;
-            targetMonster.GetDamage(power);
+            float power = IsBuffing ? BuffPower : Power;
+            _curTargetMonster.GetDamage(power);
         }
     }
 
@@ -216,28 +215,26 @@ public class Player : BaseController
     {
         if (isGame)
         {
-            StopBattleCoroutine();
-            StartBattleCoroutine();
+            StopBattle();
+            StartBattle();
         }
     }
 
-    protected override IEnumerator Battle()
+    protected override async UniTask BattleLoop(CancellationToken token)
     {
-        while (true)
+        while (!token.IsCancellationRequested)
         {
-            if (_go_targetMonster != null)
+            if (_curTargetMonsterObject != null)
             {
-                Vector3 direction = _go_targetMonster.transform.position - transform.position;
+                Vector3 direction = _curTargetMonsterObject.transform.position - transform.position;
                 direction.y = 0;
                 transform.rotation = Quaternion.LookRotation(direction);
+                State = CreatureState.Attack;
 
-                CrtState = CreatureState.Attack;
-
-                float attackspeed = isBuffing ? _buffAttackSpeed : _attackSpeed;
-                yield return new WaitForSeconds(1f / _attackSpeed);
+                float attackSpeed = IsBuffing ? BuffAttackSpeed : _attackSpeed;
+                await UniTask.Delay(TimeSpan.FromSeconds(1f / attackSpeed), cancellationToken: token);
             }
-
-            yield return null;
+            await UniTask.Yield(PlayerLoopTiming.Update, token);
         }
     }
 
@@ -245,42 +242,47 @@ public class Player : BaseController
     /// 추후 몬스터 객체 크기에 따라 distance 비교 차이를 둬야 함
     /// 몬스터 Data에 추가해도 괜찮을 것 같음
     /// </summary>
-    /// <returns></returns>
-    protected override IEnumerator DistanceOfTarget()
+    protected override async UniTask MonitorTargetDistance(CancellationToken token)
     {
-        while (true)
+        while (!token.IsCancellationRequested)
         {
-            if (_go_targetMonster != null)
+            if (_curTargetMonsterObject != null)
             {
-                float distance = Vector3.Distance(Player.Instance.transform.position, _go_targetMonster.transform.position);
-
-                if (distance > targetMonster.flockingRadius + 0.3f)
-                    _go_targetMonster = null;
+                float distance = Vector3.Distance(transform.position, _curTargetMonsterObject.transform.position);
+                if (distance > _curTargetMonster.FlockingRadius + 0.3f)
+                    _curTargetMonsterObject = null;
             }
-
-            yield return null;
+            await UniTask.Yield(PlayerLoopTiming.Update, token);
         }
     }
 
+    #endregion
+
+    #region Equipment
+
     public void ApplyEquipment(string item)
     {
-        Dictionary<string, object> temp_dic = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
+        Dictionary<string, object> itemData = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
 
-        _itemHp = _hp += float.Parse(temp_dic["Hp"].ToString());
-        _power += float.Parse(temp_dic["Power"].ToString());
-        _attackSpeed += float.Parse(temp_dic["AttackSpeed"].ToString());
-        _moveSpeed += float.Parse(temp_dic["MoveSpeed"].ToString());
+        _itemAdditionalHp = _hp += float.Parse(itemData["Hp"].ToString());
+        _power += float.Parse(itemData["Power"].ToString());
+        _attackSpeed += float.Parse(itemData["AttackSpeed"].ToString());
+        _moveSpeed += float.Parse(itemData["MoveSpeed"].ToString());
     }
 
     public void UnequipEquipment(string item)
     {
-        Dictionary<string, object> temp_dic = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
+        Dictionary<string, object> itemData = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
 
-        _itemHp = _hp -= float.Parse(temp_dic["Hp"].ToString());
-        _power -= float.Parse(temp_dic["Power"].ToString());
-        _attackSpeed -= float.Parse(temp_dic["AttackSpeed"].ToString());
-        _moveSpeed -= float.Parse(temp_dic["MoveSpeed"].ToString());
+        _itemAdditionalHp = _hp -= float.Parse(itemData["Hp"].ToString());
+        _power -= float.Parse(itemData["Power"].ToString());
+        _attackSpeed -= float.Parse(itemData["AttackSpeed"].ToString());
+        _moveSpeed -= float.Parse(itemData["MoveSpeed"].ToString());
     }
+
+    #endregion
+
+    #region Ally Monsters Management
 
     public void BuyAllyMonster(string name)
     {
@@ -290,9 +292,7 @@ public class Player : BaseController
     }
 
     public void MoveSound() => PlaySFX(AD.Managers.SoundM.SFXWalkClip);
-    #endregion
 
-    #region AllyMonsters
     /// <summary>
     /// Monster.cs -> GroupMonsterMove()와 동일
     /// </summary>
@@ -300,110 +300,104 @@ public class Player : BaseController
     {
         int row = 2;
         int countInRow = 0;
-        int listCount = _list_groupMonsters.Count;
-        Vector3 startRowPosition = transform.position + (-transform.forward * _list_groupMonsters[0].flockingRadius);
+        int listCount = _allyMonsters.Count;
+        Vector3 startRowPosition = transform.position + (-transform.forward * _allyMonsters[0].FlockingRadius);
 
-        for (int i = -1; ++i < listCount;)
+        for (int i = 0; i < listCount; i++)
         {
             if (countInRow >= row)
             {
                 row++;
                 countInRow = 0;
-                startRowPosition += (-transform.forward * _list_groupMonsters[i].flockingRadius);
+                startRowPosition += -transform.forward * _allyMonsters[i].FlockingRadius;
             }
 
-            int plusrow = AD.Utility.GetSortedMonsterCount(row, 0);
-            int curRow = listCount + 1 - plusrow;
+            int plusRow = AD.Utility.GetSortedMonsterCount(row, 0);
+            int curRow = listCount + 1 - plusRow;
             int maxCountInRow = curRow > row ? row : curRow;
 
-            Vector3 positionOffset = transform.right * (countInRow - (maxCountInRow - 1) / 2.0f) * _list_groupMonsters[i].flockingRadius;
-            Vector3 position = startRowPosition + positionOffset;
+            Vector3 positionOffset = transform.right * (countInRow - (maxCountInRow - 1) / 2.0f) * _allyMonsters[i].FlockingRadius;
+            Vector3 targetPosition = startRowPosition + positionOffset;
 
-            _list_groupMonsters[i]._navAgent.isStopped = false;
-            _list_groupMonsters[i]._navAgent.SetDestination(position);
-            _list_groupMonsters[i].CrtState = CreatureState.Move;
-
+            _allyMonsters[i].NavMeshAgent.isStopped = false;
+            _allyMonsters[i].NavMeshAgent.SetDestination(targetPosition);
+            _allyMonsters[i].State = CreatureState.Move;
             countInRow++;
         }
     }
 
     public void AllyIdle()
     {
-        foreach (Monster monster in _list_groupMonsters)
-            monster.CrtState = CreatureState.Idle;
+        foreach (Monster monster in _allyMonsters)
+            monster.State = CreatureState.Idle;
     }
 
     public void Capture()
     {
-        captureMonster.AllySetting(playerPosition: transform.position);
-        AddAllyMonster(captureMonster);
-
+        _ableCaptureMonster.AllySetting(playerPosition: transform.position);
+        AddAllyMonster(_ableCaptureMonster);
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
     private void SettingAllyMonster()
     {
-        string temp_ally = AD.Managers.DataM.LocalPlayerData["AllyMonsters"];
+        string tempAlly = AD.Managers.DataM.LocalPlayerData[PLAYER_MONSTERS_KEY];
+        List<string> monsterNames = tempAlly.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
 
-        List<string> temp_monsters = temp_ally.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
-
-        foreach (string temp_monster in temp_monsters)
+        foreach (string monsterName in monsterNames)
         {
-            Monster monster = AD.Managers.PoolM.PopFromPool(temp_monster, AD.Managers.PoolM.RootPlayer).GetComponent<Monster>();
+            Monster monster = AD.Managers.PoolM.PopFromPool(monsterName, AD.Managers.PoolM.RootPlayer).GetComponent<Monster>();
             monster.AllySetting(playerPosition: transform.position, setting: true);
-
-            _list_groupMonsters.Add(monster);
+            _allyMonsters.Add(monster);
         }
     }
 
     private void AddAllyMonster(Monster monster)
     {
-        _list_groupMonsters.Add(monster);
+        _allyMonsters.Add(monster);
         monster.transform.SetParent(AD.Managers.PoolM.RootPlayer);
 
-        string temp_ally = AD.Managers.DataM.LocalPlayerData["AllyMonsters"];
-        string temp_monster = monster._creature.ToString();
+        string tempAlly = AD.Managers.DataM.LocalPlayerData[PLAYER_MONSTERS_KEY];
+        string monsterType = monster.CreatureType.ToString();
 
-        if (temp_ally.Equals("null"))
+        if (tempAlly.Equals("null"))
         {
-            isAllyAvailable = true;
-            temp_ally = temp_monster;
+            _isAllyAvailable = true;
+            tempAlly = monsterType;
         }
         else
-            temp_ally += $",{temp_monster}";
-
-        AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
+        {
+            tempAlly += $",{monsterType}";
+        }
+        AD.Managers.DataM.UpdateLocalData(PLAYER_MONSTERS_KEY, tempAlly);
     }
 
     public void RemoveAllyMonster(Monster monster)
     {
-        _list_groupMonsters.Remove(monster);
+        _allyMonsters.Remove(monster);
+        string tempAlly = string.Empty;
 
-        string temp_ally = string.Empty;
-
-        if (_list_groupMonsters.Count <= 0)
+        if (_allyMonsters.Count <= 0)
         {
-            isAllyAvailable = false;
-            temp_ally = "null";
+            _isAllyAvailable = false;
+            tempAlly = "null";
         }
         else
         {
             StringBuilder sb = new StringBuilder();
 
-            foreach (Monster _monster in _list_groupMonsters)
-                sb.Append($",{_monster._creature.ToString()}");
+            foreach (Monster _monster in _allyMonsters)
+                sb.Append($",{_monster.CreatureType.ToString()}");
 
-            temp_ally = sb.ToString();
+            tempAlly = sb.ToString();
         }
-
-        AD.Managers.DataM.UpdateLocalData("AllyMonsters", temp_ally);
-
+        AD.Managers.DataM.UpdateLocalData(PLAYER_MONSTERS_KEY, tempAlly);
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
     public void RemoveAllAllyMonster()
     {
-        foreach (Monster monster in _list_groupMonsters)
+        foreach (Monster monster in _allyMonsters)
             monster.GetDamage(1000f);
     }
 
@@ -412,30 +406,31 @@ public class Player : BaseController
         if (active)
         {
             AD.Managers.PoolM.RootPlayer.transform.position = Vector3.zero;
-
-            foreach (Monster monster in _list_groupMonsters)
+            foreach (Monster monster in _allyMonsters)
             {
                 monster.transform.position = transform.position + UnityEngine.Random.insideUnitSphere * UnityEngine.Random.Range(1f, 3f);
-                monster._navAgent.enabled = true;
+                monster.NavMeshAgent.enabled = true;
             }
         }
         else
         {
-            foreach (Monster monster in _list_groupMonsters)
-                monster._navAgent.enabled = false;
-
+            foreach (Monster monster in _allyMonsters)
+                monster.NavMeshAgent.enabled = false;
             AD.Managers.PoolM.RootPlayer.transform.position = new Vector3(100f, 100f, 100f);
         }
     }
+
     #endregion
 
-    #region PlayerPrefs
+    #region PlayerPrefs Management
+
     private void InitPrefs()
     {
-        _str_playerMonsters = PlayerPrefs.GetString("playerMonsters");
-        _list_playerMonsters = _str_playerMonsters.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
-        _str_playerEquippedItems = PlayerPrefs.GetString("playerEquippedItems");
-        _list_playerEquippedItems = _str_playerEquippedItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        _monsterCollection = PlayerPrefs.GetString(PLAYER_MONSTERS_KEY);
+        PlayerMonsterCollection = _monsterCollection.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+        EquippedItems = PlayerPrefs.GetString(PLAYER_EQUIPPED_ITEMS_KEY);
+        PlayerEquippedItems = EquippedItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 
     public string SavePrefs(List<string> list, string str, string data, string key)
@@ -468,28 +463,27 @@ public class Player : BaseController
 
         return str;
     }
+
     #endregion
 
     public int GetCurMonsterCount()
     {
-        return _list_groupMonsters.Count;
+        return _allyMonsters.Count;
     }
 
     /// <summary>
     /// monster가 죽은 뒤 호출
     /// </summary>
-    /// <param name="target"></param>
     public void NotifyPlayerOfDeath(GameObject target, int gold)
     {
-        if (target == _go_targetMonster)
+        if (target == _curTargetMonsterObject)
         {
-            _str_playerMonsters =
-                SavePrefs(_list_playerMonsters, _str_playerMonsters, targetMonster._creature.ToString(), "playerMonsters");
-            _go_targetMonster = null;
+            _monsterCollection =
+                SavePrefs(PlayerMonsterCollection, _monsterCollection, _curTargetMonster.CreatureType.ToString(), PLAYER_MONSTERS_KEY);
+            _curTargetMonsterObject = null;
         }
-
         _gold += gold;
-        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        AD.Managers.DataM.UpdateLocalData(GOLD_KEY, _gold.ToString());
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
@@ -504,21 +498,22 @@ public class Player : BaseController
     public void MinusGold(int gold)
     {
         _gold -= gold;
-        AD.Managers.DataM.UpdateLocalData(key: "Gold", value: _gold.ToString());
+        AD.Managers.DataM.UpdateLocalData(GOLD_KEY, _gold.ToString());
         AD.Managers.DataM.UpdatePlayerData();
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
-    #endregion
+
+    #region Trigger Events
 
     private void OnTriggerEnter(Collider col)
     {
         if (isDie)
             return;
 
-        if (col.CompareTag("Capture") && _list_groupMonsters.Count < _maxCaptureCapacity)
+        if (col.CompareTag("Capture") && _allyMonsters.Count < MaxCaptureCapacity)
         {
             PlayerUICanvas.Instance.EnableCapture();
-            captureMonster = col.gameObject.GetComponentInParent<Monster>();
+            _ableCaptureMonster = col.gameObject.GetComponentInParent<Monster>();
         }
     }
 
@@ -529,10 +524,10 @@ public class Player : BaseController
 
         if (col.CompareTag("Monster") && col.gameObject.layer == enemyLayer)
         {
-            if (_go_targetMonster == null)
+            if (_curTargetMonsterObject == null)
             {
-                _go_targetMonster = col.gameObject;
-                targetMonster = _go_targetMonster.GetComponent<Monster>();
+                _curTargetMonsterObject = col.gameObject;
+                _curTargetMonster = _curTargetMonsterObject.GetComponent<Monster>();
             }
         }
     }
@@ -547,6 +542,8 @@ public class Player : BaseController
             PlayerUICanvas.Instance.DisableCapture();
         }
     }
+
+    #endregion
 
     public override void Clear()
     {

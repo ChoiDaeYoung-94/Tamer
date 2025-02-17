@@ -59,8 +59,7 @@ public class Monster : Creature
 
     private void Update()
     {
-        // isDie가 false이고 NavMeshAgent가 활성 상태일 때만 AI를 실행
-        if (!isDie && NavMeshAgent.enabled)
+        if (!isDie || !NavMeshAgent.enabled)
             MonsterAI();
     }
 
@@ -717,8 +716,8 @@ public class Monster : Creature
 
     public void SetSpeed()
     {
-        if (Player.Instance.isBuffing)
-            NavMeshAgent.speed = Player.Instance._buffMoveSpeed + 0.5f;
+        if (Player.Instance.IsBuffing)
+            NavMeshAgent.speed = Player.Instance.BuffMoveSpeed + 0.5f;
         else
             NavMeshAgent.speed = Player.Instance.MoveSpeed + 0.5f;
     }

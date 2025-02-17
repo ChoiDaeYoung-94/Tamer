@@ -25,10 +25,10 @@ namespace AD
             SegmentedEquipment.Add("Shield", _shieldList);
 
             // 장비 GameObject 매핑 (Player.Instance의 해당 필드를 사용)
-            EquipmentMapping.Add("SimpleSword", Player.Instance._simpleSword);
-            EquipmentMapping.Add("MasterSword", Player.Instance._masterSword);
-            EquipmentMapping.Add("SimpleShield", Player.Instance._simpleshield);
-            EquipmentMapping.Add("MasterShield", Player.Instance._mastershield);
+            EquipmentMapping.Add("SimpleSword", Player.Instance.SimpleSword);
+            EquipmentMapping.Add("MasterSword", Player.Instance.MasterSword);
+            EquipmentMapping.Add("SimpleShield", Player.Instance.Simpleshield);
+            EquipmentMapping.Add("MasterShield", Player.Instance.Mastershield);
 
             InitEquip();
         }
@@ -38,7 +38,7 @@ namespace AD
         /// </summary>
         private void InitEquip()
         {
-            foreach (string equippedItem in Player.Instance._list_playerEquippedItems)
+            foreach (string equippedItem in Player.Instance.PlayerEquippedItems)
                 EquipmentMapping[equippedItem].SetActive(true);
         }
 
@@ -48,7 +48,7 @@ namespace AD
         /// </summary>
         public void Equip(string item)
         {
-            if (Player.Instance._list_playerEquippedItems.Contains(item))
+            if (Player.Instance.PlayerEquippedItems.Contains(item))
                 return;
 
             CheckSlotAndEquip(item);
@@ -64,7 +64,7 @@ namespace AD
         {
             string newItemCategory = GetEquipmentCategory(item);
 
-            foreach (string equippedItem in Player.Instance._list_playerEquippedItems)
+            foreach (string equippedItem in Player.Instance.PlayerEquippedItems)
             {
                 if (equippedItem == item)
                     continue;
@@ -72,10 +72,10 @@ namespace AD
                 string equippedCategory = GetEquipmentCategory(equippedItem);
                 if (!string.IsNullOrEmpty(newItemCategory) && newItemCategory == equippedCategory)
                 {
-                    Player.Instance._str_playerEquippedItems =
+                    Player.Instance.EquippedItems =
                         Player.Instance.RemovePrefs(
-                            Player.Instance._list_playerEquippedItems,
-                            Player.Instance._str_playerEquippedItems,
+                            Player.Instance.PlayerEquippedItems,
+                            Player.Instance.EquippedItems,
                             equippedItem,
                             "playerEquippedItems");
 
@@ -85,10 +85,10 @@ namespace AD
                 }
             }
 
-            Player.Instance._str_playerEquippedItems =
+            Player.Instance.EquippedItems =
                 Player.Instance.SavePrefs(
-                    Player.Instance._list_playerEquippedItems,
-                    Player.Instance._str_playerEquippedItems,
+                    Player.Instance.PlayerEquippedItems,
+                    Player.Instance.EquippedItems,
                     item,
                     "playerEquippedItems");
 

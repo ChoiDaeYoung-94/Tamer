@@ -38,12 +38,12 @@ public class Item : MonoBehaviour
     private void UpdateItemState()
     {
         if (ShopMan.Instance.CurrentItemsList.Contains(_itemName) ||
-            Player.Instance._list_playerMonsters.Contains(_itemName))
+            Player.Instance.PlayerMonsterCollection.Contains(_itemName))
         {
             _isUnlocked = true;
         }
 
-        if (Player.Instance._list_playerEquippedItems.Contains(_itemName))
+        if (Player.Instance.PlayerEquippedItems.Contains(_itemName))
         {
             _isEquipped = true;
         }
