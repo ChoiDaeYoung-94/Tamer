@@ -1839,16 +1839,15 @@ MonoBehaviour:
   _dieEffect: {fileID: 5878838457077967593}
   _spawnEffect: {fileID: 7037950372619252958}
   _uiCanvas: {fileID: 2904749151808978387}
-  _itemHp: 0
-  _orgHp: 0
+  _audioSource: {fileID: 0}
+  _originalHp: 0
   _hp: 0
+  _itemAdditionalHp: 0
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  isDie: 0
-  _AS_sfx: {fileID: 0}
-  _navAgent: {fileID: 1406403708960966276}
-  _go_capture: {fileID: 6078291841578998669}
+  NavMeshAgent: {fileID: 1406403708960966276}
+  _captureEffect: {fileID: 6078291841578998669}
   isCommander: 0
   _go_commanderTarget: {fileID: 0}
   isCommanderArrived: 0

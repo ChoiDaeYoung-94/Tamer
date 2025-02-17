@@ -83,8 +83,8 @@ public class MonsterGenerator : MonoBehaviour
                 int temp_random = UnityEngine.Random.Range(range.min, range.max + 1);
                 string temp_name = Enum.GetValues(typeof(AD.GameConstants.Creatures)).GetValue(temp_random).ToString();
                 Monster commanderMonster = AD.Managers.PoolM.PopFromPool(temp_name).GetComponent<Monster>();
-                commanderMonster.isCommander = true;
-                commanderMonster.StartDetectionCoroutine();
+                commanderMonster.IsCommander = true;
+                commanderMonster.StartDetection();
                 commanderMonster.transform.position = SetPosition();
 
                 PlusMonster(commanderMonster);
@@ -97,8 +97,8 @@ public class MonsterGenerator : MonoBehaviour
                     Vector3 temp_vec = i % 2 == 0 ? new Vector3(i / 2, 0, 0) : new Vector3(0, 0, i);
                     go_monster.transform.position = commanderMonster.transform.position + temp_vec;
 
-                    commanderMonster._list_groupMonsters.Add(monster);
-                    monster._commanderMonster = commanderMonster;
+                    commanderMonster.MonsterGroupList.Add(monster);
+                    monster.CommanderMonster = commanderMonster;
 
                     PlusMonster(monster);
                 }
@@ -121,8 +121,8 @@ public class MonsterGenerator : MonoBehaviour
             BossMonster = AD.Managers.PoolM.PopFromPool("FylingDemon");
 
             Monster boss = BossMonster.GetComponent<Monster>();
-            boss.isCommander = true;
-            boss.StartDetectionCoroutine();
+            boss.IsCommander = true;
+            boss.StartDetection();
 
             BossMonster.transform.position = new Vector3(-40f, 2f, 20f);
         }
@@ -159,14 +159,14 @@ public class MonsterGenerator : MonoBehaviour
         {
             Monster monster = _activeMonsters[i];
 
-            if (!monster.isCommander)
+            if (!monster.IsCommander)
                 continue;
 
             if (!CheckViewPort(monster.transform.position))
             {
                 if (!RegionOfMonster(monster))
                 {
-                    foreach (Monster follower in monster._list_groupMonsters)
+                    foreach (Monster follower in monster.MonsterGroupList)
                     {
                         follower.BackPool();
                         --i;

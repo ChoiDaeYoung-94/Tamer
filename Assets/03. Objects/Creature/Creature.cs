@@ -136,8 +136,8 @@ public abstract class Creature : MonoBehaviour
         _battleTokenSource = new CancellationTokenSource();
         _monitorTargetDistanceTokenSource = new CancellationTokenSource();
 
-        //BattleLoop(_battleTokenSource.Token).Forget();
-        //MonitorTargetDistance(_monitorTargetDistanceTokenSource.Token).Forget();
+        BattleLoop(_battleTokenSource.Token).Forget();
+        MonitorTargetDistance(_monitorTargetDistanceTokenSource.Token).Forget();
     }
 
     protected void StopBattle()

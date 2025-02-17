@@ -1716,8 +1716,8 @@ MonoBehaviour:
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  _navAgent: {fileID: 2521665813555909138}
-  _go_capture: {fileID: 1975174122983130685}
+  NavMeshAgent: {fileID: 2521665813555909138}
+  _captureEffect: {fileID: 1975174122983130685}
   isCommander: 0
   _go_commanderTarget: {fileID: 0}
   isCommanderArrived: 0
