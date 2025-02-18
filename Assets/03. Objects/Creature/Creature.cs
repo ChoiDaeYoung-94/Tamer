@@ -30,10 +30,10 @@ public abstract class Creature : MonoBehaviour
             _state = value;
 
             if (_state == CreatureState.Die)
-            {
                 _animator.CrossFade("Die", 0f);
+
+            if (isDie)
                 return;
-            }
 
             switch (_state)
             {
@@ -88,12 +88,12 @@ public abstract class Creature : MonoBehaviour
 
     protected virtual void Awake()
     {
-        Init();
+        Settings();
     }
 
     #region Functions
 
-    protected virtual void Init()
+    protected virtual void Settings()
     {
         allyLayer = LayerMask.NameToLayer("Ally");
         enemyLayer = LayerMask.NameToLayer("Enemy");
@@ -187,7 +187,7 @@ public abstract class Creature : MonoBehaviour
             gameObject.layer = dieLayer;
             _capsuleCollider.enabled = false;
 
-            _state = CreatureState.Die;
+            State = CreatureState.Die;
         }
     }
 

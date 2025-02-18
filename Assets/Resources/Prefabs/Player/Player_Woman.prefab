@@ -1410,7 +1410,7 @@ MonoBehaviour:
   CreatureType: 0
   _state: 0
   _animator: {fileID: 4030967739036099423}
-  _capsuleCollider: {fileID: 4143679188092503573}
+  _capsuleCollider: {fileID: 3785164528392772703}
   _healObject: {fileID: 3527724572267886797}
   _dieEffect: {fileID: 93679679610193817}
   _spawnEffect: {fileID: 0}

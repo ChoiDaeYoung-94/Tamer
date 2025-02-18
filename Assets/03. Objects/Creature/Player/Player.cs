@@ -57,6 +57,7 @@ public class Player : Creature
         _instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
 
+        Init();
         AD.Managers.EquipmentM.Init();
     }
 
@@ -87,10 +88,8 @@ public class Player : Creature
     /// HP는 장비에 맞게 따로 계산
     /// Player의 기본 HP는 100
     /// </summary>
-    protected override void Init()
+    private void Init()
     {
-        base.Init();
-
         _gold = int.Parse(AD.Managers.DataM.LocalPlayerData[GOLD_KEY]);
         if (AD.Managers.DataM.LocalPlayerData[PLAYER_MONSTERS_KEY] != "null")
         {
@@ -234,7 +233,7 @@ public class Player : Creature
                 float attackSpeed = IsBuffing ? BuffAttackSpeed : _attackSpeed;
                 await UniTask.Delay(TimeSpan.FromSeconds(1f / attackSpeed), cancellationToken: token);
             }
-            await UniTask.Yield(PlayerLoopTiming.Update, token);
+            await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken: token);
         }
     }
 
@@ -252,7 +251,7 @@ public class Player : Creature
                 if (distance > _curTargetMonster.FlockingRadius + 0.3f)
                     _curTargetMonsterObject = null;
             }
-            await UniTask.Yield(PlayerLoopTiming.Update, token);
+            await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken: token);
         }
     }
 

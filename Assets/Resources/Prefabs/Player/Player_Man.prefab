@@ -1071,7 +1071,7 @@ MonoBehaviour:
   CreatureType: 0
   _state: 0
   _animator: {fileID: 2640465298603294840}
-  _capsuleCollider: {fileID: 7002729397940218547}
+  _capsuleCollider: {fileID: 2629179171656789148}
   _healObject: {fileID: 2719616690666184392}
   _dieEffect: {fileID: 1212487233743395619}
   _spawnEffect: {fileID: 0}
@@ -1091,21 +1091,14 @@ MonoBehaviour:
   Simpleshield: {fileID: 8836720009171455714}
   Mastershield: {fileID: 6076895598527073128}
   IsEquippedSword: 0
-  _gold: 0
-  _maxCaptureCapacity: 10
-  _list_groupMonsters: []
-  isBuffing: 0
-  _buffPower: 0
-  _buffAttackSpeed: 0
-  _buffMoveSpeed: 0
-  isAllyAvailable: 0
-  _go_targetMonster: {fileID: 0}
-  targetMonster: {fileID: 0}
-  captureMonster: {fileID: 0}
-  _str_playerMonsters: 
-  _list_playerMonsters: []
-  _str_playerEquippedItems: 
-  _list_playerEquippedItems: []
+  IsBuffing: 0
+  BuffPower: 0
+  BuffAttackSpeed: 0
+  BuffMoveSpeed: 0
+  MaxCaptureCapacity: 10
+  PlayerMonsterCollection: []
+  EquippedItems: 
+  PlayerEquippedItems: []
 --- !u!95 &2640465298603294840
 Animator:
   serializedVersion: 5

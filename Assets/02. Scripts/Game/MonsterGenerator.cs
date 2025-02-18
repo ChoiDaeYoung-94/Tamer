@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 using UnityEngine;
 
@@ -24,9 +25,17 @@ public class MonsterGenerator : MonoBehaviour
         { 4, (9, 10) }
     };
 
+    private CancellationTokenSource _spawnLoopTokenSource;
+
     private void Awake()
     {
         _instance = this;
+    }
+
+    private void OnDisable()
+    {
+        _spawnLoopTokenSource?.Cancel();
+        _spawnLoopTokenSource?.Dispose();
     }
 
     private void OnDestroy()
@@ -38,15 +47,17 @@ public class MonsterGenerator : MonoBehaviour
 
     public void Init()
     {
+        _spawnLoopTokenSource = new CancellationTokenSource();
+
         SpawnMonsters(_currentRegion);
-        SpawnLoop().Forget();
+        SpawnLoop(_spawnLoopTokenSource.Token).Forget();
     }
 
-    private async UniTaskVoid SpawnLoop()
+    private async UniTask SpawnLoop(CancellationToken token)
     {
-        while (true)
+        while (!token.IsCancellationRequested)
         {
-            await UniTask.Delay(TimeSpan.FromSeconds(15f));
+            await UniTask.Delay(TimeSpan.FromSeconds(15f), cancellationToken: token);
 
             int region = RegionOfPlayer();
             SetBoss(region);

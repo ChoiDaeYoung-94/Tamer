@@ -73,7 +73,7 @@ public class Monster : Creature
     /// <summary>
     /// Monster 초기화
     /// </summary>
-    protected override void Init()
+    private void Init()
     {
         _spawnEffect.SetActive(true);
 
@@ -514,7 +514,7 @@ public class Monster : Creature
             }
             else
             {
-                await UniTask.Yield(PlayerLoopTiming.Update, token);
+                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken: token);
             }
         }
     }
@@ -523,6 +523,9 @@ public class Monster : Creature
     {
         while (!isDie && !token.IsCancellationRequested)
         {
+            if (this == null)
+                return;
+
             Vector3 targetPosition = Vector3.zero;
             if (IsCommander && _commanderTarget != null)
                 targetPosition = _commanderTarget.transform.position;
@@ -535,7 +538,7 @@ public class Monster : Creature
             if (distance > 3.0f)
                 ResetTarget();
 
-            await UniTask.Yield(PlayerLoopTiming.Update, token);
+            await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken: token);
         }
     }
 
