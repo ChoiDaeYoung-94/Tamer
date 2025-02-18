@@ -9,22 +9,23 @@ namespace AD
     {
         public T Load<T>(string where, string path) where T : Object
         {
-            if (Resources.Load<T>(path) == null)
-                AD.Debug.Load(where, path);
+            T resource = Resources.Load<T>(path);
+            if (resource == null)
+                AD.DebugLogger.LogLoadError(where, path);
 
-            return Resources.Load<T>(path);
+            return resource;
         }
 
-        public GameObject Instantiate_(string where, string path, Transform parent = null)
+        public GameObject InstantiatePrefab(string where, string path, Transform parent = null)
         {
-            GameObject go = Load<GameObject>(where, "Prefabs/" + path);
-            if (go == null)
+            GameObject prefab = Load<GameObject>(where, "Prefabs/" + path);
+            if (prefab == null)
             {
-                AD.Debug.Instantiate(where, path);
+                AD.DebugLogger.LogInstantiateError(where, path);
                 return null;
             }
 
-            return Object.Instantiate(go, parent);
+            return Object.Instantiate(prefab, parent);
         }
     }
 }

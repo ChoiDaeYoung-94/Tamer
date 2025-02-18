@@ -1,35 +1,24 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace AD
 {
     /// <summary>
-    /// Popup 관리
-    /// GameM.IsGame을 통해 게임씬, 로비씬 여부에 따라 
-    /// 아무 팝업이 없이 뒤로 가기 버튼을 클릭시에
-    /// 게임을 종료할지, 로비로 가겠냐는 팝업을 띄울지 정함
+    /// 팝업 관리 클래스
+    /// 게임 씬과 로비 씬에서 뒤로 가기 버튼 클릭 시 적절한 팝업을 표시
     /// </summary>
     public class PopupManager : MonoBehaviour
     {
-        [Header("--- 세팅 ---")]
-        [SerializeField, Tooltip("로비 팝업")]
-        GameObject _go_popupLobby = null;
-        [SerializeField, Tooltip("게임 종료 팝업")]
-        GameObject _go_popupExit = null;
-        [SerializeField, Tooltip("게임씬 힐 보상 팝업")]
-        GameObject _go_popupHeal = null;
-        [SerializeField, Tooltip("게임 오버 팝업")]
-        GameObject _go_popupGameOver = null;
-        [SerializeField, Tooltip("세팅 팝업")]
-        GameObject _go_popupSetting = null;
-        [SerializeField] GameObject _go_bgm = null;
-        [SerializeField] GameObject _go_sfx = null;
+        [SerializeField] private GameObject _popupLobby = null;
+        [SerializeField] private GameObject _popupExit = null;
+        [SerializeField] private GameObject _popupHeal = null;
+        [SerializeField] private GameObject _popupGameOver = null;
+        [SerializeField] private GameObject _popupSetting = null;
+        [SerializeField] private GameObject _bgmToggle = null;
+        [SerializeField] private GameObject _sfxToggle = null;
 
-        [Tooltip("popup을 관리할 Stack, Enable - Push, Disable - Pop")]
-        Stack<GameObject> _popupStack = new Stack<GameObject>();
+        private Stack<GameObject> _popupStack = new Stack<GameObject>();
 
         /// <summary>
         /// 예외처리에 사용
@@ -37,39 +26,37 @@ namespace AD
         /// 게임씬에서 아이템을 선택하여서 사용 전인지에 대한 여부 판단
         /// Flow상 MainScene 진입 시 InitializeMain.cs에서 false
         /// </summary>
-        bool isException = true;
-        bool isFLow = false;
+        private bool _isException = true;
+        private bool _isFlow = false;
 
         /// <summary>
         /// Managers - Awake() -> Init()
         /// </summary>
-        internal void Init()
+        public void Init()
         {
-            AD.Managers.UpdateM._update -= Onupdate;
-            AD.Managers.UpdateM._update += Onupdate;
+            AD.Managers.UpdateM.OnUpdateEvent -= OnUpdate;
+            AD.Managers.UpdateM.OnUpdateEvent += OnUpdate;
 
             SetPopup();
         }
 
         /// <summary>
-        /// 열여있는 팝업 닫고 초기화
+        /// 열려 있는 모든 팝업을 비활성화하고 팝업 스택을 초기화
         /// </summary>
         public void SetPopup()
         {
-            if (_popupStack.Count > 0)
+            foreach (GameObject popup in _popupStack)
             {
-                foreach (GameObject popup in _popupStack)
-                    popup.SetActive(false);
+                popup.SetActive(false);
             }
-
             _popupStack.Clear();
         }
 
-        void Onupdate()
+        private void OnUpdate()
         {
             if (Application.platform == RuntimePlatform.Android)
             {
-                if (Input.GetKeyDown(KeyCode.Escape) && !isFLow)
+                if (Input.GetKeyDown(KeyCode.Escape) && !_isFlow)
                 {
                     DisablePop();
                 }
@@ -78,92 +65,81 @@ namespace AD
 
         #region Functions
         /// <summary>
-        /// Popup이 Enable 될 때 Push
+        /// 팝업이 활성화될 때 스택에 추가
         /// </summary>
-        /// <param name="pop"></param>
-        public void EnablePop(GameObject pop)
+        public void EnablePop(GameObject popup)
         {
-            _popupStack.Push(pop);
-            AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> push");
+            _popupStack.Push(popup);
+            AD.DebugLogger.Log("PopupManager", $"_popupStack.Count: {_popupStack.Count}, 팝업 스택에 푸시됨");
         }
 
         /// <summary>
-        /// Popup이 Disable 될 때 Pop하고 비활성화
+        /// 팝업이 비활성화될 때 스택에서 제거
+        /// 팝업이 없으면 씬 상태에 따라 종료 팝업 또는 로비 전환 팝업을 표시
         /// </summary>
         public void DisablePop()
         {
             AD.Managers.SoundM.UI_Click();
 
-            if (isException)
+            if (_isException)
             {
-                AD.Debug.Log("PopupManager", isException + " - isException");
+                AD.DebugLogger.Log("PopupManager", $"{_isException} - 예외 처리 활성");
                 return;
             }
 
-            // 스택에 팝업이 있을 경우
             if (_popupStack.Count > 0)
             {
-                GameObject popup = null;
-
-                popup = _popupStack.Pop();
-                AD.Debug.Log("PopupManager", _popupStack.Count + "_popupStack.Count -> pop");
-
+                GameObject popup = _popupStack.Pop();
+                AD.DebugLogger.Log("PopupManager", $"_popupStack.Count: {_popupStack.Count} 팝업 스택에서 팝업 제거됨");
                 popup.SetActive(false);
             }
-            else // 팝업 없을 경우 -> 게임 종료 or 로비로 돌아가는 팝업
+            else
             {
                 if (!AD.Managers.GameM.IsGame)
                 {
-                    AD.Debug.Log("PopupManager", "lobby scene -> quit popup");
+                    AD.DebugLogger.Log("PopupManager", "lobby scene -> quit popup");
 
-                    if (!_go_popupExit.activeSelf)
+                    if (!_popupExit.activeSelf)
                         PopupExit();
                 }
                 else
                 {
-                    AD.Debug.Log("PopupManager", "game scene-> go lobby popup");
+                    AD.DebugLogger.Log("PopupManager", "game scene-> go lobby popup");
 
-                    if (!_go_popupLobby.activeSelf)
+                    if (!_popupLobby.activeSelf)
                         PopupGoLobby();
                 }
             }
         }
 
-        internal void PopupGoLobby()
+        public void PopupGoLobby()
         {
             UnityEngine.Time.timeScale = 0;
-
-            _go_popupLobby.SetActive(true);
+            _popupLobby.SetActive(true);
         }
 
-        internal void PopupExit()
+        public void PopupExit()
         {
             UnityEngine.Time.timeScale = 0;
-
-            _go_popupExit.SetActive(true);
+            _popupExit.SetActive(true);
         }
 
-        internal void PopupHeal() => _go_popupHeal.SetActive(true);
+        public void PopupHeal() => _popupHeal.SetActive(true);
 
-        internal void PopupGameOver() => _go_popupGameOver.SetActive(true);
+        public void PopupGameOver() => _popupGameOver.SetActive(true);
 
-        internal void PopupSetting()
+        public void PopupSetting()
         {
             UnityEngine.Time.timeScale = 0;
 
             float bgm = PlayerPrefs.GetFloat("BGM", 1f);
             float sfx = PlayerPrefs.GetFloat("SFX", 1f);
 
-            if (bgm == 1)
-                _go_bgm.SetActive(false);
-            else
-                _go_bgm.SetActive(true);
-            if (sfx == 1)
-                _go_sfx.SetActive(false);
-            else
-                _go_sfx.SetActive(true);
+            // 토글 오브젝트 활성화 여부: 기본 값 1이면 비활성화, 그 외 활성화
+            _bgmToggle.SetActive(bgm != 1f);
+            _sfxToggle.SetActive(sfx != 1f);
 
-            _go_popupSetting.SetActive(true);
+            _popupSetting.SetActive(true);
         }
 
         public void ClosePopupSetting() => UnityEngine.Time.timeScale = 1;
@@ -171,8 +147,7 @@ namespace AD
         public void GoLobby()
         {
             UnityEngine.Time.timeScale = 1;
-
-            AD.Managers.GameM.SwitchMainOrGameScene(AD.Define.Scenes.Main);
+            AD.Managers.GameM.SwitchMainOrGameScene();
         }
 
         public void GameOver() => AD.Managers.GameM.GameOverGoLobby();
@@ -181,31 +156,31 @@ namespace AD
 
         public void Heal()
         {
-            if (!AD.Managers.GoogleAdMobM.isInprogress)
+            if (!AD.Managers.GoogleAdMobM.IsInProgress)
                 AD.Managers.GoogleAdMobM.ShowRewardedAd();
         }
 
-        internal void SetException() => isException = true;
+        public void SetException() => _isException = true;
 
-        internal void ReleaseException() => isException = false;
+        public void ReleaseException() => _isException = false;
 
-        internal void SetFLow() => isFLow = true;
+        public void SetFlow() => _isFlow = true;
 
-        internal void ReleaseFLow() => isFLow = false;
+        public void ReleaseFlow() => _isFlow = false;
 
         public void BGM()
         {
             float bgm = PlayerPrefs.GetFloat("BGM", 1f);
 
-            if (bgm == 1)
+            if (bgm == 1f)
             {
-                _go_bgm.SetActive(true);
-                bgm = 0;
+                _bgmToggle.SetActive(true);
+                bgm = 0f;
             }
             else
             {
-                _go_bgm.SetActive(false);
-                bgm = 1;
+                _bgmToggle.SetActive(false);
+                bgm = 1f;
             }
 
             AD.Managers.SoundM.SetBGMVolume(bgm);
@@ -216,15 +191,15 @@ namespace AD
         {
             float sfx = PlayerPrefs.GetFloat("SFX", 1f);
 
-            if (sfx == 1)
+            if (sfx == 1f)
             {
-                _go_sfx.SetActive(true);
-                sfx = 0;
+                _sfxToggle.SetActive(true);
+                sfx = 0f;
             }
             else
             {
-                _go_sfx.SetActive(false);
-                sfx = 1;
+                _sfxToggle.SetActive(false);
+                sfx = 1f;
             }
 
             AD.Managers.SoundM.SetSFXVolume(sfx);

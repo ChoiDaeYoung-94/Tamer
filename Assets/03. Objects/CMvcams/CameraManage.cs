@@ -1,34 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 using Cinemachine;
 
 public class CameraManage : MonoBehaviour
 {
-    static CameraManage instance;
-    public static CameraManage Instance { get { return instance; } }
+    private static CameraManage _instance;
+    public static CameraManage Instance { get { return _instance; } }
 
     [Header("사용하는 시네머신 카메라 세팅")]
-    [SerializeField] internal CinemachineVirtualCamera[] CM_cameras = null;
+    public CinemachineVirtualCamera[] CinemachineCameras;
 
     /// <summary>
     /// LoginCheck.cs 에서 생성
     /// </summary>
     private void Awake()
     {
-        instance = this;
+        _instance = this;
         DontDestroyOnLoad(gameObject);
     }
 
     /// <summary>
     /// Player.cs 에서 플레이어 초기화 후 호출
     /// </summary>
-    internal void StartInit()
+    public void StartInit()
     {
-        foreach (CinemachineVirtualCamera cm in CM_cameras)
+        foreach (CinemachineVirtualCamera cm in CinemachineCameras)
         {
-            cm.Follow = Player.Instance._tr_cameraArm;
-            cm.LookAt = Player.Instance._go_player.transform;
+            cm.Follow = Player.Instance.CameraArm;
+            cm.LookAt = Player.Instance.PlayerObject.transform;
         }
     }
 }

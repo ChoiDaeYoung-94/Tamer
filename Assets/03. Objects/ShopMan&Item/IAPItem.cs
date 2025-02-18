@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class IAPItem : MonoBehaviour
 {
-    [SerializeField] AD.Define.IAPItems _IAPItem;
+    [SerializeField] private AD.GameConstants.IAPItems _IAPItem;
 
     private void OnEnable()
     {
@@ -13,12 +11,12 @@ public class IAPItem : MonoBehaviour
 
     private void Start()
     {
-        ShopMan.Instance._list_IAPitem.Add(this);
+        ShopMan.Instance.IAPitemList.Add(this);
     }
 
     public void Init()
     {
-        if (AD.Managers.DataM._dic_player["GooglePlay"].Contains(_IAPItem.ToString()))
+        if (AD.Managers.DataM.LocalPlayerData["GooglePlay"].Contains(_IAPItem.ToString()))
             gameObject.SetActive(false);
     }
 }

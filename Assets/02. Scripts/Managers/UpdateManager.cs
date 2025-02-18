@@ -1,28 +1,24 @@
 using System;
+
 using UnityEngine;
+
+using UniRx;
 
 namespace AD
 {
     /// <summary>
     /// 애매한 Update() 처리 관리
     /// </summary>
-    public class UpdateManager
+    public class UpdateManager : MonoBehaviour
     {
-        [Tooltip("Managers - Update에 돌릴 메서드 등록 위함")]
-        public Action _update = null;
+        public event Action OnUpdateEvent;
 
-        /// <summary>
-        /// Managers - Update()
-        /// </summary>
-        public void OnUpdate()
+        private void Awake()
         {
-            if (_update != null)
-                _update.Invoke();
-        }
-
-        public void Clear()
-        {
-            _update = null;
+            // UniRx를 활용한 업데이트 이벤트 관리
+            Observable.EveryUpdate()
+                .Subscribe(_ => OnUpdateEvent?.Invoke())
+                .AddTo(this);
         }
     }
 }

@@ -3109,7 +3109,6 @@ GameObject:
   m_Component:
   - component: {fileID: 981742750}
   - component: {fileID: 981742749}
-  - component: {fileID: 981742751}
   m_Layer: 0
   m_Name: ActivePool
   m_TagString: Untagged
@@ -3129,11 +3128,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfe0052647338454398989b4308aabaa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxMonsters: 16
-  _go_boss: {fileID: 0}
-  _list_curMonsters: []
-  spawnRadius: 12
-  curRegionOfPlayer: 1
+  BossMonster: {fileID: 0}
+  _maxMonsters: 16
+  _activeMonsters: []
+  _spawnRadius: 12
+  _currentRegion: 1
 --- !u!4 &981742750
 Transform:
   m_ObjectHideFlags: 0
@@ -3149,19 +3148,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &981742751
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 981742748}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f6ad0e1b7fd3f14b81d8d45ae7387f8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _portalType: 0
 --- !u!4 &995352572 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6672665467283437444, guid: cc9254bbbbf20db4ba8ac7298de9ebeb, type: 3}
@@ -4119,11 +4105,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a03bb9b75be65849af2d1322679c8f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_grass:
+  _grassPrefabs:
   - {fileID: 183222886446776291, guid: 05318b47d927d0544b40839f35bf6175, type: 3}
-  _go_rock:
+  _rockPrefabs:
   - {fileID: 1017761012396978790, guid: 1da0f55ebb78dc64788ebacaa12951cb, type: 3}
-  _go_trees:
+  _treePrefabs:
   - {fileID: 6672665467283729316, guid: cc9254bbbbf20db4ba8ac7298de9ebeb, type: 3}
   - {fileID: 1031951609429618125, guid: 17a679b2a07557544a56b60ad5ac031b, type: 3}
   - {fileID: 4602163295358312130, guid: cd6243626883e7c49871090c0832efc5, type: 3}
@@ -4312,14 +4298,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d04cc82f1f104864693267f631b09a71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _spr_player:
+  _playerIcons:
   - {fileID: 21300000, guid: b6c8ea158f492bd45baaf66de06d0aff, type: 3}
   - {fileID: 21300000, guid: 0f2bbcae8b0908e4dbf821c8f4d1b713, type: 3}
-  _tr_player: {fileID: 1692200363}
-  _sprR_player: {fileID: 1692200364}
-  _go_mainCamera: {fileID: 744042506}
-  _go_minimapCamera: {fileID: 1491638321}
-  _go_minimapCanvas: {fileID: 46348370}
+  _playerTransform: {fileID: 1692200363}
+  _playerIconRenderer: {fileID: 1692200364}
+  _mainCamera: {fileID: 744042506}
+  _minimapCamera: {fileID: 1491638321}
+  _minimapCanvas: {fileID: 46348370}
 --- !u!4 &1450181930
 Transform:
   m_ObjectHideFlags: 0
@@ -5173,7 +5159,7 @@ Transform:
   m_GameObject: {fileID: 1692200362}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: 40, y: 1, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -6085,7 +6071,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ba90497789e57c40b9150d5c5dce8c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_initialze: []
+  _initializeObjects: []
 --- !u!4 &1986700268
 Transform:
   m_ObjectHideFlags: 0

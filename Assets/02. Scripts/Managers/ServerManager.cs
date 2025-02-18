@@ -1,7 +1,5 @@
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 using PlayFab;
 using PlayFab.ClientModels;
@@ -9,15 +7,16 @@ using PlayFab.ClientModels;
 namespace AD
 {
     /// <summary>
-    /// PlayFab Server 연동 관리
+    /// PlayFab 서버 연동 관리
     /// </summary>
     public class ServerManager
     {
-        [Tooltip("Server 통신 확인 용")]
-        internal bool isInprogress = false;
-        [Header("초기 데이터 세팅 시 10개를 초과하는 데이터를 보낼 시 오류 방지")]
-        int _curindex = 0;
-        Dictionary<string, string> _tempData = new Dictionary<string, string>();
+        // 서버 요청 진행 여부
+        public bool IsInProgress { get; private set; } = false;
+
+        // 서버 연동 시 사용할 변수
+        private int _currentIndex = 0;
+        private Dictionary<string, string> _tempData = new Dictionary<string, string>();
 
         #region Functions
         /// <summary>
@@ -26,51 +25,51 @@ namespace AD
         /// _isConflict - AD.Managers.DataM.UpdateData() -> 데이터 문제가 생길 시
         /// -> AD.Managers.DataM SanitizeData()를 진행 후 마지막 데이터를 보낸 뒤 false 처리
         /// </summary>
-        internal void GetAllData(bool Update = false)
+        public void GetAllData(bool update = false)
         {
-            isInprogress = true;
+            IsInProgress = true;
 
-            var request = new GetUserDataRequest() { PlayFabId = AD.Managers.DataM.StrID };
+            var request = new GetUserDataRequest() { PlayFabId = AD.Managers.DataM.PlayFabId };
             PlayFabClientAPI.GetUserData(request,
                 (result) =>
                 {
-                    AD.Debug.Log("ServerManager", $"Successfully GetAllData with PlayFab");
+                    AD.DebugLogger.Log("ServerManager", $"Successfully GetAllData from PlayFab");
 
-                    AD.Managers.DataM._dic_PlayFabPlayerData = result.Data;
+                    AD.Managers.DataM.PlayFabPlayerData = result.Data;
 
-                    if (Update)
+                    if (update)
                     {
                         AD.Managers.DataM.UpdateData();
                         return;
                     }
                     else
-                        AD.Managers.DataM._isConflict = false;
+                        AD.Managers.DataM.IsConflict = false;
 
-                    isInprogress = false;
+                    IsInProgress = false;
                 },
-                (error) => AD.Debug.LogWarning("ServerManager", $"Failed to GetAllData with PlayFab: {error}"));
+                (error) => AD.DebugLogger.LogWarning("ServerManager", $"Failed to GetAllData from PlayFab: {error}"));
         }
 
         /// <summary>
         /// 서버에 데이터 저장
         /// </summary>
         /// <param name="dic"></param>
-        internal void SetData(Dictionary<string, string> dic, bool GetAllData = false, bool Update = false)
+        public void SetData(Dictionary<string, string> dic, bool getAllData = false, bool update = false)
         {
-            isInprogress = true;
+            IsInProgress = true;
 
             _tempData.Clear();
 
-            while (_curindex < dic.Count)
+            while (_currentIndex < dic.Count)
             {
-                string key = dic.Keys.ElementAt(_curindex);
-                string value = dic.Values.ElementAt(_curindex);
+                string key = dic.Keys.ElementAt(_currentIndex);
+                string value = dic.Values.ElementAt(_currentIndex);
 
                 if (_tempData.Count < 10)
                     _tempData.Add(key, value);
 
-                bool isFinal = _curindex == dic.Count - 1 ? true : false;
-                ++_curindex;
+                bool isFinal = _currentIndex == dic.Count - 1 ? true : false;
+                ++_currentIndex;
 
                 if (_tempData.Count % 10 == 0 || isFinal)
                 {
@@ -80,25 +79,25 @@ namespace AD
                         {
                             if (isFinal)
                             {
-                                AD.Debug.Log("ServerManager", "Successfully SetData with PlayFab");
-                                _curindex = 0;
+                                AD.DebugLogger.Log("ServerManager", "Successfully SetData to PlayFab");
+                                _currentIndex = 0;
                                 _tempData.Clear();
 
-                                if (GetAllData)
+                                if (getAllData)
                                 {
-                                    this.GetAllData(Update: Update);
+                                    this.GetAllData(update: update);
                                     return;
                                 }
 
-                                isInprogress = false;
+                                IsInProgress = false;
                             }
                             else
-                                this.SetData(dic, GetAllData: GetAllData, Update: Update);
+                                this.SetData(dic, getAllData: getAllData, update: update);
                         },
                         (error) =>
                         {
-                            AD.Debug.LogWarning("ServerManager", "Failed to SetData with PlayFab");
-                            this.SetData(dic, GetAllData: GetAllData, Update: Update);
+                            AD.DebugLogger.LogWarning("ServerManager", "Failed to SetData to PlayFab");
+                            this.SetData(dic, getAllData: getAllData, update: update);
                         });
 
                     break;
@@ -107,15 +106,15 @@ namespace AD
         }
 
         /// <summary>
-        /// 새로운 PlayerData 갱신
+        /// 새로운 플레이어 데이터 갱신
         /// </summary>
-        internal void NewData()
+        public void UpdateNewPlayerData()
         {
             _tempData.Clear();
 
-            foreach (KeyValuePair<string, string> data in AD.Managers.DataM._dic_player)
+            foreach (KeyValuePair<string, string> data in AD.Managers.DataM.LocalPlayerData)
             {
-                if (!AD.Managers.DataM._dic_PlayFabPlayerData.ContainsKey(data.Key))
+                if (!AD.Managers.DataM.PlayFabPlayerData.ContainsKey(data.Key))
                     _tempData.Add(data.Key, data.Value);
             }
 
@@ -123,12 +122,12 @@ namespace AD
             PlayFabClientAPI.UpdateUserData(request,
                 (result) =>
                 {
-                    AD.Debug.Log("ServerManager", "Successfully NewData with PlayFab");
+                    AD.DebugLogger.Log("ServerManager", "Successfully NewData to PlayFab");
                     _tempData.Clear();
-                    GetAllData(Update: false);
+                    GetAllData(update: false);
                 },
                 (error) =>
-                    AD.Debug.LogWarning("ServerManager", "Failed to NewData with PlayFab - " + error));
+                    AD.DebugLogger.LogWarning("ServerManager", "Failed to NewData to PlayFab - " + error));
         }
 
         /// <summary>
@@ -137,22 +136,23 @@ namespace AD
         /// 지워야 할 Data의 경우 value를 null로 보내면 됨
         /// ex > DeleteData(new Dictionary<string, string> { { key, null } });
         /// </summary>
-        /// <param name="dic"></param>
-        internal void DeleteData(Dictionary<string, string> dic, bool Update = false)
+        public void DeleteData(Dictionary<string, string> dic, bool update = false)
         {
             var request = new UpdateUserDataRequest() { Data = dic, Permission = UserDataPermission.Public };
             PlayFabClientAPI.UpdateUserData(request,
                 (result) =>
                 {
-                    AD.Debug.Log("ServerManager", "Successfully DeleteData with PlayFab");
-                    GetAllData(Update: Update);
+                    AD.DebugLogger.Log("ServerManager", "Successfully DeleteData from PlayFab");
+                    GetAllData(update: update);
                 },
                 (error) =>
                 {
-                    AD.Debug.LogWarning("ServerManager", "Failed to DeleteData with PlayFab");
-                    this.DeleteData(dic, Update: Update);
+                    AD.DebugLogger.LogWarning("ServerManager", "Failed to DeleteData from PlayFab");
+                    this.DeleteData(dic, update: update);
                 });
         }
+
+        public void SetInProgress(bool value) => IsInProgress = value;
         #endregion
     }
 }

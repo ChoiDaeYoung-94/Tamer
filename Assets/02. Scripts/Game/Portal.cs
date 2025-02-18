@@ -1,11 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Portal : MonoBehaviour
 {
-    static Portal instance;
-    public static Portal Instance { get { return instance; } }
+    static Portal _instance;
+    public static Portal Instance { get { return _instance; } }
 
     private enum PortalType
     {
@@ -14,17 +12,16 @@ public class Portal : MonoBehaviour
         Heal
     }
 
-    [Header("--- 세팅 ---")]
     [SerializeField] PortalType _portalType;
 
     private void Awake()
     {
-        instance = this;
+        _instance = this;
     }
 
     private void OnDestroy()
     {
-        instance = null;
+        _instance = null;
     }
 
     #region Functions
@@ -43,7 +40,7 @@ public class Portal : MonoBehaviour
         AD.Managers.PopupM.PopupHeal();
     }
 
-    internal void RewardHeal()
+    public void RewardHeal()
     {
         AD.Managers.SoundM.UnpauseBGM();
 

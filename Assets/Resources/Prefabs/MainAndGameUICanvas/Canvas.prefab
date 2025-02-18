@@ -1618,22 +1618,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c0861e614447d542bdf2e2f05df00d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _TMP_playerNickName: {fileID: 109900468101944103}
-  _TMP_captureCapacity: {fileID: 109900468098071373}
-  _TMP_gold: {fileID: 109900468709307894}
-  _TMP_HP: {fileID: 109900467569660068}
-  _Slider_HP: {fileID: 109900467223686335}
-  _go_Popup_playerInfo: {fileID: 109900468748512906}
-  _TMP_POPplayerNickName: {fileID: 109900467876081517}
-  _TMP_POPcaptureCapacity: {fileID: 109900468747711995}
-  _TMP_POPgold: {fileID: 109900467944307975}
-  _TMP_POPpower: {fileID: 109900469205996683}
-  _TMP_POPattackSpeed: {fileID: 109900468366958923}
-  _TMP_POPmoveSpeed: {fileID: 109900468157289228}
-  _go_panelAdMobBuff: {fileID: 4141849546138600755}
-  _TMP_remainingBuffTime: {fileID: 3929510360091980771}
-  _go_panel_gamesceneUI: {fileID: 109900468165061374}
-  _go_capture: {fileID: 2835964062785586911}
+  _playerNickNameText: {fileID: 109900468101944103}
+  _captureCapacityText: {fileID: 109900468098071373}
+  _goldText: {fileID: 109900468709307894}
+  _playerHpText: {fileID: 109900467569660068}
+  _playerHpSlider: {fileID: 109900467223686335}
+  _popupPlayerInfoPanel: {fileID: 109900468748512906}
+  _popupNickNameText: {fileID: 109900467876081517}
+  _popupCaptureCapacityText: {fileID: 109900468747711995}
+  _popupGoldText: {fileID: 109900467944307975}
+  _popupPowerText: {fileID: 109900469205996683}
+  _popupAttackSpeedText: {fileID: 109900468366958923}
+  _popupMoveSpeedText: {fileID: 109900468157289228}
+  _buffPanel: {fileID: 4141849546138600755}
+  _buffTimeText: {fileID: 3929510360091980771}
+  _gameSceneUIPanel: {fileID: 109900468165061374}
+  _captureButton: {fileID: 2835964062785586911}
 --- !u!1 &109900468366958921
 GameObject:
   m_ObjectHideFlags: 0

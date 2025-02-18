@@ -1,23 +1,19 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
-using UnityEngine.UI;
 
 public class BuffingMan : MonoBehaviour
 {
     static BuffingMan instance;
     public static BuffingMan Instance { get { return instance; } }
 
-    [Header("--- 세팅 ---")]
-    [SerializeField, Tooltip("Admob 광고 가능 포탈")] GameObject _go_ablePortal = null;
-    [SerializeField, Tooltip("Admob 광고 불가능 포탈")] GameObject _go_unablePortal = null;
-    [SerializeField, Tooltip("Admob 광고 오브젝트")] GameObject _go_admob = null;
-    [SerializeField, Tooltip("Admob 광고 실패 시 표기 위함")] TextMesh _TM_admob = null;
+    [SerializeField] private GameObject _ablePortal;
+    [SerializeField] private GameObject _unablePortal;
+    [SerializeField] private GameObject _admobObject;
+    [SerializeField] private TextMesh _admobTextMesh;
 
-    [Header("--- 참고용 ---")]
-    private string _str_normalState = "클릭하여 광고 보상을 통해\n플레이어의 능력치를 증가시켜주세요!\n버프는 10분간 적용됩니다.";
-    private string _str_failState = "광고가 로드되지 않았습니다.\n잠시 후 다시 시도해 주세요!";
+    private const string _normalAdMessage = "클릭하여 광고 보상을 통해\n플레이어의 능력치를 증가시켜주세요!\n버프는 10분간 적용됩니다.";
+    private const string _failedAdMessage = "광고가 로드되지 않았습니다.\n잠시 후 다시 시도해 주세요!";
 
     private void Awake()
     {
@@ -43,45 +39,37 @@ public class BuffingMan : MonoBehaviour
     /// </summary>
     private void CheckAdMob()
     {
-        string str_temp = AD.Managers.DataM._dic_player["GoogleAdMob"];
-        if (str_temp != "null")
+        string adData = AD.Managers.DataM.LocalPlayerData["GoogleAdMob"];
+        if (adData != "null")
         {
-            double remainTime = AD.Time.GetGoogleAdMobRewardBuffRemainingTime(str_temp);
-            if (remainTime >= 0f)
+            double remainingTime = AD.TimeUtility.GetAdBuffRemainingTime(adData);
+            if (remainingTime >= 0f)
             {
-                PlayerUICanvas.Instance.SetBuff(remainTime);
+                PlayerUICanvas.Instance.SetBuff(remainingTime);
 
-                if (!Player.Instance.isBuffing)
+                if (!Player.Instance.IsBuffing)
                     Player.Instance.SetBuff();
 
-                UnableAdMob();
+                SetAdmobState(false);
                 return;
             }
             else
+            {
                 AD.Managers.GoogleAdMobM.ResetAdMob();
+            }
         }
 
-        ableAdMob();
+        SetAdmobState(true);
     }
 
     /// <summary>
-    /// AdMob 광고 시청이 가능할 경우
+    /// 광고 상태 설정 (true: 광고 가능, false: 광고 불가능)
     /// </summary>
-    public void ableAdMob()
+    public void SetAdmobState(bool isAvailable)
     {
-        _TM_admob.text = _str_normalState;
-        _go_ablePortal.SetActive(true);
-        _go_unablePortal.SetActive(false);
-    }
-
-    /// <summary>
-    /// AdMob 광고 시청이 불가능할 경우
-    /// </summary>
-    private void UnableAdMob()
-    {
-        _TM_admob.text = _str_failState;
-        _go_ablePortal.SetActive(false);
-        _go_unablePortal.SetActive(true);
+        _admobTextMesh.text = isAvailable ? _normalAdMessage : _failedAdMessage;
+        _ablePortal.SetActive(isAvailable);
+        _unablePortal.SetActive(!isAvailable);
     }
 
     /// <summary>
@@ -91,8 +79,8 @@ public class BuffingMan : MonoBehaviour
     /// </summary>
     public void OnAdSuccess()
     {
-        _go_admob.SetActive(false);
-        UnableAdMob();
+        _admobObject.SetActive(false);
+        SetAdmobState(false);
 
         AD.Managers.DataM.UpdateLocalData(key: "GoogleAdMob", value: DateTime.Now.ToString());
 
@@ -101,25 +89,22 @@ public class BuffingMan : MonoBehaviour
 
     public void OnAdFailure()
     {
-        _TM_admob.text = _str_failState;
+        SetAdmobState(false);
     }
     #endregion
 
     private void OnTriggerEnter(Collider col)
     {
-        if (col.CompareTag("Player"))
+        if (col.CompareTag("Player") && AD.Managers.DataM.LocalPlayerData["GoogleAdMob"] == "null")
         {
-            if (AD.Managers.DataM._dic_player["GoogleAdMob"] == "null")
-            {
-                _TM_admob.text = _str_normalState;
-                _go_admob.SetActive(true);
-            }
+            _admobTextMesh.text = _normalAdMessage;
+            _admobObject.SetActive(true);
         }
     }
 
     private void OnTriggerExit(Collider col)
     {
         if (col.CompareTag("Player"))
-            _go_admob.SetActive(false);
+            _admobObject.SetActive(false);
     }
 }

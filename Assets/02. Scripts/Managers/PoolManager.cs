@@ -1,104 +1,102 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace AD
 {
     /// <summary>
-    /// Pool 관리
+    /// 풀 관리 클래스
+    /// 다양한 GameObject/UI 풀을 생성 및 관리하며 재사용성을 높임
     /// </summary>
     public class PoolManager
     {
-        #region Pool
+        #region Nested Pool Class
+
+        /// <summary>
+        /// 개별 풀을 관리
+        /// 각 풀은 대상 프리팹을 기반으로 오브젝트를 미리 생성하여 스택으로 관리
+        /// </summary>
         public class Pool
         {
             /// <summary>
-            /// Pool에 생성할 GameObject
+            /// 풀에서 생성할 대상 프리팹
             /// </summary>
-            public GameObject GO_poolTarget { get; private set; }
+            public GameObject TargetPrefab { get; private set; }
 
             /// <summary>
-            /// Pool에 생성할 GameObject의 root Transform
+            /// 풀 오브젝트들을 보관할 root Transform
             /// </summary>
             public Transform Root { get; set; }
 
             /// <summary>
-            /// GO인지 UI인지 구별
+            /// 이 풀이 게임 오브젝트용 풀인지 UI용 풀인지를 결정
+            /// true이면 게임 오브젝트, false이면 UI (Canvas 추가)
             /// </summary>
-            public bool isGO = false;
+            public bool IsGameObjectPool = false;
 
-            /// <summary>
-            /// 생성된 PoolObject Stack으로 관리, 메서드로 Push, Pop 관리
-            /// </summary>
-            Stack<PoolObject> _Stack_pool = new Stack<PoolObject>();
+            // 풀 오브젝트를 저장하는 스택
+            private Stack<PoolObject> _poolStack = new Stack<PoolObject>();
 
             /// <summary>
             /// Pool 생성 시 Init
-            /// -> Pool아래에 생성할 오브젝트의 Root 생성 후 create
+            /// 대상 프리팹을 설정하고, 지정된 수만큼 오브젝트를 생성하여 스택에 추가
             /// </summary>
-            /// <param name="go"></param>
-            /// <param name="go_name"></param>
-            /// <param name="count"></param>
-            public void Init(GameObject go, int count)
+            public void Init(GameObject prefab, int count)
             {
-                GO_poolTarget = go;
+                TargetPrefab = prefab;
 
-                GameObject go_root = new GameObject { name = go.name }.gameObject;
-                if (!isGO)
-                    go_root.AddComponent<Canvas>();
+                // 풀 루트 생성
+                GameObject rootObject = new GameObject(prefab.name);
+                if (!IsGameObjectPool)
+                {
+                    // UI 풀인 경우 캔버스를 추가하여 UI 요소가 올바르게 렌더링되도록 함
+                    rootObject.AddComponent<Canvas>();
+                }
+                Root = rootObject.transform;
 
-                Root = go_root.transform;
-
-                // count만큼 pool로
-                for (int i = -1; ++i < count;)
-                    PushToPool(Create());
+                // 지정된 개수만큼 오브젝트 생성 및 스택에 Push
+                for (int i = 0; i < count; i++)
+                {
+                    PoolObject poolObj = CreatePoolObject();
+                    PushToPool(poolObj);
+                }
             }
 
             /// <summary>
-            /// GO_poolTarget 생성 후 PoolObject반환
+            /// 대상 프리팹을 기반으로 새로운 풀 오브젝트를 생성
             /// </summary>
-            PoolObject Create()
+            private PoolObject CreatePoolObject()
             {
-                GameObject go = Object.Instantiate(GO_poolTarget);
-                go.name = GO_poolTarget.name;
-
-                PoolObject poolObj = go.GetComponent_<PoolObject>();
-
+                GameObject newObj = Object.Instantiate(TargetPrefab);
+                newObj.name = TargetPrefab.name;
+                PoolObject poolObj = newObj.GetOrAddComponent<PoolObject>();
                 return poolObj;
             }
 
             /// <summary>
-            /// 생성된 go의 root를 맞추고 비활성화 후 stack에 push
+            /// 사용한 풀 오브젝트를 비활성화한 후 스택에 반환
             /// </summary>
-            /// <param name="poolObj"></param>
             public void PushToPool(PoolObject poolObj)
             {
                 poolObj.transform.SetParent(Root);
                 poolObj.gameObject.SetActive(false);
 
-                _Stack_pool.Push(poolObj);
+                _poolStack.Push(poolObj);
             }
 
             /// <summary>
-            /// Stack에서 Pop을 할 때 Stack이 비워있을 경우 Create
-            /// 사용할 것이니까 활성화 후 transform 정리
+            /// 풀에서 오브젝트를 하나 꺼내 활성화한 후 지정된 부모 하위로 이동
+            /// 스택이 비어있으면 새로운 오브젝트를 생성
             /// </summary>
-            /// <param name="parent"></param>
-            /// <returns></returns>
             public GameObject PopFromPool(Transform parent)
             {
-                PoolObject poolObj;
-
-                if (_Stack_pool.Count > 0)
-                    poolObj = _Stack_pool.Pop();
-                else
-                    poolObj = Create();
-
+                PoolObject poolObj = _poolStack.Count > 0 ? _poolStack.Pop() : CreatePoolObject();
                 poolObj.gameObject.SetActive(true);
 
                 if (parent == null)
-                    parent = GameObject.Find(AD.Define._activePool).transform;
-
+                {
+                    GameObject activePoolObj = GameObject.Find(AD.GameConstants.ActivePool);
+                    parent = activePoolObj != null ? activePoolObj.transform : null;
+                }
                 poolObj.transform.SetParent(parent);
 
                 return poolObj.gameObject;
@@ -106,104 +104,141 @@ namespace AD
         }
         #endregion
 
-        [Tooltip("Pool 관리 할 Dictionary - _root아래의 생성할 poolGO.name, Pool로 관리")]
-        public Dictionary<string, Pool> _dic_pool = new Dictionary<string, Pool>();
+        /// <summary>
+        /// 풀들을 관리하는 Dictionary, 키는 대상 프리팹의 이름으로 사용
+        /// </summary>
+        public Dictionary<string, Pool> PoolDictionary = new Dictionary<string, Pool>();
 
-        [Tooltip("GO Pool의 root Transform")]
-        public Transform _root_GO;
-        [Tooltip("UI Pool의 root Transform")]
-        public Transform _root_UI;
-        [Tooltip("Player가 사용 할 object root Transform")]
-        public Transform _root_Player;
+        /// <summary>
+        /// 게임 오브젝트 풀의 루트 Transform.
+        /// </summary>
+        public Transform RootGameObjects;
+
+        /// <summary>
+        /// UI 풀의 루트 Transform.
+        /// </summary>
+        public Transform RootUI;
+
+        /// <summary>
+        /// 플레이어가 사용하는 오브젝트의 루트 Transform.
+        /// </summary>
+        public Transform RootPlayer;
 
         /// <summary>
         /// Managers - Awake() -> Init()
-        /// Pool에 둬야 할 것들 미리 생성
+        /// 각 타입별 루트를 생성하고 미리 지정된 풀 오브젝트들을 생성
         /// </summary>
-        internal void Init()
+        public void Init()
         {
-            // GO root 생성
-            _root_GO = new GameObject { name = "Pool_GO" }.transform;
-            Object.DontDestroyOnLoad(_root_GO);
+            // 게임 오브젝트 풀 루트 생성
+            RootGameObjects = new GameObject("Pool_GO").transform;
+            Object.DontDestroyOnLoad(RootGameObjects.gameObject);
 
-            // UI root 생성
-            _root_UI = new GameObject { name = "Pool_UI" }.transform;
-            Object.DontDestroyOnLoad(_root_UI);
+            // UI 풀 루트 생성
+            RootUI = new GameObject("Pool_UI").transform;
+            Object.DontDestroyOnLoad(RootUI.gameObject);
 
-            _root_Player = new GameObject { name = "Pool_Player" }.transform;
-            Object.DontDestroyOnLoad(_root_Player);
+            // 플레이어 관련 풀 루트 생성
+            RootPlayer = new GameObject("Pool_Player").transform;
+            Object.DontDestroyOnLoad(RootPlayer.gameObject);
 
-            for (int i = -1; ++i < Managers.Instance._go_poolGOs.Length;)
-                CreatePool(Managers.Instance._go_poolGOs[i], isGO: true, count: 20);
+            // Managers.Instance._go_poolGOs 배열에 있는 모든 GameObject에 대해 풀 생성 (기본 20개)
+            for (int i = 0; i < Managers.Instance._go_poolGOs.Length; i++)
+            {
+                CreatePool(Managers.Instance._go_poolGOs[i], isGameObjectPool: true, count: 20);
+            }
 
-            for (int i = -1; ++i < Managers.Instance._go_poolUIs.Length;)
-                CreatePool(Managers.Instance._go_poolUIs[i], isGO: false, count: 50);
+            // Managers.Instance._go_poolUIs 배열에 있는 모든 GameObject에 대해 풀 생성 (기본 50개)
+            for (int i = 0; i < Managers.Instance._go_poolUIs.Length; i++)
+            {
+                CreatePool(Managers.Instance._go_poolUIs[i], isGameObjectPool: false, count: 50);
+            }
         }
 
         /// <summary>
-        /// Pool 생성 (기본 20개 씩)
+        /// 특정 프리팹에 대해 풀을 생성하고 등록
         /// </summary>
-        /// <param name="go"></param>
-        /// <param name="count"></param>
-        public void CreatePool(GameObject go, bool isGO = true, int count = 20)
+        public void CreatePool(GameObject prefab, bool isGameObjectPool = true, int count = 20)
         {
-            Pool pool = new Pool();
-            pool.isGO = isGO;
-            pool.Init(go, count);
+            if (prefab == null)
+            {
+                AD.DebugLogger.LogError("PoolManager", "Prefab is null when creating pool.");
+                return;
+            }
 
-            Transform tr = isGO ? _root_GO : _root_UI;
-            pool.Root.SetParent(tr);
+            Pool pool = new Pool
+            {
+                IsGameObjectPool = isGameObjectPool
+            };
+            pool.Init(prefab, count);
 
-            _dic_pool.Add(go.name, pool);
+            // 각 풀의 루트는 해당 풀의 타입에 맞는 상위 루트로 설정
+            Transform rootParent = isGameObjectPool ? RootGameObjects : RootUI;
+            pool.Root.SetParent(rootParent);
+
+            if (!PoolDictionary.ContainsKey(prefab.name))
+            {
+                PoolDictionary.Add(prefab.name, pool);
+            }
+            else
+            {
+                AD.DebugLogger.LogError("PoolManager", $"Pool for {prefab.name} already exists.");
+            }
         }
 
         /// <summary>
-        /// 사용한 PoolObj를 Pool에 다시 Push
+        /// 사용 완료한 풀 오브젝트를 해당 풀에 다시 반환
+        /// 반환할 GameObject에 PoolObject 컴포넌트가 없으면 오브젝트를 파괴
         /// </summary>
-        /// <param name="go"></param>
         public void PushToPool(GameObject go)
         {
             if (go == null)
                 return;
 
             PoolObject poolObj = go.GetComponent<PoolObject>();
-
-            if (!_dic_pool.ContainsKey(go.name))
+            if (poolObj == null)
             {
                 Object.Destroy(go);
                 return;
             }
 
-            // Stack으로 push
-            _dic_pool[go.name].PushToPool(poolObj);
+            // 생성 시 사용한 프리팹 이름을 키로 사용
+            if (!PoolDictionary.ContainsKey(go.name))
+            {
+                Object.Destroy(go);
+                return;
+            }
+
+            PoolDictionary[go.name].PushToPool(poolObj);
         }
 
         /// <summary>
-        /// _dic_pool에서 Pool에 있는 사용할 go를 Pop
+        /// 지정한 풀 이름에 해당하는 풀에서 오브젝트를 하나 꺼냄
         /// </summary>
-        /// <param name="go_name"></param>
-        /// <param name="parent"></param>
-        public GameObject PopFromPool(string go_name, Transform parent = null)
+        public GameObject PopFromPool(string poolName, Transform parent = null)
         {
-            if (!_dic_pool.ContainsKey(go_name))
+            if (!PoolDictionary.ContainsKey(poolName))
             {
-                AD.Debug.Contain("PoolManager", $"{go_name} in _dic_pool");
+                AD.DebugLogger.LogNotFound("PoolManager", $"{poolName} not found in pool dictionary.");
                 return null;
             }
 
-            return _dic_pool[go_name].PopFromPool(parent);
+            return PoolDictionary[poolName].PopFromPool(parent);
         }
 
         /// <summary>
-        /// Pool 날릴 때 사용
-        /// 현재 Managers - Clear()에 주석 처리 중
+        /// 모든 게임 오브젝트 풀의 자식들을 제거하고, 풀 딕셔너리를 초기화
         /// </summary>
         public void Clear()
         {
-            foreach (Transform child in _root_GO)
-                GameObject.Destroy(child.gameObject);
-
-            _dic_pool.Clear();
+            if (RootGameObjects != null)
+            {
+                foreach (Transform child in RootGameObjects)
+                {
+                    Object.Destroy(child.gameObject);
+                }
+            }
+            PoolDictionary.Clear();
         }
     }
 }

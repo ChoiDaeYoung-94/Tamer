@@ -1068,46 +1068,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: addc26d835617674c95ce70dbbdf3179, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _crtState: 0
-  _creature: 0
-  _crtAni: {fileID: 2640465298603294840}
-  allyLayer: 0
-  enemyLayer: 0
-  dieLayer: 0
+  CreatureType: 0
+  _state: 0
+  _animator: {fileID: 2640465298603294840}
   _capsuleCollider: {fileID: 2629179171656789148}
-  _go_heal: {fileID: 2719616690666184392}
-  _tr_uiCanvas: {fileID: 0}
-  _go_effectSpawn: {fileID: 0}
-  _go_effectDie: {fileID: 1212487233743395619}
-  _itemHp: 0
-  _orgHp: 0
+  _healObject: {fileID: 2719616690666184392}
+  _dieEffect: {fileID: 1212487233743395619}
+  _spawnEffect: {fileID: 0}
+  _uiCanvas: {fileID: 0}
+  _audioSource: {fileID: 6388773270658047615}
+  _originalHp: 0
   _hp: 0
+  _itemAdditionalHp: 0
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  isDie: 0
-  _AS_sfx: {fileID: 6388773270658047615}
-  _gold: 0
-  _list_groupMonsters: []
-  _go_player: {fileID: 2910936018180943768}
-  _tr_cameraArm: {fileID: 6470862542266102978}
-  _simpleSword: {fileID: 2059216376282089529}
-  _masterSword: {fileID: 4438411673452262552}
-  _simpleshield: {fileID: 8836720009171455714}
-  _mastershield: {fileID: 6076895598527073128}
-  _buff: {fileID: 3458443669849470792}
-  isBuffing: 0
-  _buffPower: 0
-  _buffAttackSpeed: 0
-  _buffMoveSpeed: 0
-  isAllyAvailable: 0
-  _go_targetMonster: {fileID: 0}
-  targetMonster: {fileID: 0}
-  captureMonster: {fileID: 0}
-  _str_playerMonsters: 
-  _list_playerMonsters: []
-  _str_playerEquippedItems: 
-  _list_playerEquippedItems: []
+  _buffingObject: {fileID: 3458443669849470792}
+  PlayerObject: {fileID: 2910936018180943768}
+  CameraArm: {fileID: 6470862542266102978}
+  SimpleSword: {fileID: 2059216376282089529}
+  MasterSword: {fileID: 4438411673452262552}
+  Simpleshield: {fileID: 8836720009171455714}
+  Mastershield: {fileID: 6076895598527073128}
+  IsEquippedSword: 0
+  IsBuffing: 0
+  BuffPower: 0
+  BuffAttackSpeed: 0
+  BuffMoveSpeed: 0
+  MaxCaptureCapacity: 10
+  PlayerMonsterCollection: []
+  EquippedItems: 
+  PlayerEquippedItems: []
 --- !u!95 &2640465298603294840
 Animator:
   serializedVersion: 5

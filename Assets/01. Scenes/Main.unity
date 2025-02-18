@@ -181,7 +181,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2a0b2e93eb7c1c4e98ec8e3b61fbaab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _go_initialze:
+  _initializeObjects:
   - {fileID: 59624956}
   - {fileID: 4589691445897901392}
 --- !u!114 &59624960

@@ -1,14 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class JoyStick : MonoBehaviour
 {
-    static JoyStick instance;
-    public static JoyStick Instance { get { return instance; } }
+    private static JoyStick _instance;
+    public static JoyStick Instance { get { return _instance; } }
 
-    enum Mode
+    private enum Mode
     {
         Null,
         FixedArea,
@@ -16,157 +14,152 @@ public class JoyStick : MonoBehaviour
     }
 
     [Header("JoyStick 관련 세팅")]
-    [SerializeField] Mode _mode = Mode.Null;
-    [SerializeField] RectTransform _RTR_handle = null;
-    [SerializeField] RectTransform _RTR_handleArea = null;
-    [SerializeField] GameObject _go_touchableArea = null;
-    [SerializeField] Vector3 _vec_joystick = Vector3.zero;
+    [SerializeField] private Mode _mode = Mode.Null;
+    [SerializeField] private RectTransform _handleTransform;
+    [SerializeField] private RectTransform _handleAreaTransform;
+    [SerializeField] private GameObject _touchableArea;
+    private Vector3 _joystickVector = Vector3.zero;
     private float _joystickDistance = 0;
     private float _handleAreaRadius = 0;
-    private Vector3 _vec_firstTouchPosition = Vector3.zero;
-    private Vector3 _vec_disPosition = Vector3.zero;
-    private bool _isPointUp = false;
+    private Vector3 _firstTouchPosition = Vector3.zero;
+    private Vector3 _distanceVector = Vector3.zero;
+    private bool _isPointerUp = false;
 
     [Header("조종 대상 관련 세팅")]
-    [SerializeField] GameObject _go_player = null;
-    [SerializeField] Transform _tr_cameraArm = null;
-    [SerializeField] float _speed = 0f;
+    [SerializeField] private GameObject _playerObject;
+    [SerializeField] private Transform _cameraArmTransform;
+    [SerializeField] private float _speed = 0f;
 
     /// <summary>
     /// LoginCheck.cs 에서 생성
     /// </summary>
     private void Awake()
     {
-        instance = this;
+        _instance = this;
         DontDestroyOnLoad(transform.parent.gameObject);
     }
 
     private void FixedUpdate()
     {
-        Control();
+        if (!_isPointerUp)
+            Control();
     }
 
     #region Functions
     /// <summary>
     /// Player.cs 에서 플레이어 초기화 후 호출
     /// </summary>
-    internal void StartInit()
+    public void StartInit()
     {
-        _go_player = Player.Instance._go_player;
-        _tr_cameraArm = Player.Instance._tr_cameraArm;
+        _playerObject = Player.Instance.PlayerObject;
+        _cameraArmTransform = Player.Instance.CameraArm;
 
-        _handleAreaRadius = _RTR_handleArea.sizeDelta.y * 0.5f;
-        _vec_firstTouchPosition = _RTR_handle.position;
-        _vec_disPosition = _RTR_handle.position - _RTR_handleArea.position;
+        _handleAreaRadius = _handleAreaTransform.sizeDelta.y * 0.5f;
+        _firstTouchPosition = _handleTransform.position;
+        _distanceVector = _handleTransform.position - _handleAreaTransform.position;
 
         if (_mode == Mode.FixedArea)
         {
-            _go_touchableArea.SetActive(false);
-            _RTR_handleArea.gameObject.SetActive(true);
+            _touchableArea.SetActive(false);
+            _handleAreaTransform.gameObject.SetActive(true);
         }
         else if (_mode == Mode.FreeArea)
-            _RTR_handleArea.gameObject.SetActive(false);
+        {
+            _handleAreaTransform.gameObject.SetActive(false);
+        }
     }
 
     private void Control()
     {
-        Debug.DrawRay(_tr_cameraArm.position, new Vector3(_tr_cameraArm.forward.x, 0f, _tr_cameraArm.forward.z).normalized, Color.red);
+        Debug.DrawRay(_cameraArmTransform.position, new Vector3(_cameraArmTransform.forward.x, 0f, _cameraArmTransform.forward.z).normalized, Color.red);
 
-        if (_isPointUp)
-            return;
-
-        Vector3 cameraVecVertical = new Vector3(_tr_cameraArm.forward.x, 0f, _tr_cameraArm.forward.z).normalized;
-        Vector3 cameraVecHorizontal = new Vector3(_tr_cameraArm.right.x, 0f, _tr_cameraArm.right.z).normalized;
-
-        Vector3 moveDIr = Vector3.zero;
+        Vector3 cameraVerticalVector = new Vector3(_cameraArmTransform.forward.x, 0f, _cameraArmTransform.forward.z).normalized;
+        Vector3 cameraHorizontalVector = new Vector3(_cameraArmTransform.right.x, 0f, _cameraArmTransform.right.z).normalized;
+        Vector3 moveDirection = Vector3.zero;
 
 #if UNITY_EDITOR
         // GameView에서 Test시 Mode.FixedArea로하고 사용
-        if (_vec_joystick.magnitude == 0)
+        if (_joystickVector.magnitude == 0)
         {
             float moveHorizontal = Input.GetAxis("Horizontal");
             float moveVertical = Input.GetAxis("Vertical");
-
-            moveDIr = cameraVecVertical * moveVertical + cameraVecHorizontal * moveHorizontal;
+            moveDirection = cameraVerticalVector * moveVertical + cameraHorizontalVector * moveHorizontal;
         }
 #endif
 
-        if (_vec_joystick.magnitude != 0f && _joystickDistance > 5f)
-            moveDIr = cameraVecVertical * _vec_joystick.y + cameraVecHorizontal * _vec_joystick.x;
+        if (_joystickVector.magnitude != 0f && _joystickDistance > 5f)
+            moveDirection = cameraVerticalVector * _joystickVector.y + cameraHorizontalVector * _joystickVector.x;
 
-        if (moveDIr != Vector3.zero)
+        if (moveDirection != Vector3.zero)
         {
-            _go_player.transform.forward = moveDIr;
-            _go_player.transform.position += moveDIr * _speed * Time.deltaTime;
+            _playerObject.transform.forward = moveDirection;
+            _playerObject.transform.position += moveDirection * _speed * Time.deltaTime;
 
-            _tr_cameraArm.position =
-                new Vector3(_go_player.transform.position.x, _tr_cameraArm.position.y, _go_player.transform.position.z);
+            _cameraArmTransform.position =
+                new Vector3(_playerObject.transform.position.x, _cameraArmTransform.position.y, _playerObject.transform.position.z);
         }
     }
 
-    internal void SetSpeed(float speed) => _speed = speed;
+    public void SetSpeed(float speed) => _speed = speed;
     #endregion
 
     #region EventTrigger
     public void PointDown(BaseEventData baseEventData)
     {
-        _isPointUp = false;
+        _isPointerUp = false;
 
         PointerEventData pointerEventData = baseEventData as PointerEventData;
-
         Vector3 inputPos = pointerEventData.position;
 
         if (_mode == Mode.FreeArea)
         {
-            _vec_firstTouchPosition = inputPos;
-            _RTR_handleArea.position = inputPos - _vec_disPosition;
-            _RTR_handleArea.gameObject.SetActive(true);
+            _firstTouchPosition = inputPos;
+            _handleAreaTransform.position = inputPos - _distanceVector;
+            _handleAreaTransform.gameObject.SetActive(true);
         }
 
-        _RTR_handle.position = inputPos;
-        _vec_joystick = (inputPos - _vec_firstTouchPosition).normalized;
-
-        _joystickDistance = Vector3.Distance(inputPos, _vec_firstTouchPosition);
+        _handleTransform.position = inputPos;
+        _joystickVector = (inputPos - _firstTouchPosition).normalized;
+        _joystickDistance = Vector3.Distance(inputPos, _firstTouchPosition);
 
         // Player Ani 설정
         if (_joystickDistance > 5f)
-            Player.Instance.CrtState = BaseController.CreatureState.Move;
+            Player.Instance.State = Creature.CreatureState.Move;
     }
 
     public void Drag(BaseEventData baseEventData)
     {
         PointerEventData pointerEventData = baseEventData as PointerEventData;
+        Vector3 dragPosition = pointerEventData.position;
+        _joystickVector = (dragPosition - _firstTouchPosition).normalized;
+        _joystickDistance = Vector3.Distance(dragPosition, _firstTouchPosition);
 
-        Vector3 DragPosition = pointerEventData.position;
-        _vec_joystick = (DragPosition - _vec_firstTouchPosition).normalized;
-
-        _joystickDistance = Vector3.Distance(DragPosition, _vec_firstTouchPosition);
         if (_joystickDistance > _handleAreaRadius)
             _joystickDistance = _handleAreaRadius;
 
-        _RTR_handle.position = Vector3.Lerp(_RTR_handle.position, _vec_firstTouchPosition + _vec_joystick * _joystickDistance, 0.7f);
+        _handleTransform.position = Vector3.Lerp(_handleTransform.position, _firstTouchPosition + _joystickVector * _joystickDistance, 0.7f);
 
         // Player Ani 설정
         if (_joystickDistance > 5f)
-            Player.Instance.CrtState = BaseController.CreatureState.Move;
+            Player.Instance.State = Creature.CreatureState.Move;
         else
         {
-            Player.Instance.CrtState = BaseController.CreatureState.Idle;
+            Player.Instance.State = Creature.CreatureState.Idle;
             Player.Instance.AllyIdle();
         }
     }
 
     public void PointUp(BaseEventData baseEventData)
     {
-        _isPointUp = true;
+        _isPointerUp = true;
 
-        _RTR_handle.anchoredPosition = Vector2.zero;
+        _handleTransform.anchoredPosition = Vector2.zero;
 
         if (_mode == Mode.FreeArea)
-            _RTR_handleArea.gameObject.SetActive(false);
+            _handleAreaTransform.gameObject.SetActive(false);
 
         // Player Ani 설정 (Idle)
-        Player.Instance.CrtState = BaseController.CreatureState.Idle;
+        Player.Instance.State = Creature.CreatureState.Idle;
         Player.Instance.AllyIdle();
     }
     #endregion

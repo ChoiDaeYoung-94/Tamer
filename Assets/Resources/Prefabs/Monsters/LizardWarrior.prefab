@@ -1779,27 +1779,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bc0033ac1b4c6f40861793e1412054e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _crtState: 0
-  _creature: 9
-  _crtAni: {fileID: 5129702725782368393}
-  allyLayer: 0
-  enemyLayer: 0
-  dieLayer: 0
+  CreatureType: 9
+  _state: 0
+  _animator: {fileID: 5129702725782368393}
   _capsuleCollider: {fileID: 3411783980692221494}
-  _go_heal: {fileID: 2498511946754052246}
-  _tr_uiCanvas: {fileID: 5440368277488706730}
-  _go_effectSpawn: {fileID: 1684922689134583925}
-  _go_effectDie: {fileID: 2985656954765073184}
-  _itemHp: 0
-  _orgHp: 0
+  _healObject: {fileID: 2498511946754052246}
+  _dieEffect: {fileID: 2985656954765073184}
+  _spawnEffect: {fileID: 1684922689134583925}
+  _uiCanvas: {fileID: 5440368277488706730}
+  _audioSource: {fileID: 0}
+  _originalHp: 0
   _hp: 0
+  _itemAdditionalHp: 0
   _power: 0
   _attackSpeed: 0
   _moveSpeed: 0
-  isDie: 0
-  _AS_sfx: {fileID: 0}
-  _navAgent: {fileID: 6464344641664463968}
-  _go_capture: {fileID: 223007538393089118}
+  NavMeshAgent: {fileID: 6464344641664463968}
+  _captureEffect: {fileID: 223007538393089118}
   isCommander: 0
   _go_commanderTarget: {fileID: 0}
   isCommanderArrived: 0

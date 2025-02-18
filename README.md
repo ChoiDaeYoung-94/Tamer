@@ -4,6 +4,7 @@ unity(2022.3.52f1 LTS) 3d game project
 
 [WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko) 를 3d로 재구성한 게임입니다.
 
+본 프로젝트는 Microsoft의 C# Convention을 따릅니다.
 
 ### Trailer
 
@@ -33,6 +34,7 @@ git clone https://github.com/ChoiDaeYoung-94/Tamer.git
     - [Player](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/Creature/Player/Player.cs)
     - [Monster](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/Creature/Monsters/Monster.cs)
 - Manager Singleton 개선
+- [Login 비동기 작업 UniTask 사용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/LoginCanvas/Login.cs)
 - [씬 전환 시 빈씬 거친 후 전환](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/SceneManager.cs)
 - [stack 으로 팝업 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/PopupManager.cs)
 - [Object pooling 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/PoolManager.cs)
@@ -55,6 +57,7 @@ git clone https://github.com/ChoiDaeYoung-94/Tamer.git
 - 장착 아이템 코드 확장 관련 개선 필요
     - FPS 프로젝트에서 각 부위별 무기로 개선해보기
 - 데이터 관리 시 로컬, 서버 데이터 잘 구분해둬야 함
+- Player, Monster에 너무 많은 기능이 몰려있기 때문에 솔리드 원칙 중 단일 책임 원칙에 위반됨 추후 기능 분리가 필요함
 
 
 ## SDK, Package ...

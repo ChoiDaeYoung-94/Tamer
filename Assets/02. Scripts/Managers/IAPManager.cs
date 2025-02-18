@@ -1,9 +1,9 @@
 #pragma warning disable CS0618 // UnityPurchasing.Initialize(this, builder);
 
 using System;
-using UnityEngine;
+
 using UnityEngine.Purchasing;
-using UnityEngine.Purchasing.Security;
+
 using Unity.Services.Core;
 
 namespace AD
@@ -13,9 +13,9 @@ namespace AD
         private static IStoreController storeController;
         private static IExtensionProvider storeExtensionProvider;
 
-        public string PRODUCT_NO_ADS = "com.aedeong.monstertamer.no_ads";
+        public string ProductNoAds = "com.aedeong.monstertamer.no_ads";
 
-        async internal void Init()
+        async public void Init()
         {
             await InitializeUGS();
         }
@@ -25,13 +25,13 @@ namespace AD
             try
             {
                 await UnityServices.InitializeAsync();
-                AD.Debug.Log("IAPManager", "Unity Gaming Services initialized successfully.");
+                AD.DebugLogger.Log("IAPManager", "Unity Gaming Services initialized successfully.");
 
                 InitializePurchasing();
             }
             catch (Exception e)
             {
-                AD.Debug.LogError("IAPManager", "Unity Gaming Services 초기화 실패: " + e.Message);
+                AD.DebugLogger.LogError("IAPManager", $"Unity Gaming Services 초기화 실패: {e.Message}");
             }
         }
 
@@ -42,7 +42,7 @@ namespace AD
 
             var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
 
-            builder.AddProduct(PRODUCT_NO_ADS, ProductType.NonConsumable);
+            builder.AddProduct(ProductNoAds, ProductType.NonConsumable);
 
             UnityPurchasing.Initialize(this, builder);
         }
@@ -60,48 +60,47 @@ namespace AD
 
                 if (product != null && product.availableToPurchase)
                 {
-                    AD.Debug.Log("IAPManager", $"Purchasing product asynchronously: {product.definition.id}");
+                    AD.DebugLogger.Log("IAPManager", $"Purchasing product asynchronously: {product.definition.id}");
                     storeController.InitiatePurchase(product);
                 }
                 else
                 {
-                    AD.Debug.Log("IAPManager", "BuyProductID: FAIL. Not purchasing product, either is not found or is not available for purchase");
+                    AD.DebugLogger.Log("IAPManager", "BuyProductID: FAIL. Not purchasing product, either is not found or is not available for purchase");
                 }
             }
             else
             {
-                AD.Debug.Log("IAPManager", "BuyProductID FAIL. Not initialized.");
+                AD.DebugLogger.Log("IAPManager", "BuyProductID FAIL. Not initialized.");
             }
         }
 
         public void OnInitialized(IStoreController controller, IExtensionProvider extensions)
         {
-            AD.Debug.Log("IAPManager", "OnInitialized: PASS");
-
+            AD.DebugLogger.Log("IAPManager", "OnInitialized: PASS");
             storeController = controller;
             storeExtensionProvider = extensions;
         }
 
         public void OnInitializeFailed(InitializationFailureReason error)
         {
-            AD.Debug.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}");
+            AD.DebugLogger.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}");
         }
 
         public void OnInitializeFailed(InitializationFailureReason error, string message)
         {
-            AD.Debug.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}\nmessage:{message}");
+            AD.DebugLogger.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}\nmessage:{message}");
         }
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
         {
-            if (String.Equals(args.purchasedProduct.definition.id, PRODUCT_NO_ADS, StringComparison.Ordinal))
+            if (String.Equals(args.purchasedProduct.definition.id, ProductNoAds, StringComparison.Ordinal))
             {
-                AD.Debug.Log("IAPManager", "ProcessPurchase: PASS. No Ads purchased.");
+                AD.DebugLogger.Log("IAPManager", "ProcessPurchase: PASS. No Ads purchased.");
                 GrantNoAds();
             }
             else
             {
-                AD.Debug.Log("IAPManager", $"ProcessPurchase: FAIL. Unrecognized product: {args.purchasedProduct.definition.id}");
+                AD.DebugLogger.Log("IAPManager", $"ProcessPurchase: FAIL. Unrecognized product: {args.purchasedProduct.definition.id}");
             }
 
             return PurchaseProcessingResult.Complete;
@@ -109,23 +108,20 @@ namespace AD
 
         public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
         {
-            AD.Debug.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
+            AD.DebugLogger.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
         }
 
-        private void RegisterIAPData(AD.Define.IAPItems IAPitem)
+        private void RegisterIAPData(AD.GameConstants.IAPItems iapItem)
         {
-            string temp_str = AD.Managers.DataM._dic_player["GooglePlay"];
-            if (string.IsNullOrEmpty(temp_str))
-                temp_str = $"{IAPitem}";
-            else
-                temp_str += $",{IAPitem}";
+            string existingData = AD.Managers.DataM.LocalPlayerData["GooglePlay"];
+            string newData = string.IsNullOrEmpty(existingData) ? $"{iapItem}" : $"{existingData},{iapItem}";
 
-            AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: temp_str);
+            AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: newData);
         }
 
         private void GrantNoAds()
         {
-            RegisterIAPData(AD.Define.IAPItems.PRODUCT_NO_ADS);
+            RegisterIAPData(AD.GameConstants.IAPItems.ProductNoAds);
             AD.Managers.DataM.UpdatePlayerData();
 
             ShopMan.Instance.IAPReset();

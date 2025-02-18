@@ -1,22 +1,23 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+
 using UnityEngine;
+
+using Cysharp.Threading.Tasks;
 
 public class MonsterGenerator : MonoBehaviour
 {
-    static MonsterGenerator instance;
-    public static MonsterGenerator Instance { get { return instance; } }
+    private static MonsterGenerator _instance;
+    public static MonsterGenerator Instance { get { return _instance; } }
 
-    [Header("--- 참고용 ---")]
-    private Coroutine _co_settingMonster = null;
-    [SerializeField, Tooltip("최대 몬스터 객체 수")] int maxMonsters = 15;
-    [SerializeField, Tooltip("보스 몬스터 관리")] internal GameObject _go_boss = null;
-    [SerializeField, Tooltip("현재 사용중인 몬스터 배열")] List<Monster> _list_curMonsters = new List<Monster>();
-    [SerializeField, Tooltip("몬스터 생성 범위")] float spawnRadius = 12f;
-    [SerializeField, Tooltip("현재 플레이어의 지역 위치")] int curRegionOfPlayer = 1;
-    [SerializeField, Tooltip("현재 플레이어의 지역에 따른 생성 가능한 몬스터(Define.Creature)")]
-    Dictionary<int, (int min, int max)> _dic_numOfMonster = new Dictionary<int, (int min, int max)>()
+    public GameObject BossMonster = null;
+    [SerializeField] private int _maxMonsters = 15;
+    [SerializeField] private List<Monster> _activeMonsters = new List<Monster>();
+    [SerializeField] private float _spawnRadius = 12f;
+    [SerializeField] private int _currentRegion = 1;
+
+    private readonly Dictionary<int, (int min, int max)> _monsterRegionMap = new Dictionary<int, (int min, int max)>
     {
         { 1, (1, 3) },
         { 2, (3, 5) },
@@ -24,52 +25,50 @@ public class MonsterGenerator : MonoBehaviour
         { 4, (9, 10) }
     };
 
+    private CancellationTokenSource _spawnLoopTokenSource;
+
     private void Awake()
     {
-        instance = this;
+        _instance = this;
     }
 
     private void OnDisable()
     {
-        if (_co_settingMonster != null)
-        {
-            StopCoroutine(_co_settingMonster);
-            _co_settingMonster = null;
-        }
+        _spawnLoopTokenSource?.Cancel();
+        _spawnLoopTokenSource?.Dispose();
     }
 
     private void OnDestroy()
     {
-        instance = null;
+        _instance = null;
     }
 
     #region Functions
-    /// <summary>
-    /// InitializeGame.cs에서 호출
-    /// </summary>
-    internal void Init()
+
+    public void Init()
     {
-        SettingMonsters(curRegionOfPlayer);
-        _co_settingMonster = StartCoroutine(Generator());
+        _spawnLoopTokenSource = new CancellationTokenSource();
+
+        SpawnMonsters(_currentRegion);
+        SpawnLoop(_spawnLoopTokenSource.Token).Forget();
     }
 
-    IEnumerator Generator()
+    private async UniTask SpawnLoop(CancellationToken token)
     {
-        while (true)
+        while (!token.IsCancellationRequested)
         {
-            yield return new WaitForSeconds(15f);
+            await UniTask.Delay(TimeSpan.FromSeconds(15f), cancellationToken: token);
 
             int region = RegionOfPlayer();
-
             SetBoss(region);
 
-            if (curRegionOfPlayer != region)
-                curRegionOfPlayer = region;
+            if (_currentRegion != region)
+                _currentRegion = region;
 
-            ResetMonster();
+            ResetMonsters();
 
-            if (_list_curMonsters.Count <= 8)
-                SettingMonsters(curRegionOfPlayer);
+            if (_activeMonsters.Count <= 8)
+                SpawnMonsters(_currentRegion);
         }
     }
 
@@ -78,31 +77,30 @@ public class MonsterGenerator : MonoBehaviour
     /// 몬스터는 최대 15마리 세팅
     /// 플레이어 주위에는 5개의 그룹이 존재하며 각 그룹의 최대 객체수는 3
     /// </summary>
-    /// <param name="region"></param>
-    private void SettingMonsters(int region)
+    private void SpawnMonsters(int region)
     {
-        if (_list_curMonsters.Count + 3 > maxMonsters)
+        if (_activeMonsters.Count + 3 > _maxMonsters)
             return;
 
-        if (_dic_numOfMonster.TryGetValue(region, out (int min, int max) num))
+        if (_monsterRegionMap.TryGetValue(region, out (int min, int max) range))
         {
-            int temp_groupMaxCount = (maxMonsters - _list_curMonsters.Count) / 3;
+            int temp_groupMaxCount = (_maxMonsters - _activeMonsters.Count) / 3;
             int groupMaxCount = temp_groupMaxCount > 0 ? temp_groupMaxCount : 1;
 
-            for (int j = -1; ++j < groupMaxCount;)
+            for (int j = 0; j < groupMaxCount; j++)
             {
                 int groupSize = UnityEngine.Random.Range(1, 4);
 
-                int temp_random = UnityEngine.Random.Range(num.min, num.max + 1);
-                string temp_name = Enum.GetValues(typeof(AD.Define.Creature)).GetValue(temp_random).ToString();
+                int temp_random = UnityEngine.Random.Range(range.min, range.max + 1);
+                string temp_name = Enum.GetValues(typeof(AD.GameConstants.Creatures)).GetValue(temp_random).ToString();
                 Monster commanderMonster = AD.Managers.PoolM.PopFromPool(temp_name).GetComponent<Monster>();
-                commanderMonster.isCommander = true;
-                commanderMonster.StartDetectionCoroutine();
+                commanderMonster.IsCommander = true;
+                commanderMonster.StartDetection();
                 commanderMonster.transform.position = SetPosition();
 
                 PlusMonster(commanderMonster);
 
-                for (int i = 0; ++i < groupSize;)
+                for (int i = 0; i < groupSize; i++)
                 {
                     GameObject go_monster = AD.Managers.PoolM.PopFromPool(temp_name);
                     Monster monster = go_monster.GetComponent<Monster>();
@@ -110,40 +108,40 @@ public class MonsterGenerator : MonoBehaviour
                     Vector3 temp_vec = i % 2 == 0 ? new Vector3(i / 2, 0, 0) : new Vector3(0, 0, i);
                     go_monster.transform.position = commanderMonster.transform.position + temp_vec;
 
-                    commanderMonster._list_groupMonsters.Add(monster);
-                    monster._commanderMonster = commanderMonster;
+                    commanderMonster.MonsterGroupList.Add(monster);
+                    monster.CommanderMonster = commanderMonster;
 
                     PlusMonster(monster);
                 }
             }
         }
         else
-            AD.Debug.LogError("MonsterGenerator", "Invalid region number");
+            AD.DebugLogger.LogError("MonsterGenerator", "Invalid region number");
     }
 
     private void SetBoss(int region)
     {
-        if (region != 4 && _go_boss)
+        if (region != 4 && BossMonster)
         {
-            AD.Managers.PoolM.PushToPool(_go_boss);
-            _go_boss = null;
+            AD.Managers.PoolM.PushToPool(BossMonster);
+            BossMonster = null;
         }
 
-        if (region == 4 && !_go_boss && UnityEngine.Random.Range(0, 100) < 5f)
+        if (region == 4 && !BossMonster && UnityEngine.Random.Range(0, 100) < 5f)
         {
-            _go_boss = AD.Managers.PoolM.PopFromPool("FylingDemon");
+            BossMonster = AD.Managers.PoolM.PopFromPool("FylingDemon");
 
-            Monster boss = _go_boss.GetComponent<Monster>();
-            boss.isCommander = true;
-            boss.StartDetectionCoroutine();
+            Monster boss = BossMonster.GetComponent<Monster>();
+            boss.IsCommander = true;
+            boss.StartDetection();
 
-            _go_boss.transform.position = new Vector3(-40f, 2f, 20f);
+            BossMonster.transform.position = new Vector3(-40f, 2f, 20f);
         }
     }
 
-    private void PlusMonster(Monster monster) => _list_curMonsters.Add(monster);
+    private void PlusMonster(Monster monster) => _activeMonsters.Add(monster);
 
-    internal void MinusMonster(Monster monster) => _list_curMonsters.Remove(monster);
+    public void MinusMonster(Monster monster) => _activeMonsters.Remove(monster);
     #endregion
 
     #region position
@@ -161,25 +159,25 @@ public class MonsterGenerator : MonoBehaviour
             z = UnityEngine.Random.value < 0.5f ? -1.0f : 1.0f;
         }
 
-        Vector3 temp_vec = Player.Instance.transform.position + new Vector3(x, 0, z) * spawnRadius;
+        Vector3 temp_vec = Player.Instance.transform.position + new Vector3(x, 0, z) * _spawnRadius;
 
         return new Vector3(Mathf.Clamp(temp_vec.x, -50f, 55.5f), 2f, Mathf.Clamp(temp_vec.z, -25f, 20f));
     }
 
-    private void ResetMonster()
+    private void ResetMonsters()
     {
-        for (int i = -1; ++i < _list_curMonsters.Count;)
+        for (int i = 0; i < _activeMonsters.Count; i++)
         {
-            Monster monster = _list_curMonsters[i];
+            Monster monster = _activeMonsters[i];
 
-            if (!monster.isCommander)
+            if (!monster.IsCommander)
                 continue;
 
             if (!CheckViewPort(monster.transform.position))
             {
                 if (!RegionOfMonster(monster))
                 {
-                    foreach (Monster follower in monster._list_groupMonsters)
+                    foreach (Monster follower in monster.MonsterGroupList)
                     {
                         follower.BackPool();
                         --i;
@@ -197,7 +195,7 @@ public class MonsterGenerator : MonoBehaviour
         }
     }
 
-    bool CheckViewPort(Vector3 pos)
+    private bool CheckViewPort(Vector3 pos)
     {
         bool include = false;
 
@@ -216,9 +214,9 @@ public class MonsterGenerator : MonoBehaviour
 
     bool RegionOfMonster(Monster monster)
     {
-        int value = (int)monster._creature;
+        int value = (int)monster.CreatureType;
 
-        if (_dic_numOfMonster.TryGetValue(curRegionOfPlayer, out (int min, int max) num))
+        if (_monsterRegionMap.TryGetValue(_currentRegion, out (int min, int max) num))
             return value >= num.min && value <= num.max;
 
         return false;
@@ -226,8 +224,8 @@ public class MonsterGenerator : MonoBehaviour
 
     private int RegionOfPlayer()
     {
-        Vector3 vec_player = Player.Instance.transform.position;
-        float x = vec_player.x, z = vec_player.z;
+        Vector3 pos = Player.Instance.transform.position;
+        float x = pos.x, z = pos.z;
 
         bool inNorthHalf = z >= 0f && z <= 45f;
         bool inSouthHalf = z >= -45f && z <= 0f;

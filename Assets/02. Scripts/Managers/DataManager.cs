@@ -1,161 +1,193 @@
+using System;
 using System.IO;
-using System.Collections;
+using System.Threading;
 using System.Collections.Generic;
 
 using UnityEngine;
+
 using PlayFab.ClientModels;
+
+using Cysharp.Threading.Tasks;
 
 namespace AD
 {
     /// <summary>
-    /// 사용하는 Data 관리
+    /// 플레이어 데이터(로컬 및 서버), 몬스터 데이터, 아이템 데이터를 관리
     /// </summary>
     public class DataManager : MonoBehaviour
     {
-        [Header("--- Dictionary 데이터 ---")]
-        [Tooltip("Dictionary<string, UserDataRecord> - PlayFab에서 받아온 PlayerData (server data)")]
-        public Dictionary<string, UserDataRecord> _dic_PlayFabPlayerData = null;
-        [Tooltip("Dictionary<string, string> - 로컬에서 사용할 PlayerData (local data)")]
-        public Dictionary<string, string> _dic_player = null;
-        [Tooltip("Dictionary<string, object> - monster data")]
-        public Dictionary<string, object> _dic_monsters = null;
-        [Tooltip("Dictionary<string, object> - item data")]
-        public Dictionary<string, object> _dic_items = null;
+        public Dictionary<string, UserDataRecord> PlayFabPlayerData = null;
+        public Dictionary<string, string> LocalPlayerData = null;
+        public Dictionary<string, object> MonsterData = null;
+        public Dictionary<string, object> ItemData = null;
 
-        [Header("--- 참고용 ---")]
-        [Tooltip("현재 Player가 PlayFab에 접속한 ID")]
-        private string _str_ID = string.Empty;
-        public string StrID { get { return _str_ID; } set { _str_ID = value; } }
+        private string _playFabId = string.Empty;
+        public string PlayFabId { get { return _playFabId; } set { _playFabId = value; } }
+
         [Tooltip("PlayerData 초기화 시 server, local 충돌 여부")]
-        internal bool _isConflict = false;
-        [Tooltip("Application.persistentDataPath.PlayerData.json 위치")]
-        private string _str_apPlayerDataPath = string.Empty;
-        [Tooltip("Resources/Data/PlayerData.json 내용")]
-        private string _str_rePlayerData = string.Empty;
-        [Tooltip("Resources/Data/MonstersData.json 내용")]
-        private string _str_reMonstersData = string.Empty;
-        Coroutine _co_refreshData = null;
+        public bool IsConflict = false;
+
+        [Tooltip("Application.persistentDataPath에 위치한 PlayerData.json 파일 경로")]
+        private string _playerDataPath = string.Empty;
+        private string _resourcePlayerData = string.Empty;
+        private string _resourceMonstersData = string.Empty;
+        private string _resourceItemsData = string.Empty;
+
+        private CancellationTokenSource _ctsLocalDataUpdate;
+        private CancellationTokenSource _ctsRefreshData;
 
         /// <summary>
-        /// Managers - Awake() -> Init()
-        /// 필요한 데이터 미리 받고 세팅 및 데이터 갱신 코루틴 실행
+        /// Managers - Awake() -> InitializeData()
+        /// 필요한 데이터를 미리 로드 및 초기화하며, 주기적으로 로컬 데이터를 갱신하는 코루틴을 시작
         /// </summary>
-        internal void Init()
+        public void InitializeData()
         {
             LoadPlayerData();
             LoadMonstersData();
             LoadItemsData();
 
-            StartCoroutine(Co_UpdateFewMinutes());
+            // 주기적인 로컬 데이터 업데이트 시작 (UniTask 사용)
+            _ctsLocalDataUpdate = new CancellationTokenSource();
+            PeriodicLocalDataUpdateAsync(_ctsLocalDataUpdate.Token).Forget();
         }
 
-        #region Functions
+        #region Load data
+
         /// <summary>
         /// 게임 시작 시 PlayerData를 초기화
-        /// 첫 시작일 경우 Resources에 있는 PlayerData.json, 두번째 이상일 경우 persistentDataPath
+        /// 첫 실행 시 Resources에 있는 PlayerData.json을 사용하며, 이후에는 persistentDataPath의 파일을 사용
         /// </summary>
         private void LoadPlayerData()
         {
-            AD.Debug.Log("DataManager", "LoadPlayerData() -> PlayerData 초기화");
+            AD.DebugLogger.Log("DataManager", "LoadPlayerData() -> PlayerData 초기화");
 
-            _dic_player = new Dictionary<string, string>();
+            LocalPlayerData = new Dictionary<string, string>();
 
-            _str_apPlayerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");
-            _str_rePlayerData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString();
+            _playerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");
+            _resourcePlayerData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString();
 
-            string str_temp_getPlayerData = File.Exists(_str_apPlayerDataPath) ? File.ReadAllText(_str_apPlayerDataPath) : _str_rePlayerData;
+            string playerDataJson = File.Exists(_playerDataPath)
+                ? File.ReadAllText(_playerDataPath)
+                : _resourcePlayerData;
 
-            InitPlayerData(str_temp_getPlayerData);
+            InitializePlayerData(playerDataJson);
         }
 
-        private void InitPlayerData(string data)
+        /// <summary>
+        /// JSON 데이터를 파싱하여 로컬 플레이어 데이터를 초기화
+        /// </summary>
+        private void InitializePlayerData(string data)
         {
-            Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(data) as Dictionary<string, object>;
-            foreach (KeyValuePair<string, object> content in dic_temp)
-                _dic_player.Add(content.Key, content.Value.ToString());
-
-            if (File.Exists(_str_apPlayerDataPath))
-                CheckNewPlayerData();
-
-            File.WriteAllText(_str_apPlayerDataPath, data);
-
-            AD.Debug.Log("DataManager", "InitPlayerData() -> PlayerData 초기화 완료");
-        }
-
-        private void CheckNewPlayerData()
-        {
-            AD.Debug.Log("DataManager", "CheckNewPlayerData() -> 새로운 PlayerData 검출");
-
-            Dictionary<string, object> dic_temp = AD.Utils.JsonToObject(_str_rePlayerData) as Dictionary<string, object>;
-
-            if (dic_temp.Count > _dic_player.Count)
+            Dictionary<string, object> tempData = AD.Utility.DeserializeFromJson(data) as Dictionary<string, object>;
+            foreach (KeyValuePair<string, object> kv in tempData)
             {
-                foreach (KeyValuePair<string, object> newdata in dic_temp)
-                    if (!_dic_player.ContainsKey(newdata.Key))
-                        _dic_player.Add(newdata.Key, newdata.Value.ToString());
+                LocalPlayerData.Add(kv.Key, kv.Value.ToString());
             }
-        }
 
-        private void LoadMonstersData()
-        {
-            _str_reMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString();
-
-            _dic_monsters = AD.Utils.JsonToObject(_str_reMonstersData) as Dictionary<string, object>;
-        }
-
-        private void LoadItemsData()
-        {
-            _str_reMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString();
-
-            _dic_items = AD.Utils.JsonToObject(_str_reMonstersData) as Dictionary<string, object>;
-        }
-
-        #region Local Data
-        IEnumerator Co_UpdateFewMinutes()
-        {
-            while (true)
+            if (File.Exists(_playerDataPath))
             {
-                yield return new WaitForSeconds(60f);
+                CheckForNewPlayerData();
+            }
 
-                UpdateLocalData(key: "null", value: "null", all: true);
+            File.WriteAllText(_playerDataPath, data);
+
+            AD.DebugLogger.Log("DataManager", "InitializePlayerData() -> PlayerData 초기화 완료");
+        }
+
+        /// <summary>
+        /// 기존 플레이어 데이터와 리소스의 플레이어 데이터를 비교하여 새로운 데이터가 있으면 추가
+        /// </summary>
+        private void CheckForNewPlayerData()
+        {
+            AD.DebugLogger.Log("DataManager", "CheckForNewPlayerData() -> 새로운 PlayerData 검출");
+
+            Dictionary<string, object> resourceData = AD.Utility.DeserializeFromJson(_resourcePlayerData) as Dictionary<string, object>;
+            if (resourceData.Count > LocalPlayerData.Count)
+            {
+                foreach (KeyValuePair<string, object> newData in resourceData)
+                {
+                    if (!LocalPlayerData.ContainsKey(newData.Key))
+                    {
+                        LocalPlayerData.Add(newData.Key, newData.Value.ToString());
+                    }
+                }
             }
         }
 
         /// <summary>
-        /// Player가 가지고 있는 고유 Data들을 _dic_player에 갱신 후 Json 저장
+        /// Resources에서 몬스터 데이터를 로드
         /// </summary>
-        internal void UpdateLocalData(string key, string value, bool all = false)
+        private void LoadMonstersData()
+        {
+            _resourceMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString();
+            MonsterData = AD.Utility.DeserializeFromJson(_resourceMonstersData) as Dictionary<string, object>;
+        }
+
+        /// <summary>
+        /// Resources에서 아이템 데이터를 로드합니다.
+        /// </summary>
+        private void LoadItemsData()
+        {
+            _resourceItemsData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString();
+            ItemData = AD.Utility.DeserializeFromJson(_resourceItemsData) as Dictionary<string, object>;
+        }
+
+        #endregion
+
+        #region Update, save data
+
+        /// <summary>
+        /// UniTask를 사용하여 60초마다 로컬 데이터를 업데이트합니다.
+        /// </summary>
+        private async UniTask PeriodicLocalDataUpdateAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await UniTask.Delay(TimeSpan.FromSeconds(60), cancellationToken: token);
+                UpdateLocalData("null", "null", updateAll: true);
+            }
+        }
+
+        /// <summary>
+        /// 플레이어의 고유 데이터를 갱신한 후 JSON 파일로 저장
+        /// </summary>
+        /// <param name="key">갱신할 데이터의 키</param>
+        /// <param name="value">갱신할 데이터의 값</param>
+        /// <param name="updateAll">전체 데이터를 갱신할지 여부</param>
+        public void UpdateLocalData(string key, string value, bool updateAll = false)
         {
             if (Player.Instance)
             {
-                if (all)
-                    _dic_player["Gold"] = Player.Instance.Gold.ToString();
+                if (updateAll)
+                {
+                    LocalPlayerData["Gold"] = Player.Instance.Gold.ToString();
+                }
                 else
-                    _dic_player[key] = value;
+                {
+                    LocalPlayerData[key] = value;
+                }
 
                 SaveLocalData();
             }
         }
 
-        internal void SaveLocalData()
-        {
-            string str_temp = AD.Utils.ObjectToJson(_dic_player);
-            File.WriteAllText(_str_apPlayerDataPath, str_temp);
-
-            AD.Debug.Log("DataManager", "SaveLocalData() -> PlayerData json저장 완료");
-        }
-        #endregion
-
-        #region Server Data
         /// <summary>
-        /// 서버에 존재하는 플레이어 데이터 받아옴
-        /// * 게임 씬 진입 전, 씬 전환 시 데이터를 갱신하기 위해 호출 됨
+        /// 로컬 플레이어 데이터를 JSON 파일로 저장
         /// </summary>
-        internal void UpdatePlayerData()
+        public void SaveLocalData()
         {
-            AD.Debug.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
+            string json = AD.Utility.SerializeToJson(LocalPlayerData);
+            File.WriteAllText(_playerDataPath, json);
+            AD.DebugLogger.Log("DataManager", "SaveLocalData() -> PlayerData json 저장 완료");
+        }
 
-            AD.Managers.ServerM.GetAllData(Update: true);
+        /// <summary>
+        /// 서버에 존재하는 플레이어 데이터를 가져와 업데이트
+        /// </summary>
+        public void UpdatePlayerData()
+        {
+            AD.DebugLogger.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
+            AD.Managers.ServerM.GetAllData(update: true);
         }
 
         /// <summary>
@@ -165,95 +197,124 @@ namespace AD
         /// 만약 데이터가 추가 된다면(10개 이상 추가되지 않는다고 가정) PlayerData.json을 통해 데이터를 추가하고 이 경우 서버에 데이터를 다시 세팅
         /// RefreshData() 후 데이터가 다를 경우 데이터 갱신
         /// </summary>
-        internal void UpdateData()
+        public void UpdateData()
         {
-            if (_dic_PlayFabPlayerData.Count == 1)
+            if (PlayFabPlayerData.Count == 1)
             {
-                AD.Managers.ServerM.isInprogress = false;
+                AD.Managers.ServerM.SetInProgress(false);
                 return;
             }
 
-            if (_dic_PlayFabPlayerData.Count == 2)
+            if (PlayFabPlayerData.Count == 2)
             {
-                _dic_player["NickName"] = _dic_PlayFabPlayerData["NickName"].Value;
-                _dic_player["Sex"] = _dic_PlayFabPlayerData["Sex"].Value;
+                LocalPlayerData["NickName"] = PlayFabPlayerData["NickName"].Value;
+                LocalPlayerData["Sex"] = PlayFabPlayerData["Sex"].Value;
 
-                AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: true);
-
-                _co_refreshData = StartCoroutine(RefreshData());
-
+                AD.Managers.ServerM.SetData(LocalPlayerData, getAllData: true, update: true);
+                _ctsRefreshData = new CancellationTokenSource();
+                RefreshDataAsync(_ctsRefreshData.Token).Forget();
                 return;
             }
 
-            if (_dic_PlayFabPlayerData.Count > 2 && _dic_player.Count > _dic_PlayFabPlayerData.Count)
+            if (PlayFabPlayerData.Count > 2 && LocalPlayerData.Count > PlayFabPlayerData.Count)
             {
-                AD.Managers.ServerM.NewData();
+                AD.Managers.ServerM.UpdateNewPlayerData();
                 return;
             }
 
             SanitizeData();
         }
 
-        IEnumerator RefreshData()
+        /// <summary>
+        /// 서버 데이터 갱신 작업이 완료될 때까지 대기 후 데이터 정리
+        /// </summary>
+        private async UniTask RefreshDataAsync(CancellationToken token)
         {
-            while (AD.Managers.ServerM.isInprogress)
-                yield return null;
-
-            StopRefreshDataCoroutine();
-        }
-
-        void StopRefreshDataCoroutine()
-        {
-            if (_co_refreshData != null)
+            while (AD.Managers.ServerM.IsInProgress && !token.IsCancellationRequested)
             {
-                StopCoroutine(_co_refreshData);
-                _co_refreshData = null;
-
-                SanitizeData();
+                await UniTask.Yield(PlayerLoopTiming.Update, token);
             }
+            StopRefreshDataTask();
         }
-        #endregion
 
         /// <summary>
-        /// PlayerData 정리
-        /// local, server 비교하여 데이터 최신화 위함
+        /// RefreshDataAsync 관련 작업을 중지하고 데이터 정리
+        /// </summary>
+        private void StopRefreshDataTask()
+        {
+            if (_ctsRefreshData != null)
+            {
+                _ctsRefreshData.Cancel();
+                _ctsRefreshData.Dispose();
+                _ctsRefreshData = null;
+            }
+            SanitizeData();
+        }
+
+        /// <summary>
+        /// 서버와 로컬 데이터를 비교하여 최신화
+        /// 충돌이 발생하면 서버에 데이터를 다시 설정
         /// </summary>
         private void SanitizeData()
         {
-            AD.Debug.Log("DataManager", "SanitizeData() -> local, server 비교하여 PlayerData 최신화");
+            AD.DebugLogger.Log("DataManager", "SanitizeData() -> local, server 비교하여 PlayerData 최신화");
 
-            int temp_result;
+            // 동기화: NickName, Sex, Tutorial
+            LocalPlayerData["NickName"] = PlayFabPlayerData["NickName"].Value;
+            LocalPlayerData["Sex"] = PlayFabPlayerData["Sex"].Value;
+            LocalPlayerData["Tutorial"] = PlayFabPlayerData["Tutorial"].Value;
 
-            _dic_player["NickName"] = _dic_PlayFabPlayerData["NickName"].Value;
-            _dic_player["Sex"] = _dic_PlayFabPlayerData["Sex"].Value;
-            _dic_player["Tutorial"] = _dic_PlayFabPlayerData["Tutorial"].Value;
+            // 충돌 비교
+            CompareValues(int.Parse(LocalPlayerData["Gold"]), int.Parse(PlayFabPlayerData["Gold"].Value));
+            CompareValues(float.Parse(LocalPlayerData["Power"]), float.Parse(PlayFabPlayerData["Power"].Value));
+            CompareValues(float.Parse(LocalPlayerData["AttackSpeed"]), float.Parse(PlayFabPlayerData["AttackSpeed"].Value));
+            CompareValues(float.Parse(LocalPlayerData["MoveSpeed"]), float.Parse(PlayFabPlayerData["MoveSpeed"].Value));
+            CompareValues(LocalPlayerData["AllyMonsters"], PlayFabPlayerData["AllyMonsters"].Value.ToString());
 
-            CompareValues(int.Parse(_dic_player["Gold"]), int.Parse(_dic_PlayFabPlayerData["Gold"].Value));
-            CompareValues(float.Parse(_dic_player["Power"]), float.Parse(_dic_PlayFabPlayerData["Power"].Value));
-            CompareValues(float.Parse(_dic_player["AttackSpeed"]), float.Parse(_dic_PlayFabPlayerData["AttackSpeed"].Value));
-            CompareValues(float.Parse(_dic_player["MoveSpeed"]), float.Parse(_dic_PlayFabPlayerData["MoveSpeed"].Value));
-            CompareValues(_dic_player["AllyMonsters"], _dic_PlayFabPlayerData["AllyMonsters"].Value.ToString());
+            string googlePlayValue = PlayFabPlayerData["GooglePlay"].Value.ToString();
+            int comparisonResult = CompareValues(LocalPlayerData["GooglePlay"], googlePlayValue);
+            if (comparisonResult < 0 && !string.IsNullOrEmpty(googlePlayValue) && !string.Equals(googlePlayValue, "null"))
+            {
+                LocalPlayerData["GooglePlay"] = googlePlayValue;
+            }
 
-            string temp_str = _dic_PlayFabPlayerData["GooglePlay"].Value.ToString();
-            temp_result = CompareValues(_dic_player["GooglePlay"], temp_str);
-            if (temp_result < 0 && !string.IsNullOrEmpty(temp_str) && !string.Equals(temp_str, "null"))
-                _dic_player["GooglePlay"] = _dic_PlayFabPlayerData["GooglePlay"].Value.ToString();
-
-            if (_isConflict)
-                AD.Managers.ServerM.SetData(_dic_player, GetAllData: true, Update: false);
+            if (IsConflict)
+            {
+                AD.Managers.ServerM.SetData(LocalPlayerData, getAllData: true, update: false);
+            }
             else
-                AD.Managers.ServerM.isInprogress = false;
+            {
+                AD.Managers.ServerM.SetInProgress(false);
+            }
         }
 
+        /// <summary>
+        /// 두 값을 비교합니다.
+        /// 값이 다르면 IsConflict 플래그를 true로 설정합니다.
+        /// </summary>
+        /// <typeparam name="T">비교 가능한 타입</typeparam>
+        /// <param name="value1">첫 번째 값</param>
+        /// <param name="value2">두 번째 값</param>
+        /// <returns>비교 결과</returns>
         private int CompareValues<T>(T value1, T value2) where T : System.IComparable
         {
             int result = value1.CompareTo(value2);
 
             if (result != 0)
-                _isConflict = true;
-
+            {
+                IsConflict = true;
+            }
             return result;
         }
+
         #endregion
+
+        private void OnDestroy()
+        {
+            _ctsLocalDataUpdate?.Cancel();
+            _ctsLocalDataUpdate?.Dispose();
+            _ctsRefreshData?.Cancel();
+            _ctsRefreshData?.Dispose();
+        }
     }
 }

@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace AD
@@ -9,73 +7,94 @@ namespace AD
     /// </summary>
     public class GameManager
     {
-        [Header("--- 참고용 ---")]
-        [SerializeField, Tooltip("첫 진입에만 로그인 체크 하기 위함")] internal bool _loginCheck = true;
-        [SerializeField, Tooltip("현재 게임씬 여부")] private bool _isGame = false;
-        internal bool IsGame { get { return _isGame; } }
-        [Tooltip("Main scene - CM cam position")] Vector3 _vec_mainCmCam = new Vector3(0f, 36f, -10f);
-        [Tooltip("Game scene - CM cam position")] Vector3 _vec_gameCmCam = new Vector3(40f, 36f, -30f);
-        [Tooltip("Game scene - player position(main - vec3.zero)")] Vector3 _vec_player = new Vector3(40f, 0f, -20f);
+        // 로그인 체크 여부 (첫 진입 시)
+        public bool LoginCheck = true;
+
+        // 현재 씬 상태 (Main / Game)
+        private AD.GameConstants.Scene _currentScene = AD.GameConstants.Scene.Main;
+        public bool IsGame => _currentScene == AD.GameConstants.Scene.Game;
+
+        // 카메라 및 플레이어 위치 벡터
+        private readonly Vector3 _vecMainCmCam = new(0f, 36f, -10f);
+        private readonly Vector3 _vecGameCmCam = new(40f, 36f, -30f);
+        private readonly Vector3 _vecPlayer = new(40f, 0f, -20f);
 
         #region Functions
+
         /// <summary>
-        /// Main scene -> Game scene, Game scene -> Main scene으로 전환 시 사용
+        /// Main Scene ↔ Game Scene 전환
         /// </summary>
-        internal void SwitchMainOrGameScene(AD.Define.Scenes scene)
+        public void SwitchMainOrGameScene()
         {
             AD.Managers.PopupM.SetException();
 
-            _isGame = !_isGame;
+            // 씬 전환
+            _currentScene = _currentScene == AD.GameConstants.Scene.Main
+                ? AD.GameConstants.Scene.Game
+                : AD.GameConstants.Scene.Main;
 
-            BeforeOrAfterEnter(isEnter: false);
+            // UI 및 플레이어 상태 업데이트
+            SetSceneUIActive(false);
+            var player = Player.Instance;
+            player.ActiveControl(false);
+            player.transform.parent.gameObject.SetActive(false);
 
-            Player.Instance.ActiveControl(false);
-            Player.Instance.transform.parent.gameObject.SetActive(false);
-
-            AD.Managers.SceneM.NextScene(scene);
+            // 씬 변경 실행
+            AD.Managers.SceneM.NextScene(_currentScene);
         }
 
         /// <summary>
-        /// Main or Game scene 진입 후 초기화
+        /// Main Scene 또는 Game Scene 진입 후 초기화
         /// </summary>
-        internal void InitMainOrGameScene()
+        public void InitMainOrGameScene()
         {
-            CameraManage.Instance.CM_cameras[0].transform.position =
-                _isGame ? _vec_gameCmCam : _vec_mainCmCam;
+            var player = Player.Instance;
+            var cameraArm = player.CameraArm;
+
+            CameraManage.Instance.CinemachineCameras[0].transform.position = IsGame ? _vecGameCmCam : _vecMainCmCam;
 
             PlayerUICanvas.Instance.StartInit();
+            SetSceneUIActive(true);
 
-            BeforeOrAfterEnter(isEnter: true);
+            cameraArm.transform.position = IsGame ? new Vector3(_vecPlayer.x, cameraArm.transform.position.y, _vecPlayer.z)
+                                                  : new Vector3(0f, cameraArm.transform.position.y, 0f);
+            player.transform.position = IsGame ? _vecPlayer : Vector3.zero;
+            player.transform.rotation = Quaternion.identity;
+            player.transform.parent.gameObject.SetActive(true);
+            player.ActiveControl(true);
+            player.HandleAttackCoroutine(IsGame);
 
-            Player.Instance._tr_cameraArm.transform.position = _isGame ? new Vector3(_vec_player.x, Player.Instance._tr_cameraArm.transform.position.y, _vec_player.z)
-                : new Vector3(0f, Player.Instance._tr_cameraArm.transform.position.y, 0f);
-            Player.Instance.transform.transform.position = _isGame ? _vec_player : Vector3.zero;
-            Player.Instance.transform.transform.rotation = Quaternion.identity;
-            Player.Instance.transform.parent.gameObject.SetActive(true);
-            Player.Instance.ActiveControl(true);
-            Player.Instance.HandleAttackCoroutine(isGame: _isGame);
-
-            if (!_isGame)
-                Player.Instance.Heal();
+            if (!IsGame)
+                player.Heal();
         }
 
-        private void BeforeOrAfterEnter(bool isEnter)
+        /// <summary>
+        /// UI 상태 활성화/비활성화
+        /// </summary>
+        private void SetSceneUIActive(bool isActive)
         {
-            JoyStick.Instance.transform.parent.gameObject.SetActive(isEnter);
-            PlayerUICanvas.Instance.gameObject.SetActive(isEnter);
+            JoyStick.Instance.transform.parent.gameObject.SetActive(isActive);
+            PlayerUICanvas.Instance.gameObject.SetActive(isActive);
         }
 
-        internal void GameOver()
+        /// <summary>
+        /// 게임 오버 처리
+        /// </summary>
+        public void GameOver()
         {
             Player.Instance.RemoveAllAllyMonster();
             AD.Managers.PopupM.PopupGameOver();
         }
 
-        internal void GameOverGoLobby()
+        /// <summary>
+        /// 게임 오버 후 로비로 이동
+        /// </summary>
+        public void GameOverGoLobby()
         {
             Player.Instance.ReSetPlayer();
-            SwitchMainOrGameScene(AD.Define.Scenes.Main);
+            SwitchMainOrGameScene();
         }
+
         #endregion
     }
 }
