@@ -1,5 +1,5 @@
-lastUpgrade=01014
-proj.pluginVersion=0.10.14
+lastUpgrade=20000
+proj.pluginVersion=2.0.0
 proj.AppId=908962851537
 and.BundleId=com.AeDeong.MonsterTamer
 proj.classDir=Assets

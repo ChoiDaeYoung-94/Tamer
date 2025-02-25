@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using System.Collections.Generic;
 
 using UnityEngine;
@@ -12,6 +11,7 @@ using UniRx;
 
 #if UNITY_ANDROID
 using GooglePlayGames;
+using GooglePlayGames.BasicApi;
 #endif
 
 namespace AD
@@ -124,21 +124,25 @@ namespace AD
 
         private void LoginWithGoogle()
         {
-            if (!Social.localUser.authenticated)
+            PlayGamesPlatform.Instance.Authenticate(ProcessAuthentication);
+        }
+
+        private void ProcessAuthentication(SignInStatus status)
+        {
+            if (status == SignInStatus.Success)
             {
-                Social.localUser.Authenticate((success, error) =>
-                {
-                    if (success)
-                    {
-                        AD.DebugLogger.Log("Login", "Success LoginWithGoogle");
-                        LoginWithPlayFab();
-                    }
-                    else
-                    {
-                        AD.DebugLogger.LogWarning("Login", $"Failed LoginWithGoogle -> {error}");
-                        _loadingText.text = $"Failed LoginWithGoogle... \n{error}";
-                    }
-                });
+                // Continue with Play Games Services
+                Debug.Log("Success LoginGoogle");
+                LoginWithPlayFab();
+            }
+            else
+            {
+                // Disable your integration with Play Games Services or show a login button
+                // to ask users to sign-in. Clicking it should call
+                // PlayGamesPlatform.Instance.ManuallyAuthenticate(ProcessAuthentication);
+
+                Debug.Log($"Failed LoginGoogle{status}");
+                _loadingText.text = $"Failed LoginWithGoogle...";
             }
         }
 
