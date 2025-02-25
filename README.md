@@ -46,7 +46,7 @@ git clone https://github.com/ChoiDaeYoung-94/Tamer.git
 - [Login 시 체크해야 할 부분 State Pattern](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Main/LoginCheck.cs)
 - [위치 별 몬스터 생성 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Game/MonsterGenerator.cs)
 - MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
-- [google v1, playfab 로그인 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/LoginCanvas/Login.cs)
+- [google v2, playfab 로그인 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/LoginCanvas/Login.cs)
   - playfab 데이터 저장을 위해 사용
 - [CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Editor/BuildScript.cs)
 
