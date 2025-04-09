@@ -94,8 +94,7 @@ namespace AD
 
                 if (parent == null)
                 {
-                    GameObject activePoolObj = GameObject.Find(AD.GameConstants.ActivePool);
-                    parent = activePoolObj != null ? activePoolObj.transform : null;
+                    parent = MonsterGenerator.Instance != null ? MonsterGenerator.Instance.transform : null;
                 }
                 poolObj.transform.SetParent(parent);
 
