@@ -29,26 +29,26 @@ git clone https://github.com/ChoiDaeYoung-94/Tamer.git
 
 ## Technologies and Techniques (링크 클릭 시 해당 내용 코드로 이동합니다.)
 
-- [Creature code](https://github.com/ChoiDaeYoung-94/Tamer/tree/main/Assets/03.%20Objects/Creature)
+- [Creature code](https://github.com/ChoiDaeYoung-94/Tamer/tree/main/Assets/Scripts/Creatures)
   - Player, Monster 군집이동 구현
-    - [Player](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/Creature/Player/Player.cs)
-    - [Monster](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/Creature/Monsters/Monster.cs)
+    - [Player](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Creatures/Player.cs)
+    - [Monster](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Creatures/Monster.cs)
 - Manager Singleton 개선
-- [Login 비동기 작업 UniTask 사용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/LoginCanvas/Login.cs)
-- [씬 전환 시 빈씬 거친 후 전환](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/SceneManager.cs)
-- [stack 으로 팝업 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/PopupManager.cs)
-- [Object pooling 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/PoolManager.cs)
-- [GoogleAdMob 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/GoogleAdMobManager.cs)
-  - [admob buff 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/BuffingMan/BuffingMan.cs)
-- [간단한 장비 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/EquipmentManager.cs)
-- [IAP 인앱 결제 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/IAPManager.cs)
-- [AudioMixer로 사운드 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Managers/SoundManager.cs)
-- [Login 시 체크해야 할 부분 State Pattern](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Main/LoginCheck.cs)
-- [위치 별 몬스터 생성 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Game/MonsterGenerator.cs)
+- [Login 비동기 작업 UniTask 사용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Login/Login.cs)
+- [씬 전환 시 빈씬 거친 후 전환](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/SceneManager.cs)
+- [stack 으로 팝업 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/PopupManager.cs)
+- [Object pooling 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/PoolManager.cs)
+- [GoogleAdMob 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/GoogleAdMobManager.cs)
+  - [admob buff 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Creatures/BuffingMan.cs)
+- [간단한 장비 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/EquipmentManager.cs)
+- [IAP 인앱 결제 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/IAPManager.cs)
+- [AudioMixer로 사운드 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/SoundManager.cs)
+- [Login 시 체크해야 할 부분 State Pattern](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Main/LoginCheck.cs)
+- [위치 별 몬스터 생성 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Game/MonsterGenerator.cs)
 - MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
-- [google v2, playfab 로그인 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/03.%20Objects/LoginCanvas/Login.cs)
+- [google v2, playfab 로그인 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Login/Login.cs)
   - playfab 데이터 저장을 위해 사용
-- [CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/02.%20Scripts/Editor/BuildScript.cs)
+- [CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Editor/BuildScript.cs)
 
 
 ## Self Feedback
