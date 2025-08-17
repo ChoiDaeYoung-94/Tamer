@@ -78,6 +78,13 @@
         "DisplayIdEnabled": false,
         "DisplayId": ""
     },
+    "m_ScreenCaptureSettings": {
+        "Mode": 0,
+        "m_LastSaveLocation": [
+            "D:\\Git\\Tamer\\Tamer",
+            "D:\\Git\\Tamer\\Tamer"
+        ]
+    },
     "m_InputSettings": {
         "ShiftModifier": false,
         "SendText": "",
