@@ -1,1 +1,0 @@
-D:\Git\Tamer\Tamer\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\build\intermediates\cxx\RelWithDebInfo\6y683g3t\obj\arm64-v8a
