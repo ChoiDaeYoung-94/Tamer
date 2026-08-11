@@ -30,7 +30,7 @@ android {
     ndkVersion "**NDKVERSION**"
 
     compileSdk **APIVERSION**
-    buildToolsVersion = "**BUILDTOOLS**"
+    buildToolsVersion "**BUILDTOOLS**"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -44,8 +44,6 @@ android {
             abiFilters **ABIFILTERS**
             debugSymbolLevel **DEBUGSYMBOLLEVEL**
         }
-        versionCode **VERSIONCODE**
-        versionName '**VERSIONNAME**'
         consumerProguardFiles 'proguard-unity.txt'**USER_PROGUARD**
 **DEFAULT_CONFIG_SETUP**
     }
