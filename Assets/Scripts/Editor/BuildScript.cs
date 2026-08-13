@@ -14,9 +14,12 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     private const string PRODUCT_NAME = "MonsterTamer";
     private const string IDENTIFIER = "com.AeDeong.MonsterTamer";
     private const string KEYSTORE_NAME = "src/AeDeong.keystore";
-    private const string KEYSTORE_PASS = "";
     private const string KEYALIAS_NAME = "aedeong";
-    private const string KEYALIAS_PASS = "";
+
+    // keystore 비밀번호는 저장소에 두지 않고 환경 변수로 전달받는다.
+    // 환경 변수가 없으면 에디터(Player Settings)에 입력된 값을 그대로 사용한다.
+    private const string ENV_KEYSTORE_PASS = "TAMER_KEYSTORE_PASS";
+    private const string ENV_KEYALIAS_PASS = "TAMER_KEYALIAS_PASS";
     private static string[] DEFINESYMBOLS_APK = { "DEBUG" };
     private static string[] DEFINESYMBOLS_AAB = { "" };
 
@@ -90,9 +93,8 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
         PlayerSettings.Android.bundleVersionCode = Convert.ToInt32(_str_buildInfo[2]);
 
         PlayerSettings.Android.keystoreName = KEYSTORE_NAME;
-        PlayerSettings.Android.keystorePass = KEYSTORE_PASS;
         PlayerSettings.Android.keyaliasName = KEYALIAS_NAME;
-        PlayerSettings.Android.keyaliasPass = KEYALIAS_PASS;
+        ApplyKeystorePassword();
 
         PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Android, ApiCompatibilityLevel.NET_4_6);
@@ -127,6 +129,33 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 
         if (summary.result == BuildResult.Failed)
             Debug.Log("AOSBuild failed");
+    }
+
+    /// <summary>
+    /// keystore 비밀번호 적용
+    /// 저장소에 비밀번호를 남기지 않기 위해 환경 변수에서 읽고,
+    /// 환경 변수가 없으면 Player Settings에 입력된 값을 그대로 사용한다.
+    /// (예전처럼 빈 문자열로 덮어쓰면 서명 단계에서 Cannot recover key로 실패한다)
+    /// </summary>
+    static void ApplyKeystorePassword()
+    {
+        string keystorePass = Environment.GetEnvironmentVariable(ENV_KEYSTORE_PASS);
+        if (!string.IsNullOrEmpty(keystorePass))
+            PlayerSettings.Android.keystorePass = keystorePass;
+
+        string keyaliasPass = Environment.GetEnvironmentVariable(ENV_KEYALIAS_PASS);
+        if (!string.IsNullOrEmpty(keyaliasPass))
+            PlayerSettings.Android.keyaliasPass = keyaliasPass;
+
+        // 비밀번호 없이 진행하면 IL2CPP까지 다 돌린 뒤 마지막 서명 단계에서 실패한다.
+        // 시간 낭비를 막기 위해 빌드 시작 전에 중단시킨다.
+        if (string.IsNullOrEmpty(PlayerSettings.Android.keystorePass)
+            || string.IsNullOrEmpty(PlayerSettings.Android.keyaliasPass))
+        {
+            throw new BuildFailedException(
+                $"keystore 비밀번호가 설정되지 않았습니다. 환경 변수 {ENV_KEYSTORE_PASS}, {ENV_KEYALIAS_PASS}를 설정하거나 " +
+                "Player Settings > Publishing Settings에 비밀번호를 입력한 뒤 다시 빌드해 주세요.");
+        }
     }
     #endregion
 
