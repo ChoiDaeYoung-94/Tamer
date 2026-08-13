@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Globalization;
 using System.Threading;
 using System.Collections.Generic;
 
@@ -199,7 +200,9 @@ namespace AD
         /// </summary>
         public void UpdateData()
         {
-            if (PlayFabPlayerData.Count == 1)
+            // 서버 데이터를 못 받았거나 닉네임만 있는 경우 -> 케릭터 선택 전이므로 비교하지 않는다
+            // (여기서 예외가 나면 IsInProgress가 계속 true로 남아 로그인이 멈춘다)
+            if (PlayFabPlayerData == null || LocalPlayerData == null || PlayFabPlayerData.Count <= 1)
             {
                 AD.Managers.ServerM.SetInProgress(false);
                 return;
@@ -207,8 +210,8 @@ namespace AD
 
             if (PlayFabPlayerData.Count == 2)
             {
-                LocalPlayerData["NickName"] = PlayFabPlayerData["NickName"].Value;
-                LocalPlayerData["Sex"] = PlayFabPlayerData["Sex"].Value;
+                SyncFromServer("NickName");
+                SyncFromServer("Sex");
 
                 AD.Managers.ServerM.SetData(LocalPlayerData, getAllData: true, update: true);
                 _ctsRefreshData = new CancellationTokenSource();
@@ -259,20 +262,26 @@ namespace AD
         {
             AD.DebugLogger.Log("DataManager", "SanitizeData() -> local, server 비교하여 PlayerData 최신화");
 
+            if (PlayFabPlayerData == null || LocalPlayerData == null)
+            {
+                AD.Managers.ServerM.SetInProgress(false);
+                return;
+            }
+
             // 동기화: NickName, Sex, Tutorial
-            LocalPlayerData["NickName"] = PlayFabPlayerData["NickName"].Value;
-            LocalPlayerData["Sex"] = PlayFabPlayerData["Sex"].Value;
-            LocalPlayerData["Tutorial"] = PlayFabPlayerData["Tutorial"].Value;
+            SyncFromServer("NickName");
+            SyncFromServer("Sex");
+            SyncFromServer("Tutorial");
 
             // 충돌 비교
-            CompareValues(int.Parse(LocalPlayerData["Gold"]), int.Parse(PlayFabPlayerData["Gold"].Value));
-            CompareValues(float.Parse(LocalPlayerData["Power"]), float.Parse(PlayFabPlayerData["Power"].Value));
-            CompareValues(float.Parse(LocalPlayerData["AttackSpeed"]), float.Parse(PlayFabPlayerData["AttackSpeed"].Value));
-            CompareValues(float.Parse(LocalPlayerData["MoveSpeed"]), float.Parse(PlayFabPlayerData["MoveSpeed"].Value));
-            CompareValues(LocalPlayerData["AllyMonsters"], PlayFabPlayerData["AllyMonsters"].Value.ToString());
+            CompareValues(ParseInt(GetLocal("Gold")), ParseInt(GetServer("Gold")));
+            CompareValues(ParseFloat(GetLocal("Power")), ParseFloat(GetServer("Power")));
+            CompareValues(ParseFloat(GetLocal("AttackSpeed")), ParseFloat(GetServer("AttackSpeed")));
+            CompareValues(ParseFloat(GetLocal("MoveSpeed")), ParseFloat(GetServer("MoveSpeed")));
+            CompareValues(GetLocal("AllyMonsters"), GetServer("AllyMonsters"));
 
-            string googlePlayValue = PlayFabPlayerData["GooglePlay"].Value.ToString();
-            int comparisonResult = CompareValues(LocalPlayerData["GooglePlay"], googlePlayValue);
+            string googlePlayValue = GetServer("GooglePlay");
+            int comparisonResult = CompareValues(GetLocal("GooglePlay"), googlePlayValue);
             if (comparisonResult < 0 && !string.IsNullOrEmpty(googlePlayValue) && !string.Equals(googlePlayValue, "null"))
             {
                 LocalPlayerData["GooglePlay"] = googlePlayValue;
@@ -287,6 +296,65 @@ namespace AD
                 AD.Managers.ServerM.SetInProgress(false);
             }
         }
+
+        #region Safe accessors
+
+        /// <summary>
+        /// 서버 값으로 로컬 값을 덮어쓴다.
+        /// 서버에 해당 key가 없으면 로컬 값을 올려야 하므로 충돌로 표시한다.
+        /// (직접 인덱서로 접근하면 key 누락 시 예외가 발생해 로그인이 멈춘다)
+        /// </summary>
+        private void SyncFromServer(string key)
+        {
+            if (PlayFabPlayerData.TryGetValue(key, out UserDataRecord record) && record != null && record.Value != null)
+                LocalPlayerData[key] = record.Value;
+            else
+                IsConflict = true;
+        }
+
+        /// <summary>
+        /// 서버 데이터 조회 (없으면 "null")
+        /// </summary>
+        private string GetServer(string key)
+        {
+            if (PlayFabPlayerData.TryGetValue(key, out UserDataRecord record) && record != null && record.Value != null)
+                return record.Value;
+
+            IsConflict = true;
+            return "null";
+        }
+
+        /// <summary>
+        /// 로컬 데이터 조회 (없으면 "null")
+        /// </summary>
+        private string GetLocal(string key)
+        {
+            return LocalPlayerData.TryGetValue(key, out string value) && value != null ? value : "null";
+        }
+
+        /// <summary>
+        /// 파싱 실패 시 0을 반환 (예외로 데이터 동기화가 중단되지 않도록)
+        /// </summary>
+        private static int ParseInt(string value)
+        {
+            if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
+                return result;
+
+            return int.TryParse(value, out result) ? result : 0;
+        }
+
+        /// <summary>
+        /// 파싱 실패 시 0을 반환. 소수점 표기가 다른 지역 설정도 함께 처리한다.
+        /// </summary>
+        private static float ParseFloat(string value)
+        {
+            if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result))
+                return result;
+
+            return float.TryParse(value, out result) ? result : 0f;
+        }
+
+        #endregion
 
         /// <summary>
         /// 두 값을 비교합니다.
