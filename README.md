@@ -1,6 +1,8 @@
 # About
 
-unity(2022.3.52f1 LTS) 3d game project
+Unity 6000.0.81f1 기반 Android 3D 게임 프로젝트입니다.
+
+> 2026-09-10: 프로젝트 복구 준비 중입니다. 현재 확인된 환경, Unity CLI/MCP 선택, 광고 정책 대응 및 단계별 작업 계획은 [복구 계획서](docs/revival/plan.ko.md)를 참고하세요. 빌드와 스토어 재검증은 아직 완료되지 않았으며, 아래의 기존 빌드·배포 설명은 순차적으로 갱신할 예정입니다.
 
 [WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko) 를 3d로 재구성한 게임입니다.
 
