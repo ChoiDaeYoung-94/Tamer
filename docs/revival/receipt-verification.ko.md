@@ -20,6 +20,8 @@ Unity `6000.0.81f1`, IAP `5.4.3`, PlayFab `2.242.260805`를 유지한다. 기존
 
 ## 로컬 재현
 
+2026-09-11 소스 `50ec779373d478e7b263418bef540c86d62e53a1`에서 Unity EditMode **261/261**(신규 receipt 12개), Python **88/88**(서버 13개), 에셋 복원 4,561개 및 YAML GUID 132개 미해결 0을 확인했다. `Run-Baseline -TestsOnly` 종료 0이며 APK는 새로 빌드하지 않았다. [정확한 검증 데이터](receipt-verification-validation.json)
+
 `python -m unittest discover -s tools/revival -p test_receipt_server.py`는 합성 ticket/receipt와 임시 DB만 사용한다. 실제 서비스 호출·소켓 리스너·계정 생성이 없다. Unity `RevivalReceiptVerificationTests`는 지연 성공/거절/오류/세션 교체/취소/HTTPS 구성 및 저장→확인 계약을 검증한다.
 
 서버 host는 `Upstream(title_id, secret_key, access_token_provider)`, `Ledger(private_db_path)`, `Verifier(..., package, test_accounts)`, `create_app(verifier)`를 조합한다. `access_token_provider`는 서버의 ADC/workload identity 또는 비밀 저장소를 사용해 androidpublisher OAuth token을 반환해야 한다. **실제 host/자격 증명 주입/배포 구성은 미제공**이며 import만으로 서버나 네트워크가 시작되지 않는다. WSGI factory 자체는 TLS·rate limit·관리자 인증·가용성 운영 계층을 제공하지 않는다.
