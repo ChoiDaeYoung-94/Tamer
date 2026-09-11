@@ -19,6 +19,8 @@ public class MiniMap : MonoBehaviour
     private Vector3 _targetPos;
     private Vector3 _originalCameraPos;
     private AD.UpdateManager _updateOwner;
+    private bool _ownsPause;
+    private float _previousTimeScale;
 
     private void Awake()
     {
@@ -28,11 +30,13 @@ public class MiniMap : MonoBehaviour
     private void OnDisable()
     {
         BindUpdates(null);
+        ReleasePause();
     }
 
     private void OnDestroy()
     {
         BindUpdates(null);
+        ReleasePause();
         if (_instance == this) _instance = null;
     }
 
@@ -69,7 +73,7 @@ public class MiniMap : MonoBehaviour
 
     public void OpenMap()
     {
-        Time.timeScale = 0;
+        AcquirePause();
 
         _minimapCamera.transform.localPosition = new Vector3(_playerTransform.localPosition.x, 31f, _playerTransform.localPosition.z);
         _minimapCamera.SetActive(true);
@@ -87,13 +91,29 @@ public class MiniMap : MonoBehaviour
 
     public void CloseMap()
     {
-        Time.timeScale = 1;
+        ReleasePause();
 
         if (_updateOwner != null) _updateOwner.OnUpdateEvent -= MiniMapDrag;
 
         ToggleGameUI(true);
         _mainCamera.SetActive(true);
         _minimapCamera.SetActive(false);
+    }
+
+    private void AcquirePause()
+    {
+        if (_ownsPause) return;
+        _previousTimeScale = Time.timeScale;
+        _ownsPause = true;
+        Time.timeScale = 0;
+    }
+
+    private void ReleasePause()
+    {
+        if (!_ownsPause) return;
+        _ownsPause = false;
+        // Preserve a newer nonzero time-scale decision made by another flow.
+        if (Time.timeScale == 0) Time.timeScale = _previousTimeScale;
     }
 
     private void ToggleGameUI(bool isActive)

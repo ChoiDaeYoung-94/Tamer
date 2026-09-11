@@ -281,6 +281,28 @@ public class RevivalMonsterLifecycleTests
         Assert.That(Get(replacement, "OnUpdateEvent"), Is.Null);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_MiniMapDisableReleasesPauseWithoutOverwritingNewScale(bool changed)
+    {
+        Component map = Create("MiniMap");
+        float original = Time.timeScale;
+        try
+        {
+            Time.timeScale = 0.5f;
+            Call(map, "AcquirePause");
+            Call(map, "AcquirePause");
+            Assert.That(Time.timeScale, Is.Zero);
+            if (changed) Time.timeScale = 0.75f;
+            Call(map, "OnDisable");
+            Assert.That(Time.timeScale, Is.EqualTo(changed ? 0.75f : 0.5f));
+            Time.timeScale = 0.25f;
+            Call(map, "OnDisable");
+            Assert.That(Time.timeScale, Is.EqualTo(0.25f));
+        }
+        finally { Time.timeScale = original; }
+    }
+
     [TestCase("Item", "ItemList")]
     [TestCase("IAPItem", "IAPitemList")]
     public void Revival_DestroyedShopItemUnregistersFromItsCapturedShop(string type, string listName)
