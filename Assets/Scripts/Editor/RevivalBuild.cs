@@ -74,15 +74,27 @@ public static class RevivalBuild
 
     public static void BuildAndroidDevelopment()
     {
+        BuildAndroidDevelopment(false);
+    }
+
+    public static void BuildAndroidDevelopmentBundle()
+    {
+        BuildAndroidDevelopment(true);
+    }
+
+    static void BuildAndroidDevelopment(bool appBundle)
+    {
         int code = 1;
+        string summaryPath = appBundle ? "Logs/revival/aab-build-summary.json" : "Logs/revival/build-summary.json";
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
+        string oldAlias = PlayerSettings.Android.keyaliasName;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         try
         {
             Directory.CreateDirectory("Logs/revival");
-            File.WriteAllText("Logs/revival/build-summary.json", "{\"result\":\"Started\"}");
+            File.WriteAllText(summaryPath, "{\"result\":\"Started\"}");
             ValidateBaseline();
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with -buildTarget Android.");
@@ -90,17 +102,17 @@ public static class RevivalBuild
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, ApplicationId);
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
-            EditorUserBuildSettings.buildAppBundle = false;
+            EditorUserBuildSettings.buildAppBundle = appBundle;
             Directory.CreateDirectory("Build/revival");
             var scenes = new[] { SmokeScene }.Concat(EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path)).Distinct().ToArray();
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
-                locationPathName = "Build/revival/Tamer-development.apk",
+                locationPathName = "Build/revival/Tamer-development." + (appBundle ? "aab" : "apk"),
                 options = BuildOptions.Development | BuildOptions.CompressWithLz4,
                 extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_TEST_ADS" }
             });
             Directory.CreateDirectory("Logs/revival");
-            File.WriteAllText("Logs/revival/build-summary.json", JsonUtility.ToJson(new Summary {
+            File.WriteAllText(summaryPath, JsonUtility.ToJson(new Summary {
                 result = report.summary.result.ToString(), errors = report.summary.totalErrors,
                 bytes = report.summary.totalSize.ToString(), unity = Application.unityVersion,
                 applicationId = ApplicationId, version = PlayerSettings.bundleVersion,
@@ -113,12 +125,13 @@ public static class RevivalBuild
         {
             Debug.LogException(error);
             Directory.CreateDirectory("Logs/revival");
-            File.WriteAllText("Logs/revival/build-summary.json", "{\"result\":\"Failed\"}");
+            File.WriteAllText(summaryPath, "{\"result\":\"Failed\"}");
         }
         finally
         {
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.Android.useCustomKeystore = oldKey;
+            PlayerSettings.Android.keyaliasName = oldAlias;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
             EditorUserBuildSettings.buildAppBundle = oldBundle;
             AssetDatabase.SaveAssets();
