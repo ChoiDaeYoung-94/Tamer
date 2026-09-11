@@ -27,7 +27,11 @@
 
 팝업 stack은 enable 순서로 유지되며 같은 객체가 중복 쌓이지 않는다. 직접 disable 또는 늦은 광고 보상으로 특정 popup을 닫아도 나머지 순서는 유지한다. Exception/Flow 팝업 하나의 disable이 다른 활성 blocker를 풀지 않는다. 기존 `SetException/ReleaseException`, `SetFlow/ReleaseFlow` API는 별도 전역 상태로 유지했다.
 
+독립 리뷰에서 사용자 닫기와 프로그램 정리를 구분했다. `PopupObject.DisablePop`은 `RequestClosePopup`을 통해 기존 Exception 차단을 지킨다. 광고 보상 후 특정 popup 정리를 위한 `ClosePopup`은 기존처럼 차단과 별개로 동작한다.
+
 씬 loading의 2초 대기는 기존처럼 progress 0.9 뒤에 추가하는 대신 native load 시작 **전** realtime으로 수행한다. 따라서 timeScale 0에서도 기다림이 끝나고, 취소된 managed 대기가 Unity의 `allowSceneActivation=false` 잠금을 남기지 않는다. native load가 시작된 뒤에는 Unity 자체 작업을 취소할 수 없으며 취소 토큰은 후속 managed 처리만 중단한다. 저장 요청/완료 판단/실패 UI 정책은 변경하지 않았다.
+
+비동기 시작 시 Managers/Data/Server/Sound를 한 묶음으로 캡처한다. 서버 대기는 캡처한 Server만 조회하며, Managers 교체·Data/Sound 파괴·서비스 필드 교체 시 false로 끝난다. 저장 전, native load 전, 후속 unload/BGM 처리 전에 소유권을 확인해 새 singleton의 서비스를 이어서 사용하지 않는다. 대기 중 Managers 교체 및 Data 파괴를 별도 타이밍 회귀로 검증한다.
 
 기존 serialized 필드명, enum 값, MonoBehaviour 이름 및 public UnityEvent 메서드를 유지했다. 수정한 기존 script `.meta`를 base와 대조해 보존을 확인했다. prefab/scene 구조를 재작성하지 않았고 계정·구매·저장·광고 정책 코드와 운영 설정은 변경하지 않았다. HUD와 gameplay의 데이터 의존성을 전면 교체하지 않고 확인된 소유권/수명 결함을 먼저 줄였다.
 
@@ -38,6 +42,6 @@
 - 테스트 fixture는 DOTween의 runtime-ready 상태만 동기 범위에 설정하고 finally로 원복한다. 실제 Kill 경로를 확인하며 player/account/global tween update를 시작하지 않는다. 실패를 숨기기 위해 제품 코드를 우회하지 않았다.
 - 실제 운영 Main/Game/로그인 씬 왕복, 화면 배치, Android APK는 이번 리팩토링에서 실행하지 않았다. 격리 EditMode/PreviewScene 검증과 실기기 광고 검증 기록은 구분한다.
 
-최종 소스 `3be9954`에서 **264/264 통과** (07:03:15–07:03:18 UTC). [구조화 검증 기록](refactor-ui-validation.json)에 전체 소스 SHA와 XML 해시를 기록했다. 기존 광고·구매·저장 회귀도 같은 필터에 포함된다.
+소스 `3be9954`에서 **264/264 통과** (07:03:15–07:03:18 UTC). 독립 리뷰 보완 최종 소스 `1f648f565959b58336975f93d7ad4a0f996cdce3`에서 **267/267 통과** (07:12:00–07:12:04 UTC). 이 실행은 f68fb61 base이며 이후 main의 Pool/SDK 추가 테스트를 포함하지 않는다. [구조화 검증 기록](refactor-ui-validation.json)에 전체 소스 SHA와 XML 해시를 기록했다. 기존 광고·구매·저장 회귀도 같은 필터에 포함된다.
 
 Run-Baseline의 PlayerSettings snapshot 복원이 완료되고 이 checkout Editor가 0개임을 확인했다. GoogleMobileAdsSettings와 RevivalSmoke는 내용 diff 없는 줄바꿈 변경, SceneTemplateSettings는 Unity import에 따른 editor template 필드 축약이었다. 테스트 전 clean이었던 이 3개 파일만 HEAD로 복원했다. 실제 scene/prefab 구조와 운영 설정 변경은 커밋에 포함하지 않는다. 전체 복구의 남은 서비스/게임플레이 및 Families 작업은 각 소유자가 계속한다.
