@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-11",
+  "integrationCheckout": "7819/Tamer",
+  "integratedEvidenceCommit": "bb249b78beca2417ff3cc95a35ae7540b0a48804",
+  "mergedPrs": [113, 114, 115],
+  "unity": "6000.0.81f1",
+  "unity63Deferred": true,
+  "python": {
+    "sourceCommit": "20c2823c44818e4f9077be80dd6ef6f55d9b56e4",
+    "passed": 75,
+    "failed": 0,
+    "durationSeconds": 5.219
+  },
+  "unityTests": {
+    "rerunInPhase3": false,
+    "previousEvidence": "phase2-validation.json",
+    "previousPassed": 249,
+    "newHarnessValidation": "Both APK builds and actual device UI/callback observations; no general gameplay source change"
+  },
+  "evidence": {
+    "physicalSmoke": "device-smoke-validation.json",
+    "ads": "ads-device-validation.json",
+    "adsConsole": "families-device-validation.ko.md",
+    "playFabConsole": "playfab-console-observation.ko.md"
+  },
+  "independentReview": {
+    "physicalSmokeScreenshots": 2,
+    "adApkMetadataSignatureHashChecks": 2,
+    "adEvidenceHashesMatched": 10,
+    "rewardAndCancellationScreenshotsAndLogReviewed": true,
+    "adVideoFramesReviewed": true,
+    "playFabObservationReviewedByObserver": true
+  },
+  "devicePageSizeBytes": 4096,
+  "runtime16KBVerified": false,
+  "exactNativeFirstPixelFiveSecondCloseVerified": false,
+  "productionCreativeComplianceVerified": false,
+  "payloadNetworkObservationPerformed": false,
+  "testAppsRemoved": true,
+  "personalAppsOrGlobalNetworkSettingsChanged": false,
+  "productionSettingsChanged": false,
+  "storeSubmission": false,
+  "ciEnabled": false,
+  "scope": "Artifact-specific physical smoke and sample/control ad validation, plus read-only Console observations; not full game/service/store recovery"
+}
