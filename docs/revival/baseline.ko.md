@@ -11,7 +11,7 @@
 - 시작 시 등록 폴더에는 커밋 없는 빈 Git 저장소만 있었다. 원격 main과 원본 HEAD가 모두 `c47c90217d45e8c6538c57a0924fa852abfbd736`임을 확인하고 작업본을 구성했다. 원본 Library는 복사하지 않았다.
 - 별도 검증 clone: `.revival-local/restore-validation`. Git 파일과 공개 복원 스크립트로 원본을 복원하고, 이 clone의 Library 없이 임포트·배치 테스트·개발 빌드를 검증한다.
 - 최종 검증 clone: `.revival-local/final-validation`, 코드 `4c1f2e72c8f14c715ad004ac067cb1c869d7ff20`. 시작 시 Library·`.utmp`·UserSettings가 모두 없는 상태에서 복원과 전체 검증 스크립트가 exit 0으로 완료됐다. 시스템의 공용 다운로드 캐시는 유지했다.
-- 준비 문서 [PR #93](https://github.com/ChoiDaeYoung-94/Tamer/pull/93)은 별도 미병합 draft이며 이 구현에서 병합하지 않았다.
+- 준비 문서 [PR #93](https://github.com/ChoiDaeYoung-94/Tamer/pull/93)은 통합 담당이 기존 기록을 보존하면서 최신 README/개발 안내로 갱신한다.
 
 ## 고정 도구
 
@@ -115,7 +115,7 @@ Unity/EDM이 별도로 재직렬화하는 설정·캐시 파일이 있을 수 �
 이 브랜치에서는 기존 `.github/workflows/cicd.yml`의 push trigger를 제거하고 첫 job을 비활성화했다.
 Unity 2020 macOS 경로, App Center/fastlane 구성과 의존 job들은 기록으로 보존한다.
 실제 workflow dispatch, runner 등록, 배포, 새 서비스 이행은 하지 않았다.
-이 변경은 PR이 병합되기 전까지 원격 main의 workflow 파일에 반영된 것은 아니다.
+이 변경은 [PR #95](https://github.com/ChoiDaeYoung-94/Tamer/pull/95)의 병합 커밋 `83719f2e7419d97a3a299aaa12678d62fb4b4edc`로 main에 반영했다.
 
 App Center **Distribution 서비스 자체는 종료되어 설정 파일을 복원해도 되살릴 수 없다**.
 Analytics/Diagnostics 지원 연장과 구분한다. [Microsoft 종료 공지](https://learn.microsoft.com/en-us/appcenter/retirement)
@@ -126,5 +126,4 @@ Analytics/Diagnostics 지원 연장과 구분한다. [Microsoft 종료 공지](h
 
 공개 열람/clone을 유지하면서 외부의 임의 push/merge/관리 권한을 차단하는 점검은
 [#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)에서 진행한다.
-관리 작업의 예비 조회는 `main protected:false`, `rulesets:[]`이며 collaborator 목록은 미확인이다.
-이는 무권한 방문자가 병합할 수 있다는 뜻이 아니다. 이 구현에서는 저장소 권한을 변경하지 않았다.
+초기 예비 조회 이후 #94에서 main 보호와 Actions 보류 설정을 정비했다. 통합 시 확인한 규칙은 PR 필수/승인 0개/리뷰 대화 해결 필요/force-push·삭제 금지/bypass 없음이며 저장소 Actions는 비활성화 상태다. collaborator·앱 접근 감사의 최종 범위와 남은 항목은 #94를 따른다. 공개 열람/clone은 원본의 push/merge 권한과 다르다.
