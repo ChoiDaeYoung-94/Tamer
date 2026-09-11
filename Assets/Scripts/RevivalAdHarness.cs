@@ -92,6 +92,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
             SceneManager.SetActiveScene(_initialScene);
         }
         else if (action == "replace BGM") Sound.PlayBGM(_tone);
+        else if (action == "duplicate show") Show();
     }
 
     private void OnApplicationPause(bool paused) => Record("application_pause=" + paused
@@ -111,9 +112,11 @@ public sealed class RevivalAdHarness : MonoBehaviour
         GUI.enabled = Ads != null;
         if (GUILayout.Button("Load sample (explicit SDK initialization)", GUILayout.Height(52))) { Record("load_button"); Ads.LoadRewardedAd(); }
         if (GUILayout.Button("Show sample / policy-block control", GUILayout.Height(52))) Show();
+        if (Ads != null && Ads.PrivacyOptionsRequired &&
+            GUILayout.Button("Privacy options", GUILayout.Height(44))) Ads.ShowPrivacyOptions();
         GUI.enabled = true;
         if (GUILayout.Button("New receipt owner", GUILayout.Height(44))) NewOwner();
-        foreach (string action in new[] { "none", "destroy owner", "destroy manager", "scene A-B-A", "replace BGM" })
+        foreach (string action in new[] { "none", "destroy owner", "destroy manager", "scene A-B-A", "replace BGM", "duplicate show" })
             if (GUILayout.Button("Arm: " + action + (_armedAction == action ? " [selected]" : ""), GUILayout.Height(38))) _armedAction = action;
         GUILayout.Label("Armed action runs >=2s after opened callback when Unity updates; never closes or rewards an ad.");
         foreach (string line in _events) GUILayout.Label(line);
