@@ -71,6 +71,11 @@ SDK를 통한 기기 밖 전송도 포함하며, 별칭·사용자 ID·구매 �
   기본 동작의 IP 주소, 상호작용, 진단, 기기·계정 식별자와 광고·분석·부정행위 방지 목적을 설명한다.
   이 목록은 SDK 제공자의 설명이다. 최종 manifest, 실제 시작 순서, 요청 차단 및 설정에 따른
   이 앱의 동작은 측정하지 않았다. 광고 API를 부르지 않는다는 이유로 자동 수집도 없다고 결론내리지 않는다.
+  2단계 광고 담당의 25.4.0 ads-api AAR manifest/javap 검사 보고에서는
+  `MobileAdsInitProvider.onCreate()`가 false를 반환하고, `attachInfo`의 `zzev` 위임은
+  메타데이터·App ID 검사 경로이며 직접 initialize/load/network 호출은 보이지 않았다.
+  따라서 provider 존재만으로 자동 전송이 발생했다고 단정하지도 않는다.
+  다른 초기화 경로와 실제 통신은 별도이며 상세 산출물 근거는 광고 담당의 후속 기록에 연결한다.
 - **IAP:** [5.4+ 개인정보 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)와
   [Data safety 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)는
   D2C 기능도 포함하는 범위를 다룬다. 현재 소스는 플랫폼 상점 흐름이며 앱 스크립트의 D2C·Unity Authentication
