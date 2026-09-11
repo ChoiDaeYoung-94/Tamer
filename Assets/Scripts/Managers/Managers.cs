@@ -103,7 +103,9 @@ namespace AD
             }
             catch
             {
+                gameObject.SetActive(false);
                 Shutdown();
+                Destroy(gameObject);
                 throw;
             }
         }
