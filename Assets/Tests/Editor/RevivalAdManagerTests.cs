@@ -37,7 +37,7 @@ public class RevivalAdManagerTests
     public void TearDown()
     {
         if (manager != null)
-            UnityEngine.Object.DestroyImmediate(manager.gameObject);
+            DestroyManager();
         if (testScene.IsValid() && testScene.isLoaded)
             EditorSceneManager.ClosePreviewScene(testScene);
     }
@@ -232,7 +232,7 @@ public class RevivalAdManagerTests
         var session = CreateOwnedSession(() => rewards++);
         Install(session, () => { });
         Invoke("CompleteSession", session, RewardedAdOutcome.Cancelled);
-        UnityEngine.Object.DestroyImmediate(manager.gameObject);
+        DestroyManager();
 
         session.EarnReward();
         Assert.That(rewards, Is.Zero);
@@ -333,7 +333,7 @@ public class RevivalAdManagerTests
         Install(session, () => resumes++);
         Invoke("Init");
 
-        UnityEngine.Object.DestroyImmediate(manager.gameObject);
+        DestroyManager();
 
         Assert.That(session.IsCompleted, Is.True);
         Assert.That(resumes, Is.EqualTo(1));
@@ -356,15 +356,15 @@ public class RevivalAdManagerTests
     {
         var runs = 0;
         var discards = 0;
-        Invoke("Enqueue", (Action)(() => runs++), (Action)(() => discards++));
+        var enqueue = (Action<Action, Action>)Delegate.CreateDelegate(typeof(Action<Action, Action>),
+            manager, managerType.GetMethod("Enqueue", InstanceMembers));
+        enqueue(() => runs++, () => discards++);
 
-        // Invoke the lifecycle method directly to retain the managed component for
-        // a synthetic late callback after destruction; no ad object is involved.
-        Invoke("OnDestroy");
-        Invoke("Enqueue", (Action)(() => runs++), (Action)(() => discards++));
-        Invoke("OnDestroy");
+        // Deliver through the retained managed callback after fixture destruction,
+        // exactly as an SDK worker can after the native object is gone.
+        DestroyManager();
+        enqueue(() => runs++, () => discards++);
 
-        Assert.That(Get<bool>("_destroyed"), Is.True);
         Assert.That(runs, Is.Zero);
         Assert.That(discards, Is.EqualTo(2));
     }
@@ -445,6 +445,18 @@ public class RevivalAdManagerTests
     {
         managerType.GetField("_session", InstanceMembers).SetValue(manager, session);
         managerType.GetField("_resumeBgm", InstanceMembers).SetValue(manager, resume);
+    }
+
+    private void DestroyManager()
+    {
+        // This runtime MonoBehaviour does not receive OnDestroy automatically in
+        // EditMode. Dispatch its production handler through a bound delegate before
+        // destroying the native object, avoiding reflection on a destroyed component.
+        var nativeObject = manager.gameObject;
+        var destroy = (Action)Delegate.CreateDelegate(typeof(Action), manager,
+            managerType.GetMethod("OnDestroy", InstanceMembers));
+        try { destroy(); }
+        finally { UnityEngine.Object.DestroyImmediate(nativeObject); }
     }
 
     private void AssertCleared()
