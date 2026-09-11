@@ -25,7 +25,8 @@ try {
         & $cli build $ProjectPath --editor-path $EditorPath --target Android --execute-method RevivalBuild.BuildAndroidDevelopment --log-file "$logDir\android-build.log" --no-tail --non-interactive
         if ($LASTEXITCODE -ne 0) { throw "Android build failed (exit $LASTEXITCODE)." }
         if (!(Test-Path -LiteralPath 'Build/revival/Tamer-development.apk')) { throw 'Build returned no APK.' }
-        python tools/revival/verify_apk.py
+        $androidPlayer = Join-Path (Split-Path -Parent $EditorPath) 'Data\PlaybackEngines\AndroidPlayer'
+        python tools/revival/verify_apk.py --android-player $androidPlayer
         if ($LASTEXITCODE -ne 0) { throw 'APK metadata or signature verification failed.' }
     }
 } finally { Pop-Location }

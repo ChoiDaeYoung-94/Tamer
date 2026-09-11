@@ -42,4 +42,5 @@ python -m unittest discover -s tools/revival -p test_restore_assets.py
 기존 공개 이력에 있는 서명키는 변경하거나 삭제하지 않았다. 개발 빌드는 debug signing을 사용한다.
 원래 서명키가 upload key인지 app signing key인지와 기존 배포 인증서 관계는 아직 확인하지 않았다.
 계정 설정, 기존 로그인 코드의 자격정보, 서명 값, 원시 Editor 로그를 공개 문서에 복사하지 않는다.
-기존 추적 파일은 ignore만 추가해도 과거 이력이나 추적 상태가 없어지지 않으므로 별도 후속 점검이 필요하다.
+이미 추적되던 `.utmp`, `UserSettings`, PlayFab Editor 계정 설정은 이 브랜치에서 Git 추적만 해제했다.
+현재 작업본의 파일과 D: 원본은 보존한다. 과거 공개 이력은 없어지지 않으므로 별도 후속 점검이 필요하다.

@@ -14,15 +14,20 @@ apk = root / 'Build/revival/Tamer-development.apk'
 tools = args.android_player / 'SDK/build-tools/36.0.0'
 badging = subprocess.check_output([str(tools / 'aapt2.exe'), 'dump', 'badging', str(apk)], text=True, encoding='utf-8')
 signing = subprocess.check_output([str(args.android_player / 'OpenJDK/bin/java.exe'), '-jar', str(tools / 'lib/apksigner.jar'), 'verify', '--print-certs', str(apk)], text=True, encoding='utf-8')
-for expected in ["name='com.AeDeong.MonsterTamer.revival'", "versionCode='26'", "versionName='1.0.5'", "targetSdkVersion:'36'", "native-code: 'arm64-v8a'", 'application-debuggable']:
+for expected in ["name='com.AeDeong.MonsterTamer.revival'", "versionCode='26'", "versionName='1.0.5'", "targetSdkVersion:'36'", 'application-debuggable']:
     if expected not in badging:
         raise ValueError('APK verification failed: ' + expected)
 if not re.search(r"(?:minS|s)dkVersion:'24'", badging):
     raise ValueError('APK min SDK must be 24')
+native_line = next(line for line in badging.splitlines() if line.startswith('native-code:'))
+if re.findall(r"'([^']+)'", native_line) != ['arm64-v8a']:
+    raise ValueError('APK must contain ARM64 only')
 if 'CN=Android Debug' not in signing:
     raise ValueError('Expected development debug certificate')
+with apk.open('rb') as stream:
+    sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
 result = dict(apk='Build/revival/Tamer-development.apk', bytes=apk.stat().st_size,
-    sha256=hashlib.file_digest(apk.open('rb'), 'sha256').hexdigest(), minSdk=24, targetSdk=36,
+    sha256=sha256, minSdk=24, targetSdk=36,
     abi=['arm64-v8a'], applicationId='com.AeDeong.MonsterTamer.revival',
     version='1.0.5', versionCode=26, debuggable=True, debugSignatureVerified=True)
 out = root / 'Logs/revival/apk-verification.json'
