@@ -121,6 +121,7 @@ namespace AD
                 if (_serverM != null) Cleanup(_serverM.Dispose);
             }
             Cleanup(_IAPM.Dispose);
+            if (_ownsServices) Cleanup(_poolM.Dispose);
             if (instance == this) instance = null;
             _ownsServices = false;
         }

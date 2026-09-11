@@ -69,12 +69,14 @@ public class RevivalManagerLifecycleTests
     {
         Call(_owner, "TryClaimInstance");
         object iap = Service("IAPM");
+        object pool = Service("PoolM");
         Call(_owner, "Shutdown");
         Call(_owner, "Shutdown");
         Assert.That(Call(_owner, "TryClaimInstance"), Is.False);
         foreach (string property in new[] { "Instance", "DataM", "ServerM", "PoolM", "IAPM", "UpdateM", "ResourceM" })
             Assert.That(Service(property), Is.Null, property);
         Assert.That(iap.GetType().GetField("_disposed", Members).GetValue(iap), Is.True);
+        Assert.That(pool.GetType().GetMethod("PopFromPool").Invoke(pool, new object[] { "closed", null }), Is.Null);
         Assert.That(Call(_duplicate, "TryClaimInstance"), Is.True);
         Assert.That(Service("Instance"), Is.SameAs(_duplicate));
     }
