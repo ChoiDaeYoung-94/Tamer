@@ -1,0 +1,75 @@
+{
+  "sourceBaseCommit": "1e9f99cd837ca03e902b73dbcd228b27e1c57041",
+  "host": {
+    "schema": 1,
+    "observedUtc": "2026-09-11T08:14:36.1654138Z",
+    "os": "Microsoft Windows 11 Pro",
+    "build": "26200",
+    "hypervisorPresent": false,
+    "cpu": [
+      {
+        "VirtualizationFirmwareEnabled": true,
+        "SecondLevelAddressTranslationExtensions": true,
+        "VMMonitorModeExtensions": true
+      }
+    ],
+    "features": [
+      {
+        "Name": "VirtualMachinePlatform",
+        "InstallState": 2
+      },
+      {
+        "Name": "HypervisorPlatform",
+        "InstallState": 2
+      },
+      {
+        "Name": "Microsoft-Hyper-V-All",
+        "InstallState": 2
+      }
+    ],
+    "alternativeDrivers": [],
+    "bcdReadExitCode": 1,
+    "hypervisorLaunchType": null,
+    "accelerationExitCode": 6,
+    "accelerationOutput": "accel:\n6\nAndroid Emulator hypervisor driver is not installed on this machine\naccel",
+    "changesApplied": false,
+    "rebootPerformed": false,
+    "runtime16KBVerified": false
+  },
+  "sourcePreflight": {
+    "schema": 1,
+    "mode": "source",
+    "checks": {
+      "unityPinned": true,
+      "productionIdPreserved": true,
+      "min24": true,
+      "target36": true,
+      "arm64Only": true,
+      "il2cpp": true,
+      "noGlobalHarnessDefines": true,
+      "iapAutoInitExplicitlyDisabled": true,
+      "loginFirstScene": true,
+      "noLegacyBuildMarkers": true
+    },
+    "sourceChecksPassed": true,
+    "currentVersionCode": "26",
+    "releaseReady": false,
+    "note": "Source settings are not the final AAB manifest/signature. No version or signing settings changed.",
+    "unverified": [
+      "Play Console active upload certificate and highest published version code",
+      "Production account continuity, changed-progress writes, purchase restore and receipt authority",
+      "Privacy/deletion endpoint, retention decisions and published declarations",
+      "Families operating settings and creative compliance",
+      "Actual ARM64 16KB runtime and device-targeted split validation",
+      "Internal-track upload and submission approval"
+    ]
+  },
+  "pythonTests": {
+    "total": 98,
+    "passed": 98,
+    "durationSeconds": 7.934
+  },
+  "actualReleaseAabVerified": false,
+  "windowsChangesApplied": false,
+  "rebootPerformed": false
+}

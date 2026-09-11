@@ -13,7 +13,13 @@ import java.util.jar.JarFile;
  */
 public class VerifyAabSignature {
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) throw new IllegalArgumentException("Expected one AAB path");
+        if (args.length != 1 && args.length != 3) throw new IllegalArgumentException("Expected AAB path and optional --release-cert-sha256 digest");
+        String expectedRelease = null;
+        if (args.length == 3) {
+            if (!args[1].equals("--release-cert-sha256") || !args[2].matches("[0-9a-fA-F]{64}"))
+                throw new IllegalArgumentException("Expected explicit release certificate SHA-256");
+            expectedRelease = args[2].toLowerCase();
+        }
         int count = 0;
         String signer = null;
         var names = new HashSet<String>();
@@ -32,9 +38,11 @@ public class VerifyAabSignature {
                     throw new SecurityException("Unsigned payload or unexpected signer chain");
                 var certificate = (X509Certificate) certificates[0];
                 certificate.checkValidity();
-                if (!certificate.getSubjectX500Principal().getName().contains("CN=Android Debug"))
-                    throw new SecurityException("Expected debug signer");
                 String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(certificate.getEncoded()));
+                boolean debug = certificate.getSubjectX500Principal().getName().contains("CN=Android Debug");
+                if (expectedRelease == null && !debug) throw new SecurityException("Expected debug signer");
+                if (expectedRelease != null && (debug || !expectedRelease.equals(digest)))
+                    throw new SecurityException("Release signer does not match reviewed certificate");
                 if (signer != null && !signer.equals(digest)) throw new SecurityException("Mixed payload signers");
                 signer = digest;
                 count++;

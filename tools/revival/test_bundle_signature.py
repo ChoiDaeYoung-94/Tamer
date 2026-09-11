@@ -1,5 +1,6 @@
 """Exercise the Java verifier with generated keys and tiny synthetic payloads only."""
 import json
+import hashlib
 import shutil
 import subprocess
 import tempfile
@@ -13,6 +14,7 @@ VERIFIER = Path(__file__).with_name('VerifyAabSignature.java')
 
 @unittest.skipUnless((JDK / 'java.exe').exists(), 'Pinned Unity JDK is required for signature integration tests')
 class BundleSignatureTests(unittest.TestCase):
+    subject = 'CN=Android Debug,O=Android,C=US'
     @classmethod
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory()
@@ -22,10 +24,13 @@ class BundleSignatureTests(unittest.TestCase):
         with zipfile.ZipFile(cls.signed, 'w') as archive:
             archive.writestr('payload.txt', b'synthetic signed payload')
         subprocess.run([str(JDK / 'keytool.exe'), '-genkeypair', '-keystore', str(key), '-storepass', 'android',
-                        '-keypass', 'android', '-alias', 'test', '-dname', 'CN=Android Debug,O=Android,C=US',
+                        '-keypass', 'android', '-alias', 'test', '-dname', cls.subject,
                         '-keyalg', 'RSA', '-validity', '2'], check=True, capture_output=True)
         subprocess.run([str(JDK / 'jarsigner.exe'), '-keystore', str(key), '-storepass', 'android',
                         str(cls.signed), 'test'], check=True, capture_output=True)
+        cert = subprocess.check_output([str(JDK / 'keytool.exe'), '-exportcert', '-keystore', str(key),
+                                       '-storepass', 'android', '-alias', 'test'], stderr=subprocess.PIPE)
+        cls.fingerprint = hashlib.sha256(cert).hexdigest()
 
     @classmethod
     def tearDownClass(cls):
@@ -52,6 +57,27 @@ class BundleSignatureTests(unittest.TestCase):
         with zipfile.ZipFile(path, 'a') as archive:
             archive.writestr('extra.txt', b'unsigned synthetic payload')
         self.assertNotEqual(self.verify(path).returncode, 0)
+
+    def test_wrong_signing_mode_is_rejected(self):
+        command = [str(JDK / 'java.exe'), str(VERIFIER), str(self.signed)]
+        if self.subject == BundleSignatureTests.subject:
+            command += ['--release-cert-sha256', self.fingerprint]
+        result = subprocess.run(command, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+
+
+@unittest.skipUnless((JDK / 'java.exe').exists(), 'Pinned Unity JDK required')
+class ReleaseBundleSignatureTests(BundleSignatureTests):
+    subject = 'CN=Revival Synthetic Release Test,O=Local Fixture,C=US'
+
+    def verify(self, path):
+        return subprocess.run([str(JDK / 'java.exe'), str(VERIFIER), str(path),
+                               '--release-cert-sha256', self.fingerprint], capture_output=True, text=True)
+
+    def test_wrong_reviewed_certificate_is_rejected(self):
+        result = subprocess.run([str(JDK / 'java.exe'), str(VERIFIER), str(self.signed),
+                                 '--release-cert-sha256', '0'*64], capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
 
 
 if __name__ == '__main__':
