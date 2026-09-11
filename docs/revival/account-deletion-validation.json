@@ -1,0 +1,57 @@
+{
+  "sourceCommit": "19becd8faa429d5af61c7b096fb1e8d30de48010",
+  "coreSourceCommit": "73f868a1af9b65b463d170b36d05859fe0d8d824",
+  "python": {
+    "version": "3.14.0",
+    "command": "python -m unittest discover -s tools/revival -p test_*.py",
+    "passed": 109,
+    "failed": 0,
+    "deletionCases": 21
+  },
+  "unity": {
+    "executor": "UI owner checkout e5e5; same Privacy core/tests as this branch",
+    "sourceCommit": "fff397e1eae26266c415212e4a80011c180d5cbf",
+    "version": "6000.0.81f1",
+    "cli": "1.0.0-beta.8",
+    "passed": 355,
+    "failed": 0,
+    "skipped": 0,
+    "coreCases": 12,
+    "uiCases": 8,
+    "startUtc": "2026-09-11 08:25:18Z",
+    "endUtc": "2026-09-11 08:25:22Z",
+    "xmlSha256": "bfd962d93b2eaa2925e839d36d5af622479f7cd607f9b7a3889bef6e1186b6b0",
+    "newUnityExecutionByServiceOwner": false,
+    "ownEditorsAfter": 0,
+    "settingsRestored": true
+  },
+  "browser": {
+    "sourceCommit": "fe5a5a8afa4800d62364b7bb3ecf41e2656e47c0",
+    "url": "http://127.0.0.1:8766/privacy/deletion",
+    "steps": [
+      "synthetic reauthentication/request",
+      "confirmation",
+      "provider pending shown as not complete",
+      "provider completion evidence",
+      "synthetic completion explicitly says no real deletion"
+    ],
+    "transport": "actual local browser HTTP to WSGI/SQLite/SyntheticProvider",
+    "listenerStopped": true,
+    "visual": "normal viewport screenshot inspected; full-page capture artifact not accepted as evidence"
+  },
+  "production": {
+    "enabled": false,
+    "accountReads": 0,
+    "accountWrites": 0,
+    "accountDeletes": 0,
+    "policyPublished": false
+  },
+  "limitations": [
+    "No production authenticator or deletion adapter or endpoint",
+    "Retention/rejoin policies unresolved; default requests and worker blocked",
+    "C# UI/core uses synthetic gateway, not an HTTP connection to Python",
+    "Deleted-account status authentication and retention expiration require production design",
+    "No Android build or device run for this change",
+    "UI renderer follow-up belongs to separate UI evidence"
+  ]
+}

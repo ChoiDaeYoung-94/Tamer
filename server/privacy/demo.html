@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>계정 삭제 — 로컬 합성 시험</title>
+<style>body{font:18px system-ui;max-width:680px;margin:40px auto;padding:20px;background:#f5f7fa;color:#182237}button{padding:14px;margin:6px;border:1px solid #64748b;border-radius:8px;font:inherit}#status{padding:20px;background:white;white-space:pre-wrap}button:disabled{opacity:.45}</style>
+<h1>계정 및 데이터 삭제 흐름 시험</h1>
+<p>로컬 합성 계정 전용입니다. 재인증도 대역이며 실제 계정·진행도·구매 권한은 변경하지 않습니다.</p>
+<p>운영 삭제 범위·보관·재가입 정책은 미정입니다. 아래는 승인된 운영 정책이 아닙니다.</p>
+<button id="request">합성 재인증 후 요청 준비</button><button id="confirm" disabled>합성 삭제 의사 확인</button>
+<button id="cancel" disabled>요청 취소</button><button id="statusButton" disabled>처리 상태 확인</button>
+<button id="advance" disabled>대역 작업 접수</button><button id="complete" disabled>대역 완료 증거 제공</button>
+<p id="status" role="status" aria-live="polite">실제 삭제 없음 · 요청 전</p>
+<script>
+let request=null, key=crypto.randomUUID(), busy=false;
+const labels={awaiting_confirmation:'확인 대기',queued:'접수 대기',processing:'처리 중 — 완료 아님',completed:'합성 처리 완료 — 실제 삭제 없음',cancelled:'취소됨'};
+function render(){for(const id of ['request','confirm','cancel','statusButton','advance','complete'])document.getElementById(id).disabled=busy;
+document.getElementById('request').disabled=busy||!!request;
+document.getElementById('confirm').disabled=busy||request?.state!=='awaiting_confirmation';
+document.getElementById('cancel').disabled=busy||!['awaiting_confirmation','queued'].includes(request?.state);
+document.getElementById('statusButton').disabled=busy||!request;
+for(const id of ['advance','complete'])document.getElementById(id).disabled=busy||!['queued','processing'].includes(request?.state);}
+async function run(action){if(busy)return;busy=true;render();const body={proof:'synthetic-demo-proof'};
+if(action==='request')body.clientKey=key;else body.requestId=request.requestId;
+if(action==='confirm'){body.challenge=request.challenge;body.policyRevision=request.policyRevision;}
+if(action==='advance'||action==='complete')body.complete=action==='complete';
+try{const response=await fetch(action==='advance'||action==='complete'?'/demo/advance':'/v1/deletion/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+const data=await response.json();if(!response.ok)throw Error(data.code||'unavailable');
+request={...data,challenge:data.challenge||request?.challenge};document.getElementById('status').textContent=labels[data.state]||'확인 필요';
+}catch(e){document.getElementById('status').textContent='요청 실패 또는 응답 유실 — 완료로 판단하지 않습니다. 같은 작업을 다시 시도하거나 상태를 확인하세요.';}
+finally{busy=false;render();}}
+for(const action of ['request','confirm','cancel','advance','complete'])document.getElementById(action).onclick=()=>run(action);
+document.getElementById('statusButton').onclick=()=>run('status');
+</script></html>
