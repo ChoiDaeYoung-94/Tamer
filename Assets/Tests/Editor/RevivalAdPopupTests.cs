@@ -97,10 +97,10 @@ public class RevivalAdPopupTests
         ActivatePopup(bottom);
         ActivatePopup(heal);
         ActivatePopup(middle);
-        HideWithoutRemovingStack(heal);
+        HidePopup(heal);
         ActivatePopup(heal);
         ActivatePopup(top);
-        AssertStack(top, heal, middle, heal, bottom);
+        AssertStack(top, heal, middle, bottom);
 
         ClosePopup(heal);
 
@@ -117,7 +117,7 @@ public class RevivalAdPopupTests
         var newerPopup = CreatePopup("Opened after ad close");
         ActivatePopup(bottom);
         ActivatePopup(heal);
-        HideWithoutRemovingStack(heal);
+        HidePopup(heal);
         var rewards = 0;
         var completions = 0;
         var receipt = new RewardedAdSession(() => true, () =>
@@ -133,7 +133,7 @@ public class RevivalAdPopupTests
 
         receipt.Complete(RewardedAdOutcome.Cancelled);
         ActivatePopup(newerPopup);
-        AssertStack(newerPopup, heal, heal, bottom);
+        AssertStack(newerPopup, heal, bottom);
         receipt.EarnReward();
         receipt.EarnReward();
 
@@ -156,9 +156,9 @@ public class RevivalAdPopupTests
         for (var attempt = 0; attempt < 5; attempt++)
         {
             ActivatePopup(heal);
-            HideWithoutRemovingStack(heal);
+            HidePopup(heal);
             ActivatePopup(heal);
-            AssertStack(heal, heal, top, bottom);
+            AssertStack(heal, top, bottom);
 
             ClosePopup(heal);
             ClosePopup(heal);
@@ -195,6 +195,128 @@ public class RevivalAdPopupTests
         AssertStack(top);
     }
 
+    [Test]
+    public void Revival_ExternalDisableRemovesOnlyItsRegistration()
+    {
+        var bottom = CreatePopup("Bottom");
+        var top = CreatePopup("Top");
+        ActivatePopup(bottom);
+        ActivatePopup(top);
+        HidePopup(bottom);
+        AssertStack(top);
+        Assert.That(top.activeSelf, Is.True);
+    }
+
+    [Test]
+    public void Revival_PopupButtonClosesItsOwnerInsteadOfNewerTop()
+    {
+        var bottom = CreatePopup("Bottom");
+        var top = CreatePopup("Top");
+        ActivatePopup(bottom);
+        ActivatePopup(top);
+        Invoke(bottom.GetComponent(popupObjectType), "DisablePop");
+        Assert.That(bottom.activeSelf, Is.False);
+        Assert.That(top.activeSelf, Is.True);
+        AssertStack(top);
+    }
+
+    [Test]
+    public void Revival_RepeatedRegistrationIsUnique()
+    {
+        var popup = CreatePopup("Repeated");
+        ActivatePopup(popup);
+        Invoke(popup.GetComponent(popupObjectType), "OnEnable");
+        AssertStack(popup);
+    }
+
+    [TestCase(1, "IsException")]
+    [TestCase(2, "IsFlow")]
+    public void Revival_OverlappingBlockersReleaseOnlyTheirOwnLease(int kind, string property)
+    {
+        Invoke(popupManager, "ReleaseException");
+        var first = CreatePopup("First blocker");
+        var second = CreatePopup("Second blocker");
+        var field = popupObjectType.GetField("_checkType", InstanceMembers);
+        field.SetValue(first.GetComponent(popupObjectType), Enum.ToObject(field.FieldType, kind));
+        field.SetValue(second.GetComponent(popupObjectType), Enum.ToObject(field.FieldType, kind));
+        ActivatePopup(first);
+        ActivatePopup(second);
+        HidePopup(first);
+        Assert.That(popupManagerType.GetProperty(property, InstanceMembers).GetValue(popupManager), Is.True);
+        HidePopup(second);
+        Assert.That(popupManagerType.GetProperty(property, InstanceMembers).GetValue(popupManager), Is.False);
+    }
+
+    [Test]
+    public void Revival_DisableUsesOriginalManagerAfterSingletonIsCleared()
+    {
+        var popup = CreatePopup("Teardown");
+        ActivatePopup(popup);
+        singletonField.SetValue(null, null);
+        HidePopup(popup);
+        AssertStack();
+    }
+
+    [Test]
+    public void Revival_ResetClosesAllPopupsAndToleratesDestroyedEntries()
+    {
+        var first = CreatePopup("Destroyed");
+        var second = CreatePopup("Active");
+        ActivatePopup(first);
+        ActivatePopup(second);
+        UnityEngine.Object.DestroyImmediate(first);
+        Invoke(popupManager, "SetPopup");
+        Assert.That(second.activeSelf, Is.False);
+        AssertStack();
+    }
+
+    [Test]
+    public void Revival_PendingSceneRejectsDuplicateTargetAndGoScene()
+    {
+        var sceneType = FindType("AD.SceneManager");
+        var scene = fixtureRoot.AddComponent(sceneType);
+        var targetField = sceneType.GetField("_scene", InstanceMembers);
+        var original = Enum.Parse(targetField.FieldType, "Main");
+        targetField.SetValue(scene, original);
+        sceneType.GetProperty("IsTransitioning").SetValue(scene, true);
+        var source = new System.Threading.CancellationTokenSource();
+        sceneType.GetField("_ctsGoScene", InstanceMembers).SetValue(scene, source);
+        try
+        {
+            // No Sound/Data/Server bridge exists: accepted duplicate work would fail.
+            Invoke(scene, "NextScene", Enum.Parse(targetField.FieldType, "Game"));
+            Invoke(scene, "GoScene");
+            Assert.That(targetField.GetValue(scene), Is.EqualTo(original));
+            Assert.That(sceneType.GetField("_ctsGoScene", InstanceMembers).GetValue(scene), Is.SameAs(source));
+            Invoke(scene, "OnDestroy");
+            Assert.That(source.IsCancellationRequested, Is.True);
+        }
+        finally
+        {
+            sceneType.GetField("_ctsGoScene", InstanceMembers).SetValue(scene, null);
+            source.Dispose();
+        }
+    }
+
+    [Test]
+    public void Revival_CancelledSceneLoadDoesNotStartNativeLoading()
+    {
+        var sceneType = FindType("AD.SceneManager");
+        var scene = fixtureRoot.AddComponent(sceneType);
+        var targetType = sceneType.GetField("_scene", InstanceMembers).FieldType;
+        using (var source = new System.Threading.CancellationTokenSource())
+        {
+            source.Cancel();
+            // Invalid target would log a Unity scene-load error if reached.
+            var task = Invoke(scene, "LoadTargetSceneAsync", Enum.ToObject(targetType, 999), source.Token);
+            var awaiter = task.GetType().GetMethod("GetAwaiter").Invoke(task, null);
+            Assert.That(awaiter.GetType().GetProperty("IsCompleted").GetValue(awaiter), Is.True);
+            var error = Assert.Throws<TargetInvocationException>(() =>
+                awaiter.GetType().GetMethod("GetResult").Invoke(awaiter, null));
+            Assert.That(error.InnerException, Is.InstanceOf<OperationCanceledException>());
+        }
+    }
+
     private GameObject CreatePopup(string name)
     {
         var popup = new GameObject("Revival " + name);
@@ -214,11 +336,10 @@ public class RevivalAdPopupTests
         Invoke(popup.GetComponent(popupObjectType), "OnEnable");
     }
 
-    private void HideWithoutRemovingStack(GameObject popup)
+    private void HidePopup(GameObject popup)
     {
         popup.SetActive(false);
-        // The current Normal handler deliberately performs no stack mutation; this
-        // recreates the old SetActive(false) path that left stale stack entries.
+        // Mirror the runtime lifecycle after an external SetActive(false).
         Invoke(popup.GetComponent(popupObjectType), "OnDisable");
     }
 

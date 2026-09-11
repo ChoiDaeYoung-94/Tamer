@@ -15,16 +15,26 @@ namespace AD
     {
         private AD.GameConstants.Scene _scene;
         private CancellationTokenSource _ctsGoScene;
+        public bool IsTransitioning { get; private set; }
 
         public void NextScene(AD.GameConstants.Scene scene)
         {
+            if (IsTransitioning) return;
+            IsTransitioning = true;
             AD.DebugLogger.Log("SceneManager", "NextScene으로 전환");
 
-            AD.Managers.SoundM.PauseBGM();
-            AD.Managers.PopupM.SetException();
-
-            _scene = scene;
-            UnityEngine.SceneManagement.SceneManager.LoadScene(AD.GameConstants.Scene.NextScene.ToString());
+            try
+            {
+                AD.Managers.SoundM.PauseBGM();
+                AD.Managers.PopupM.SetException();
+                _scene = scene;
+                UnityEngine.SceneManagement.SceneManager.LoadScene(AD.GameConstants.Scene.NextScene.ToString());
+            }
+            catch
+            {
+                IsTransitioning = false;
+                throw;
+            }
         }
 
         /// <summary>
@@ -33,55 +43,62 @@ namespace AD
         /// </summary>
         public void GoScene()
         {
+            if (_ctsGoScene != null) return;
+            IsTransitioning = true;
             AD.DebugLogger.Log("SceneManager", "GoScene() -> " + _scene.ToString() + "씬으로 전환");
 
             _ctsGoScene = new CancellationTokenSource();
-            GoSceneAsync(_ctsGoScene.Token).Forget();
+            GoSceneAsync(_scene, _ctsGoScene).Forget();
         }
 
-        private async UniTask GoSceneAsync(CancellationToken cancellationToken)
+        private async UniTask GoSceneAsync(AD.GameConstants.Scene targetScene, CancellationTokenSource source)
         {
-            AD.DebugLogger.Log("SceneManager", "GoSceneAsync() -> 데이터 처리 작업 진행");
-
-            AD.Managers.DataM.UpdateLocalData(key: "null", value: "null", updateAll: true);
-            AD.Managers.DataM.UpdatePlayerData();
-
-            while (AD.Managers.ServerM.IsInProgress && !cancellationToken.IsCancellationRequested)
+            var cancellationToken = source.Token;
+            try
             {
-                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                AD.Managers.DataM.UpdateLocalData(key: "null", value: "null", updateAll: true);
+                AD.Managers.DataM.UpdatePlayerData();
+                await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress,
+                    cancellationToken: cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                AD.Managers.DataM.SaveLocalData();
+                await LoadTargetSceneAsync(targetScene, cancellationToken);
+                if (this != null && AD.Managers.Instance != null)
+                    AD.Managers.SoundM.UnpauseBGM();
             }
-
-            AD.Managers.DataM.SaveLocalData();
-
-            await LoadTargetSceneAsync(_scene, cancellationToken);
-
-            AD.Managers.SoundM.UnpauseBGM();
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Destruction cancels the owner, not Unity's native scene operation.
+            }
+            finally
+            {
+                if (_ctsGoScene == source)
+                {
+                    _ctsGoScene = null;
+                    IsTransitioning = false;
+                }
+                source.Dispose();
+            }
         }
 
         private async UniTask LoadTargetSceneAsync(AD.GameConstants.Scene targetScene, CancellationToken cancellationToken)
         {
-            AsyncOperation asyncOp = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(targetScene.ToString());
-            asyncOp.allowSceneActivation = false;
-
-            while (!asyncOp.isDone && !cancellationToken.IsCancellationRequested)
-            {
-                AD.DebugLogger.Log("SceneManager", $"{asyncOp.progress} - progress");
-
-                if (asyncOp.progress >= 0.9f)
-                {
-                    await UniTask.Delay(TimeSpan.FromSeconds(2), cancellationToken: cancellationToken);
-                    asyncOp.allowSceneActivation = true;
-                }
-                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
-            }
-
+            cancellationToken.ThrowIfCancellationRequested();
+            // Wait before starting native work. A cancelled operation must never leave
+            // allowSceneActivation=false blocking Unity's subsequent scene operations.
+            await UniTask.Delay(TimeSpan.FromSeconds(2), ignoreTimeScale: true,
+                cancellationToken: cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            await UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(targetScene.ToString())
+                .ToUniTask(cancellationToken: cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             await Resources.UnloadUnusedAssets().ToUniTask(cancellationToken: cancellationToken);
         }
 
         private void OnDestroy()
         {
             _ctsGoScene?.Cancel();
-            _ctsGoScene?.Dispose();
+            // The async owner disposes its source in finally.
         }
     }
 }

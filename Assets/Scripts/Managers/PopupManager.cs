@@ -20,7 +20,13 @@ namespace AD
         [SerializeField] private GameObject _bgmToggle = null;
         [SerializeField] private GameObject _sfxToggle = null;
 
-        private Stack<GameObject> _popupStack = new Stack<GameObject>();
+        private readonly Stack<GameObject> _popupStack = new Stack<GameObject>();
+        private readonly HashSet<GameObject> _exceptionOwners = new HashSet<GameObject>();
+        private readonly HashSet<GameObject> _flowOwners = new HashSet<GameObject>();
+        private UpdateManager _updateManager;
+
+        private bool IsException => _isException || _exceptionOwners.Count > 0;
+        private bool IsFlow => _isFlow || _flowOwners.Count > 0;
 
         /// <summary>
         /// 예외처리에 사용
@@ -37,8 +43,9 @@ namespace AD
         /// </summary>
         public void Init()
         {
-            AD.Managers.UpdateM.OnUpdateEvent -= OnUpdate;
-            AD.Managers.UpdateM.OnUpdateEvent += OnUpdate;
+            if (_updateManager != null) _updateManager.OnUpdateEvent -= OnUpdate;
+            _updateManager = AD.Managers.UpdateM;
+            if (_updateManager != null) _updateManager.OnUpdateEvent += OnUpdate;
 
             SetPopup();
         }
@@ -48,18 +55,18 @@ namespace AD
         /// </summary>
         public void SetPopup()
         {
-            foreach (GameObject popup in _popupStack)
-            {
-                popup.SetActive(false);
-            }
+            // Clear before OnDisable callbacks mutate registration.
+            var popups = _popupStack.ToArray();
             _popupStack.Clear();
+            foreach (GameObject popup in popups)
+                if (popup != null) popup.SetActive(false);
         }
 
         private void OnUpdate()
         {
             if (Application.platform == RuntimePlatform.Android)
             {
-                if (Input.GetKeyDown(KeyCode.Escape) && !_isFlow)
+                if (Input.GetKeyDown(KeyCode.Escape) && !IsFlow)
                 {
                     DisablePop();
                 }
@@ -72,6 +79,8 @@ namespace AD
         /// </summary>
         public void EnablePop(GameObject popup)
         {
+            if (popup == null || !popup.activeInHierarchy) return;
+            RemovePopup(popup);
             _popupStack.Push(popup);
             AD.DebugLogger.Log("PopupManager", $"_popupStack.Count: {_popupStack.Count}, 팝업 스택에 푸시됨");
         }
@@ -84,12 +93,13 @@ namespace AD
         {
             AD.Managers.SoundM.UI_Click();
 
-            if (_isException)
+            if (IsException)
             {
                 AD.DebugLogger.Log("PopupManager", $"{_isException} - 예외 처리 활성");
                 return;
             }
 
+            RemovePopup(null);
             if (_popupStack.Count > 0)
             {
                 GameObject popup = _popupStack.Pop();
@@ -148,12 +158,38 @@ namespace AD
         /// <summary>Close a specific popup without consuming a newer popup above it.</summary>
         public void ClosePopup(GameObject target)
         {
-            if (target == null) return;
+            RemovePopup(target);
+            if (target != null) target.SetActive(false);
+        }
+
+        // Registration removal must not close another popup or play a click sound.
+        public void RemovePopup(GameObject target)
+        {
             var openPopups = _popupStack.ToArray();
             _popupStack.Clear();
             for (int index = openPopups.Length - 1; index >= 0; index--)
-                if (openPopups[index] != target) _popupStack.Push(openPopups[index]);
-            target.SetActive(false);
+            {
+                var popup = openPopups[index];
+                if (popup != null && popup != target && popup.activeInHierarchy)
+                    _popupStack.Push(popup);
+            }
+        }
+
+        public void RegisterBlocker(GameObject owner, bool flow)
+        {
+            if (owner != null) (flow ? _flowOwners : _exceptionOwners).Add(owner);
+        }
+
+        public void UnregisterPopup(GameObject owner)
+        {
+            RemovePopup(owner);
+            _exceptionOwners.Remove(owner);
+            _flowOwners.Remove(owner);
+        }
+
+        private void OnDestroy()
+        {
+            if (_updateManager != null) _updateManager.OnUpdateEvent -= OnUpdate;
         }
 
         private GoogleAdMobManager GoogleAdMobM => Managers.GoogleAdMobM;
