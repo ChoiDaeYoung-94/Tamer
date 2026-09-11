@@ -64,6 +64,11 @@ namespace AD
 
         public async void InitializePurchasing()
         {
+#if TAMER_GAMEPLAY_HARNESS
+            RevivalGameplayIsolation.BlockPurchase();
+            Status = IAPStatus.Unavailable;
+            return;
+#endif
             if (_disposed || _connecting || _initialFetchInProgress || IsReadyToPurchase) return;
             _connecting = true;
             _nextInitializationAttempt = DateTime.UtcNow.AddSeconds(30);

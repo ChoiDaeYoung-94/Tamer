@@ -16,9 +16,13 @@ namespace AD.Advertising
             bool isIos,
             bool isBatchMode)
         {
+#if TAMER_GAMEPLAY_HARNESS
+            return false;
+#else
             return !isBatchMode
                 && (isEditor || isDevelopment || explicitTestAds)
                 && (isEditor || isAndroid || isIos);
+#endif
         }
 
         public static string TestRewardedAdUnit(bool isIos)

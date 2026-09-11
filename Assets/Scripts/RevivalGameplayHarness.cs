@@ -1,0 +1,115 @@
+#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+using System;
+using System.Collections;
+using System.IO;
+using AD;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
+
+/// <summary>Exercises original scenes with memory transport and a separate application sandbox.</summary>
+public sealed class RevivalGameplayHarness : MonoBehaviour
+{
+    private string _status = "Starting isolated gameplay";
+    private int _errors;
+    private int _roundTrips;
+    private bool _busy;
+    private Player _originalPlayer;
+    private Managers _originalManagers;
+
+#if TAMER_GAMEPLAY_HARNESS
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Boot()
+    {
+        if (Application.isEditor || Application.identifier != RevivalGameplayIsolation.ApplicationId)
+            throw new InvalidOperationException("Gameplay harness requires its separate Android application.");
+        var root = new GameObject("Offline gameplay verification");
+        DontDestroyOnLoad(root);
+        root.AddComponent<RevivalGameplayHarness>();
+    }
+#endif
+
+    private void Awake() => Application.logMessageReceived += OnLog;
+    private void OnDestroy() => Application.logMessageReceived -= OnLog;
+    private void OnLog(string message, string trace, LogType type)
+    {
+        if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) _errors++;
+    }
+    private void Mark(string value)
+    {
+        _status = value;
+        Debug.Log("GAMEPLAY_HARNESS " + value);
+    }
+
+    private IEnumerator Start()
+    {
+        yield return null;
+        _originalManagers = Managers.Instance;
+        if (_originalManagers == null || RevivalGameplayIsolation.BlockedLogins != 1)
+        { Mark("FAIL bootstrap/login guard"); yield break; }
+        Managers.DataM.BeginAccountSession(RevivalGameplayIsolation.AccountId);
+        Managers.ServerM.GetAllData(update: true);
+        if (!Managers.DataM.IsServerDataReady || !File.Exists(RevivalGameplayIsolation.SavePath))
+        { Mark("FAIL synthetic data"); yield break; }
+        Managers.GoogleAdMobM.LoadRewardedAd();
+        if (Managers.GoogleAdMobM.CanRequestAds)
+        { Mark("FAIL advertising guard"); yield break; }
+        Mark("ISOLATION_OK login=blocked ads=blocked memory-server=ready app-private-save=ready");
+        Managers.SceneM.NextScene(GameConstants.Scene.Main);
+        yield return WaitForScene("Main");
+        if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
+        _originalPlayer = Player.Instance;
+        Mark("MAIN_READY iapBlocked=" + RevivalGameplayIsolation.BlockedPurchases);
+        // Keep the real lobby available for visual inspection before the automatic round trip.
+        yield return new WaitForSecondsRealtime(8);
+        yield return RoundTrip();
+    }
+
+    private bool Ready(string scene) => UnitySceneManager.GetActiveScene().name == scene &&
+        Managers.Instance == _originalManagers && Managers.SceneM != null && !Managers.SceneM.IsTransitioning &&
+        Player.Instance != null && Player.Instance.gameObject.activeInHierarchy &&
+        CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null;
+
+    private IEnumerator WaitForScene(string scene)
+    {
+        float deadline = Time.realtimeSinceStartup + 40;
+        while (!Ready(scene) && Time.realtimeSinceStartup < deadline) yield return null;
+        // Start methods and one rendered frame must run after the scene-load callback.
+        yield return null;
+    }
+
+    private IEnumerator RoundTrip()
+    {
+        if (_busy || !Ready("Main")) yield break;
+        _busy = true;
+        Managers.GameM.SwitchMainOrGameScene();
+        yield return WaitForScene("Game");
+        if (!Ready("Game") || Player.Instance != _originalPlayer || MonsterGenerator.Instance == null)
+        { Mark("FAIL Game entry/owner"); _busy = false; yield break; }
+        Mark("GAME_READY generator=present player=preserved");
+        yield return new WaitForSecondsRealtime(10);
+        Managers.GameM.SwitchMainOrGameScene();
+        yield return WaitForScene("Main");
+        if (!Ready("Main") || Player.Instance != _originalPlayer || Time.timeScale != 1 ||
+            Managers.IAPM.Status != IAPStatus.Unavailable || Managers.GoogleAdMobM.CanRequestAds || _errors != 0)
+        { Mark("FAIL return/guard/errors=" + _errors); _busy = false; yield break; }
+        _roundTrips++;
+        Mark("ROUNDTRIP_OK count=" + _roundTrips + " reads=" + RevivalGameplayIsolation.Reads +
+            " writes=" + RevivalGameplayIsolation.Writes + " errors=" + _errors);
+        _busy = false;
+    }
+
+    private void OnGUI()
+    {
+        GUI.depth = -1000;
+        GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));
+        GUILayout.BeginArea(new Rect(15, 15, 970, 145), GUI.skin.box);
+        GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
+        GUILayout.Label(_status + " | errors=" + _errors);
+        GUI.enabled = !_busy && Ready("Main");
+        if (GUILayout.Button("Repeat Main / Game / Main", GUILayout.Height(55))) StartCoroutine(RoundTrip());
+        GUI.enabled = true;
+        GUILayout.EndArea();
+    }
+}
+#endif
