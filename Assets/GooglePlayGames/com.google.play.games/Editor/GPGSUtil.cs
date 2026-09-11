@@ -97,23 +97,18 @@ namespace GooglePlayGames.Editor
         /// <summary>Constant for token replacement</summary>
         private const string CONSTANTSPLACEHOLDER = "__Constant_Properties__";
 
-        /// <summary>
-        /// The game info file path, relative to the plugin root directory.  This is a generated file.
-        /// </summary>
-        private const string GameInfoRelativePath = "Runtime/Scripts/GameInfo.cs";
+
 
         /// <summary>
         /// The manifest path, relative to the plugin root directory.
         /// </summary>
         /// <remarks>The Games SDK requires additional metadata in the AndroidManifest.xml
         ///     file. </remarks>
-        private const string ManifestRelativePath =
-            "../../Plugins/Android/GooglePlayGamesManifest.androidlib/AndroidManifest.xml";
 
         private const string RootFolderName = "com.google.play.games";
 
         /// <summary>
-        /// The root path of the Google Play Games plugin
+        /// The root path of the Google Play Games plugin.
         /// </summary>
         public static string RootPath
         {
@@ -121,49 +116,21 @@ namespace GooglePlayGames.Editor
             {
                 if (string.IsNullOrEmpty(mRootPath))
                 {
-#if UNITY_2018_4_OR_NEWER
-                    // Search for root path in plugin locations for both Asset packages and UPM packages
-                    string[] dirs = Directory.GetDirectories("Packages", RootFolderName, SearchOption.AllDirectories);
-                    string[] dir1 = Directory.GetDirectories("Assets", RootFolderName, SearchOption.AllDirectories);
-                    int dirsLength = dirs.Length;
-                    Array.Resize<string>(ref dirs, dirsLength + dir1.Length);
-                    Array.Copy(dir1, 0, dirs, dirsLength, dir1.Length);
-#else
-                    string[] dirs = Directory.GetDirectories("Assets", RootFolderName, SearchOption.AllDirectories);
-#endif
-                    switch (dirs.Length)
+                    var settingsHelper = ScriptableObject.CreateInstance<PlayGamesSettings>();
+                    string path = AssetDatabase.GetAssetPath(MonoScript.FromScriptableObject(settingsHelper));
+                    if (string.IsNullOrEmpty(path))
                     {
-                        case 0:
-                            Alert("Plugin error: com.google.play.games folder was renamed");
-                            throw new Exception("com.google.play.games folder was renamed");
-
-                        case 1:
-                            mRootPath = SlashesToPlatformSeparator(dirs[0]);
-                            break;
-
-                        default:
-                            for (int i = 0; i < dirs.Length; i++)
-                            {
-                                if (File.Exists(SlashesToPlatformSeparator(Path.Combine(dirs[i], GameInfoRelativePath)))
-                                )
-                                {
-                                    mRootPath = SlashesToPlatformSeparator(dirs[i]);
-                                    break;
-                                }
-                            }
-
-                            if (string.IsNullOrEmpty(mRootPath))
-                            {
-                                Alert("Plugin error: com.google.play.games folder was renamed");
-                                throw new Exception("com.google.play.games folder was renamed");
-                            }
-
-                            break;
+                        Alert("Plugin error: GPGSUtil could not resolve PlayGamesSettings path.");
+                        throw new Exception("GPGSUtil could not resolve PlayGamesSettings path.");
                     }
+                    string dir = Path.GetDirectoryName(path);
+                    if (dir.EndsWith("Scripts"))
+                    {
+                        dir = Path.GetDirectoryName(Path.GetDirectoryName(dir));
+                    }
+                    mRootPath = SlashesToPlatformSeparator(dir);
+                    ScriptableObject.DestroyImmediate(settingsHelper);
                 }
-                // UPM package root path is 'Library/PackageCache/com.google.play.games@.*/
-                // where the suffix can be a version number if installed with URS
-                // or a hash if from disk or tarball
                 if (mRootPath.Contains(RootFolderName + '@'))
                 {
                     mRootPath = mRootPath.Replace("Packages", "Library/PackageCache");
@@ -172,13 +139,7 @@ namespace GooglePlayGames.Editor
             }
         }
 
-        /// <summary>
-        /// The game info file path.  This is a generated file.
-        /// </summary>
-        private static string GameInfoPath
-        {
-            get { return SlashesToPlatformSeparator(Path.Combine(RootPath, GameInfoRelativePath)); }
-        }
+
 
         /// <summary>
         /// The manifest path.
@@ -187,7 +148,7 @@ namespace GooglePlayGames.Editor
         ///     file. </remarks>
         private static string ManifestPath
         {
-            get { return SlashesToPlatformSeparator(Path.Combine(RootPath, ManifestRelativePath)); }
+            get { return SlashesToPlatformSeparator("Assets/Plugins/Android/GooglePlayGamesManifest.androidlib/AndroidManifest.xml"); }
         }
 
         /// <summary>
@@ -324,7 +285,7 @@ namespace GooglePlayGames.Editor
         /// <param name="s">the string to test.</param>
         public static bool LooksLikeValidClientId(string s)
         {
-            return s.EndsWith(".googleusercontent.com");
+            return new System.Text.RegularExpressions.Regex(@"^[a-zA-Z0-9\-\.]+\.googleusercontent\.com$").IsMatch(s);
         }
 
         /// <summary>
@@ -382,22 +343,6 @@ namespace GooglePlayGames.Editor
             bool doneSetup = true;
 #if UNITY_ANDROID
             doneSetup = GPGSProjectSettings.Instance.GetBool(ANDROIDSETUPDONEKEY, false);
-            // check gameinfo
-            if (File.Exists(GameInfoPath))
-            {
-                string contents = ReadFile(GameInfoPath);
-                if (contents.Contains(APPIDPLACEHOLDER))
-                {
-                    Debug.Log("GameInfo not initialized with AppId.  " +
-                              "Run Window > Google Play Games > Setup > Android Setup...");
-                    return false;
-                }
-            }
-            else
-            {
-                Debug.Log("GameInfo.cs does not exist.  Run Window > Google Play Games > Setup > Android Setup...");
-                return false;
-            }
 #endif
 
             return doneSetup;
@@ -580,6 +525,11 @@ namespace GooglePlayGames.Editor
         /// <param name="resourceKeys">Resource keys.</param>
         public static void WriteResourceIds(string classDirectory, string className, Hashtable resourceKeys)
         {
+            // Play Console resource IDs are short Base64URL-ish tokens. Anything else
+            // is either corrupt or hostile - refuse to emit it into compiled source.
+            System.Text.RegularExpressions.Regex safeResourceValue =
+                new System.Text.RegularExpressions.Regex(@"\A[A-Za-z0-9_\-]{1,64}\z");
+
             string constantsValues = string.Empty;
             string[] parts = className.Split('.');
             string dirName = classDirectory;
@@ -604,8 +554,15 @@ namespace GooglePlayGames.Editor
             foreach (DictionaryEntry ent in resourceKeys)
             {
                 string key = MakeIdentifier((string) ent.Key);
+                string val = (string) ent.Value;
+                if (!safeResourceValue.IsMatch(val))
+                {
+                    Alert("Resource value for '" + key + "' contains unexpected characters "
+                        + "and was skipped. Please copy the resources directly from Play Console.");
+                    continue;
+                }
                 constantsValues += "        public const string " +
-                                   key + " = \"" + ent.Value + "\"; // <GPGSID>\n";
+                                   key + " = \"" + val + "\"; // <GPGSID>\n";
             }
 
             string fileBody = GPGSUtil.ReadEditorTemplate("template-Constants");
@@ -642,49 +599,48 @@ namespace GooglePlayGames.Editor
         /// </summary>
         public static void UpdateGameInfo()
         {
-            string fileBody = GPGSUtil.ReadEditorTemplate("template-GameInfo");
+            string appId = GPGSProjectSettings.Instance.Get(GPGSUtil.APPIDKEY, string.Empty);
+            string webClientId = GPGSProjectSettings.Instance.Get(GPGSUtil.WEBCLIENTIDKEY, string.Empty);
+            string nearbyServiceId = GPGSProjectSettings.Instance.Get(GPGSUtil.SERVICEIDKEY, string.Empty);
 
-            foreach (KeyValuePair<string, string> ent in replacements)
+            string resDir = "Assets/GooglePlayGames/Resources";
+            string assetPath = resDir + "/PlayGamesSettings.asset";
+
+            try
             {
-                string value =
-                    GPGSProjectSettings.Instance.Get(ent.Value);
-                fileBody = fileBody.Replace(ent.Key, value);
-            }
+                PlayGamesSettings settings = AssetDatabase.LoadAssetAtPath<PlayGamesSettings>(assetPath);
+                if (settings == null)
+                {
+                    if (!Directory.Exists(resDir))
+                    {
+                        Directory.CreateDirectory(resDir);
+                    }
+                    settings = ScriptableObject.CreateInstance<PlayGamesSettings>();
+                    AssetDatabase.CreateAsset(settings, assetPath);
+                }
 
-            GPGSUtil.WriteFile(GameInfoPath, fileBody);
+                settings.AppId = appId;
+                settings.WebClientId = webClientId;
+                settings.NearbyServiceId = nearbyServiceId;
+
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssets();
+            }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogError("GPGS: Failed to save PlayGamesSettings.asset: " + e.Message);
+            }
         }
 
         /// <summary>
-        /// Checks the dependencies file and fixes repository paths
-        /// if they are incorrect (for example if the user moved plugin
-        /// into some subdirectory). This is a generated file containing
-        /// the list of dependencies that are needed for the plugin to work.
+        /// Stub to satisfy legacy script compilation.
+        /// This method previously contained logic to rewrite paths in the dependencies XML
+        /// when resolving the local Maven repository for EDM4U. Because the plugin now includes
+        /// the native bridge AAR directly and EDM4U fetches remote Android dependencies natively,
+        /// this manual intervention is obsolete and left empty to avoid breaking legacy integrations.
         /// </summary>
         public static void CheckAndFixDependencies()
         {
-            string depPath =
-                SlashesToPlatformSeparator(Path.Combine(GPGSUtil.RootPath,
-                    "Editor/GooglePlayGamesPluginDependencies.xml"));
-
-            XmlDocument doc = new XmlDocument();
-            doc.Load(depPath);
-
-            XmlNodeList repos = doc.SelectNodes("//androidPackage[contains(@spec,'com.google.games')]//repository");
-            foreach (XmlNode repo in repos)
-            {
-                if (!Directory.Exists(repo.InnerText))
-                {
-                    int pos = repo.InnerText.IndexOf(RootFolderName);
-                    if (pos != -1)
-                    {
-                        repo.InnerText =
-                            Path.Combine(RootPath, repo.InnerText.Substring(pos + RootFolderName.Length + 1))
-                                .Replace("\\", "/");
-                    }
-                }
-            }
-
-            doc.Save(depPath);
         }
 
         /// <summary>
@@ -694,6 +650,11 @@ namespace GooglePlayGames.Editor
         /// </summary>
         public static void CheckAndFixVersionedAssestsPaths()
         {
+            // Skip this legacy cleanup if running under a read-only UPM package
+            if (RootPath.Contains("Packages") || RootPath.Contains("Library/PackageCache"))
+            {
+                return;
+            }
             string[] foundPaths =
                 Directory.GetFiles(RootPath, "GooglePlayGamesPlugin_v*.txt", SearchOption.AllDirectories);
 

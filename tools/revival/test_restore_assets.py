@@ -52,6 +52,15 @@ class RestoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'escapes'):
             restore.restore(self.source)
 
+    def test_missing_upgraded_sdk_never_falls_back_to_legacy_archive(self):
+        entries = json.loads(self.manifest.read_text())['entries']
+        entries[1]['disposition'] = 'git-sdk'
+        self.manifest.write_text(json.dumps(dict(entries=entries)))
+        with self.assertRaisesRegex(ValueError, 'restore from Git'):
+            restore.restore(self.source)
+        self.assertFalse((self.root / 'Assets/a.meta').exists())
+        self.assertFalse((self.root / 'Assets/b.txt').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

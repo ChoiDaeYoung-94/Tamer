@@ -6,6 +6,58 @@ using PlayFab.SharedModels;
 namespace PlayFab.AuthenticationModels
 {
     /// <summary>
+    /// Create or return a game_server entity token. Caller must be a title entity.
+    /// </summary>
+    [Serializable]
+    public class AuthenticateCustomIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The customId used to create and retrieve game_server entity tokens. This is unique at the title level. CustomId must be
+        /// between 32 and 100 characters.
+        /// </summary>
+        public string CustomId;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+    }
+
+    [Serializable]
+    public class AuthenticateCustomIdResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// The token generated used to set X-EntityToken for game_server calls.
+        /// </summary>
+        public EntityTokenResponse EntityToken;
+        /// <summary>
+        /// True if the account was newly created on this authentication.
+        /// </summary>
+        public bool NewlyCreated;
+    }
+
+    /// <summary>
+    /// Delete a game_server entity. The caller can be the game_server entity attempting to delete itself. Or a title entity
+    /// attempting to delete game_server entities for this title.
+    /// </summary>
+    [Serializable]
+    public class DeleteRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// The game_server entity to be removed.
+        /// </summary>
+        public EntityKey Entity;
+    }
+
+    [Serializable]
+    public class EmptyResponse : PlayFabResultCommon
+    {
+    }
+
+    /// <summary>
     /// Combined entity type and ID structure which uniquely identifies a single entity.
     /// </summary>
     [Serializable]
@@ -50,12 +102,27 @@ namespace PlayFab.AuthenticationModels
         public string TitlePlayerAccountId;
     }
 
+    [Serializable]
+    public class EntityTokenResponse : PlayFabBaseModel
+    {
+        /// <summary>
+        /// The entity id and type.
+        /// </summary>
+        public EntityKey Entity;
+        /// <summary>
+        /// The token used to set X-EntityToken for all entity based API calls.
+        /// </summary>
+        public string EntityToken;
+        /// <summary>
+        /// The time the token will expire, if it is an expiring token, in UTC.
+        /// </summary>
+        public DateTime? TokenExpiration;
+    }
+
     /// <summary>
-    /// This API must be called with X-SecretKey, X-Authentication or X-EntityToken headers. An optional EntityKey may be
-    /// included to attempt to set the resulting EntityToken to a specific entity, however the entity must be a relation of the
-    /// caller, such as the master_player_account of a character. If sending X-EntityToken the account will be marked as freshly
-    /// logged in and will issue a new token. If using X-Authentication or X-EntityToken the header must still be valid and
-    /// cannot be expired or revoked.
+    /// This API must be called with X-SecretKey, X-Authentication or X-EntityToken headers. The header must still be valid and
+    /// cannot be expired or revoked.If successful, it will issue a new entity token and emit the "entity_logged_in" PlayStream
+    /// event.
     /// </summary>
     [Serializable]
     public class GetEntityTokenRequest : PlayFabRequestCommon
@@ -64,10 +131,6 @@ namespace PlayFab.AuthenticationModels
         /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
         /// </summary>
         public Dictionary<string,string> CustomTags;
-        /// <summary>
-        /// The optional entity to perform this action on. Defaults to the currently logged in entity.
-        /// </summary>
-        public EntityKey Entity;
     }
 
     [Serializable]
@@ -91,7 +154,14 @@ namespace PlayFab.AuthenticationModels
     {
         Unknown,
         XboxOne,
-        Scarlett
+        Scarlett,
+        WindowsOneCore,
+        WindowsOneCoreMobile,
+        Win32,
+        android,
+        iOS,
+        PlayStation,
+        Nintendo
     }
 
     public enum LoginIdentityProvider
@@ -116,7 +186,11 @@ namespace PlayFab.AuthenticationModels
         FacebookInstantGames,
         OpenIdConnect,
         Apple,
-        NintendoSwitchAccount
+        NintendoSwitchAccount,
+        GooglePlayGames,
+        XboxMobileStore,
+        King,
+        BattleNet
     }
 
     /// <summary>

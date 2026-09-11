@@ -5,7 +5,7 @@
 
 | 대상 | 확인된 버전/출처 | 관리 |
 | --- | --- | --- |
-| PlayFabSDK | 원본 `PlayFabSettings.cs`: 2.138.220621, [공식 UnitySDK](https://github.com/PlayFab/UnitySDK), Apache-2.0 | 소스·리소스·기존 meta를 Git에 포함, LICENSE 추가 |
+| PlayFabSDK | 복원 기준 2.138.220621에서 **2.242.260805**로 갱신, [공식 UnitySDK 태그](https://github.com/PlayFab/UnitySDK/releases/tag/2.242.260805), Apache-2.0 | 공식 패키지 소스·LICENSE와 기존 GUID를 Git으로 관리; 출처/변경은 [SDK 감사](sdk-audit.ko.md) |
 | PlayFabEditorExtensions | 원본 파일 해시로 고정, 배포 버전은 미확인, [공식 저장소](https://github.com/PlayFab/UnityEditorExtensions), Apache-2.0 | SDK 코드/리소스 포함. Avalon 폰트는 별도 권한 미확인으로 비공개 복원 |
 | ThirdPartyAssets | 원본 약 532.94 MiB, 개별 패키지 버전·구매 증빙 미확인 | 전체 비공개 복원. 공개 Git/LFS에 올리지 않음 |
 | 기존 Tests | Test.cs 및 Test.unity 원본 약 14.70 MiB | 기존 샘플은 비공개 복원. 신규 Editor 테스트와 격리 검증 씬만 Git 관리 |
@@ -15,7 +15,7 @@
 파일별 원본 경로, 크기, SHA-256, meta GUID, 라이선스 판정과 관리 방식은
 `assets-manifest.json`에 기록했다. 원본에 들어 있던 파일이라는 사실은 구매 에셋의 재배포 허가 증거가 아니다.
 정확한 패키지 구매 버전과 권한은 소유자의 Asset Store 구매 기록으로 후속 보완해야 한다.
-PlayFab의 현행 공개 LICENSE를 함께 보관하며, 원본 파일이 공식 배포 태그와 전부 동일하다고 주장하지 않는다.
+PlayFab SDK는 고정 공식 배포물로 갱신했으며 기존 GUID와 중립 서비스 설정을 보존한다. Editor Extensions 원본은 공식 배포 태그와 전부 동일하다고 주장하지 않는다.
 
 ## 복원
 
@@ -29,6 +29,7 @@ python -m unittest discover -s tools/revival -p test_restore_assets.py
 ```
 
 스크립트는 전체 사전 해시 검사 후 누락 파일만 생성한다. 기존 파일이 다르면 덮어쓰지 않고 실패한다.
+`git-sdk` 파일은 현재 커밋의 Git checkout에서 복원한다. 이 파일이 누락되면 구형 비공개 원본에서 복사하지 않고 실패하므로 SDK가 조용히 내려가는 일을 막는다.
 원본 삭제·이동을 하지 않는다. 원본 설정 파일은 복사하지 않고 중립 템플릿만 사용한다.
 기존 작업본에 이미 있는 설정은 덮어쓰지 않으므로 실제 서비스를 연결할 때는 소유자가 별도로 확인해야 한다.
 검증 씬에서는 로그인·저장·구매·광고를 시작하지 않는다.

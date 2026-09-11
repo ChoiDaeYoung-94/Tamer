@@ -54,7 +54,8 @@ namespace PlayFab.CloudScriptModels
         EU,
         NA,
         OC,
-        SA
+        SA,
+        Unknown
     }
 
     public enum CountryCode
@@ -307,7 +308,8 @@ namespace PlayFab.CloudScriptModels
         EH,
         YE,
         ZM,
-        ZW
+        ZW,
+        Unknown
     }
 
     public enum EmailVerificationStatus
@@ -336,6 +338,23 @@ namespace PlayFab.CloudScriptModels
         /// Entity type. See https://docs.microsoft.com/gaming/playfab/features/data/entities/available-built-in-entity-types
         /// </summary>
         public string Type;
+    }
+
+    [Serializable]
+    public class EventHubFunctionModel : PlayFabBaseModel
+    {
+        /// <summary>
+        /// The connection string for the event hub.
+        /// </summary>
+        public string ConnectionString;
+        /// <summary>
+        /// The name of the event hub that triggers the Azure Function.
+        /// </summary>
+        public string EventHubName;
+        /// <summary>
+        /// The name the function was registered under.
+        /// </summary>
+        public string FunctionName;
     }
 
     [Serializable]
@@ -477,6 +496,10 @@ namespace PlayFab.CloudScriptModels
         /// </summary>
         public object FunctionResult;
         /// <summary>
+        /// The size in bytes of the object returned from the function, if any
+        /// </summary>
+        public int? FunctionResultSize;
+        /// <summary>
         /// Flag indicating if the FunctionResult was too large and was subsequently dropped from this event.
         /// </summary>
         public bool? FunctionResultTooLarge;
@@ -528,10 +551,6 @@ namespace PlayFab.CloudScriptModels
         /// The name of the function to register
         /// </summary>
         public string FunctionName;
-        /// <summary>
-        /// The Id of the parent Title
-        /// </summary>
-        public string TitleId;
     }
 
     [Serializable]
@@ -589,6 +608,15 @@ namespace PlayFab.CloudScriptModels
         public string Username;
     }
 
+    [Serializable]
+    public class ListEventHubFunctionsResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// The list of EventHub triggered functions that are currently registered for the title.
+        /// </summary>
+        public List<EventHubFunctionModel> Functions;
+    }
+
     /// <summary>
     /// A title can have many functions, ListHttpFunctions will return a list of all the currently registered HTTP triggered
     /// functions for a given title.
@@ -600,10 +628,6 @@ namespace PlayFab.CloudScriptModels
         /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
         /// </summary>
         public Dictionary<string,string> CustomTags;
-        /// <summary>
-        /// The Id of the parent Title
-        /// </summary>
-        public string TitleId;
     }
 
     [Serializable]
@@ -680,7 +704,11 @@ namespace PlayFab.CloudScriptModels
         FacebookInstantGames,
         OpenIdConnect,
         Apple,
-        NintendoSwitchAccount
+        NintendoSwitchAccount,
+        GooglePlayGames,
+        XboxMobileStore,
+        King,
+        BattleNet
     }
 
     [Serializable]
@@ -899,10 +927,6 @@ namespace PlayFab.CloudScriptModels
         /// </summary>
         public Dictionary<string,string> CustomTags;
         /// <summary>
-        /// The optional entity to perform this action on. Defaults to the currently logged in entity.
-        /// </summary>
-        public EntityKey Entity;
-        /// <summary>
         /// The result of the function execution.
         /// </summary>
         public ExecuteFunctionResult FunctionResult;
@@ -923,10 +947,6 @@ namespace PlayFab.CloudScriptModels
         /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
         /// </summary>
         public Dictionary<string,string> CustomTags;
-        /// <summary>
-        /// The entity to perform this action on.
-        /// </summary>
-        public EntityKey Entity;
         /// <summary>
         /// The result of the function execution
         /// </summary>
@@ -973,6 +993,31 @@ namespace PlayFab.CloudScriptModels
         public string QueueName;
     }
 
+    /// <summary>
+    /// A title can have many functions, RegisterEventHubFunction associates a function name with an event hub name and
+    /// connection string.
+    /// </summary>
+    [Serializable]
+    public class RegisterEventHubFunctionRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// A connection string for the namespace of the event hub for the Azure Function.
+        /// </summary>
+        public string ConnectionString;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// The name of the event hub for the Azure Function.
+        /// </summary>
+        public string EventHubName;
+        /// <summary>
+        /// The name of the function to register
+        /// </summary>
+        public string FunctionName;
+    }
+
     [Serializable]
     public class RegisterHttpFunctionRequest : PlayFabRequestCommon
     {
@@ -988,10 +1033,6 @@ namespace PlayFab.CloudScriptModels
         /// Full URL for Azure Function that implements the function.
         /// </summary>
         public string FunctionUrl;
-        /// <summary>
-        /// The Id of the parent Title
-        /// </summary>
-        public string TitleId;
     }
 
     /// <summary>
@@ -1017,10 +1058,6 @@ namespace PlayFab.CloudScriptModels
         /// The name of the queue for the Azure Function.
         /// </summary>
         public string QueueName;
-        /// <summary>
-        /// The Id of the parent Title
-        /// </summary>
-        public string TitleId;
     }
 
     [Serializable]
@@ -1115,7 +1152,8 @@ namespace PlayFab.CloudScriptModels
     public enum TriggerType
     {
         HTTP,
-        Queue
+        Queue,
+        EventHub
     }
 
     [Serializable]
@@ -1129,10 +1167,6 @@ namespace PlayFab.CloudScriptModels
         /// The name of the function to register
         /// </summary>
         public string FunctionName;
-        /// <summary>
-        /// The Id of the parent Title
-        /// </summary>
-        public string TitleId;
     }
 
     [Serializable]
