@@ -103,6 +103,7 @@ def main():
                     process.terminate()
                 process.wait(timeout=20)
                 result['ownedProcessTreeStopped'] = True
+            result['emulatorLeftRunning'] = process.poll() is None
             result['elapsedSeconds'] = round(time.monotonic() - started, 2)
             (logs / 'emulator-16kb-probe.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(result))

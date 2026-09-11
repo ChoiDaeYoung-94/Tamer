@@ -17,14 +17,40 @@ from run_16kb_emulator import ROOT, AVD, SERIAL
 from verify_bundle import APP_ID
 
 
+def validate_provenance(artifact, expected_sha256, provenance):
+    actual = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    if (actual != expected_sha256 or provenance.get('artifactSha256') != actual
+            or provenance.get('applicationId') != APP_ID
+            or provenance.get('entryScene') != 'Assets/Tests/Scenes/RevivalSmoke.unity'
+            or not provenance.get('buildCodeCommit')):
+        raise ValueError('Expected verified artifact hash and isolated smoke build provenance')
+    return actual
+
+
+def require_offline_results(results):
+    if any(result.returncode != 0 for result in results):
+        raise ValueError('Guest network control/observation command failed; launch refused')
+    # Fail closed: require an observed loopback and no other UP interface.
+    links = re.findall(r'^\d+: ([^:@]+)(?:@[^:]+)?: <([^>]+)>', results[-1].stdout, re.M)
+    if not links or not any(name == 'lo' for name, flags in links):
+        raise ValueError('Guest interface state is unknown; launch refused')
+    if any(name != 'lo' for name, flags in links):
+        raise ValueError('Guest still has an UP network interface; launch refused')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--apk', type=Path)
     group.add_argument('--apks', type=Path)
     parser.add_argument('--output', type=Path, required=True, help='New private evidence directory')
+    parser.add_argument('--expected-sha256', required=True, help='Hash from the reviewed smoke artifact evidence')
+    parser.add_argument('--provenance', type=Path, required=True, help='Reviewed artifact hash, entryScene, applicationId and buildCodeCommit JSON')
     parser.add_argument('--observe-seconds', type=int, default=30)
     args = parser.parse_args()
+    artifact = args.apk or args.apks
+    artifact_hash = validate_provenance(artifact, args.expected_sha256,
+                                        json.loads(args.provenance.read_text(encoding='utf-8')))
     if args.output.exists():
         raise ValueError('Use a new evidence directory')
     args.output.mkdir(parents=True)
@@ -51,8 +77,7 @@ def main():
             result[key] = device('shell', 'getprop', key).stdout.strip()
         if result['pageSize'] != '16384':
             raise ValueError('Expected observed PAGE_SIZE=16384; artifact was not installed')
-        artifact = args.apk or args.apks
-        result['artifactSha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        result['artifactSha256'] = artifact_hash
         with tempfile.TemporaryDirectory(dir=args.output) as temporary:
             paths = [args.apk] if args.apk else []
             if args.apks:
@@ -72,8 +97,11 @@ def main():
                 if signed.returncode or 'CN=Android Debug' not in signed.stdout:
                     raise ValueError('Expected valid debug-signed APK')
             # Offline smoke validation: do not permit SDK startup to use guest networking.
-            device('shell', 'svc', 'wifi', 'disable')
-            device('shell', 'svc', 'data', 'disable')
+            network_results = [device('shell', 'svc', 'wifi', 'disable'),
+                               device('shell', 'svc', 'data', 'disable'),
+                               device('shell', 'ip', '-o', 'link', 'show', 'up')]
+            require_offline_results(network_results)
+            result['offlineObservedBeforeInstall'] = True
             installed = device('install-multiple', '-r', '-t', *paths, timeout=180)
             result['installOutput'] = (installed.stdout + installed.stderr).strip()
             if installed.returncode:
@@ -83,6 +111,8 @@ def main():
             component = next((line for line in resolved if line.startswith(APP_ID + '/')), None)
             if component is None:
                 raise ValueError('No isolated launch activity')
+            require_offline_results(network_results[:2] + [device('shell', 'ip', '-o', 'link', 'show', 'up')])
+            result['offlineObservedBeforeLaunch'] = True
             launch = device('shell', 'am', 'start', '-W', '-n', component)
             result['launchOutput'] = launch.stdout.strip()
             time.sleep(max(1, min(args.observe_seconds, 120)))
