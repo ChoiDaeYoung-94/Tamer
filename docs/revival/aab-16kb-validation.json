@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "issue": 97,
+  "pullRequest": 109,
+  "validatedAtUtc": "2026-09-11T05:33:56.764735+00:00",
+  "branch": "codex/revival-16kb-aab",
+  "baselineMain": "4e8c0398c700bc133d3b1e8d6592fca24f0b4d89",
+  "buildCodeCommit": "b8641fa441dfc10673798b47b25f922da8739297",
+  "verificationCodeCommit": "97aaa84113cf0cee507f590d6a792cefe96d794d",
+  "artifactSha256": "ca19eb7cb6fdfc3faacb1640f098ef57f86a93bdec62499d28ab12cfe6ece556",
+  "applicationId": "com.AeDeong.MonsterTamer.revival",
+  "entryScene": "Assets/Tests/Scenes/RevivalSmoke.unity",
+  "provenance": "The APKS hash is generated from the AAB whose successful build summary starts with RevivalSmoke; no runtime game scenarios were executed.",
+  "toolchain": {
+    "unity": "6000.0.81f1",
+    "unityCli": "1.0.0-beta.8",
+    "emulator": "37.1.11",
+    "emulatorBuildId": "15917651",
+    "systemImage": "system-images;android-36;google_apis_ps16k;x86_64",
+    "systemImageRevision": 7,
+    "systemImageApi": 36,
+    "systemImageExtension": 17
+  },
+  "host": {
+    "architecture": "x86_64",
+    "cpu": "Intel Core i7-14700KF",
+    "virtualizationFirmwareEnabled": true,
+    "secondLevelAddressTranslation": true,
+    "hypervisorPresent": false,
+    "aehdServiceInstalled": false,
+    "gvmServiceInstalled": false,
+    "accelCheckExitCode": 6,
+    "initialFreeMemoryKiB": 13441416,
+    "initialFreeDiskBytes": 401503485952,
+    "windowsFeaturesChanged": false,
+    "rebootPerformed": false
+  },
+  "build": {
+    "result": "Succeeded",
+    "errors": 0,
+    "scenes": [
+      "Assets/Tests/Scenes/RevivalSmoke.unity",
+      "Assets/Scenes/Login.unity",
+      "Assets/Scenes/Main.unity",
+      "Assets/Scenes/Game.unity",
+      "Assets/Scenes/SetCharacter.unity",
+      "Assets/Scenes/NextScene.unity"
+    ],
+    "buildReportTotalSizeBytes": 1666282161,
+    "isActualAabSize": false
+  },
+  "bundle": {
+    "schema": 1,
+    "bundletoolVersion": "1.18.3",
+    "bundletoolSha256": "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29",
+    "aab": {
+      "bytes": 91737845,
+      "sha256": "5754ee67ae9d11007cfd0d689088306a063b48cd858c8998ee89cd005e29e77b",
+      "debugSignatureVerified": true
+    },
+    "aabSignatureCoverage": {
+      "api": "JarFile",
+      "verifiedPayloadEntries": 601,
+      "signerSha256": "7031d6897177b817d72e02cc9f07b9141314fd4d93bbb39fc95d3b001c850910",
+      "allPayloadEntriesSigned": true
+    },
+    "jarInputStreamOrderingWarning": true,
+    "aabAbis": [
+      "arm64-v8a"
+    ],
+    "splitSignerSha256": "44a9d10d6a0157a4911dbbcd23d20b8c8cdf4261e0ee1bb27f49d99f6ec31229",
+    "bundleValidationPassed": true,
+    "deviceSpec": {
+      "supportedAbis": [
+        "arm64-v8a"
+      ],
+      "supportedLocales": [
+        "en"
+      ],
+      "screenDensity": 420,
+      "sdkVersion": 36
+    },
+    "deviceSpecIsSynthetic": true,
+    "configRequests16KB": true,
+    "apksSha256": "ca19eb7cb6fdfc3faacb1640f098ef57f86a93bdec62499d28ab12cfe6ece556",
+    "splits": [
+      {
+        "file": "base-arm64_v8a.apk",
+        "bytes": 52187673,
+        "sha256": "5b5fcc5df307b1398d0670097a9844efaef8535741eefaa9a9d22c0935ac879a",
+        "signatureVerified": true,
+        "zipalignExitCode": 0,
+        "abis": [
+          "arm64-v8a"
+        ],
+        "loadZipChecksPassed": true,
+        "relroChecksPassed": false,
+        "libraries": 6
+      },
+      {
+        "file": "base-master.apk",
+        "bytes": 59014980,
+        "sha256": "342f6ed62d2bdbf9468b7ce8e4b474a62b8e1fe1245fc199531e5dd35094ba36",
+        "signatureVerified": true,
+        "zipalignExitCode": 0,
+        "abis": []
+      }
+    ],
+    "runtimeVerified": false,
+    "uploaded": false
+  },
+  "nativeSplit": {
+    "nativeLibraryCount": 6,
+    "loadSegmentCount": 23,
+    "compressedNativeLibraryCount": 6,
+    "loadZipChecksPassed": true,
+    "relroChecksPassed": false,
+    "relroEndAlignmentFailureCount": 5,
+    "allRelroMatchWholeLoad": true
+  },
+  "pythonTests": {
+    "total": 59,
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 2.889,
+    "scope": "Includes merged privacy #108 tests, generated-key signature tamper and unsigned-entry rejection, manifest/provenance/network guards"
+  },
+  "attempts": [
+    {
+      "mode": "Software renderer, acceleration off",
+      "limitSeconds": 600,
+      "elapsedSeconds": 622.51,
+      "bootCompleted": false,
+      "adbState": "offline",
+      "outcome": "Boot timeout",
+      "consoleShutdownTimedOut": true,
+      "cleanup": "Verified own launcher executable then terminated only its captured process tree; robust timeout cleanup added to probe tool"
+    },
+    {
+      "mode": "SwiftShader GLES, Vulkan disabled, kernel logging, acceleration off",
+      "limitSeconds": 180,
+      "elapsedSeconds": 5.03,
+      "bootCompleted": false,
+      "launcherExitCode": 3221225477,
+      "windowsExitHex": "0xc0000005",
+      "outcome": "Emulator process exited before boot",
+      "emulatorLeftRunning": false
+    }
+  ],
+  "runtime": {
+    "pageSizeObserved": null,
+    "deviceAbiObserved": null,
+    "processAbiObserved": null,
+    "nativeTranslationObserved": null,
+    "linkerCompatibilityObserved": null,
+    "installationAttemptBlockedAtAvdGuard": true,
+    "installed": false,
+    "appProcessObserved": false,
+    "screenshotCaptured": false,
+    "runtime16KBVerified": false,
+    "arm64Native16KBRuntimeVerified": false,
+    "splitInstallationVerified": false
+  },
+  "priorApk": {
+    "sourceCodeCommit": "f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf",
+    "sha256": "0d51f218491d90aa7e963b0e42b3ebf5606fc8e0d91f4b710d246fb8223eeb27",
+    "bytes": 104785252,
+    "scope": "Previously validated main integration APK; not installed or revalidated by this follow-up"
+  },
+  "postRun": {
+    "ownUnityProcesses": 0,
+    "ownEmulatorProcesses": 0,
+    "heavySlotReturned": true,
+    "incidentalSerializationRestored": true,
+    "originalSigningAliasRestored": true
+  },
+  "pending": [
+    "Enable a supported Windows hypervisor with administrator approval and coordinate required reboot, then repeat actual PAGE_SIZE and runtime observations",
+    "On an ARM64-capable 16KB device, distinguish native ABI and linker compatibility from x86_64 translation",
+    "Actual split installation, sustained smoke execution, screenshot and process maps remain unverified",
+    "Unity 6000.3.24f1 installation remains a separate Windows UAC blocker (#86)"
+  ],
+  "operations": {
+    "productionLogin": false,
+    "productionPurchase": false,
+    "adRequest": false,
+    "storeUpload": false,
+    "ciCd": false,
+    "originalArchiveModified": false
+  }
+}
