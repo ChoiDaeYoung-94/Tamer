@@ -1,130 +1,417 @@
-#pragma warning disable CS0618 // UnityPurchasing.Initialize(this, builder);
-
 using System;
-
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using AD.Purchasing;
+using UnityEngine;
 using UnityEngine.Purchasing;
-
-using Unity.Services.Core;
 
 namespace AD
 {
-    public class IAPManager : IStoreListener
+    public enum IAPStatus
     {
-        private static IStoreController storeController;
-        private static IExtensionProvider storeExtensionProvider;
+        NotInitialized, Connecting, LoadingProducts, Ready, Purchasing,
+        Restoring, Deferred, WaitingForPersistence, Confirming, Failed, Unavailable
+    }
 
-        public string ProductNoAds = "com.aedeong.monstertamer.no_ads";
+    /// <summary>
+    /// Google Play / Apple platform billing for the existing No Ads SKU.
+    /// This adapter trusts paid orders delivered by Unity IAP; it does not claim
+    /// to perform server-side receipt validation or refund reconciliation.
+    /// </summary>
+    public sealed class IAPManager : IDisposable
+    {
+        private StoreController _store;
+        private bool _connecting;
+        private bool _connected;
+        private bool _productsLoaded;
+        private bool _purchasesLoaded;
+        private bool _initialFetchInProgress;
+        private bool _purchaseInProgress;
+        private bool _restoring;
+        private bool _disposed;
+        private DateTime _nextInitializationAttempt;
+        private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
+        private readonly Dictionary<string, Order> _unfinished = new Dictionary<string, Order>();
+        private readonly Dictionary<string, DateTime> _confirming = new Dictionary<string, DateTime>();
+        private readonly HashSet<string> _completedTransactions = new HashSet<string>();
+        private readonly NoAdsPurchaseFulfillment _fulfillment = new NoAdsPurchaseFulfillment(TryPersistNoAds);
 
-        async public void Init()
+        public string ProductNoAds => NoAdsPurchaseFulfillment.ProductId;
+        public IAPStatus Status { get; private set; } = IAPStatus.NotInitialized;
+        public bool IsReadyToPurchase => !_disposed && _connected && _productsLoaded && _purchasesLoaded;
+
+        // Kept for existing ShopMan callers. Initialization is explicit; isolated
+        // baseline scenes never create a store or contact purchasing services.
+        public void Init() => InitializePurchasing();
+
+        public async void InitializePurchasing()
         {
-            await InitializeUGS();
-        }
-
-        private async System.Threading.Tasks.Task InitializeUGS()
-        {
+            if (_disposed || _connecting || _initialFetchInProgress || IsReadyToPurchase) return;
+            _connecting = true;
+            _nextInitializationAttempt = DateTime.UtcNow.AddSeconds(30);
             try
             {
-                await UnityServices.InitializeAsync();
-                AD.DebugLogger.Log("IAPManager", "Unity Gaming Services initialized successfully.");
+                if (_store == null)
+                {
+                    IapConsentDefaults.Apply();
+                    _store = UnityIAPServices.StoreController();
+                    _store.OnStoreConnected += OnStoreConnected;
+                    _store.OnStoreDisconnected += OnStoreDisconnected;
+                    _store.OnProductsFetched += OnProductsFetched;
+                    _store.OnProductsFetchFailed += OnProductsFetchFailed;
+                    _store.OnPurchasesFetched += OnPurchasesFetched;
+                    _store.OnPurchasesFetchFailed += OnPurchasesFetchFailed;
+                    _store.OnPurchasePending += OnPurchasePending;
+                    _store.OnPurchaseConfirmed += OnPurchaseConfirmed;
+                    _store.OnPurchaseFailed += OnPurchaseFailed;
+                    _store.OnPurchaseDeferred += OnPurchaseDeferred;
+                    _store.OnAuthAccountChanged += OnAuthAccountChanged;
+                    // Keep the SDK's pending reroute enabled. On Android resume,
+                    // its background fetch only emits OnPurchasePending, not
+                    // OnPurchasesFetched (including newly approved deferred orders).
+                    _store.ProcessPendingOrdersOnPurchasesFetched(true);
+                    _ = RetryLoopAsync(_lifetime.Token);
+                }
 
-                InitializePurchasing();
+                if (_connected)
+                {
+                    if (_productsLoaded)
+                    {
+                        _initialFetchInProgress = true;
+                        _store.FetchPurchases();
+                    }
+                    else FetchCatalog();
+                }
+                else
+                {
+                    SetStatus(IAPStatus.Connecting);
+                    await _store.Connect();
+                }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                AD.DebugLogger.LogError("IAPManager", $"Unity Gaming Services 초기화 실패: {e.Message}");
+                _initialFetchInProgress = false;
+                if (!_disposed) SetStatus(IAPStatus.Failed);
             }
+            finally { _connecting = false; }
         }
 
-        public void InitializePurchasing()
+        private void OnStoreConnected()
         {
-            if (IsInitialized())
+            if (_disposed) return;
+            _connected = true;
+            FetchCatalog();
+        }
+
+        private void FetchCatalog()
+        {
+            _initialFetchInProgress = true;
+            _productsLoaded = false;
+            _purchasesLoaded = false;
+            SetStatus(IAPStatus.LoadingProducts);
+            _store.FetchProducts(new List<ProductDefinition>
+            {
+                new ProductDefinition(ProductNoAds, ProductType.NonConsumable)
+            });
+        }
+
+        private void OnStoreDisconnected(StoreConnectionFailureDescription failure)
+        {
+            _connected = false;
+            _productsLoaded = false;
+            _purchasesLoaded = false;
+            _initialFetchInProgress = false;
+            _purchaseInProgress = false;
+            _restoring = false;
+            _confirming.Clear();
+            SetStatus(IAPStatus.Unavailable);
+        }
+
+        private void OnProductsFetched(List<Product> products)
+        {
+            if (_disposed) return;
+            _productsLoaded = products != null && products.Any(p => p != null &&
+                p.definition != null && p.definition.id == ProductNoAds &&
+                p.definition.type == ProductType.NonConsumable);
+            if (!_productsLoaded)
+            {
+                _initialFetchInProgress = false;
+                SetStatus(IAPStatus.Unavailable);
                 return;
-
-            var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
-
-            builder.AddProduct(ProductNoAds, ProductType.NonConsumable);
-
-            UnityPurchasing.Initialize(this, builder);
+            }
+            _store.FetchPurchases();
         }
 
-        private bool IsInitialized()
+        private void OnProductsFetchFailed(ProductFetchFailed failure)
         {
-            return storeController != null && storeExtensionProvider != null;
+            _initialFetchInProgress = false;
+            _productsLoaded = false;
+            SetStatus(IAPStatus.Unavailable);
+        }
+
+        private void OnPurchasesFetchFailed(PurchasesFetchFailureDescription failure)
+        {
+            _initialFetchInProgress = false;
+            _purchasesLoaded = false;
+            _restoring = false;
+            SetStatus(IAPStatus.Unavailable);
+        }
+
+        private void OnAuthAccountChanged()
+        {
+            if (_disposed) return;
+            // IAP 5.4 clears its caches before this event. Never use old Product
+            // or Order objects for a new authenticated store session.
+            _unfinished.Clear();
+            _confirming.Clear();
+            _completedTransactions.Clear();
+            _purchaseInProgress = false;
+            _restoring = false;
+            FetchCatalog();
         }
 
         public void BuyProductID(string productId)
         {
-            if (IsInitialized())
+            if (!string.Equals(productId, ProductNoAds, StringComparison.Ordinal)) return;
+            if (!IsReadyToPurchase)
             {
-                Product product = storeController.products.WithID(productId);
+                InitializePurchasing();
+                return;
+            }
+            if (_purchaseInProgress || _restoring || _unfinished.Count != 0)
+                return;
 
-                if (product != null && product.availableToPurchase)
+            Product product = _store.GetProductById(productId);
+            if (product == null || !product.availableToPurchase)
+            {
+                SetStatus(IAPStatus.Unavailable);
+                return;
+            }
+            _purchaseInProgress = true;
+            SetStatus(IAPStatus.Purchasing);
+            try { _store.PurchaseProduct(product); }
+            catch (Exception)
+            {
+                _purchaseInProgress = false;
+                SetStatus(IAPStatus.Failed);
+            }
+        }
+
+        // Can be wired to an explicit Restore Purchases button. Startup also
+        // fetches confirmed non-consumables for automatic Google Play restore.
+        public void RestorePurchases()
+        {
+            if (!IsReadyToPurchase)
+            {
+                InitializePurchasing();
+                return;
+            }
+            if (_restoring || _purchaseInProgress) return;
+            _restoring = true;
+            SetStatus(IAPStatus.Restoring);
+            try
+            {
+                _store.RestoreTransactions((success, message) =>
                 {
-                    AD.DebugLogger.Log("IAPManager", $"Purchasing product asynchronously: {product.definition.id}");
-                    storeController.InitiatePurchase(product);
-                }
-                else
+                    if (_disposed) return;
+                    // The v5.4 SDK already fetches purchases after a successful
+                    // restore. Its OnPurchasesFetched event finishes our restore.
+                    if (!success)
+                    {
+                        _restoring = false;
+                        SetStatus(IAPStatus.Failed);
+                    }
+                });
+            }
+            catch (Exception)
+            {
+                _restoring = false;
+                SetStatus(IAPStatus.Failed);
+            }
+        }
+
+        private void OnPurchasesFetched(Orders orders)
+        {
+            if (_disposed || orders == null) return;
+            _initialFetchInProgress = false;
+            _purchasesLoaded = true;
+            _restoring = false;
+            if (_unfinished.Count == 0) SetStatus(IAPStatus.Ready);
+            foreach (var order in orders.ConfirmedOrders) QueueOrder(order);
+            // Also collect pending orders as a fallback. The SDK may suppress
+            // rerouting an already-seen pending order after this manager is recreated,
+            // because its shared PurchaseService outlives the manager. QueueOrder's
+            // in-flight and completed guards prevent duplicate acknowledgement.
+            foreach (var order in orders.PendingOrders) QueueOrder(order);
+            // DeferredOrders are unpaid and deliberately not granted.
+        }
+
+        private void OnPurchasePending(PendingOrder order)
+        {
+            _purchaseInProgress = false;
+            QueueOrder(order);
+        }
+
+        private void QueueOrder(Order order)
+        {
+            if (_disposed || !IsSupportedPaidOrder(order)) return;
+            string key = OrderKey(order);
+            // A stale fetch callback may redeliver PendingOrder after a successful
+            // confirmation. Google Play silently ignores a second acknowledgement
+            // of that token, so never reopen a completed transaction in this session.
+            if (order is PendingOrder && _completedTransactions.Contains(key)) return;
+            if (order is ConfirmedOrder)
+            {
+                _completedTransactions.Add(key);
+                _confirming.Remove(key);
+            }
+            _unfinished[key] = order;
+            Fulfill(key, order);
+        }
+
+        private static bool IsSupportedPaidOrder(Order order)
+        {
+            if (!(order is PendingOrder) && !(order is ConfirmedOrder)) return false;
+            if (order.Info == null || string.IsNullOrEmpty(order.Info.Receipt)) return false;
+            // The v5 store cannot acknowledge an order without a transaction ID.
+            if (order is PendingOrder && string.IsNullOrEmpty(order.Info.TransactionID)) return false;
+            var items = order.CartOrdered?.Items();
+            if (items == null || items.Count != 1) return false;
+            var item = items[0];
+            return item != null && item.Quantity == 1 && item.Product?.definition != null &&
+                item.Product.definition.type == ProductType.NonConsumable &&
+                string.Equals(item.Product.definition.id, NoAdsPurchaseFulfillment.ProductId,
+                    StringComparison.Ordinal);
+        }
+
+        private static string OrderKey(Order order) =>
+            string.IsNullOrEmpty(order.Info.TransactionID) ? "restored-no-ads" : order.Info.TransactionID;
+
+        private void Fulfill(string key, Order order)
+        {
+            if (_disposed || !_connected) return;
+            if (_confirming.TryGetValue(key, out DateTime since) &&
+                DateTime.UtcNow - since < TimeSpan.FromSeconds(60)) return;
+            _confirming.Remove(key);
+
+            var pending = order as PendingOrder;
+            var result = _fulfillment.Process(pending != null ? PurchaseDeliveryState.Pending :
+                PurchaseDeliveryState.Confirmed, new[] { ProductNoAds }, pending == null ? null : (Action)(() =>
                 {
-                    AD.DebugLogger.Log("IAPManager", "BuyProductID: FAIL. Not purchasing product, either is not found or is not available for purchase");
+                    _confirming[key] = DateTime.UtcNow;
+                    SetStatus(IAPStatus.Confirming);
+                    _store.ConfirmPurchase(pending);
+                }));
+
+            if (result == PurchaseFulfillmentResult.PersistenceFailed)
+                SetStatus(IAPStatus.WaitingForPersistence);
+            else if (result == PurchaseFulfillmentResult.ConfirmationFailed)
+            {
+                _confirming.Remove(key);
+                SetStatus(IAPStatus.Failed);
+            }
+            else if (result == PurchaseFulfillmentResult.Fulfilled)
+            {
+                if (pending == null)
+                {
+                    _unfinished.Remove(key);
+                    if (_unfinished.Count == 0) SetStatus(IAPStatus.Ready);
+                }
+                // This is a UI refresh, not a new grant. Missing shop UI must not
+                // turn a completed durable purchase into a failed transaction.
+                try { if (ShopMan.Instance != null) ShopMan.Instance.IAPReset(); }
+                catch (Exception) { DebugLogger.LogWarning("IAPManager", "No Ads UI refresh deferred."); }
+            }
+        }
+
+        private static bool TryPersistNoAds() => Managers.Instance != null &&
+            Managers.DataM != null && Managers.DataM.TryGrantNoAds();
+
+        public void RetryPendingPurchases()
+        {
+            if (_disposed || !_connected) return;
+            foreach (var entry in _unfinished.ToArray()) Fulfill(entry.Key, entry.Value);
+        }
+
+        private async Task RetryLoopAsync(CancellationToken token)
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), token);
+                    if (ShouldRetryInitialization(DateTime.UtcNow))
+                        InitializePurchasing();
+                    RetryPendingPurchases();
                 }
             }
-            else
+            catch (OperationCanceledException) { }
+        }
+
+        private bool ShouldRetryInitialization(DateTime now) => !_disposed && !_connecting &&
+            !_initialFetchInProgress && !IsReadyToPurchase && now >= _nextInitializationAttempt;
+
+        private void OnPurchaseConfirmed(Order order)
+        {
+            if (_disposed || order?.Info == null) return;
+            string key = OrderKey(order);
+            _confirming.Remove(key);
+            if (order is ConfirmedOrder)
             {
-                AD.DebugLogger.Log("IAPManager", "BuyProductID FAIL. Not initialized.");
+                _completedTransactions.Add(key);
+                _unfinished.Remove(key);
+                SetStatus(IAPStatus.Ready);
             }
+            else if (order is FailedOrder)
+                SetStatus(IAPStatus.Failed); // Retain the saved grant and retry acknowledgement.
         }
 
-        public void OnInitialized(IStoreController controller, IExtensionProvider extensions)
+        private void OnPurchaseFailed(FailedOrder order)
         {
-            AD.DebugLogger.Log("IAPManager", "OnInitialized: PASS");
-            storeController = controller;
-            storeExtensionProvider = extensions;
+            _purchaseInProgress = false;
+            SetStatus(IAPStatus.Failed);
         }
 
-        public void OnInitializeFailed(InitializationFailureReason error)
+        private void OnPurchaseDeferred(DeferredOrder order)
         {
-            AD.DebugLogger.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}");
+            _purchaseInProgress = false;
+            SetStatus(IAPStatus.Deferred);
         }
 
-        public void OnInitializeFailed(InitializationFailureReason error, string message)
+        private void SetStatus(IAPStatus status)
         {
-            AD.DebugLogger.Log("IAPManager", $"OnInitializeFailed InitializationFailureReason:{error}\nmessage:{message}");
+            if (_disposed || Status == status) return;
+            Status = status;
+            // SDK details may contain receipts or account identifiers.
+            DebugLogger.Log("IAPManager", "Purchase state: " + status);
         }
 
-        public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
+        public void Dispose()
         {
-            if (String.Equals(args.purchasedProduct.definition.id, ProductNoAds, StringComparison.Ordinal))
+            if (_disposed) return;
+            _disposed = true;
+            _lifetime.Cancel();
+            _lifetime.Dispose();
+            if (_store != null)
             {
-                AD.DebugLogger.Log("IAPManager", "ProcessPurchase: PASS. No Ads purchased.");
-                GrantNoAds();
+                _store.OnStoreConnected -= OnStoreConnected;
+                _store.OnStoreDisconnected -= OnStoreDisconnected;
+                _store.OnProductsFetched -= OnProductsFetched;
+                _store.OnProductsFetchFailed -= OnProductsFetchFailed;
+                _store.OnPurchasesFetched -= OnPurchasesFetched;
+                _store.OnPurchasesFetchFailed -= OnPurchasesFetchFailed;
+                _store.OnPurchasePending -= OnPurchasePending;
+                _store.OnPurchaseConfirmed -= OnPurchaseConfirmed;
+                _store.OnPurchaseFailed -= OnPurchaseFailed;
+                _store.OnPurchaseDeferred -= OnPurchaseDeferred;
+                _store.OnAuthAccountChanged -= OnAuthAccountChanged;
             }
-            else
-            {
-                AD.DebugLogger.Log("IAPManager", $"ProcessPurchase: FAIL. Unrecognized product: {args.purchasedProduct.definition.id}");
-            }
-
-            return PurchaseProcessingResult.Complete;
-        }
-
-        public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
-        {
-            AD.DebugLogger.Log("IAPManager", $"OnPurchaseFailed: FAIL. Product: '{product.definition.storeSpecificId}', PurchaseFailureReason: {failureReason}");
-        }
-
-        private void RegisterIAPData(AD.GameConstants.IAPItems iapItem)
-        {
-            string existingData = AD.Managers.DataM.LocalPlayerData["GooglePlay"];
-            string newData = string.IsNullOrEmpty(existingData) ? $"{iapItem}" : $"{existingData},{iapItem}";
-
-            AD.Managers.DataM.UpdateLocalData(key: "GooglePlay", value: newData);
-        }
-
-        private void GrantNoAds()
-        {
-            RegisterIAPData(AD.GameConstants.IAPItems.ProductNoAds);
-            AD.Managers.DataM.UpdatePlayerData();
-
-            ShopMan.Instance.IAPReset();
+            _unfinished.Clear();
+            _confirming.Clear();
+            _completedTransactions.Clear();
+            _store = null;
         }
     }
 }
