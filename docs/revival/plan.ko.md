@@ -25,7 +25,7 @@
 | 자동화 | Python 71개, Unity EditMode 249개, 격리 APK 메타데이터/서명·GUID·LOAD/ZIP 통과 | tools/revival 및 phase2-validation.json; strict RELRO 5개 실패 별도 |
 | 기기·스토어 | 별도 검증 필요 | 기준 작업 당시 연결 Android 기기 0대 |
 
-초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK/IAP 이행 PR #106은 병합됐으며 실제 최종 버전은 [통합 요약](completion-summary.ko.md)에 기록했다. 현재 checkout의 manifest/lock과 vendor 파일이 실행 기준이다. Unity6.3 설치는 Windows UAC로 중단됐고 [#86 재개 안내](unity63-handoff.ko.md)를 따른다.
+초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK/IAP 이행 PR #106은 병합됐으며 실제 최종 버전은 [통합 요약](completion-summary.ko.md)에 기록했다. 현재 checkout의 manifest/lock과 vendor 파일이 실행 기준이다. 사용자 방침에 따라 Unity 6000.0.81f1을 유지하고 6.3 설치는 보류한다. 이전 UAC 중단과 조건부 재개 절차는 [#86 기록](unity63-handoff.ko.md)에 보관한다.
 
 ## 작업과 완료 기준
 

@@ -62,6 +62,8 @@ PR [#108](https://github.com/ChoiDaeYoung-94/Tamer/pull/108)·[#109](https://git
 - **기기·결제:** 기존 계정 로그인·저장 실패/재시도·No Ads 구매/복원·광고/음악·전투, 16KB Android 실행과 AAB/split 설치·실행. 서버 영수증 검증은 이번 구현에 포함되지 않았다.
 - **광고·스토어 [#91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91):** Families 5초 닫힘, 공급자·consent 설정과 심사. Console의 거절 연결 번들26을 현재 제공 버전으로 단정하지 않는다. 광고 API 차단이 native SDK의 모든 자동 통신 차단을 증명하지는 않는다.
 - **개인정보 [#105](https://github.com/ChoiDaeYoung-94/Tamer/issues/105):** 실제 PlayFab 로그인·진행 저장과 Data safety 선언 대조, 보관·삭제·계약·동의 결정. 향후 Private 쓰기는 기존 Public 키와 구버전의 재공개를 자동 해결하지 않는다. [기술 감사](privacy-data-safety-audit.ko.md)
-- **소유자 확인:** upload key 재설정 결정·잔여 OAuth 필요성([#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)), 구매 에셋의 비공개 보관 운영. Unity `6000.3.24f1`은 공식 다운로드·체크섬 확인 후 Windows UAC `ELEVATION_CANCELLED`로 설치되지 않았다([#86](https://github.com/ChoiDaeYoung-94/Tamer/issues/86), [재개 안내](unity63-handoff.ko.md)).
+- **소유자 확인:** upload key 재설정 결정·잔여 OAuth 필요성([#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)), 구매 에셋의 비공개 보관 운영. 각 결정은 해당 작업에 진입할 때 구체적인 안과 함께 확인한다.
+
+Unity는 사용자 방침에 따라 **6000.0.81f1을 유지**한다. 6.3 설치는 보류하며 현재 필수 잔여 작업이 아니다. 이전 다운로드·UAC 중단은 [보관 기록](unity63-handoff.ko.md)으로 남기고, 실제 Unity 버전 관련 차단이 확인될 때만 재개를 검토한다.
 
 원본 작업본·기존 서명키·계정·진행도·No Ads 권한을 보존했다. **CI/CD와 기존 App Center 구성은 보존·비활성 상태이며, 운영 서비스 호출·스토어 변경·배포를 수행하지 않았다.**
