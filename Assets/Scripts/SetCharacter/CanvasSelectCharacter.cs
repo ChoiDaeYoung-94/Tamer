@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Threading;
 
 using UnityEngine;
 
@@ -13,7 +15,7 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     private Vector3 _targetMalePosition;
     private Vector3 _targetFemalePosition;
-    private UniTask _moveTask = UniTask.CompletedTask;
+    private bool _isMoving;
     private bool _isSaving;
 
     private void Start()
@@ -23,7 +25,7 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     public void ButtonPlay()
     {
-        if (_isSaving || !_moveTask.Status.IsCompleted()) return;
+        if (_isSaving || _isMoving) return;
         _isSaving = true;
         AD.Managers.PopupM.SetException();
         AD.Managers.SoundM.UI_Ok();
@@ -33,13 +35,14 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     public void ButtonDirection(string direction)
     {
-        if (_isSaving || !_moveTask.Status.IsCompleted())
+        if (_isSaving || _isMoving)
             return;
 
         AD.Managers.SoundM.UI_Click();
 
         SetTargetPosition(direction);
-        _moveTask = Move();
+        _isMoving = true;
+        Move(this.GetCancellationTokenOnDestroy()).Forget();
     }
 
     private void SetTargetPosition(string direction)
@@ -55,18 +58,28 @@ public class CanvasSelectCharacter : MonoBehaviour
             : new Vector3(0f, _trFemale.position.y, _trFemale.position.z);
     }
 
-    private async UniTask Move()
+    private async UniTask Move(CancellationToken cancellationToken)
     {
-        while (Mathf.Abs(_trMale.position.x - _targetMalePosition.x) > 0.01f)
+        try
         {
-            _trMale.position = Vector3.Lerp(_trMale.position, _targetMalePosition, 0.2f);
-            _trFemale.position = Vector3.Lerp(_trFemale.position, _targetFemalePosition, 0.2f);
-
-            await UniTask.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            while (Mathf.Abs(_trMale.position.x - _targetMalePosition.x) > 0.01f)
+            {
+                _trMale.position = Vector3.Lerp(_trMale.position, _targetMalePosition, 0.2f);
+                _trFemale.position = Vector3.Lerp(_trFemale.position, _targetFemalePosition, 0.2f);
+                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            _trMale.position = _targetMalePosition;
+            _trFemale.position = _targetFemalePosition;
         }
-
-        _trMale.position = _targetMalePosition;
-        _trFemale.position = _targetFemalePosition;
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            _isMoving = false;
+        }
     }
 
     private async UniTask Play()
