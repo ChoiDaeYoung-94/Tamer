@@ -310,17 +310,17 @@ namespace AD
             {
                 if (_session != null) CompleteSession(_session, RewardedAdOutcome.Failed);
             }
-            finally
+            catch (Exception exception) { Debug.LogException(exception); }
+
+            // Each cleanup step must run even if another step throws. Keep the
+            // callback loop outside finally handlers on Unity's Mono runtime.
+            try { DestroyLoadedAd(); }
+            catch (Exception exception) { Debug.LogException(exception); }
+
+            while (TryDequeue(out var callback))
             {
-                try { DestroyLoadedAd(); }
-                finally
-                {
-                    while (TryDequeue(out var callback))
-                    {
-                        try { callback.Discard?.Invoke(); }
-                        catch (Exception exception) { Debug.LogException(exception); }
-                    }
-                }
+                try { callback.Discard?.Invoke(); }
+                catch (Exception exception) { Debug.LogException(exception); }
             }
         }
 
