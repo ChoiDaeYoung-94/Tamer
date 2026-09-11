@@ -1,191 +1,335 @@
 using System;
-
-using UnityEngine;
-
+using System.Collections.Generic;
+using AD.Advertising;
 using GoogleMobileAds.Api;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace AD
 {
-    /// <summary>
-    /// Google Mobile Ads SDK를 통해 보상형 광고를 관리
-    /// Managers의 Awake() 에서 초기화되며, 광고 로드 및 표시, 보상 처리, 재로드 기능을 제공
-    /// </summary>
+    /// <summary>Owns one explicitly requested rewarded ad and its original recipient.</summary>
     public class GoogleAdMobManager : MonoBehaviour
     {
-        public bool IsInProgress = false;
-        public bool IsReceived = false;
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || TAMER_TEST_ADS
-        // GoogleAdMob에서 제공하는 TestID
-        private string _adUnitId = "ca-app-pub-3940256099942544/5224354917";
-#elif UNITY_ANDROID
-        private string _adUnitId = "ca-app-pub-4045654268115042/5756715712";
-#else
-        private string _adUnitId = "unused";
-#endif
-
+        private const float LoadTimeoutSeconds = 30f;
+        private readonly object _callbackLock = new object();
+        private readonly Queue<PendingCallback> _callbacks = new Queue<PendingCallback>();
+        private sealed class PendingCallback
+        {
+            public Action Run;
+            public Action Discard;
+        }
         private RewardedAd _rewardedAd;
+        private RewardedAd _showingAd;
+        private RewardedAdSession _session;
+        private RewardedAdSession _closingSession;
+        private Action _resumeBgm;
+        private bool _initialized;
+        private bool _initializing;
+        private bool _loading;
+        private bool _subscribed;
+        private volatile bool _destroyed;
+        private int _loadVersion;
+        private int _sceneVersion;
+        private float _loadDeadline;
 
-        /// <summary>
-        /// Google Mobile Ads SDK를 초기화하고, 보상형 광고를 로드
-        /// </summary>
+        public bool IsInProgress => _session != null;
+
+        // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
+        public bool CanRequestAds =>
+            (Application.isEditor || Application.platform == RuntimePlatform.Android) &&
+            AdRequestPolicy.CanRequestTestAds(
+            Application.isEditor, Debug.isDebugBuild,
+#if TAMER_TEST_ADS
+            true,
+#else
+            false,
+#endif
+            Application.platform == RuntimePlatform.Android,
+            Application.platform == RuntimePlatform.IPhonePlayer,
+            Application.isBatchMode);
+
+        public bool HasNoAds
+        {
+            get
+            {
+                if (Managers.Instance == null || Managers.DataM == null ||
+                    Managers.DataM.LocalPlayerData == null ||
+                    !Managers.DataM.LocalPlayerData.TryGetValue("GooglePlay", out string purchases))
+                    return false;
+                return AdEntitlement.HasNoAds(purchases);
+            }
+        }
+
         public void Init()
         {
-            // Initialize the Google Mobile Ads SDK.
-            MobileAds.Initialize((InitializationStatus initStatus) =>
-            {
-                // This callback is called once the MobileAds SDK is initialized.
-                LoadRewardedAd();
-            });
-
-            AD.Managers.UpdateM.OnUpdateEvent -= CheckReward;
-            AD.Managers.UpdateM.OnUpdateEvent += CheckReward;
+            if (_subscribed || _destroyed) return;
+            _subscribed = true;
+            UnitySceneManager.activeSceneChanged += OnSceneChanged;
+            // Login/startup never initializes the SDK or requests an ad.
         }
 
-        /// <summary>
-        /// 광고 보상 여부를 체크
-        /// 보상을 받았다면, 현재 활성 씬에 따라 보상 성공 처리를 호출
-        /// </summary>
-        private void CheckReward()
+        private void Update()
         {
-            if (IsReceived)
+            while (TryDequeue(out var callback))
             {
-                IsReceived = !IsReceived;
-
-                string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-
-                if (currentScene == "Main")
-                    BuffingMan.Instance.OnAdSuccess();
-                else if (currentScene == "Game")
-                    Portal.Instance.RewardHeal();
+                try
+                {
+                    if (_destroyed) callback.Discard?.Invoke();
+                    else callback.Run();
+                }
+                catch (Exception exception) { Debug.LogException(exception); }
+            }
+            // Drain a same-frame reward/close batch before releasing fullscreen state.
+            // Android's separate callback threads may still deliver an earned reward
+            // in a later frame; that receipt is independent of presentation cleanup.
+            var closing = _closingSession;
+            _closingSession = null;
+            if (closing != null)
+            {
+                try { CompleteSession(closing, RewardedAdOutcome.Cancelled); }
+                catch (Exception exception) { Debug.LogException(exception); }
+            }
+            if ((_loading || _initializing) && Time.realtimeSinceStartup >= _loadDeadline)
+            {
+                // Invalidate late loads; never treat a visible native ad as closed.
+                _loadVersion++;
+                _loading = _initializing = false;
             }
         }
 
-        /// <summary>
-        /// 보상형 광고를 로드
-        /// 기존 광고가 있다면 제거한 후 새로 로드
-        /// </summary>
+        private bool TryDequeue(out PendingCallback callback)
+        {
+            lock (_callbackLock)
+            {
+                callback = _callbacks.Count > 0 ? _callbacks.Dequeue() : null;
+                return callback != null;
+            }
+        }
+
+        private void Enqueue(Action callback, Action discarded = null)
+        {
+            lock (_callbackLock)
+            {
+                if (!_destroyed)
+                {
+                    _callbacks.Enqueue(new PendingCallback { Run = callback, Discard = discarded });
+                    return;
+                }
+            }
+            discarded?.Invoke();
+        }
+
+        /// <summary>On-demand sample ads only. Production requests remain blocked.</summary>
         public void LoadRewardedAd()
         {
-            // Clean up the old ad before loading a new one.
-            if (_rewardedAd != null)
+            if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing) return;
+            Init();
+            int version = ++_loadVersion;
+            _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
+            if (!_initialized)
             {
-                _rewardedAd.Destroy();
-                _rewardedAd = null;
-            }
-
-            AD.DebugLogger.Log("GoogleAdMobManager", "Loading the rewarded ad.");
-
-            // create our request used to load the ad.
-            var adRequest = new AdRequest();
-
-            // send the request to load the ad.
-            RewardedAd.Load(_adUnitId, adRequest,
-                (RewardedAd ad, LoadAdError error) =>
+                _initializing = true;
+                try
                 {
-                    // if error is not null, the load request failed.
-                    if (error != null || ad == null)
+                    // Conservative test-request treatment, not a claim about the user's
+                    // age or a replacement for the unverified Console declaration.
+                    MobileAds.SetRequestConfiguration(new RequestConfiguration
                     {
-                        AD.DebugLogger.LogError("GoogleAdMobManager", $"Rewarded ad failed to load an ad with error : {error}");
-                        return;
-                    }
-
-                    AD.DebugLogger.Log("GoogleAdMobManager", $"Rewarded ad loaded with response : {ad.GetResponseInfo()}");
-
-                    _rewardedAd = ad;
-
-                    RegisterReloadHandler(_rewardedAd);
-                });
-        }
-
-        /// <summary>
-        /// 보상형 광고를 표시
-        /// 플레이어가 'No Ads' 제품을 보유 중이면 바로 보상을 처리
-        /// </summary>
-        public void ShowRewardedAd()
-        {
-            IsInProgress = true;
-
-            const string rewardMsg =
-                "Rewarded ad rewarded the user. Type: {0}, amount: {1}.";
-
-            if (AD.Managers.DataM.LocalPlayerData["GooglePlay"].Contains(AD.GameConstants.IAPItems.ProductNoAds.ToString()))
-            {
-                IsInProgress = false;
-                IsReceived = true;
-
+                        TagForChildDirectedTreatment = TagForChildDirectedTreatment.True,
+                        TagForUnderAgeOfConsent = TagForUnderAgeOfConsent.True,
+                        MaxAdContentRating = MaxAdContentRating.G
+                    });
+                    MobileAds.Initialize(status => Enqueue(() =>
+                    {
+                        if (version != _loadVersion) return;
+                        _initializing = false;
+                        _initialized = status != null;
+                        if (_initialized) LoadSampleAd(version);
+                    }));
+                }
+                catch (Exception)
+                {
+                    _initializing = false;
+                    DebugLogger.LogError("GoogleAdMobManager", "Test ad initialization failed.");
+                }
                 return;
             }
+            LoadSampleAd(version);
+        }
 
-            if (_rewardedAd != null && _rewardedAd.CanShowAd())
+        private void LoadSampleAd(int version)
+        {
+            _loading = true;
+            _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
+            DestroyLoadedAd();
+            try
             {
-                AD.Managers.SoundM.PauseBGM();
-                _rewardedAd.Show((Reward reward) =>
+                RewardedAd.Load(AdRequestPolicy.TestRewardedAdUnit(
+                    Application.platform == RuntimePlatform.IPhonePlayer), new AdRequest(), (ad, error) =>
                 {
-                    AD.DebugLogger.Log("GoogleAdMobManager", String.Format(rewardMsg, reward.Type, reward.Amount));
-
-                    AD.Managers.SoundM.UnpauseBGM();
-
-                    IsReceived = true;
+                    Enqueue(() =>
+                    {
+                        if (version != _loadVersion)
+                        {
+                            ad?.Destroy();
+                            return;
+                        }
+                        _loading = false;
+                        if (error != null || ad == null)
+                        {
+                            ad?.Destroy();
+                            DebugLogger.LogError("GoogleAdMobManager", "Test rewarded ad unavailable; retry manually.");
+                            return;
+                        }
+                        _rewardedAd = ad;
+                    }, () => ad?.Destroy());
                 });
             }
-            else
+            catch (Exception)
             {
-                AD.Managers.SoundM.UnpauseBGM();
-
-                BuffingMan.Instance.OnAdFailure();
-                IsInProgress = false;
+                _loading = false;
+                DebugLogger.LogError("GoogleAdMobManager", "Test ad load failed.");
             }
         }
 
-        /// <summary>
-        /// 광고가 종료되거나 실패한 후 처리 로직을 등록
-        /// 광고가 닫히거나 실패하면 다음 광고를 미리 로드
-        /// </summary>
-        private void RegisterReloadHandler(RewardedAd ad)
+        /// <summary>The caller supplies the reward, never the scene active at callback time.</summary>
+        public bool ShowRewardedAd(MonoBehaviour owner, Action reward, Action<RewardedAdOutcome> finished)
         {
-            // Raised when the ad closed full screen content.
-            ad.OnAdFullScreenContentClosed += () =>
+            if (_destroyed || IsInProgress || owner == null || reward == null || finished == null) return false;
+            Init();
+            var session = CreateSession(owner, reward, finished);
+            _session = session;
+
+            if (HasNoAds)
             {
-                IsInProgress = false;
-
-                AD.DebugLogger.Log("GoogleAdMobManager", "Rewarded Ad full screen content closed.");
-
-                // Reload the ad so that we can show another as soon as possible.
-                LoadRewardedAd();
-            };
-
-            // Raised when the ad failed to open full screen content.
-            ad.OnAdFullScreenContentFailed += (AdError error) =>
+                session.EarnReward();
+                CompleteSession(session, RewardedAdOutcome.Cancelled);
+                return true;
+            }
+            if (!CanRequestAds)
             {
-                BuffingMan.Instance.OnAdFailure();
-                IsInProgress = false;
-                IsReceived = false;
-
-                AD.DebugLogger.LogError("GoogleAdMobManager", $"Rewarded ad failed to open full screen content with error : {error}");
-
-                // Reload the ad so that we can show another as soon as possible.
+                CompleteSession(session, RewardedAdOutcome.PolicyBlocked);
+                return true;
+            }
+            bool canShow;
+            try { canShow = _rewardedAd != null && _rewardedAd.CanShowAd(); }
+            catch (Exception)
+            {
+                try { DestroyLoadedAd(); }
+                finally { CompleteSession(session, RewardedAdOutcome.Failed); }
+                return true;
+            }
+            if (!canShow)
+            {
+                CompleteSession(session, RewardedAdOutcome.Unavailable);
                 LoadRewardedAd();
-            };
+                return true;
+            }
+
+            var ad = _rewardedAd;
+            _rewardedAd = null;
+            _showingAd = ad;
+            ad.OnAdFullScreenContentClosed += () => Enqueue(() =>
+                QueueClose(session));
+            ad.OnAdFullScreenContentFailed += error => Enqueue(() =>
+                CompleteSession(session, RewardedAdOutcome.Failed));
+            try
+            {
+                if (Managers.Instance != null && Managers.SoundM != null)
+                    _resumeBgm = Managers.SoundM.PauseBGMForAd();
+                ad.Show(rewardInfo => Enqueue(session.EarnReward));
+            }
+            catch (Exception)
+            {
+                CompleteSession(session, RewardedAdOutcome.Failed);
+            }
+            return true;
         }
 
-        #region Functions
-        /// <summary>
-        /// 보상형 광고 데이터 리셋 시 사용
-        /// GoogleAdMob data의 경우 local에만 저장하면 됨
-        /// -> Player data 갱신 시 GoogleAdMob에 대한 내용을 따로 추가하지 않았기 때문에
-        /// 해당 데이터는 로컬을 우선시하게 됨 즉 서버를 통해 Player data를 갱신하게 되더라도
-        /// 서버에 있는 GoogleAdMob가 우선이 아니라 로컬에 있는 GoogleAdMob를 우선시 하게 됨
-        /// </summary>
+        private void CompleteSession(RewardedAdSession session, RewardedAdOutcome outcome)
+        {
+            // Stale callbacks cannot clear a newer session or resume its music.
+            if (_session != session)
+            {
+                if (outcome == RewardedAdOutcome.Failed) session.Invalidate();
+                return;
+            }
+            _session = null;
+            _closingSession = null;
+            var shownAd = _showingAd;
+            _showingAd = null;
+            var resume = _resumeBgm;
+            _resumeBgm = null;
+            try { shownAd?.Destroy(); }
+            finally
+            {
+                try { resume?.Invoke(); }
+                finally { session.Complete(outcome); }
+            }
+            // A later explicit interaction can load again; no automatic retry loop.
+        }
+
+        private void QueueClose(RewardedAdSession session)
+        {
+            if (_session == session) _closingSession = session;
+        }
+
+        private RewardedAdSession CreateSession(MonoBehaviour owner, Action reward,
+            Action<RewardedAdOutcome> finished)
+        {
+            int sceneHandle = UnitySceneManager.GetActiveScene().handle;
+            int sceneVersion = _sceneVersion;
+            return new RewardedAdSession(
+                () => !_destroyed && owner != null && _sceneVersion == sceneVersion &&
+                    UnitySceneManager.GetActiveScene().handle == sceneHandle,
+                reward, finished);
+        }
+
+        private void OnSceneChanged(Scene previous, Scene next)
+        {
+            // Invalidate the receipt but keep the fullscreen lock until real close/failure.
+            // Destroy() is not a reliable way to dismiss native fullscreen UI.
+            _sceneVersion++;
+            _session?.Invalidate();
+        }
+
+        private void DestroyLoadedAd()
+        {
+            var ad = _rewardedAd;
+            _rewardedAd = null;
+            ad?.Destroy();
+        }
+
+        private void OnDestroy()
+        {
+            lock (_callbackLock) _destroyed = true;
+            _loadVersion++;
+            UnitySceneManager.activeSceneChanged -= OnSceneChanged;
+            try
+            {
+                if (_session != null) CompleteSession(_session, RewardedAdOutcome.Failed);
+            }
+            catch (Exception exception) { Debug.LogException(exception); }
+
+            // Each cleanup step must run even if another step throws. Keep the
+            // callback loop outside finally handlers on Unity's Mono runtime.
+            try { DestroyLoadedAd(); }
+            catch (Exception exception) { Debug.LogException(exception); }
+
+            while (TryDequeue(out var callback))
+            {
+                try { callback.Discard?.Invoke(); }
+                catch (Exception exception) { Debug.LogException(exception); }
+            }
+        }
+
         public void ResetAdMob()
         {
-            AD.Managers.DataM.UpdateLocalData(key: "GoogleAdMob", value: "null");
-
-            PlayerUICanvas.Instance.EndBuff();
-            Player.Instance.EndBuff();
-            if (BuffingMan.Instance != null)
-                BuffingMan.Instance.SetAdmobState(true);
+            Managers.DataM.UpdateLocalData(key: "GoogleAdMob", value: "null");
+            if (PlayerUICanvas.Instance != null) PlayerUICanvas.Instance.EndBuff();
+            if (Player.Instance != null) Player.Instance.EndBuff();
+            if (BuffingMan.Instance != null) BuffingMan.Instance.SetAdmobState(true);
         }
-        #endregion
     }
 }

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using AD.Advertising;
+using TMPro;
 
 using UnityEngine;
 
@@ -28,6 +30,7 @@ namespace AD
         /// </summary>
         private bool _isException = true;
         private bool _isFlow = false;
+        private TMP_Text _healMessage;
 
         /// <summary>
         /// Managers - Awake() -> Init()
@@ -124,7 +127,41 @@ namespace AD
             _popupExit.SetActive(true);
         }
 
-        public void PopupHeal() => _popupHeal.SetActive(true);
+        public void PopupHeal()
+        {
+            if (_healMessage == null)
+            {
+                // Reuse the existing prompt without changing prefab GUIDs or button labels.
+                foreach (var text in _popupHeal.GetComponentsInChildren<TMP_Text>(true))
+                    if (text.text == "Would you like to watch an ad to heal your HP?")
+                    {
+                        _healMessage = text;
+                        break;
+                    }
+            }
+            SetHealMessage(GoogleAdMobM.HasNoAds ? "Restore your HP?"
+                : GoogleAdMobM.CanRequestAds ? "Would you like to watch an ad to heal your HP?"
+                : "Ad healing is currently unavailable. You can keep playing.");
+            _popupHeal.SetActive(true);
+        }
+
+        /// <summary>Close a specific popup without consuming a newer popup above it.</summary>
+        public void ClosePopup(GameObject target)
+        {
+            if (target == null) return;
+            var openPopups = _popupStack.ToArray();
+            _popupStack.Clear();
+            for (int index = openPopups.Length - 1; index >= 0; index--)
+                if (openPopups[index] != target) _popupStack.Push(openPopups[index]);
+            target.SetActive(false);
+        }
+
+        private GoogleAdMobManager GoogleAdMobM => Managers.GoogleAdMobM;
+
+        private void SetHealMessage(string message)
+        {
+            if (_healMessage != null) _healMessage.text = message;
+        }
 
         public void PopupGameOver() => _popupGameOver.SetActive(true);
 
@@ -156,8 +193,22 @@ namespace AD
 
         public void Heal()
         {
-            if (!AD.Managers.GoogleAdMobM.IsInProgress)
-                AD.Managers.GoogleAdMobM.ShowRewardedAd();
+            var player = Player.Instance;
+            if (player == null || GoogleAdMobM.IsInProgress) return;
+            GoogleAdMobM.ShowRewardedAd(player, () =>
+            {
+                player.Heal();
+                if (this != null) ClosePopup(_popupHeal);
+            }, outcome =>
+            {
+                if (outcome == RewardedAdOutcome.Rewarded || this == null) return;
+                SetHealMessage(outcome == RewardedAdOutcome.PolicyBlocked
+                    ? "Ad healing is currently unavailable. You can keep playing."
+                    : outcome == RewardedAdOutcome.Cancelled
+                        ? "Ad closed. You can keep playing."
+                        : "Ad is not ready. Please try again shortly.");
+                _popupHeal.SetActive(true);
+            });
         }
 
         public void SetException() => _isException = true;

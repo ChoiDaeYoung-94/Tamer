@@ -1,4 +1,5 @@
 using System;
+using AD.Advertising;
 
 using UnityEngine;
 
@@ -14,6 +15,8 @@ public class BuffingMan : MonoBehaviour
 
     private const string _normalAdMessage = "클릭하여 광고 보상을 통해\n플레이어의 능력치를 증가시켜주세요!\n버프는 10분간 적용됩니다.";
     private const string _failedAdMessage = "광고가 로드되지 않았습니다.\n잠시 후 다시 시도해 주세요!";
+    private const string _pausedAdMessage = "광고 보상은 현재 준비 중입니다.\n광고 없이 게임을 계속할 수 있습니다.";
+    private bool _rewardAvailable;
 
     private void Awake()
     {
@@ -67,9 +70,29 @@ public class BuffingMan : MonoBehaviour
     /// </summary>
     public void SetAdmobState(bool isAvailable)
     {
-        _admobTextMesh.text = isAvailable ? _normalAdMessage : _failedAdMessage;
-        _ablePortal.SetActive(isAvailable);
-        _unablePortal.SetActive(!isAvailable);
+        _rewardAvailable = isAvailable;
+        bool enabled = isAvailable && (AD.Managers.GoogleAdMobM.HasNoAds || AD.Managers.GoogleAdMobM.CanRequestAds);
+        _admobTextMesh.text = enabled ? RewardPrompt() : _pausedAdMessage;
+        _ablePortal.SetActive(enabled);
+        _unablePortal.SetActive(!enabled);
+    }
+
+    private string RewardPrompt() => AD.Managers.GoogleAdMobM.HasNoAds
+        ? "클릭하여 플레이어의 능력치를 증가시켜주세요!\n버프는 10분간 적용됩니다."
+        : _normalAdMessage;
+
+    public void RequestAdReward()
+    {
+        if (!_rewardAvailable || AD.Managers.GoogleAdMobM.IsInProgress) return;
+        AD.Managers.GoogleAdMobM.ShowRewardedAd(this, OnAdSuccess, outcome =>
+        {
+            // An older impression may deliver its earned event after this request
+            // started. Its active buff must not be re-enabled by this cancellation.
+            if (outcome == RewardedAdOutcome.Rewarded || !_rewardAvailable) return;
+            SetAdmobState(true);
+            _admobTextMesh.text = outcome == RewardedAdOutcome.PolicyBlocked ? _pausedAdMessage
+                : outcome == RewardedAdOutcome.Cancelled ? RewardPrompt() : _failedAdMessage;
+        });
     }
 
     /// <summary>
@@ -89,7 +112,8 @@ public class BuffingMan : MonoBehaviour
 
     public void OnAdFailure()
     {
-        SetAdmobState(false);
+        SetAdmobState(true);
+        _admobTextMesh.text = _failedAdMessage;
     }
     #endregion
 
@@ -97,7 +121,7 @@ public class BuffingMan : MonoBehaviour
     {
         if (col.CompareTag("Player") && AD.Managers.DataM.LocalPlayerData["GoogleAdMob"] == "null")
         {
-            _admobTextMesh.text = _normalAdMessage;
+            SetAdmobState(true);
             _admobObject.SetActive(true);
         }
     }
