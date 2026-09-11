@@ -10,7 +10,7 @@
   },
   "unity": {
     "executor": "UI owner checkout e5e5; same Privacy core/tests as this branch",
-    "sourceCommit": "8426f2d9d581361940b849555e7625628099863e",
+    "sourceCommit": "fff397e1eae26266c415212e4a80011c180d5cbf",
     "version": "6000.0.81f1",
     "cli": "1.0.0-beta.8",
     "passed": 355,
@@ -18,10 +18,12 @@
     "skipped": 0,
     "coreCases": 12,
     "uiCases": 8,
-    "startUtc": "2026-09-11 08:19:17Z",
-    "endUtc": "2026-09-11 08:19:21Z",
-    "xmlSha256": "8004f34f5126c06ea20c0bd07e233231c2c596e3e50fd9c255761b25895f2cba",
-    "newUnityExecutionByServiceOwner": false
+    "startUtc": "2026-09-11 08:25:18Z",
+    "endUtc": "2026-09-11 08:25:22Z",
+    "xmlSha256": "bfd962d93b2eaa2925e839d36d5af622479f7cd607f9b7a3889bef6e1186b6b0",
+    "newUnityExecutionByServiceOwner": false,
+    "ownEditorsAfter": 0,
+    "settingsRestored": true
   },
   "browser": {
     "sourceCommit": "fe5a5a8afa4800d62364b7bb3ecf41e2656e47c0",
