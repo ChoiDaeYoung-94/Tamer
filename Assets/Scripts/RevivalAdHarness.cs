@@ -27,6 +27,10 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private void Start()
     {
         if (Managers.Instance != null) throw new InvalidOperationException("Harness must not contain Managers.");
+        var clearCamera = new GameObject("Harness background camera").AddComponent<Camera>();
+        clearCamera.clearFlags = CameraClearFlags.SolidColor;
+        clearCamera.backgroundColor = Color.black;
+        clearCamera.cullingMask = 0;
         _initialScene = SceneManager.GetActiveScene();
         _alternateScene = SceneManager.CreateScene("AdHarnessEmpty");
         Ads.ConfigureHarnessAudio(Sound);
@@ -43,7 +47,8 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void OnAdEvent(string name, double timestamp)
     {
-        Record(name + " callback_monotonic=" + timestamp.ToString("F3", CultureInfo.InvariantCulture));
+        Record(name + " callback_monotonic=" + timestamp.ToString("F3", CultureInfo.InvariantCulture)
+            + " bgm_playing=" + Bgm.isPlaying + " sample=" + Bgm.timeSamples);
         if (name == "opened_callback" && _armedAction != "none") _actionAt = Now + 2;
     }
 
@@ -89,11 +94,13 @@ public sealed class RevivalAdHarness : MonoBehaviour
         else if (action == "replace BGM") Sound.PlayBGM(_tone);
     }
 
-    private void OnApplicationPause(bool paused) => Record("application_pause=" + paused);
+    private void OnApplicationPause(bool paused) => Record("application_pause=" + paused
+        + " bgm_playing=" + (Bgm != null && Bgm.isPlaying));
     private void OnApplicationFocus(bool focused) => Record("application_focus=" + focused);
 
     private void OnGUI()
     {
+        var previousMatrix = GUI.matrix;
         GUI.matrix = Matrix4x4.Scale(Vector3.one * (Screen.width / 720f));
         GUILayout.BeginArea(new Rect(16, 16, 688, Screen.height * 720f / Screen.width - 32));
         _scroll = GUILayout.BeginScrollView(_scroll);
@@ -112,6 +119,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
         foreach (string line in _events) GUILayout.Label(line);
         GUILayout.EndScrollView();
         GUILayout.EndArea();
+        GUI.matrix = previousMatrix;
     }
 
     private void OnDestroy()
