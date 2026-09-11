@@ -15,3 +15,9 @@ PlayFab 테스트 catalog 역시 소비 횟수나 만료 시간을 두지 않는
 전용 PlayFab 타이틀은 새 플레이어 네임스페이스로 생성했으며 개발 모드/초기 플레이어 0명과 무료 시작 안내를 확인했다. 운영 타이틀의 설정·계정을 재사용하지 않는다. 실제 ID/Console 링크는 공개 코드 대신 작업 인계에서 관리한다. Google Play 미공개 무료 테스트 앱 생성에 필요한 정책/수출법 선언은 사용자가 승인했다. 앱·상품 준비 및 실제 검증 상태는 후속 검증 기록으로 확정한다.
 
 참고: [PlayFab API 계약](https://learn.microsoft.com/en-us/rest/api/playfab/client/platform-specific-methods/validate-google-play-purchase?view=playfab-rest), [Google 구매 지급·승인 순서](https://developer.android.com/google/play/billing/integrate).
+
+## 테스트 리소스 생성 결과
+
+Google Play에서 `Monster Tamer IAP Test`를 `com.AeDeong.MonsterTamer.iaptest` 패키지의 무료 게임(en-US)으로 생성했다. 패키지 사용 가능 여부 확인과 사용자가 승인한 개발자 프로그램 정책/미국 수출법 선언 후 신규 앱 대시보드의 게시 준비 상태를 확인했다. 자동 보호 기본값을 유지했으며 빌드 업로드·테스트 트랙 배포·프로덕션 신청은 수행하지 않았다.
+
+전용 PlayFab `Tamer IAP Test`와 Google 앱의 생성은 완료됐지만 Google 상품/라이선스 테스터, PlayFab Google add-on/영구 catalog, 격리 앱 composition과 실제 구매 검증은 남아 있다. 이 후속 기록은 Console 생성 상태만 갱신하며 기존 코드 source/Editor361개 검증 결과는 그대로 유지한다.
