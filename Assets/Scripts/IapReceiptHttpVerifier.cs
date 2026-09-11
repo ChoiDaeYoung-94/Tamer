@@ -38,6 +38,7 @@ namespace AD
 
         public async Task<bool> VerifyAsync(string receipt, ReceiptSession session, CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             if (session == null || !session.IsValid || string.IsNullOrEmpty(receipt) || receipt.Length > 32768)
                 return false;
             string nonce = Guid.NewGuid().ToString("N");
@@ -50,6 +51,7 @@ namespace AD
                 request.SetRequestHeader("Content-Type", "application/json");
                 request.timeout = 20;
                 request.redirectLimit = 0;
+                token.ThrowIfCancellationRequested();
                 var operation = request.SendWebRequest();
                 try
                 {

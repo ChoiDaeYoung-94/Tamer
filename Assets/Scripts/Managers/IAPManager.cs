@@ -346,11 +346,21 @@ namespace AD
             try
             {
                 var session = _receiptSession();
+                var owner = Managers.Instance != null ? Managers.DataM : null;
+                if (owner == null || session == null || !session.IsValid ||
+                    !owner.IsServerDataReady || owner.PlayFabId != session.AccountId) return;
                 bool verified = await ReceiptVerification.VerifyCurrentAsync(_receiptVerifier,
                     order.Info.Receipt, _receiptSession, _lifetime.Token);
                 if (_disposed || !_connected || generation != _validationGeneration ||
                     !_unfinished.TryGetValue(key, out var current) || !ReferenceEquals(order, current)) return;
-                if (verified && session != null && session.Matches(_receiptSession())) FulfillVerified(key, order);
+                if (verified)
+                {
+                    var fulfillment = new NoAdsPurchaseFulfillment(() => ReceiptVerification.TryPersistCurrent(
+                        owner, session, () => Managers.Instance != null ? Managers.DataM : null,
+                        _receiptSession, () => owner != null && owner.IsServerDataReady,
+                        () => owner.PlayFabId, () => owner.TryGrantNoAds()));
+                    FulfillVerified(key, order, fulfillment);
+                }
                 // Rejected/unavailable verification never grants or confirms.
                 // Keep the order for the existing bounded retry loop.
             }
@@ -365,10 +375,10 @@ namespace AD
             }
         }
 
-        private void FulfillVerified(string key, Order order)
+        private void FulfillVerified(string key, Order order, NoAdsPurchaseFulfillment verifiedFulfillment = null)
         {
             var pending = order as PendingOrder;
-            var result = _fulfillment.Process(pending != null ? PurchaseDeliveryState.Pending :
+            var result = (verifiedFulfillment ?? _fulfillment).Process(pending != null ? PurchaseDeliveryState.Pending :
                 PurchaseDeliveryState.Confirmed, new[] { ProductNoAds }, pending == null ? null : (Action)(() =>
                 {
                     _confirming[key] = DateTime.UtcNow;

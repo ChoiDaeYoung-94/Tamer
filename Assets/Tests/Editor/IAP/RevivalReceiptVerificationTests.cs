@@ -98,6 +98,56 @@ public class RevivalReceiptVerificationTests
             Is.EqualTo("744cf32980ca96595ea8c259570a1b821c194285c0811f2265a232ec39ae273b"));
     }
 
+    [Test]
+    public void Revival_Receipt_CapturedSessionCannotGrantToReplacementPersistenceOwner()
+    {
+        object ownerA = new object(), ownerB = new object();
+        object currentOwner = ownerA;
+        var session = new ReceiptSession("account-a", "ticket-a");
+        int grants = 0, confirmations = 0;
+        var fulfillment = new NoAdsPurchaseFulfillment(() => ReceiptVerification.TryPersistCurrent(
+            ownerA, session, () => currentOwner, () => session, () => true,
+            () => "account-a", () => { grants++; return true; }));
+        // The injected supplier still returns A, but actual Data ownership changed.
+        currentOwner = ownerB;
+        Assert.That(fulfillment.Process(PurchaseDeliveryState.Pending,
+            new[] { NoAdsPurchaseFulfillment.ProductId }, () => confirmations++),
+            Is.EqualTo(PurchaseFulfillmentResult.PersistenceFailed));
+        Assert.That(grants, Is.Zero);
+        Assert.That(confirmations, Is.Zero);
+        currentOwner = ownerA;
+        Assert.That(fulfillment.Process(PurchaseDeliveryState.Pending,
+            new[] { NoAdsPurchaseFulfillment.ProductId }, () => confirmations++),
+            Is.EqualTo(PurchaseFulfillmentResult.Fulfilled));
+        Assert.That(grants, Is.EqualTo(1));
+        Assert.That(confirmations, Is.EqualTo(1));
+    }
+
+    [TestCase(false, "account-a")]
+    [TestCase(true, "account-b")]
+    public void Revival_Receipt_SuspendedOrReboundOwnerCannotPersist(bool ready, string ownerAccount)
+    {
+        var owner = new object();
+        var session = new ReceiptSession("account-a", "ticket-a");
+        bool called = false;
+        Assert.That(ReceiptVerification.TryPersistCurrent(owner, session, () => owner, () => session,
+            () => ready, () => ownerAccount, () => { called = true; return true; }), Is.False);
+        Assert.That(called, Is.False);
+    }
+
+    [Test]
+    public void Revival_Receipt_PreCancelledTransportNeverStartsRequest()
+    {
+        var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.IapReceiptHttpVerifier")).First(t => t != null);
+        var verifier = (IReceiptVerifier)Activator.CreateInstance(type, "https://example.test/v1/no-ads/verify");
+        using (var source = new CancellationTokenSource())
+        {
+            source.Cancel();
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await verifier.VerifyAsync(
+                "receipt", new ReceiptSession("test-a", "ticket"), source.Token));
+        }
+    }
+
     [TestCase("http://example.test/v1/no-ads/verify")]
     [TestCase("https://user:password@example.test/v1/no-ads/verify")]
     [TestCase("https://example.test/v1/no-ads/verify?redirect=elsewhere")]

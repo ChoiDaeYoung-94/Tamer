@@ -37,6 +37,22 @@ namespace AD.Purchasing
     /// <summary>Account/session changes invalidate late validation before any grant.</summary>
     public static class ReceiptVerification
     {
+        // Keep the verified session and the actual persistence owner in the same
+        // boundary. A captured session supplier alone cannot identify the current
+        // DataManager; a replacement manager could otherwise receive the grant.
+        public static bool TryPersistCurrent(object owner, ReceiptSession session,
+            Func<object> currentOwner, Func<ReceiptSession> currentSession,
+            Func<bool> ownerReady, Func<string> ownerAccountId, Func<bool> persist)
+        {
+            try
+            {
+                return owner != null && ReferenceEquals(owner, currentOwner()) && session != null &&
+                    session.Matches(currentSession()) && ownerReady() &&
+                    string.Equals(session.AccountId, ownerAccountId(), StringComparison.Ordinal) && persist();
+            }
+            catch (Exception) { return false; }
+        }
+
         public static async Task<bool> VerifyCurrentAsync(IReceiptVerifier verifier, string receipt,
             Func<ReceiptSession> currentSession, CancellationToken token)
         {
