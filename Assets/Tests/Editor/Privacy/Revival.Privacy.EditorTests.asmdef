@@ -1,0 +1,6 @@
+{
+  "name": "Revival.Privacy.EditorTests",
+  "references": ["Tamer.Privacy"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}
