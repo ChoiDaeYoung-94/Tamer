@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "9044b6fc2027332649f326ce012d253ab831d3ca",
+  "sourceCommit": "14f8ee0667c06f9369bcb921adb26fbfe31f85bd",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -52,7 +52,7 @@
     {
       "path": "Assets/Scripts/Cameras/CameraManage.cs",
       "kind": "runtime",
-      "lines": 33,
+      "lines": 38,
       "declaredTypes": [
         "CameraManage"
       ],
@@ -112,7 +112,7 @@
     {
       "path": "Assets/Scripts/Creatures/Monster.cs",
       "kind": "runtime",
-      "lines": 808,
+      "lines": 813,
       "declaredTypes": [
         "Monster"
       ],
@@ -154,7 +154,7 @@
     {
       "path": "Assets/Scripts/Creatures/ShopMan.cs",
       "kind": "runtime",
-      "lines": 162,
+      "lines": 185,
       "declaredTypes": [
         "ShopMan"
       ],
@@ -434,7 +434,7 @@
     {
       "path": "Assets/Scripts/Main/IAPItem.cs",
       "kind": "runtime",
-      "lines": 22,
+      "lines": 29,
       "declaredTypes": [
         "IAPItem"
       ],
@@ -465,7 +465,7 @@
     {
       "path": "Assets/Scripts/Main/Item.cs",
       "kind": "runtime",
-      "lines": 111,
+      "lines": 118,
       "declaredTypes": [
         "Item"
       ],
@@ -531,7 +531,7 @@
     {
       "path": "Assets/Scripts/Managers/GameManager.cs",
       "kind": "runtime",
-      "lines": 100,
+      "lines": 101,
       "declaredTypes": [
         "GameManager"
       ],
@@ -640,17 +640,19 @@
     {
       "path": "Assets/Scripts/Managers/PopupManager.cs",
       "kind": "runtime",
-      "lines": 261,
+      "lines": 305,
       "declaredTypes": [
         "PopupManager"
       ],
       "managerReferences": [
         "GameM",
         "GoogleAdMobM",
+        "Instance",
         "SoundM",
         "UpdateM"
       ],
       "singletonReferences": [
+        "Managers",
         "Player"
       ],
       "metaPresent": true
@@ -669,17 +671,21 @@
     {
       "path": "Assets/Scripts/Managers/SceneManager.cs",
       "kind": "runtime",
-      "lines": 87,
+      "lines": 139,
       "declaredTypes": [
-        "SceneManager"
+        "SceneManager",
+        "SceneServices"
       ],
       "managerReferences": [
         "DataM",
+        "Instance",
         "PopupM",
         "ServerM",
         "SoundM"
       ],
-      "singletonReferences": [],
+      "singletonReferences": [
+        "Managers"
+      ],
       "metaPresent": true
     },
     {
@@ -721,15 +727,18 @@
     {
       "path": "Assets/Scripts/Managers/Sub/PopupObject.cs",
       "kind": "runtime",
-      "lines": 60,
+      "lines": 62,
       "declaredTypes": [
         "PopupObject",
         "CheckType"
       ],
       "managerReferences": [
+        "Instance",
         "PopupM"
       ],
-      "singletonReferences": [],
+      "singletonReferences": [
+        "Managers"
+      ],
       "metaPresent": true
     },
     {
@@ -829,7 +838,7 @@
     {
       "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarRenderer.cs",
       "kind": "runtime",
-      "lines": 142,
+      "lines": 178,
       "declaredTypes": [
         "FogOfWarRenderer"
       ],
@@ -895,18 +904,16 @@
     {
       "path": "Assets/Scripts/MiniMap/MiniMap.cs",
       "kind": "runtime",
-      "lines": 129,
+      "lines": 140,
       "declaredTypes": [
         "MiniMap"
       ],
       "managerReferences": [
         "DataM",
-        "Instance",
         "UpdateM"
       ],
       "singletonReferences": [
         "JoyStick",
-        "Managers",
         "Player",
         "PlayerUICanvas"
       ],
@@ -915,7 +922,7 @@
     {
       "path": "Assets/Scripts/MiniMap/MiniMapCanvas.cs",
       "kind": "runtime",
-      "lines": 9,
+      "lines": 14,
       "declaredTypes": [
         "MiniMapCanvas"
       ],
@@ -980,7 +987,7 @@
     {
       "path": "Assets/Scripts/SetCharacter/CanvasSelectCharacter.cs",
       "kind": "runtime",
-      "lines": 97,
+      "lines": 110,
       "declaredTypes": [
         "CanvasSelectCharacter"
       ],
@@ -997,7 +1004,7 @@
     {
       "path": "Assets/Scripts/UI/JoyStick.cs",
       "kind": "runtime",
-      "lines": 166,
+      "lines": 185,
       "declaredTypes": [
         "JoyStick",
         "Mode"
@@ -1022,7 +1029,7 @@
     {
       "path": "Assets/Scripts/UI/PlayerUICanvas.cs",
       "kind": "runtime",
-      "lines": 216,
+      "lines": 224,
       "declaredTypes": [
         "PlayerUICanvas"
       ],
@@ -1043,7 +1050,7 @@
     {
       "path": "Assets/Scripts/UI/TMP_Damage.cs",
       "kind": "runtime",
-      "lines": 65,
+      "lines": 66,
       "declaredTypes": [
         "TMP_Damage"
       ],
@@ -1118,7 +1125,7 @@
     {
       "path": "Assets/Tests/Editor/RevivalAdPopupTests.cs",
       "kind": "tests",
-      "lines": 256,
+      "lines": 436,
       "declaredTypes": [
         "RevivalAdPopupTests"
       ],
@@ -1183,7 +1190,7 @@
     {
       "path": "Assets/Tests/Editor/RevivalMonsterLifecycleTests.cs",
       "kind": "tests",
-      "lines": 208,
+      "lines": 358,
       "declaredTypes": [
         "RevivalMonsterLifecycleTests"
       ],
@@ -1256,6 +1263,19 @@
       ],
       "managerReferences": [],
       "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalUILifecycleTests.cs",
+      "kind": "tests",
+      "lines": 127,
+      "declaredTypes": [
+        "RevivalUILifecycleTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
       "metaPresent": true
     }
   ],
