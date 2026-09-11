@@ -30,6 +30,7 @@ public class RevivalDeletionUITests
     {
         preview = EditorSceneManager.NewPreviewScene();
         root = new GameObject("Deletion UI fixture", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
+        root.AddComponent<UnityEngine.EventSystems.EventSystem>();
         SceneManager.MoveGameObjectToScene(root, preview);
         panel = new GameObject("Privacy", typeof(RectTransform));
         panel.transform.SetParent(root.transform, false);
@@ -133,6 +134,56 @@ public class RevivalDeletionUITests
         Assert.That(((RectTransform)entry).sizeDelta.y, Is.GreaterThan(0));
         Assert.That(entry.GetComponent<Image>().raycastTarget, Is.True);
         Assert.That(root.GetComponent<GraphicRaycaster>(), Is.Not.Null);
+    }
+
+    [Test] public void Revival_DeletionViewRendersWithinPortraitBounds()
+    {
+        var cameraObject = new GameObject("UI verification camera", typeof(Camera));
+        cameraObject.transform.SetParent(root.transform, false);
+        var camera = cameraObject.GetComponent<Camera>();
+        camera.clearFlags = CameraClearFlags.SolidColor;
+        camera.backgroundColor = Color.black;
+        var target = new RenderTexture(1080, 1920, 24);
+        var texture = new Texture2D(1080, 1920, TextureFormat.RGB24, false);
+        var previous = RenderTexture.active;
+        try
+        {
+            camera.targetTexture = target;
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = camera;
+            canvas.planeDistance = 1;
+            var rect = (RectTransform)panel.transform;
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Canvas.ForceUpdateCanvases();
+            var output = System.IO.Path.Combine(Application.dataPath, "../.revival-local/deletion-ui");
+            System.IO.Directory.CreateDirectory(output);
+            foreach (var state in new[] { "unavailable", "confirmation" })
+            {
+                if (state == "confirmation") { Configure(new Fake()); Click("Request"); }
+                Canvas.ForceUpdateCanvases();
+                camera.Render();
+                RenderTexture.active = target;
+                texture.ReadPixels(new Rect(0, 0, 1080, 1920), 0, 0); texture.Apply();
+                System.IO.File.WriteAllBytes(System.IO.Path.Combine(output, state + ".png"), texture.EncodeToPNG());
+                foreach (var button in panel.GetComponentsInChildren<Button>())
+                {
+                    var corners = new Vector3[4]; ((RectTransform)button.transform).GetWorldCorners(corners);
+                    foreach (var corner in corners)
+                    {
+                        var pixel = camera.WorldToScreenPoint(corner);
+                        Assert.That(pixel.x, Is.InRange(0f, 1080f));
+                        Assert.That(pixel.y, Is.InRange(0f, 1920f));
+                    }
+                }
+            }
+        }
+        finally
+        {
+            camera.targetTexture = null; RenderTexture.active = previous;
+            UnityEngine.Object.DestroyImmediate(texture); UnityEngine.Object.DestroyImmediate(target);
+        }
     }
 
     sealed class Fake : IDeletionGateway
