@@ -8,7 +8,7 @@ Unity로 만든 Android 3D 게임입니다. 플레이어가 몬스터를 동료�
 
 복구 기준은 **Unity 6000.0.81f1**, Android **min API 24 / target API 36 / ARM64**, 앱 **1.0.5 / versionCode 26**입니다. 정확한 버전은 [도구 잠금](tools/revival/toolchain.json), [UPM 잠금](Packages/packages-lock.json), [의존성 문서](docs/revival/dependencies.ko.md)를 확인합니다.
 
-최신 [구현·통합 검증 요약](docs/revival/completion-summary.ko.md)과 [통합 검증 데이터](docs/revival/integration-validation.json)에 병합 PR, 실제 SDK 버전, EditMode 248개·Python 31개 통과와 격리 APK 결과를 기록했습니다. [초기 기준 빌드 기록](docs/revival/baseline.ko.md)은 별도 이력입니다. 네이티브 LOAD/ZIP 검사는 통과했지만 엄격 RELRO 검사 5개와 실제 16KB 기기·AAB 검증은 남아 있습니다. 기기에서의 로그인·저장·구매·광고와 Google Play 심사 통과도 별도이며, [Families 광고 이슈 #91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91)은 빌드 성공만으로 종료하지 않습니다.
+최신 [구현·통합 검증 요약](docs/revival/completion-summary.ko.md)과 [2차 통합 검증 데이터](docs/revival/phase2-validation.json)에 병합 PR, 실제 SDK 버전, EditMode 249개·Python 71개 통과와 격리 빌드 결과를 기록했습니다. [초기 기준 빌드 기록](docs/revival/baseline.ko.md)은 별도 이력입니다. 네이티브 LOAD/ZIP 검사는 통과했지만 엄격 RELRO 검사 5개와 실제 16KB 기기 실행은 남아 있습니다. [AAB·split 정적 검사](docs/revival/aab-16kb-validation.ko.md)와 [광고 샘플·대조 APK](docs/revival/families-store-readiness.ko.md)는 완료했고, 실제 기기 검증과 구분합니다. 기기에서의 로그인·저장·구매·광고와 Google Play 심사 통과도 별도이며, [Families 광고 이슈 #91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91)은 빌드 성공만으로 종료하지 않습니다.
 
 **CI/CD는 보류 중입니다.** 기존 App Center 설정은 보존하며 자동 빌드·배포를 실행하지 않습니다. 과거 다운로드 링크를 현재 검증된 빌드로 안내하지 않습니다.
 

@@ -1,6 +1,6 @@
 # Android 네이티브 16KB 정렬 검증
 
-검증일: 2026-09-11. **최종 통합 APK는 LOAD/ZIP 검사를 통과했지만 공식 Android 가이드의 RELRO 끝 주소 modulo 검사는 5개 실패했다. 실제 16KB 실행·AAB split·스토어 승인은 미검증이다.** 아래 SDK 단독 APK의 4개 실패 기록과 구분한다.
+검증일: 2026-09-11. **최종 통합 APK는 LOAD/ZIP 검사를 통과했지만 공식 Android 가이드의 RELRO 끝 주소 modulo 검사는 5개 실패했다. 실제 16KB 실행·스토어 승인은 미검증이다. 2차 AAB·split 정적 검사 결과는 [별도 기록](aab-16kb-validation.ko.md)에 있으며 동일한 strict RELRO 5개 실패가 남는다.** 아래 SDK 단독 APK의 4개 실패 기록과 구분한다.
 
 ## 최신 최종 통합 APK
 
@@ -21,7 +21,7 @@
 | 공식 가이드 RELRO 끝 modulo | 5개 실패, `relroChecksPassed=false`; strict 종료 코드 1 |
 | RELRO와 LOAD 전체 범위 일치 | 6개 전부 |
 | RELRO 보호 범위를 16KB로 내림/올림했을 때 원 RELRO 밖 쓰기 가능 LOAD 바이트와 겹침 | 앞·뒤 확장부 모두 검사, 0개 |
-| 실제 16KB 실행·AAB split·스토어 승인 | 미검증 |
+| 실제 16KB 실행·스토어 승인 | 미검증; 2차 AAB·split 정적 검사는 별도 기록 참조 |
 
 끝 modulo 실패는 `libc++_shared.so`, `libil2cpp.so`, `libmain.so`, `libswappywrapper.so`, `libunity.so`다. SDK 단독 기록에서 통과했던 `libil2cpp.so`의 최종 통합 끝 나머지는 `0x2000`이다. `lib_burst_generated.so`는 통과했다. 겹침 0개는 선언된 LOAD 범위의 정적 계산이며, 실제 로더·메모리 접근의 성공 판정이 아니다.
 
@@ -89,7 +89,7 @@ AOSP Android 16 QPR2의 `phdr_table_get_relro_min_align`은 같은 시작 주소
 
 Unity는 `6000.0.38f1`에서 16KB 지원 수정과 NDK r27c 전환을 기록했다. 현재 `6000.0.81f1`이라는 버전만으로 실행 불가나 버전 전환 필수를 단정하지 않는다. [Unity 공식 릴리스 노트](https://unity.com/releases/editor/whats-new/6000.0.38f1)
 
-최종 AAB와 생성 split APK를 별도로 검사하고, 실제 ARM64 Android 15/16에서 `adb shell getconf PAGE_SIZE`가 `16384`인지 확인한 뒤 호환 모드에 의존하지 않는 시작·게임 진행·안전한 SDK 경로를 검증해야 한다. 개발 APK의 압축 패키징과 zipalign 성공은 이를 대신하지 않는다. 스토어 판정도 별도 미검증이다. [Android 테스트 안내](https://developer.android.com/guide/practices/page-sizes#test-your-app-in-a-16-kb-environment)
+2차 AAB와 생성 split APK의 정적 검사는 완료했다. 실제 ARM64 Android 15/16에서 `adb shell getconf PAGE_SIZE`가 `16384`인지 확인한 뒤 호환 모드에 의존하지 않는 시작·게임 진행·안전한 SDK 경로를 검증해야 한다. 개발 APK의 압축 패키징과 zipalign 성공은 이를 대신하지 않는다. 스토어 판정도 별도 미검증이다. [Android 테스트 안내](https://developer.android.com/guide/practices/page-sizes#test-your-app-in-a-16-kb-environment)
 
 ## 도구의 판정 범위
 

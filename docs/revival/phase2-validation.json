@@ -1,0 +1,50 @@
+{
+  "date": "2026-09-11",
+  "checkout": "7819/Tamer",
+  "sourceCommit": "d1f6a2505cdd820059284077ee4bd9df7d29abe9",
+  "unity": "6000.0.81f1",
+  "unityCli": "1.0.0-beta.8",
+  "command": "Run-Baseline.ps1 -TestsOnly",
+  "exitCode": 0,
+  "editMode": {
+    "total": 249,
+    "passed": 249,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 3.9542773,
+    "xmlSha256": "e858999a865a03f8ab6a900b68b03c486be1bdc7b524bec188831a63798ac7e1"
+  },
+  "python": {
+    "passed": 71,
+    "durationSeconds": 4.618
+  },
+  "assets": {
+    "verified": 4561,
+    "copied": 0
+  },
+  "settingsRestoration": {
+    "projectSettingsBytesMatch": true,
+    "ownEditorProcessesAfterRun": 0,
+    "scope": "ProjectSettings.asset only; SceneTemplate serialization and two line-ending-only asset changes restored separately after Editor exit"
+  },
+  "mergedPrs": [
+    108,
+    109,
+    110,
+    111
+  ],
+  "evidence": {
+    "privacy": "privacy-validation.json",
+    "security": "security-phase2-validation.json",
+    "aab": "aab-16kb-validation.json",
+    "ads": "ads-harness-validation.json",
+    "phase1": "integration-validation.json"
+  },
+  "artifactScope": "AAB and sample/control APKs retain their separately recorded build-source commits. Integration reran tests, not full builds; both ad APK identities/hashes and AAB hash independently rechecked.",
+  "actual16KbRuntime": false,
+  "actualAdsRuntime": false,
+  "storeSubmission": false,
+  "productionMigration": false,
+  "signingKeyRotation": false,
+  "ciEnabled": false
+}

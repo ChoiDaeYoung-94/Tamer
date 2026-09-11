@@ -52,7 +52,9 @@ git diff --check
 
 전체 `Run-SdkValidation.ps1`은 Python 회귀 → `Run-Baseline.ps1`의 복원 검증·EditMode·격리 APK 빌드·메타데이터/서명 검사 → GUID → 네이티브 LOAD/ZIP 검사를 순서대로 수행한다. 기본 Editor 경로가 다르면 `-EditorPath 'C:/path/to/Editor/Unity.exe'`를 전달한다. 테스트는 고정 버전으로 Editor를 찾고 빌드는 지정한 실행 파일을 사용한다.
 
-전체 스크립트 성공은 추가 RELRO 검사 통과를 뜻하지 않는다. 최종 통합 APK의 `--strict-relro`는 5개 끝 주소 조건 실패로 종료 코드 1이며, 실제 16KB 기기·AAB 검증도 남아 있다. 판정 범위는 [네이티브 검사 문서](revival/native-alignment.ko.md)를 따른다.
+전체 스크립트 성공은 추가 RELRO 검사 통과를 뜻하지 않는다. 1단계 통합 APK의 `--strict-relro`는 5개 끝 주소 조건 실패로 종료 코드 1이며, 실제 16KB 기기 및 AAB로 생성한 split의 설치·실행 검증도 남아 있다. 판정 범위는 [네이티브 검사 문서](revival/native-alignment.ko.md)를 따른다.
+
+`Run-Baseline.ps1`은 테스트와 APK 빌드 전에 `ProjectSettings/ProjectSettings.asset`을 비공개 `Logs/revival/settings-snapshots`에 보관한다. Unity가 시작할 때 서명 alias를 비우는 변경까지 포함해, 해당 Editor 종료 후 원래 바이트로 복원하고 해시를 확인한다. 테스트나 빌드가 실패해도 같은 복원 경로를 사용한다. Editor가 아직 실행 중이거나 사본 해시가 달라지면 파일을 덮어쓰지 않고 사본을 남긴다. 오류에 표시된 사본을 보존하고 해당 checkout의 Editor 상태를 확인한 뒤 복구한다. 기존 미커밋 설정을 Git HEAD로 덮어쓰지 않는다.
 
 | 결과 | 확인 위치 |
 | --- | --- |
@@ -66,6 +68,8 @@ git diff --check
 검증 APK의 첫 씬은 게임 스크립트가 없는 `RevivalSmoke`다. 기존 게임 씬 5개도 빌드에 포함하지만 자동으로 운영 로그인·저장·구매·광고에 진입하지 않는다. 개발 빌드는 별도 앱 ID와 debug 서명을 사용하므로 운영 앱/진행도와 분리된다. 기존 `src/AeDeong.keystore`를 수정·교체하지 않는다.
 
 APK 메타데이터 검사는 기기 설치/실행, 모든 native 라이브러리의 16 KB 호환성, 실제 사용자 계정, 구매 복원, 광고 닫힘이나 심사 승인을 보장하지 않는다. 각 검증은 별도의 근거로 기록한다.
+
+격리 debug AAB와 bundletool split 생성·서명·정렬 검사, 실패한 에뮬레이터 시도와 재개 조건은 [AAB·16KB 기록](revival/aab-16kb-validation.ko.md)을 따른다. AAB/split 정적 검증은 완료했으며 실제 설치·16KB 실행은 미완료다. 직접 CLI로 AAB를 빌드하는 명령은 위 PowerShell wrapper를 거치지 않으므로 그 문서의 별도 설정 보존 절차가 필요하다.
 
 ## 3. Editor와 Pipeline 사용
 

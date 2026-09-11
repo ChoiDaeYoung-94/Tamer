@@ -22,7 +22,7 @@
 | Unity CLI | 1.0.0-beta.8 | 공식 배포 SHA-256 고정 설치 |
 | Pipeline | 0.6.0-exp.1 | UPM manifest/lock |
 | 복원 | SDK 이행 후 파일 4,561개 해시 확인, 서비스 설정 제외 유지 | assets-manifest.json 및 integration-validation.json |
-| 자동화 | Python 31개, Unity EditMode 248개, 격리 APK 메타데이터/서명·GUID·LOAD/ZIP 통과 | tools/revival 및 integration-validation.json; strict RELRO 5개 실패 별도 |
+| 자동화 | Python 71개, Unity EditMode 249개, 격리 APK 메타데이터/서명·GUID·LOAD/ZIP 통과 | tools/revival 및 phase2-validation.json; strict RELRO 5개 실패 별도 |
 | 기기·스토어 | 별도 검증 필요 | 기준 작업 당시 연결 Android 기기 0대 |
 
 초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK/IAP 이행 PR #106은 병합됐으며 실제 최종 버전은 [통합 요약](completion-summary.ko.md)에 기록했다. 현재 checkout의 manifest/lock과 vendor 파일이 실행 기준이다. Unity6.3 설치는 Windows UAC로 중단됐고 [#86 재개 안내](unity63-handoff.ko.md)를 따른다.
@@ -38,7 +38,7 @@
 | P4 | 저장·인증과 게임플레이 리팩토링 | #96: 서버 진행도와 계정 연속성. #98: 전투 루프/보스/생성 수명 |
 | P5 | 개발 문서와 운영 준비 | #93: README/개발 절차, #94: GitHub 접근 점검. CI/CD는 사용자 방침상 보류 |
 
-구현 PR #95·#93·#103·#100·#101·#102·#104·#106은 main에 병합했다. 위 단계의 실제 기기·정책·서비스·소유자 확인까지 완료한 것은 아니며, 정확한 완료 범위와 미검증 항목은 통합 요약을 기준으로 한다.
+구현 PR #95·#93·#103·#100·#101·#102·#104·#106은 main에 병합했다. 2차 PR #108·#109·#110·#111도 병합해 개인정보 초안·오프라인 감사, AAB/split 정적 검사, 인증서 역할·비공개 복원 검증, 광고 격리 APK를 추가했다. 위 단계의 실제 기기·정책·서비스·소유자 확인까지 완료한 것은 아니며, 정확한 완료 범위와 미검증 항목은 통합 요약을 기준으로 한다.
 
 ## 병렬 작업과 통합
 
