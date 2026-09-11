@@ -41,7 +41,8 @@ python -m unittest discover -s tools/revival -p test_restore_assets.py
 ## 민감한 기존 파일
 
 기존 공개 이력에 있는 서명키는 변경하거나 삭제하지 않았다. 개발 빌드는 debug signing을 사용한다.
-원래 서명키가 upload key인지 app signing key인지와 기존 배포 인증서 관계는 아직 확인하지 않았다.
+2026-09-11 후속 대조에서 기존 JKS는 현재 Play 업로드 인증서와 일치하고 앱 서명 인증서와 다름을 확인했다.
+키 변경 없는 대응 초안과 사본 검증 절차는 [서명·비공개 백업](signing-and-private-backup.ko.md)에 있다.
 계정 설정, 기존 로그인 코드의 자격정보, 서명 값, 원시 Editor 로그를 공개 문서에 복사하지 않는다.
 이미 추적되던 `.utmp`, `UserSettings`, PlayFab Editor 계정 설정은 이 브랜치에서 Git 추적만 해제했다.
 현재 작업본의 파일과 D: 원본은 보존한다. 과거 공개 이력은 없어지지 않으므로 별도 후속 점검이 필요하다.
