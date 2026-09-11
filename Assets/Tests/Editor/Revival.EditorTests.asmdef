@@ -1,5 +1,6 @@
 {
   "name": "Revival.EditorTests",
+  "references": ["AD.Advertising"],
   "includePlatforms": ["Editor"],
   "optionalUnityReferences": ["TestAssemblies"]
 }
