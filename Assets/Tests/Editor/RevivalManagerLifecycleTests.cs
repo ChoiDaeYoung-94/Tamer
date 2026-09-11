@@ -53,6 +53,21 @@ public class RevivalManagerLifecycleTests
     }
 
     [Test]
+    public void Revival_GameOverGoLobbyDoesNotResetPlayerDuringTransition()
+    {
+        var sceneType = _type.Assembly.GetType("AD.SceneManager");
+        var scene = _owner.gameObject.AddComponent(sceneType);
+        _type.GetField("_sceneM", Members).SetValue(_owner, scene);
+        Call(_owner, "TryClaimInstance");
+        sceneType.GetProperty("IsTransitioning").GetSetMethod(true).Invoke(scene, new object[] { true });
+        var gameType = _type.Assembly.GetType("AD.GameManager");
+        var game = Activator.CreateInstance(gameType);
+        // No Player or scene UI exists: reaching reset/transition would fail.
+        Assert.DoesNotThrow(() => gameType.GetMethod("GameOverGoLobby").Invoke(game, null));
+        Assert.That(gameType.GetProperty("IsGame").GetValue(game), Is.False);
+    }
+
+    [Test]
     public void Revival_Managers_DuplicateCannotReplaceOrShutdownLiveOwner()
     {
         Assert.That(Call(_owner, "TryClaimInstance"), Is.True);
