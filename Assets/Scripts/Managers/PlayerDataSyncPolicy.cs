@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace AD
 {
@@ -19,7 +20,19 @@ namespace AD
             server.TryGetValue("GooglePlay", out var serverEntitlements);
             pending.TryGetValue("GooglePlay", out var pendingEntitlements);
             result["GooglePlay"] = UnionEntitlements(UnionEntitlements(serverEntitlements, localEntitlements), pendingEntitlements);
+            ValidateGameplayValues(result);
             return result;
+        }
+
+        private static void ValidateGameplayValues(Dictionary<string, string> values)
+        {
+            // Match the existing Player/Creature readers; preserve values instead of guessing repairs.
+            if (values.TryGetValue("Gold", out var gold) && !int.TryParse(gold, out _))
+                throw new InvalidDataException("Invalid saved gold; recovery is required.");
+            foreach (var key in new[] { "Power", "AttackSpeed", "MoveSpeed" })
+                if (values.TryGetValue(key, out var value) &&
+                    (!float.TryParse(value, out var number) || float.IsNaN(number) || float.IsInfinity(number)))
+                    throw new InvalidDataException("Invalid saved stat; recovery is required.");
         }
 
         public static string UnionEntitlements(string first, string second)

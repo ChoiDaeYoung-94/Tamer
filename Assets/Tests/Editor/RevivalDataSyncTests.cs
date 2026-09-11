@@ -253,6 +253,23 @@ public class RevivalDataSyncTests
         }
     }
 
+    [TestCase("Gold", "not-a-number")]
+    [TestCase("Gold", "2147483648")]
+    [TestCase("Power", "NaN")]
+    [TestCase("AttackSpeed", "Infinity")]
+    [TestCase("MoveSpeed", "null")]
+    public void Revival_Data_InvalidGameplayValuesCannotReplaceLocalSave(string key, string value)
+    {
+        using (var h = new SaveHarness())
+        {
+            h.Server(new Dictionary<string, string> { { key, value } });
+            Assert.Throws<InvalidDataException>(() => h.Sync());
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(SaveHarness.Original));
+            Assert.That(h.Stored().ContainsKey("__TamerAccountOwner"), Is.False);
+            Assert.That(h.Ready, Is.False);
+        }
+    }
+
     [Test]
     public void Revival_Data_DurableMutationWorksBeforePlayerExistsAndTracksOnlyChangedKeys()
     {
