@@ -1,8 +1,8 @@
 # 자체 C# 파일별 감사 진행표
 
-범위: 추적 중인 Assets/Scripts, Assets/Tests, Assets/GPGSIds.cs의 93개 파일. SDK 디렉터리는 별도 공급망 감사 범위다. Scripts/MiniMap/FogOfWar는 출처만으로 제외하지 않고 포함한다. 신규 파일은 통합 시 inventory를 다시 생성해 추가한다.
+범위: 추적 중인 Assets/Scripts, Assets/Tests, Assets/GPGSIds.cs의 98개 파일. SDK 디렉터리는 별도 공급망 감사 범위다. Scripts/MiniMap/FogOfWar는 출처만으로 제외하지 않고 포함한다. 신규 파일은 통합 시 inventory를 다시 생성해 추가한다.
 
-아래 의존성은 소스의 lexical 참조이며 전체 호출 그래프가 아니다. `검토 대기`는 완료로 집계하지 않는다. 담당 감사 문서/실제 테스트 결과를 통합하면서 판단을 갱신한다. 기준 소스: `14f8ee0667c06f9369bcb921adb26fbfe31f85bd`.
+아래 의존성은 소스의 lexical 참조이며 전체 호출 그래프가 아니다. `검토 대기`는 완료로 집계하지 않는다. 담당 감사 문서/실제 테스트 결과를 통합하면서 판단을 갱신한다. 기준 소스: `300d427e4c557fd3cc4cda347b255a22a9a53bc7`.
 
 | 파일 | 책임 | 참조(Managers / Singleton) | 담당·판단 | 회귀·검증 |
 | --- | --- | --- | --- | --- |
@@ -100,4 +100,10 @@
 | `Assets/Tests/Editor/RevivalServerRequestTests.cs` | 회귀 테스트 |  /  | 통합: 테스트 의도·격리·회귀 범위 검토 대기 | 기준 전체 249 통과와 변경분 결과를 구분 |
 | `Assets/Tests/Editor/RevivalUILifecycleTests.cs` | UI publisher/input/tween/move 격리 회귀 | 실제 component reflection | UI: PR119 소스/회귀 검토 완료 | 전체267/267에 포함 |
 
-후속 gameplay `44a3caa`에서는 저장 no-op 문자열 보존, 죽음/비활성 NavMesh AI 차단, 탐지 owner 교체, 상점 확인 중복 소비 방지·금액 재검사, 상점 item 해제, 미니맵 publisher와 singleton 정리를 구현했다. 새 회귀는 아직 Unity 실행 대기다. 미니맵 pause 소유·재진입, 생성기 목록 회수 iteration, 빈 map prefab 입력, 남은 editor/harness/test 파일 감사는 진행 중이며 완료로 집계하지 않는다.
+| `Assets/Scripts/IapReceiptHttpVerifier.cs` | 명시적 HTTPS 검증 transport |  /  | SDK: URI/redirect/nonce/account/product/응답크기/cancel 경계 검토 | PR120/299 및 통합317 통과; 실제endpoint미배포 |
+| `Assets/Scripts/Purchasing/ReceiptVerification.cs` | 영수증 검증·지급 owner/session 계약 |  /  | SDK: 검증 계정과 실제Dataowner 불일치P1 보완확인 | SDK receipt16 회귀, 통합317 |
+| `Assets/Tests/Editor/IAP/RevivalReceiptVerificationTests.cs` | 검증 session/owner/취소 회귀 |  /  | SDK: P1 재현과precancelfixture보완 확인 | 통합317 포함 |
+| `Assets/Tests/Editor/RevivalEquipmentLifecycleTests.cs` | 장비 재바인딩/반복 초기화 회귀 |  /  | 서비스: 기존 장비/매핑/목록 계약 검증 | 통합317 포함 |
+| `Assets/Tests/Editor/RevivalManagerLifecycleTests.cs` | manager 소유/종료·login·scene gate 회귀 |  / BindingFlags | 서비스: previewfixture와latecallback 코드 검토 | 통합317 포함 |
+
+후속 gameplay `44a3caa`에서는 저장 no-op 문자열 보존, 죽음/비활성 NavMesh AI 차단, 탐지 owner 교체, 상점 확인 중복 소비 방지·금액 재검사, 상점 item 해제, 미니맵 publisher와 singleton 정리를 구현했다. 새 gameplay 회귀 18개를 포함한 전체 317개가 통과했다. 미니맵 pause 복구와 생성기 snapshot 회수도 구현했다. 중첩 pause 조정, 빈 map prefab 입력, 남은 editor/harness/test 파일 감사는 진행 중이며 완료로 집계하지 않는다.

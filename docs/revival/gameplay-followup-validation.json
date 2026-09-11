@@ -1,0 +1,36 @@
+{
+  "sourceCommit": "300d427e4c557fd3cc4cda347b255a22a9a53bc7",
+  "unity": "6000.0.81f1",
+  "command": "tools/revival/Run-Baseline.ps1 -TestsOnly",
+  "result": "Passed",
+  "total": 317,
+  "passed": 317,
+  "failed": 0,
+  "skipped": 0,
+  "startUtc": "2026-09-11 07:30:01Z",
+  "endUtc": "2026-09-11 07:30:06Z",
+  "durationSeconds": 4.3446709,
+  "xmlSha256": "1cc429cc7582796dc334ceaf5b88561b85fe48be79d323c40b44fd7d0d1fe0e0",
+  "privateAssetsVerified": 4561,
+  "ownEditorsAfter": 0,
+  "projectSettingsRestored": true,
+  "newGameplayCases": 18,
+  "includes": [
+    "PR122 Pool/Player/Generator",
+    "PR119 UI/Scene",
+    "PR121 service lifecycle",
+    "PR120 receipt verification"
+  ],
+  "incidentalRestored": [
+    "GoogleMobileAdsSettings: line endings only",
+    "RevivalSmoke: line endings only",
+    "SceneTemplateSettings: importer serialization",
+    "TimeManager: serializedVersion 2 migration; m_TimeScale restored to 1"
+  ],
+  "limitations": [
+    "EditMode isolated regression, not a production login/purchase or actual Main/Game round-trip.",
+    "No Android build for this source.",
+    "Nested zero-valued pause owners are not centrally coordinated.",
+    "Whole file audit and recovery execution remain in progress."
+  ]
+}
