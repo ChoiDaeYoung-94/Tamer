@@ -7,7 +7,7 @@ namespace AD
     /// 풀 관리 클래스
     /// 다양한 GameObject/UI 풀을 생성 및 관리하며 재사용성을 높임
     /// </summary>
-    public class PoolManager
+    public class PoolManager : System.IDisposable
     {
         #region Nested Pool Class
 
@@ -15,7 +15,7 @@ namespace AD
         /// 개별 풀을 관리
         /// 각 풀은 대상 프리팹을 기반으로 오브젝트를 미리 생성하여 스택으로 관리
         /// </summary>
-        public class Pool
+        public class Pool : System.IDisposable
         {
             /// <summary>
             /// 풀에서 생성할 대상 프리팹
@@ -36,6 +36,8 @@ namespace AD
             // 풀 오브젝트를 저장하는 스택
             private Stack<PoolObject> _poolStack = new Stack<PoolObject>();
             private HashSet<PoolObject> _storedObjects = new HashSet<PoolObject>();
+            private readonly HashSet<PoolObject> _createdObjects = new HashSet<PoolObject>();
+            private bool _disposed;
 
             /// <summary>
             /// Pool 생성 시 Init
@@ -70,6 +72,7 @@ namespace AD
                 GameObject newObj = Object.Instantiate(TargetPrefab);
                 newObj.name = TargetPrefab.name;
                 PoolObject poolObj = newObj.GetOrAddComponent<PoolObject>();
+                _createdObjects.Add(poolObj);
                 return poolObj;
             }
 
@@ -78,6 +81,7 @@ namespace AD
             /// </summary>
             public void PushToPool(PoolObject poolObj)
             {
+                if (_disposed || poolObj == null) return;
                 // Register before parenting/deactivation, which can re-enter through OnDisable.
                 if (!_storedObjects.Add(poolObj))
                     return;
@@ -94,6 +98,9 @@ namespace AD
             /// </summary>
             public GameObject PopFromPool(Transform parent)
             {
+                if (_disposed) return null;
+                while (_poolStack.Count > 0 && _poolStack.Peek() == null)
+                    _storedObjects.Remove(_poolStack.Pop());
                 PoolObject poolObj = _poolStack.Count > 0 ? _poolStack.Pop() : CreatePoolObject();
                 _storedObjects.Remove(poolObj);
                 poolObj.gameObject.SetActive(true);
@@ -105,6 +112,21 @@ namespace AD
                 poolObj.transform.SetParent(parent);
 
                 return poolObj.gameObject;
+            }
+
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+                var objects = new List<PoolObject>(_createdObjects);
+                _createdObjects.Clear();
+                _storedObjects.Clear();
+                _poolStack.Clear();
+                foreach (var item in objects)
+                    if (item != null) DestroyOwned(item.gameObject);
+                if (Root != null) DestroyOwned(Root.gameObject);
+                Root = null;
+                TargetPrefab = null;
             }
         }
         #endregion
@@ -128,6 +150,10 @@ namespace AD
         /// 플레이어가 사용하는 오브젝트의 루트 Transform.
         /// </summary>
         public Transform RootPlayer;
+        private readonly List<GameObject> _ownedRoots = new List<GameObject>();
+        private bool _initialized;
+        private bool _disposed;
+        private bool _clearing;
 
         /// <summary>
         /// Managers - Awake() -> Init()
@@ -135,16 +161,21 @@ namespace AD
         /// </summary>
         public void Init()
         {
+            if (_disposed || _initialized) return;
+            _initialized = true;
             // 게임 오브젝트 풀 루트 생성
             RootGameObjects = new GameObject("Pool_GO").transform;
+            _ownedRoots.Add(RootGameObjects.gameObject);
             Object.DontDestroyOnLoad(RootGameObjects.gameObject);
 
             // UI 풀 루트 생성
             RootUI = new GameObject("Pool_UI").transform;
+            _ownedRoots.Add(RootUI.gameObject);
             Object.DontDestroyOnLoad(RootUI.gameObject);
 
             // 플레이어 관련 풀 루트 생성
             RootPlayer = new GameObject("Pool_Player").transform;
+            _ownedRoots.Add(RootPlayer.gameObject);
             Object.DontDestroyOnLoad(RootPlayer.gameObject);
 
             // Managers.Instance._go_poolGOs 배열에 있는 모든 GameObject에 대해 풀 생성 (기본 20개)
@@ -165,6 +196,7 @@ namespace AD
         /// </summary>
         public void CreatePool(GameObject prefab, bool isGameObjectPool = true, int count = 20)
         {
+            if (_disposed || _clearing) return;
             if (prefab == null)
             {
                 AD.DebugLogger.LogError("PoolManager", "Prefab is null when creating pool.");
@@ -196,6 +228,7 @@ namespace AD
         /// </summary>
         public void PushToPool(GameObject go)
         {
+            if (_disposed || _clearing) return;
             if (go == null)
                 return;
 
@@ -221,6 +254,7 @@ namespace AD
         /// </summary>
         public GameObject PopFromPool(string poolName, Transform parent = null)
         {
+            if (_disposed || _clearing) return null;
             if (!PoolDictionary.ContainsKey(poolName))
             {
                 AD.DebugLogger.LogNotFound("PoolManager", $"{poolName} not found in pool dictionary.");
@@ -235,14 +269,29 @@ namespace AD
         /// </summary>
         public void Clear()
         {
-            if (RootGameObjects != null)
-            {
-                foreach (Transform child in RootGameObjects)
-                {
-                    Object.Destroy(child.gameObject);
-                }
-            }
+            if (_clearing) return;
+            _clearing = true;
+            var pools = new List<Pool>(PoolDictionary.Values);
             PoolDictionary.Clear();
+            try { foreach (var pool in pools) pool.Dispose(); }
+            finally { _clearing = false; }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            Clear();
+            foreach (var root in _ownedRoots)
+                if (root != null) DestroyOwned(root);
+            _ownedRoots.Clear();
+            RootGameObjects = RootUI = RootPlayer = null;
+        }
+
+        private static void DestroyOwned(GameObject target)
+        {
+            if (Application.isPlaying) Object.Destroy(target);
+            else Object.DestroyImmediate(target);
         }
     }
 }

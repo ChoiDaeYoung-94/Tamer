@@ -75,6 +75,51 @@ public class RevivalMonsterLifecycleTests
     }
 
     [Test]
+    public void Revival_GeneratorInitializationHasOneLoopAndDisableIsRepeatable()
+    {
+        Component generator = Create("MonsterGenerator");
+        Set(generator, "_maxMonsters", 0); // No prefabs, player, or service access.
+        Call(generator, "Init");
+        var first = (CancellationTokenSource)Get(generator, "_spawnLoopTokenSource");
+        var token = first.Token;
+        Call(generator, "Init");
+        Assert.That(Get(generator, "_spawnLoopTokenSource"), Is.SameAs(first));
+        Call(generator, "OnDisable");
+        Call(generator, "OnDisable");
+        Assert.That(token.IsCancellationRequested, Is.True);
+        Assert.That(Get(generator, "_spawnLoopTokenSource"), Is.Null);
+        Call(generator, "Init");
+        Assert.That(Get(generator, "_spawnLoopTokenSource"), Is.Not.SameAs(first));
+        Call(generator, "OnDisable");
+    }
+
+    [Test]
+    public void Revival_OldGeneratorDestructionDoesNotClearNewOwner()
+    {
+        Component old = Create("MonsterGenerator");
+        Component current = Create("MonsterGenerator");
+        _generatorInstance.SetValue(null, current);
+        Call(old, "OnDestroy");
+        Assert.That(_generatorInstance.GetValue(null), Is.SameAs(current));
+    }
+
+    [Test]
+    public void Revival_PlayerRebindingAndDisableReleaseCapturedUpdatePublisher()
+    {
+        Component player = Create("Player");
+        Component first = Create("AD.UpdateManager");
+        Component second = Create("AD.UpdateManager");
+        Call(player, "BindUpdates", first);
+        Call(player, "BindUpdates", first);
+        Assert.That(((Delegate)Get(first, "OnUpdateEvent")).GetInvocationList().Length, Is.EqualTo(1));
+        Call(player, "BindUpdates", second);
+        Assert.That(Get(first, "OnUpdateEvent"), Is.Null);
+        Call(player, "OnDisable");
+        Call(player, "OnDisable");
+        Assert.That(Get(second, "OnUpdateEvent"), Is.Null);
+    }
+
+    [Test]
     public void Revival_RepeatedBattleStartCancelsBothPreviousOwners()
     {
         Component monster = CreateMonster();
