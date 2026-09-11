@@ -137,8 +137,8 @@ public class Player : Creature
                 {
                     case "GoogleAdMob":
                         AD.Managers.SoundM.UI_Click();
-                        if (!AD.Managers.GoogleAdMobM.IsInProgress)
-                            AD.Managers.GoogleAdMobM.ShowRewardedAd();
+                        if (BuffingMan.Instance != null)
+                            BuffingMan.Instance.RequestAdReward();
                         break;
                     case "GoGameScene":
                         AD.Managers.SoundM.UI_Click();

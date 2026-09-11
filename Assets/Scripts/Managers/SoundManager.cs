@@ -12,6 +12,7 @@ namespace AD
         [Header("Audio Sources")]
         [SerializeField] private AudioSource _bgmAudioSource = null;
         [SerializeField] private AudioSource _sfxAudioSource = null;
+        private int _bgmPlaybackVersion;
 
         [Header("Audio Clips")]
         public AudioClip BgmLoginClip = null;
@@ -38,11 +39,34 @@ namespace AD
         #region Functions
         public void PlayBGM(AudioClip clip)
         {
+            _bgmPlaybackVersion++;
             _bgmAudioSource.clip = clip;
             _bgmAudioSource.Play();
         }
 
-        public void PauseBGM() => _bgmAudioSource.Pause();
+        public void PauseBGM()
+        {
+            _bgmPlaybackVersion++;
+            _bgmAudioSource.Pause();
+        }
+
+        /// <summary>Resume only the playback this ad paused, once, at the same position.</summary>
+        public System.Action PauseBGMForAd()
+        {
+            var source = _bgmAudioSource;
+            bool wasPlaying = source != null && source.isPlaying;
+            int version = _bgmPlaybackVersion;
+            if (wasPlaying) source.Pause();
+            bool released = false;
+            return () =>
+            {
+                if (released) return;
+                released = true;
+                if (this != null && source != null && wasPlaying &&
+                    version == _bgmPlaybackVersion && !source.isPlaying)
+                    source.UnPause();
+            };
+        }
 
         public void UnpauseBGM()
         {
