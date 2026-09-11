@@ -14,6 +14,7 @@ $adHarnessBackup = Join-Path $ProjectPath ('.revival-local/ad-harness-snapshots/
 foreach ($adHarnessRelative in @(
     'ProjectSettings/ProjectSettings.asset',
     'ProjectSettings/SceneTemplateSettings.json',
+    'ProjectSettings/AndroidResolverDependencies.xml',
     'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset',
     'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml'
 )) {
