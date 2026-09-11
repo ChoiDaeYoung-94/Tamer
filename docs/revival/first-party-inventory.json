@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "e66acbcc745d8489339e6661393a1722d9aad1b8",
+  "sourceCommit": "9623e648a20816d3c47663bc3833b99a63d8c20d",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -687,7 +687,7 @@
     {
       "path": "Assets/Scripts/Managers/PopupManager.cs",
       "kind": "runtime",
-      "lines": 305,
+      "lines": 306,
       "declaredTypes": [
         "PopupManager"
       ],
@@ -993,6 +993,34 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/Privacy/DeletionFlow.cs",
+      "kind": "runtime",
+      "lines": 169,
+      "declaredTypes": [
+        "DeletionState",
+        "DeletionSession",
+        "DeletionAuthorization",
+        "DeletionSnapshot",
+        "IDeletionGateway",
+        "DeletionFlow",
+        "UnavailableDeletionGateway"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Privacy/SyntheticDeletionGateway.cs",
+      "kind": "runtime",
+      "lines": 75,
+      "declaredTypes": [
+        "SyntheticDeletionGateway"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/Purchasing/NoAdsPurchaseFulfillment.cs",
       "kind": "runtime",
       "lines": 79,
@@ -1099,6 +1127,39 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/UI/DeletionPresenter.cs",
+      "kind": "runtime",
+      "lines": 126,
+      "declaredTypes": [
+        "DeletionPresenter"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/UI/DeletionSettingsEntry.cs",
+      "kind": "runtime",
+      "lines": 35,
+      "declaredTypes": [
+        "DeletionSettingsEntry"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/UI/DeletionView.cs",
+      "kind": "runtime",
+      "lines": 92,
+      "declaredTypes": [
+        "DeletionView"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/UI/JoyStick.cs",
       "kind": "runtime",
       "lines": 185,
@@ -1158,6 +1219,20 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Tests/Editor/DeletionUI/RevivalDeletionUITests.cs",
+      "kind": "tests",
+      "lines": 212,
+      "declaredTypes": [
+        "RevivalDeletionUITests",
+        "Fake"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Tests/Editor/IAP/RevivalIAPConfigurationTests.cs",
       "kind": "tests",
       "lines": 71,
@@ -1202,6 +1277,18 @@
       "declaredTypes": [
         "RevivalReceiptVerificationTests",
         "FakeVerifier"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/Privacy/RevivalDeletionFlowTests.cs",
+      "kind": "tests",
+      "lines": 139,
+      "declaredTypes": [
+        "RevivalDeletionFlowTests",
+        "DelayedGateway"
       ],
       "managerReferences": [],
       "singletonReferences": [],
@@ -1441,6 +1528,7 @@
     "Assets/GoogleMobileAds": 11,
     "Assets/GooglePlayGames": 61,
     "Assets/Plugins": 421,
-    "Assets/ThirdParty": 127
+    "Assets/ThirdParty": 127,
+    "tools/revival": 1
   }
 }
