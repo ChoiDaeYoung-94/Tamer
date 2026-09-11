@@ -1,6 +1,7 @@
 // These are EditMode behavioral tests. The real PopupObject handlers are invoked
 // explicitly on disabled components, so no test depends on Play-mode event dispatch.
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +10,7 @@ using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 
 public class RevivalAdPopupTests
 {
@@ -210,6 +212,7 @@ public class RevivalAdPopupTests
     [Test]
     public void Revival_PopupButtonClosesItsOwnerInsteadOfNewerTop()
     {
+        Invoke(popupManager, "ReleaseException");
         var bottom = CreatePopup("Bottom");
         var top = CreatePopup("Top");
         ActivatePopup(bottom);
@@ -308,13 +311,69 @@ public class RevivalAdPopupTests
         {
             source.Cancel();
             // Invalid target would log a Unity scene-load error if reached.
-            var task = Invoke(scene, "LoadTargetSceneAsync", Enum.ToObject(targetType, 999), source.Token);
+            var task = Invoke(scene, "LoadTargetSceneAsync", Enum.ToObject(targetType, 999), source.Token, (Func<bool>)(() => true));
             var awaiter = task.GetType().GetMethod("GetAwaiter").Invoke(task, null);
             Assert.That(awaiter.GetType().GetProperty("IsCompleted").GetValue(awaiter), Is.True);
             var error = Assert.Throws<TargetInvocationException>(() =>
                 awaiter.GetType().GetMethod("GetResult").Invoke(awaiter, null));
             Assert.That(error.InnerException, Is.InstanceOf<OperationCanceledException>());
         }
+    }
+
+    [Test]
+    public void Revival_UserCloseHonorsExceptionButRewardCleanupCanCloseTarget()
+    {
+        var popup = CreatePopup("Blocked");
+        ActivatePopup(popup);
+        Invoke(popup.GetComponent(popupObjectType), "DisablePop");
+        Assert.That(popup.activeSelf, Is.True);
+        AssertStack(popup);
+        ClosePopup(popup);
+        AssertStack();
+    }
+
+    [UnityTest]
+    public IEnumerator Revival_ServerWaitStopsWhenCapturedManagersIsReplaced() => WaitForLostServices(false);
+
+    [UnityTest]
+    public IEnumerator Revival_ServerWaitStopsWhenCapturedDataIsDestroyed() => WaitForLostServices(true);
+
+    private IEnumerator WaitForLostServices(bool destroyData)
+    {
+        var managers = (Component)singletonField.GetValue(null);
+        var managersType = managers.GetType();
+        var data = inactiveManagersRoot.AddComponent(FindType("AD.DataManager"));
+        var sound = inactiveManagersRoot.AddComponent(FindType("AD.SoundManager"));
+        managersType.GetField("_dataM", InstanceMembers).SetValue(managers, data);
+        managersType.GetField("_soundM", InstanceMembers).SetValue(managers, sound);
+        var server = managersType.GetField("_serverM", InstanceMembers).GetValue(managers);
+        var operationType = server.GetType().GetNestedType("Operation", BindingFlags.NonPublic);
+        server.GetType().GetField("_active", InstanceMembers).SetValue(server,
+            Activator.CreateInstance(operationType, true));
+        var sceneType = FindType("AD.SceneManager");
+        var scene = fixtureRoot.AddComponent(sceneType);
+        var servicesType = sceneType.GetNestedType("SceneServices", BindingFlags.NonPublic);
+        var services = Activator.CreateInstance(servicesType, new object[] { managers });
+        var task = Invoke(scene, "WaitForServerAsync", services, System.Threading.CancellationToken.None);
+        var awaiter = task.GetType().GetMethod("GetAwaiter").Invoke(task, null);
+        var completed = awaiter.GetType().GetProperty("IsCompleted");
+        Assert.That(completed.GetValue(awaiter), Is.False);
+        if (destroyData) UnityEngine.Object.DestroyImmediate(data);
+        else
+        {
+            // New inactive owner has no service fields. Re-querying it would dereference null.
+            var replacementRoot = new GameObject("Replacement inactive Managers");
+            replacementRoot.SetActive(false);
+            replacementRoot.transform.SetParent(fixtureRoot.transform);
+            singletonField.SetValue(null, replacementRoot.AddComponent(managersType));
+        }
+        var deadline = UnityEditor.EditorApplication.timeSinceStartup + 2;
+        while (!(bool)completed.GetValue(awaiter) && UnityEditor.EditorApplication.timeSinceStartup < deadline)
+            yield return null;
+        Assert.That(completed.GetValue(awaiter), Is.True);
+        Assert.That(awaiter.GetType().GetMethod("GetResult").Invoke(awaiter, null), Is.False);
+        Assert.That(server.GetType().GetField("_active", InstanceMembers).GetValue(server), Is.Not.Null,
+            "Ownership loss stops waiting without modifying the old server request.");
     }
 
     private GameObject CreatePopup(string name)

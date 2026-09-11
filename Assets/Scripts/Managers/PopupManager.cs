@@ -155,6 +155,14 @@ namespace AD
             _popupHeal.SetActive(true);
         }
 
+        /// <summary>User close preserves the same exception gate as Android Back.</summary>
+        public void RequestClosePopup(GameObject target)
+        {
+            if (Managers.Instance != null && Managers.SoundM != null) Managers.SoundM.UI_Click();
+            if (IsException) return;
+            ClosePopup(target);
+        }
+
         /// <summary>Close a specific popup without consuming a newer popup above it.</summary>
         public void ClosePopup(GameObject target)
         {

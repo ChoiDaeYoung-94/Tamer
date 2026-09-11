@@ -17,6 +17,28 @@ namespace AD
         private CancellationTokenSource _ctsGoScene;
         public bool IsTransitioning { get; private set; }
 
+        private sealed class SceneServices
+        {
+            private readonly Managers _owner;
+            public readonly DataManager Data;
+            public readonly ServerManager Server;
+            public readonly SoundManager Sound;
+
+            public SceneServices(Managers owner)
+            {
+                _owner = owner;
+                if (owner == null || Managers.Instance != owner) return;
+                Data = Managers.DataM;
+                Server = Managers.ServerM;
+                Sound = Managers.SoundM;
+            }
+
+            public bool IsCurrent => _owner != null && Managers.Instance == _owner &&
+                Data != null && Sound != null && Server != null &&
+                ReferenceEquals(Managers.DataM, Data) && ReferenceEquals(Managers.ServerM, Server) &&
+                ReferenceEquals(Managers.SoundM, Sound);
+        }
+
         public void NextScene(AD.GameConstants.Scene scene)
         {
             if (IsTransitioning) return;
@@ -56,15 +78,16 @@ namespace AD
             var cancellationToken = source.Token;
             try
             {
-                AD.Managers.DataM.UpdateLocalData(key: "null", value: "null", updateAll: true);
-                AD.Managers.DataM.UpdatePlayerData();
-                await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress,
-                    cancellationToken: cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                AD.Managers.DataM.SaveLocalData();
-                await LoadTargetSceneAsync(targetScene, cancellationToken);
-                if (this != null && AD.Managers.Instance != null)
-                    AD.Managers.SoundM.UnpauseBGM();
+                var services = new SceneServices(Managers.Instance);
+                if (!services.IsCurrent) return;
+                services.Data.UpdateLocalData(key: "null", value: "null", updateAll: true);
+                if (!services.IsCurrent) return;
+                services.Data.UpdatePlayerData();
+                if (!await WaitForServerAsync(services, cancellationToken)) return;
+                services.Data.SaveLocalData();
+                await LoadTargetSceneAsync(targetScene, cancellationToken, () => services.IsCurrent);
+                if (this != null && services.IsCurrent)
+                    services.Sound.UnpauseBGM();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -81,17 +104,29 @@ namespace AD
             }
         }
 
-        private async UniTask LoadTargetSceneAsync(AD.GameConstants.Scene targetScene, CancellationToken cancellationToken)
+        private async UniTask<bool> WaitForServerAsync(SceneServices services, CancellationToken cancellationToken)
+        {
+            await UniTask.WaitUntil(() => !services.IsCurrent || !services.Server.IsInProgress,
+                cancellationToken: cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return this != null && services.IsCurrent;
+        }
+
+        private async UniTask LoadTargetSceneAsync(AD.GameConstants.Scene targetScene, CancellationToken cancellationToken,
+            Func<bool> ownsServices)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!ownsServices()) return;
             // Wait before starting native work. A cancelled operation must never leave
             // allowSceneActivation=false blocking Unity's subsequent scene operations.
             await UniTask.Delay(TimeSpan.FromSeconds(2), ignoreTimeScale: true,
                 cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            if (!ownsServices()) return;
             await UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(targetScene.ToString())
                 .ToUniTask(cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            if (!ownsServices()) return;
             await Resources.UnloadUnusedAssets().ToUniTask(cancellationToken: cancellationToken);
         }
 

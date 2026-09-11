@@ -47,8 +47,7 @@ namespace AD
             {
                 if (_manager != null)
                 {
-                    if (Managers.Instance != null && Managers.SoundM != null) Managers.SoundM.UI_Click();
-                    _manager.ClosePopup(gameObject);
+                    _manager.RequestClosePopup(gameObject);
                 }
             }
         }
