@@ -38,7 +38,7 @@ CLI 설치기는 공식 manifest와 고정 SHA-256을 확인하고 프로젝트�
 
 ```powershell
 # 빠른 복원 도구 회귀 검사
-python -m unittest discover -s tools/revival -p test_restore_assets.py
+python -m unittest discover -s tools/revival -p 'test_*.py'
 if ($LASTEXITCODE -ne 0) { throw '복원 테스트 실패' }
 
 # 이 checkout의 Editor를 닫은 다음 실행한다.
@@ -82,7 +82,7 @@ APK 메타데이터 검사는 기기 설치/실행, 모든 native 라이브러�
 
 `status`의 연결 목록에서 project 경로와 Editor를 확인한다. 상태가 ready이고 명령 목록에 실제로 노출된 명령을 사용한다. C# 컴파일 오류로 Safe Mode가 되면 Pipeline도 로드되지 않을 수 있다. 이때 연결 실패를 프로젝트가 없다는 의미로 해석하지 말고 해당 checkout의 컴파일 로그부터 확인한다.
 
-라이브 테스트는 다음과 같이 실행한다. 비동기 요청의 성공 응답은 완료 결과가 아니다.
+라이브 테스트 전에 열린 모든 씬을 저장한다. 저장하지 않은 씬이 있으면 기준 씬 전환을 거부한다. 라이브 테스트는 다음과 같이 실행한다. 비동기 요청의 성공 응답은 완료 결과가 아니다.
 
 ```powershell
 & $unityCli command run_tests --mode editor --filter Revival --async_tests true --project-path $projectPath --format json
