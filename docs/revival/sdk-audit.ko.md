@@ -32,7 +32,7 @@ PlayFab 공개 SDK 파일의 새 버전 해시만 복원 manifest에 갱신했�
 
 조사 당시 [공식 Families 인증 목록](https://support.google.com/googleplay/android-developer/answer/12955712)의 AdMob 항목은 **`com.google.android.gms:play-services-ads` 19.0.0 이상**이다. NextGen 좌표인 **`com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk`**는 해당 목록에 없다. 따라서 이 증거로 인정할 수 있는 범위는 legacy 좌표이며, NextGen의 인증을 추정하지 않는다. 앱/광고 전체의 정책 적합성이 SDK 좌표만으로 증명되지는 않는다. 출시 시점에 목록을 다시 확인해야 한다.
 
-11.5.0 플러그인에서 `overrideDefaultGmaAndroidSdk=true`, `selectedGmaAndroidSdk=0`으로 Standard를 명시하고, 최종 Gradle 의존성에 NextGen 좌표가 없는지 검증할 수 있다. 이것은 최신 플러그인과 legacy SDK를 함께 사용하는 선택이다.
+11.5.0 플러그인에서 `overrideDefaultGmaAndroidSdk=true`, `selectedGmaAndroidSdk=0`으로 Standard를 명시하고, 최종 Gradle 의존성에 NextGen 좌표가 없는지 검증할 수 있다. 두 필드는 Git이 추적하는 GMA 설정에 포함되므로 새 checkout에서도 별도 수동 Configure 없이 적용된다. 기존 서비스 ID는 보존하며 에셋 복원 스크립트는 이 설정을 덮어쓰지 않는다. 이것은 최신 플러그인과 legacy SDK를 함께 사용하는 선택이다.
 
 - 10.7에서 `RaiseAdEventsOnUnityMainThread`가 obsolete 처리됐다. Unity 객체 조작은 `MobileAdsEventExecutor.ExecuteInUpdate`로 넘기는 방식이 공식 권고다.
 - 11.3에서 `AgeRestrictedTreatment`가 추가되고 기존 TFCD/TFUA 필드가 obsolete 처리됐다. 기존 아동 대상 제한을 보존하면서 광고 담당이 전환을 검증해야 한다.
@@ -84,6 +84,16 @@ Unity는 [6000.0.38f1부터 16KB 지원을 명시](https://unity.com/releases/ed
 - 배포물과 적용 소스/추가 meta의 불일치는 0개다. 소스의 CRLF/LF 차이는 비교에서 제외했다. 기존 importer 설정과 버전 라벨 보존 규칙은 위와 같다.
 - `python tools/revival/audit_guids.py`: YAML 에셋 132개 검사, 미해결 GUID 0개.
 - 공식 GPGS 배포물의 `PluginVersion.cs`가 여전히 2.1.0을 선언하는 오류를 2.2.1/0x20201/20201로 보정했다. 패키지 본체는 공식 2.2.1이다. `git diff --check`가 보고한 SDK 소스와 meta의 줄 끝 공백만 정리했으며 PlayFab 공개 SDK의 해당 해시도 반영했다. 구매 에셋은 수정하지 않았다.
-- Editor는 이 작업자가 실행하지 않았다. 추가한 NUnit 테스트 2개는 통합 담당의 Android import/테스트 실행 대상이며, 이 정적 조사만으로 통과를 주장하지 않는다.
+- 위 항목은 vendor 적용 직후의 정적 조사 범위다. 이후 SDK 작업 브랜치에서 Android import, GPGS 값 보존 및 GMA Standard 선택/NextGen 거부 테스트를 실행했다. 정확한 최종 테스트 수와 빌드 코드 SHA는 아래 검증 기록에서 확인한다.
 
-Editor import, 회귀 테스트와 APK 검증 결과는 SDK 통합 PR의 정확한 SHA와 검증 기록에서 확인한다.
+Editor import, 회귀 테스트와 APK 검증 결과는 [sdk-validation.json](sdk-validation.json), [IAP 이행](iap-v5.ko.md), [네이티브 정렬 검증](native-alignment.ko.md)에 기록한다.
+
+## 재현 절차
+
+구매 에셋은 `python tools/revival/restore_assets.py --source <소유자의 원본 경로>`로 복원하고 고정 CLI는 `python tools/revival/install_cli.py`로 준비한다. 원본은 읽기 전용으로 사용하며 새 SDK 파일은 Git에서 가져온다. Unity `6000.0.81f1`와 Android 모듈이 설치된 상태에서 해당 프로젝트의 Editor를 닫고 다음을 실행한다. 같은 호스트의 대규모 Editor import/build는 다른 담당과 순서를 조율한다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/revival/Run-SdkValidation.ps1
+```
+
+명령은 Python 테스트, 복원 파일 검증, Android target EditMode 테스트, 격리 Development APK 빌드, APK ID/서명/API/ABI, GUID 및 네이티브 LOAD/ZIP 검사를 실행한다. 추가 RELRO 끝 검사는 별도 결과이며 실제 16KB 실행을 대신하지 않는다. 서비스 설정 재입력, 운영 로그인, 구매, 광고 요청은 이 절차에 필요하지 않다.
