@@ -1,6 +1,6 @@
 # 광고 실기기 검증 — 2026-09-11
 
-#91의 3차 검증이다. [2차 검증](families-ads-validation.ko.md)의 빌드 기록은 그대로 보존한다. 운영 광고 활성화나 출시 승인을 의미하지 않는다.
+#91의 3차 검증이다. [2차 검증](families-store-readiness.ko.md)과 [harness 빌드 기록](ads-harness-validation.json)은 그대로 보존한다. 운영 광고 활성화나 출시 승인을 의미하지 않는다.
 
 ## 대상과 재현 기준
 
@@ -56,3 +56,5 @@
 패킷/필드 단위 네트워크 관찰은 하지 못했다. sample Load 성공은 확인했지만 control의 managed trace 부재가 네트워크 부재나 SDK 정보 접근 부재를 증명하지 않는다. UMP 앱 호출 및 운영 동의 흐름은 별도 미완료 항목이다.
 
 원시 PID 로그, 스크린샷, 동영상은 ignored `.revival-local/ads-device/`에만 보관했다. 기기 식별자는 공개하지 않는다. 테스트 sample/control 앱은 모두 제거하고 `pm path`가 비었음을 확인했으며, 이번에 만든 기기 내 녹화 파일도 제거했다. 개인 앱/데이터/네트워크 설정을 변경하지 않았다. 이 checkout의 Editor는 종료 상태이며 다른 checkout의 Editor는 건드리지 않았다.
+
+빌드 후 URP quality 3개, UniversalRenderPipelineGlobalSettings, GraphicsSettings가 dirty로 표시됐지만 `git diff --stat` 및 `--numstat`에 내용 변경은 없었고 LF/CRLF 정규화 경고만 있었다. 이 checkout의 Editor가 없음을 프로세스 경로로 확인한 뒤 해당 5개 파일만 HEAD로 복원했다. 실제 설정 변경이 없어 재빌드하지 않았으며 최종 작업 트리는 clean이다.
