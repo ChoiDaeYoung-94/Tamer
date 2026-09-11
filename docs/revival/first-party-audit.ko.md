@@ -152,3 +152,8 @@ inventory 기준 `e0f87800b4d7c94b7c28dc884b9b2f98431a24a9`에서 신규 3개를
 
 
 후속 source는 PlayFab HTTP instance 설정 전달 오류를 수정했고 `RevivalPlayFabHttpTests.cs` 3개 회귀를 추가했다. inventory121/meta0, Editor370/370/0skip(3.6837712초). vendor `PlayFabHTTP.cs`의 좁은 패치는 별도 manifest upstreamSha256/localPatch로 추적한다. 최초 APK의 로그인 실패를 수정 후 결과와 구분한다. 최종 해시/실기기 결과는 playfab-iap-test-validation.json을 따른다.
+
+
+| 파일 | 책임 | 검토 결과 | 검증 |
+| --- | --- | --- | --- |
+| `Assets/Tests/Editor/RevivalPlayFabHttpTests.cs` | PlayFab HTTP 초기화 회귀 | SDK·통합: 실제 instance API→fake transport settings/context 보존, 빈 타이틀 거부, 기존 초기화 호환, 임시 SO/transport 복구 | 신규3/3·전체370/370 |
