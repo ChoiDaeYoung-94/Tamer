@@ -2,7 +2,7 @@
 
 범위: 추적 중인 Assets/Scripts, Assets/Tests, Assets/GPGSIds.cs의 113개 파일. SDK 디렉터리는 별도 공급망 감사 범위다. Scripts/MiniMap/FogOfWar는 출처만으로 제외하지 않고 포함한다. 신규 파일은 통합 시 inventory를 다시 생성해 추가한다.
 
-아래 의존성은 소스의 lexical 참조이며 전체 호출 그래프가 아니다. 최신 inventory 기준은 `37128bd2517afcaa8d263e6b499515ed9d68101c`이다. 합성 loopback HTTP 어댑터 1개를 추가하여 총 113개다. 삭제 core/UI가 포함된 `fff397e1eae26266c415212e4a80011c180d5cbf`에서 Editor 355/355를 통과했고 병합까지 해당 C# 소스 차이는 없다. 기존 98개 감사와 317/332/335 결과의 실행 시점은 각 근거에 유지하며, UMP 3개·격리 gameplay 4개·삭제 core/UI/tests 7개 신규 파일을 추가했다. 실제 기기 APK 소스는 `f2ab1d9`로 통합 Editor 소스와 구분한다. 삭제 UI의 실제 프리팹 렌더 3장을 독립 검토했으며 운영 삭제 연결과 Android 실행은 미검증이다.
+아래 의존성은 소스의 lexical 참조이며 전체 호출 그래프가 아니다. 최신 inventory 기준은 `37128bd2517afcaa8d263e6b499515ed9d68101c`이다. 합성 loopback HTTP 어댑터 1개를 추가하여 총 113개다. 삭제 core/UI가 포함된 `fff397e1eae26266c415212e4a80011c180d5cbf`에서 Editor 355/355를 통과했고 기존 삭제 core/UI는 9623e648 병합까지 C# 소스 차이가 없다. 신규 HTTP 어댑터 포함 검증은 e4dcbc8의 Editor355/355 및 별도 .NET9 소켓13/13이다. 기존 98개 감사와 317/332/335 결과의 실행 시점은 각 근거에 유지하며, UMP 3개·격리 gameplay 4개·삭제 core/UI/tests 7개 신규 파일을 추가했다. 실제 기기 APK 소스는 `f2ab1d9`로 통합 Editor 소스와 구분한다. 삭제 UI의 실제 프리팹 렌더 3장을 독립 검토했으며 운영 삭제 연결과 Android 실행은 미검증이다.
 
 근거: [통합 317/317](gameplay-followup-validation.json), [gameplay 판단](gameplay-followup-audit.ko.md), [UI 감사](refactor-ui-audit.ko.md), [서비스와 테스트 감사](refactor-services-audit.ko.md), [영수증 검증](receipt-verification.ko.md). SDK 담당은 IAPManager/지급 core/검증 core/HTTP transport와 IAP 테스트 4파일의 전체 본문·격리 경로를 확인했고, 통합 담당은 해당 변경과 owner 불일치 수정·회귀를 검토했다.
 
@@ -122,4 +122,4 @@
 | `Assets/Scripts/Editor/RevivalGameplayBuild.cs` | 오프라인 APK 조립·원복 | BuildPipeline/manifest | 통합·서비스: 별도ID/debug서명/빌드전용심볼, network·billing·provider 제거 | 실제 APK verifier와 설정 원복; 원래4씬 변경 없음 |
 | `Assets/Tests/Editor/RevivalGameplayIsolationTests.cs` | 격리 저장·대역·manifest 회귀 | PreviewScene/reflection/XML | 통합·서비스: 고유 임시 폴더/비활성 Data/메모리응답, finally 정리 | 3개 및 통합335; Android 권한은 실제APK 별도검증 |
 
-113개 파일의 소스 감사 판단을 연결했다. 통합 Editor 335개 회귀와 별도 오프라인 APK의 실제 씬 왕복 2회를 구분한다. 원래 씬을 실행했지만 합성 계정·메모리 서버로 격리했으며 운영 인증/진행도 쓰기/구매/정책/16KB 완료를 뜻하지 않는다. 최신 근거는 [격리 gameplay 검증](gameplay-harness.ko.md)과 [UMP 검증](families-consent-gate.ko.md)에 있다.
+113개 파일의 소스 감사 판단을 연결했다. 최신 Editor355개 회귀·.NET9 HTTP 계약13개와 이전 오프라인 APK의 실제 씬 왕복 2회를 구분한다. 원래 씬을 실행했지만 합성 계정·메모리 서버로 격리했으며 운영 인증/진행도 쓰기/구매/정책/16KB 완료를 뜻하지 않는다. 최신 근거는 [격리 gameplay 검증](gameplay-harness.ko.md)과 [UMP 검증](families-consent-gate.ko.md)에 있다.
