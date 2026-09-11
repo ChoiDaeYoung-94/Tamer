@@ -40,6 +40,8 @@ Windows x64 / Intel Core i7-14700KF, BIOS 가상화와 SLAT는 사용 가능했�
 
 구매 자산 복원과 고정 Unity CLI 준비는 [SDK 재현 절차](sdk-audit.ko.md)를 따른다. 해당 프로젝트 Editor가 없는 상태에서 실행한다.
 
+아래 직접 CLI 명령은 Editor 시작 전 설정 snapshot을 자동 제공하지 않는다. 실행 전에 현재 `ProjectSettings/ProjectSettings.asset`의 바이트를 별도로 보관하고, 명령 종료 및 해당 Editor 종료를 확인한 뒤 이번 실행이 바꾼 설정을 그 snapshot과 대조해 복원해야 한다. 기존 미커밋 설정을 Git HEAD로 덮어쓰지 않는다. 공통 `Run-Baseline.ps1`의 prelaunch 보호는 통합 담당의 별도 후속 변경이다.
+
 ```powershell
 tools/.local/unity-cli/1.0.0-beta.8/unity.exe build . --editor-path 'C:\Program Files\Unity\Hub\Editor\6000.0.81f1\Editor\Unity.exe' --target Android --execute-method RevivalBuild.BuildAndroidDevelopmentBundle --log-file Logs/revival/android-aab-build.log --no-tail --non-interactive
 python tools/revival/install_bundletool.py
