@@ -64,6 +64,7 @@ namespace AD
         #endregion
 
         private CancellationTokenSource _cts;
+        private DataManager _dataOwner;
         private readonly LoginOperationGate _operations = new LoginOperationGate();
         private string _selectedGpgsId;
 
@@ -87,6 +88,7 @@ namespace AD
 
         private void Start()
         {
+            _dataOwner = AD.Managers.DataM;
             _cts = new CancellationTokenSource();
             StartLogin();
         }
@@ -94,8 +96,8 @@ namespace AD
         private void OnDestroy()
         {
             _cts?.Cancel();
-            if (AD.Managers.Instance != null && !_operations.HasEnteredScene)
-                AD.Managers.DataM.SuspendAccountSession();
+            if (_dataOwner != null && !_operations.HasEnteredScene)
+                _dataOwner.SuspendAccountSession();
             _cts?.Dispose();
             _cts = null;
         }
@@ -650,11 +652,13 @@ namespace AD
 
         private async UniTask<bool> WaitForServerAsync(CancellationToken token)
         {
-            bool completed = await WaitUntilAsync(() => !AD.Managers.ServerM.IsInProgress, ServerSyncTimeout, token);
+            var server = AD.Managers.ServerM;
+            if (server == null || token.IsCancellationRequested) return false;
+            bool completed = await WaitUntilAsync(() => !server.IsInProgress, ServerSyncTimeout, token);
             if (!completed || token.IsCancellationRequested)
-                AD.Managers.ServerM.CancelPendingRequests();
+                server.CancelPendingRequests();
             if (token.IsCancellationRequested) return false;
-            if (!completed || AD.Managers.ServerM.HasFailed)
+            if (!completed || server.HasFailed)
             {
                 ShowRetry("Could not load your saved progress. Please try again.");
                 return false;

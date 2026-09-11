@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 using PlayFab;
 using PlayFab.ClientModels;
@@ -12,7 +13,7 @@ namespace AD
     /// Serial, account-scoped PlayFab requests. A failed group stops queued work;
     /// cancellation invalidates callbacks but cannot undo an already accepted server write.
     /// </summary>
-    public class ServerManager
+    public class ServerManager : IDisposable
     {
         public bool IsInProgress => _active != null || _pending.Count != 0;
         public bool HasFailed { get; private set; }
@@ -30,6 +31,8 @@ namespace AD
         private Operation _active;
         private int _generation;
         private int _requestVersion;
+        private bool _disposed;
+        private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
 
         private sealed class Operation
         {
@@ -42,13 +45,18 @@ namespace AD
             public Action OnWritten;
         }
 
-        public ServerManager() : this(
-            () => Managers.DataM.PlayFabId,
-            () => Managers.DataM.IsServerDataReady,
+        public ServerManager() : this(Managers.DataM) { }
+
+        // Production callbacks stay bound to their owner, never a replacement singleton.
+        public ServerManager(DataManager data) : this(
+            () => data != null ? data.PlayFabId : null,
+            () => data != null && data.IsServerDataReady,
             ReadFromPlayFab, WriteToPlayFab,
-            (delay, action) => DelayAsync(delay, action).Forget(),
-            ApplyServerData)
+            (delay, action) => { },
+            (snapshot, update) => ApplyServerData(data, snapshot, update))
         {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            _schedule = Schedule;
         }
 
         // Dependencies use plain values so isolated tests never need Managers or a PlayFab session.
@@ -104,6 +112,15 @@ namespace AD
             HasFailed = true;
         }
 
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            CancelPendingRequests();
+            _lifetime.Cancel();
+            _lifetime.Dispose();
+        }
+
         [Obsolete("ServerManager owns completion. Use CancelPendingRequests to stop requests.")]
         public void SetInProgress(bool value)
         {
@@ -112,6 +129,7 @@ namespace AD
 
         private void Enqueue(Operation operation)
         {
+            if (_disposed) return;
             if (!IsInProgress) HasFailed = false;
             operation.AccountId = _accountId();
             operation.Generation = _generation;
@@ -134,6 +152,7 @@ namespace AD
 
         private bool IsCurrent(Operation operation)
         {
+            if (_disposed) return false;
             if (!ReferenceEquals(_active, operation) || operation.Generation != _generation) return false;
             if (string.Equals(operation.AccountId, _accountId(), StringComparison.Ordinal)) return true;
             Abort("Account changed while a request was pending.");
@@ -245,9 +264,12 @@ namespace AD
             Debug.LogWarning("[Tamer/Server] " + message);
         }
 
-        private static async UniTaskVoid DelayAsync(TimeSpan delay, Action action)
+        private void Schedule(TimeSpan delay, Action action) => DelayAsync(delay, action, _lifetime.Token).Forget();
+
+        private static async UniTask DelayAsync(TimeSpan delay, Action action, CancellationToken token)
         {
-            await UniTask.Delay(delay, ignoreTimeScale: true);
+            if (await UniTask.Delay(delay, ignoreTimeScale: true, cancellationToken: token)
+                .SuppressCancellationThrow()) return;
             action();
         }
 
@@ -292,13 +314,14 @@ namespace AD
             };
         }
 
-        private static void ApplyServerData(Dictionary<string, string> data, bool update)
+        private static void ApplyServerData(DataManager owner, Dictionary<string, string> data, bool update)
         {
+            if (owner == null) throw new InvalidOperationException("The data owner was destroyed.");
             var records = new Dictionary<string, UserDataRecord>();
             foreach (var pair in data) records.Add(pair.Key, new UserDataRecord { Value = pair.Value });
-            Managers.DataM.PlayFabPlayerData = records;
-            if (update) Managers.DataM.UpdateData();
-            else Managers.DataM.IsConflict = false;
+            owner.PlayFabPlayerData = records;
+            if (update) owner.UpdateData();
+            else owner.IsConflict = false;
         }
     }
 }
