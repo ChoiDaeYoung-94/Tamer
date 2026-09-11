@@ -211,6 +211,7 @@ namespace AD
 
         public void PopupSetting()
         {
+            DeletionSettingsEntry.Ensure(_popupSetting, this);
             UnityEngine.Time.timeScale = 0;
 
             float bgm = PlayerPrefs.GetFloat("BGM", 1f);
