@@ -33,6 +33,23 @@ namespace AD
         private int _sceneVersion;
         private float _loadDeadline;
 
+#if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
+        private SoundManager _harnessSound;
+        public event Action<string, double> HarnessEvent;
+        public void ConfigureHarnessAudio(SoundManager sound) => _harnessSound = sound;
+#endif
+
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("TAMER_AD_TEST_HARNESS")]
+        private void TraceHarness(string name)
+        {
+#if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
+            double timestamp = (double)System.Diagnostics.Stopwatch.GetTimestamp() /
+                System.Diagnostics.Stopwatch.Frequency;
+            Enqueue(() => HarnessEvent?.Invoke(name, timestamp));
+#endif
+        }
+
         public bool IsInProgress => _session != null;
 
         // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
@@ -140,13 +157,19 @@ namespace AD
                         TagForUnderAgeOfConsent = TagForUnderAgeOfConsent.True,
                         MaxAdContentRating = MaxAdContentRating.G
                     });
-                    MobileAds.Initialize(status => Enqueue(() =>
+                    TraceHarness("request_flags_set");
+                    TraceHarness("initialize_call");
+                    MobileAds.Initialize(status =>
                     {
-                        if (version != _loadVersion) return;
-                        _initializing = false;
-                        _initialized = status != null;
-                        if (_initialized) LoadSampleAd(version);
-                    }));
+                        TraceHarness("initialize_callback");
+                        Enqueue(() =>
+                        {
+                            if (version != _loadVersion) return;
+                            _initializing = false;
+                            _initialized = status != null;
+                            if (_initialized) LoadSampleAd(version);
+                        });
+                    });
                 }
                 catch (Exception)
                 {
@@ -165,9 +188,11 @@ namespace AD
             DestroyLoadedAd();
             try
             {
+                TraceHarness("load_call");
                 RewardedAd.Load(AdRequestPolicy.TestRewardedAdUnit(
                     Application.platform == RuntimePlatform.IPhonePlayer), new AdRequest(), (ad, error) =>
                 {
+                    TraceHarness(error == null && ad != null ? "load_callback_ok" : "load_callback_failed");
                     Enqueue(() =>
                     {
                         if (version != _loadVersion)
@@ -230,15 +255,32 @@ namespace AD
             var ad = _rewardedAd;
             _rewardedAd = null;
             _showingAd = ad;
-            ad.OnAdFullScreenContentClosed += () => Enqueue(() =>
-                QueueClose(session));
-            ad.OnAdFullScreenContentFailed += error => Enqueue(() =>
-                CompleteSession(session, RewardedAdOutcome.Failed));
+#if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
+            ad.OnAdFullScreenContentOpened += () => TraceHarness("opened_callback");
+#endif
+            ad.OnAdFullScreenContentClosed += () =>
+            {
+                TraceHarness("closed_callback");
+                Enqueue(() => QueueClose(session));
+            };
+            ad.OnAdFullScreenContentFailed += error =>
+            {
+                TraceHarness("failed_callback");
+                Enqueue(() => CompleteSession(session, RewardedAdOutcome.Failed));
+            };
             try
             {
-                if (Managers.Instance != null && Managers.SoundM != null)
-                    _resumeBgm = Managers.SoundM.PauseBGMForAd();
-                ad.Show(rewardInfo => Enqueue(session.EarnReward));
+                var sound = Managers.Instance != null ? Managers.SoundM : null;
+#if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
+                if (_harnessSound != null) sound = _harnessSound;
+#endif
+                if (sound != null) _resumeBgm = sound.PauseBGMForAd();
+                TraceHarness("show_call");
+                ad.Show(rewardInfo =>
+                {
+                    TraceHarness("earned_callback");
+                    Enqueue(session.EarnReward);
+                });
             }
             catch (Exception)
             {
