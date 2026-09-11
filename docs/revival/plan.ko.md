@@ -2,7 +2,7 @@
 
 최초 조사: 2026-09-10. 갱신: 2026-09-11.
 초기 기준: `c47c90217d45e8c6538c57a0924fa852abfbd736`.
-실행 명령은 [개발 안내](../development.ko.md), 빌드 근거는 [기준 기록](baseline.ko.md)과 [검증 데이터](validation.json)를 따른다.
+실행 명령은 [개발 안내](../development.ko.md), 최신 병합·검증·남은 작업은 [통합 요약](completion-summary.ko.md)과 [통합 데이터](integration-validation.json)를 따른다. [기준 기록](baseline.ko.md)과 [초기 검증 데이터](validation.json)는 당시 이력이다.
 
 이 문서는 최초 준비 PR #93의 계획을 실제 작업 상태로 갱신한 것이다. 과거 조사 시점의 상태는 Git 이력에서 확인할 수 있다. “Editor/빌드/도구 설치 미실행”은 최초 조사 당시의 기록이며 현재 전체 상태를 의미하지 않는다.
 
@@ -21,11 +21,11 @@
 | 앱 버전 | 1.0.5 / code26 | 복구 빌드는 자동 증가하지 않음 |
 | Unity CLI | 1.0.0-beta.8 | 공식 배포 SHA-256 고정 설치 |
 | Pipeline | 0.6.0-exp.1 | UPM manifest/lock |
-| 복원 | 원본 파일 4,537개 해시, 서비스 설정 2개 제외 | assets-manifest.json |
-| 자동화 | Python 복원 회귀, Unity EditMode, 격리 APK 메타데이터/서명 검사 | tools/revival 및 validation.json |
+| 복원 | SDK 이행 후 파일 4,561개 해시 확인, 서비스 설정 제외 유지 | assets-manifest.json 및 integration-validation.json |
+| 자동화 | Python 31개, Unity EditMode 248개, 격리 APK 메타데이터/서명·GUID·LOAD/ZIP 통과 | tools/revival 및 integration-validation.json; strict RELRO 5개 실패 별도 |
 | 기기·스토어 | 별도 검증 필요 | 기준 작업 당시 연결 Android 기기 0대 |
 
-초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK 최신화 작업은 #97에서 별도 관리하며, 현재 checkout의 manifest/lock과 vendor 파일이 실행 기준이다. Unity6.3 이행은 6.0 기준 복구 및 SDK 변경과 분리한다.
+초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK/IAP 이행 PR #106은 병합됐으며 실제 최종 버전은 [통합 요약](completion-summary.ko.md)에 기록했다. 현재 checkout의 manifest/lock과 vendor 파일이 실행 기준이다. Unity6.3 설치는 Windows UAC로 중단됐고 [#86 재개 안내](unity63-handoff.ko.md)를 따른다.
 
 ## 작업과 완료 기준
 
@@ -37,6 +37,8 @@
 | P3 | SDK/Android 현대화 | #97: 호환 조합과 IAP v5, 실제 native16KB 검사, 계정/권한 회귀. 엔진 이행은 별도 |
 | P4 | 저장·인증과 게임플레이 리팩토링 | #96: 서버 진행도와 계정 연속성. #98: 전투 루프/보스/생성 수명 |
 | P5 | 개발 문서와 운영 준비 | #93: README/개발 절차, #94: GitHub 접근 점검. CI/CD는 사용자 방침상 보류 |
+
+구현 PR #95·#93·#103·#100·#101·#102·#104·#106은 main에 병합했다. 위 단계의 실제 기기·정책·서비스·소유자 확인까지 완료한 것은 아니며, 정확한 완료 범위와 미검증 항목은 통합 요약을 기준으로 한다.
 
 ## 병렬 작업과 통합
 
@@ -60,7 +62,7 @@
 
 ## 개발과 배포 경계
 
-로컬 검증은 `Run-Baseline.ps1`과 격리 앱을 사용한다. 기존 BuildScript·App Center·fastlane 구성은 과거 배포 경로로 보존한다. workflow dispatch, runner 등록, 자동 배포, 서비스 이행을 하지 않는다. 이 보류는 로컬 구현·테스트·PR·검증 후 병합을 막는 조건이 아니다.
+로컬 전체 검증은 `Run-SdkValidation.ps1`과 격리 앱을 사용한다. strict RELRO는 별도 검사로 기록한다. 기존 BuildScript·App Center·fastlane 구성은 과거 배포 경로로 보존한다. workflow dispatch, runner 등록, 자동 배포, 서비스 이행을 하지 않는다. 이 보류는 로컬 구현·테스트·PR·검증 후 병합을 막는 조건이 아니다.
 
 기기 연결, 계정 2FA/소유자 재인증, Asset Store 구매 증빙, 배포 서명·Console 제품 결정처럼 소유자만 가능한 단계가 남으면 구체적으로 기록한다. 코드와 도구로 해결 가능한 작업은 계속 수행한다.
 

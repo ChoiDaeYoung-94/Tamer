@@ -8,7 +8,7 @@
 - CLI: `tools/.local/unity-cli/1.0.0-beta.8/unity.exe`. 설치는 `python tools/revival/install_cli.py`. 프로젝트의 `unity-cli`, `unity-pipeline` skill을 따른다.
 - 모든 Editor 명령에 `--project-path` 절대 경로를 지정한다. 같은 Editor 쓰기는 직렬화한다. batch 전에 해당 checkout Editor만 정상 종료한다. 다른 Editor/PID를 종료하지 않는다.
 - 라이브 검증: `command editor_status`, `set_autotick --enable true`, `get_console_logs`, `list_open_scenes`, `get_scene_hierarchy`, `run_tests --mode editor --filter Revival --async_tests true`, `test_status`. 성공 응답만으로 비동기 완료를 가정하지 않는다.
-- 로컬 전체 검증은 `./tools/revival/Run-Baseline.ps1`. 추가 검사: `python tools/revival/audit_guids.py`, `python tools/revival/verify_apk.py`, `python -m unittest discover -s tools/revival -p test_restore_assets.py`.
+- 로컬 전체 검증은 `./tools/revival/Run-SdkValidation.ps1`이며 Python·기준 테스트/APK·GUID·네이티브 LOAD/ZIP 검사를 포함한다. 테스트만 실행할 때는 `Run-Baseline.ps1 -TestsOnly`를 사용한다. 공식 추가 RELRO 조건은 `python tools/revival/verify_native_alignment.py --strict-relro`로 별도 확인하며 기본 검사의 성공과 구분한다.
 - 라이선스 문제는 `unity auth status`, `unity license status`로 확인한다. `license activate`의 빈 products 응답은 활성 라이선스가 있다는 증거가 아니다. 프로젝트 계정 pin을 사용하며 다른 프로젝트의 기본 계정을 바꾸지 않는다.
 - CI/CD는 개인용으로 보류한다. 기존 App Center 설정을 보존하고 활성화/dispatch/새 서비스 이행/배포를 하지 않는다. Distribution 서비스 종료와 구성 보존을 구분한다.
 - 접근권한 점검은 #94. 공개 열람/clone과 push/merge/관리 권한을 구분한다. 별도 요청 없이 권한을 변경하지 않는다.

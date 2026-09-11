@@ -8,7 +8,7 @@ Unity로 만든 Android 3D 게임입니다. 플레이어가 몬스터를 동료�
 
 복구 기준은 **Unity 6000.0.81f1**, Android **min API 24 / target API 36 / ARM64**, 앱 **1.0.5 / versionCode 26**입니다. 정확한 버전은 [도구 잠금](tools/revival/toolchain.json), [UPM 잠금](Packages/packages-lock.json), [의존성 문서](docs/revival/dependencies.ko.md)를 확인합니다.
 
-에셋 복원·Unity EditMode 테스트·격리 개발 APK의 빌드와 서명 검증 결과는 [기준 빌드 기록](docs/revival/baseline.ko.md)과 [검증 데이터](docs/revival/validation.json)에 커밋별로 남깁니다. 기기에서의 로그인·저장·구매·광고와 Google Play 심사 통과는 별도 검증 대상입니다. [Families 광고 이슈 #91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91)은 빌드 성공만으로 종료하지 않습니다.
+최신 [구현·통합 검증 요약](docs/revival/completion-summary.ko.md)과 [통합 검증 데이터](docs/revival/integration-validation.json)에 병합 PR, 실제 SDK 버전, EditMode 248개·Python 31개 통과와 격리 APK 결과를 기록했습니다. [초기 기준 빌드 기록](docs/revival/baseline.ko.md)은 별도 이력입니다. 네이티브 LOAD/ZIP 검사는 통과했지만 엄격 RELRO 검사 5개와 실제 16KB 기기·AAB 검증은 남아 있습니다. 기기에서의 로그인·저장·구매·광고와 Google Play 심사 통과도 별도이며, [Families 광고 이슈 #91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91)은 빌드 성공만으로 종료하지 않습니다.
 
 **CI/CD는 보류 중입니다.** 기존 App Center 설정은 보존하며 자동 빌드·배포를 실행하지 않습니다. 과거 다운로드 링크를 현재 검증된 빌드로 안내하지 않습니다.
 
@@ -29,7 +29,7 @@ python tools/revival/install_cli.py
 if ($LASTEXITCODE -ne 0) { throw 'CLI 설치 실패' }
 
 # 이 checkout의 Editor를 닫은 상태에서 실행합니다.
-./tools/revival/Run-Baseline.ps1
+./tools/revival/Run-SdkValidation.ps1
 ```
 
 성공 시 `Build/revival/Tamer-development.apk`와 `Logs/revival`의 결과를 확인합니다. APK는 별도 앱 ID(`com.AeDeong.MonsterTamer.revival`), debug 서명, 격리 시작 씬을 사용합니다. 기존 운영 앱의 업데이트나 스토어 제출용 빌드가 아닙니다. Library는 checkout마다 새로 생성합니다.
@@ -60,6 +60,7 @@ if ($LASTEXITCODE -ne 0) { throw 'CLI 설치 실패' }
 
 주요 개발 문서:
 
+- [구현·통합 검증 요약과 남은 작업](docs/revival/completion-summary.ko.md)
 - [개발·검증·PR 작업 안내](docs/development.ko.md)
 - [복원 에셋과 라이선스 범위](docs/revival/dependencies.ko.md)
 - [기준 빌드와 검증 근거](docs/revival/baseline.ko.md)

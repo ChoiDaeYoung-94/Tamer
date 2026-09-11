@@ -1,0 +1,259 @@
+{
+  "schema": 1,
+  "issue": 90,
+  "validatedAtUtc": "2026-09-11T04:47:23.759755+00:00",
+  "sourceCodeCommit": "f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf",
+  "sourceCodeUrl": "https://github.com/ChoiDaeYoung-94/Tamer/commit/f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf",
+  "mergedMainCommit": "7cba8dbbcfb733b4e7b8fc8eb818cb330003504a",
+  "sourceMatchesMergedMainPaths": [
+    "Assets",
+    "Packages",
+    "ProjectSettings",
+    "tools"
+  ],
+  "mergedPullRequests": {
+    "95": "83719f2e7419d97a3a299aaa12678d62fb4b4edc",
+    "93": "16f85c812ad85e7725306615ace4a03c4f732fb0",
+    "103": "c84536485524da187d96a24f200de90cfc4f2ebe",
+    "100": "6015edfaa08f7a0ff804a6e755d75badf8de6d9f",
+    "106": "ca9d73085014ad656d7f7dff5e85b751aadf2998",
+    "101": "2fb69cbef6354920053c91069e2de5effc9f35c2",
+    "102": "64b6d9392aad79b5b7fcc548a4735cb96152dab6",
+    "104": "7cba8dbbcfb733b4e7b8fc8eb818cb330003504a"
+  },
+  "includedSourceCommits": {
+    "save100": "0003c1d2d08e3b038f33dbca5284859252f132ca",
+    "gameplay101": "886c7374928988a19947404d264013f3bea92d68",
+    "pool102": "025a1fc43b2dbbe766044f0b10637074145353dc",
+    "ads104": "b4764b4635304328762810ea07ededc7a96f6d9e",
+    "sdk106": "521e8b719058129681fa7e810d593f74e76c2480"
+  },
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7819/Tamer",
+  "command": "./tools/revival/Run-SdkValidation.ps1",
+  "fullScriptExitCode": 0,
+  "library": {
+    "absentBeforeFirstImport": true,
+    "firstImportCommit": "f9a58b5694e6e6030f9a66d75076f6c1e49e45bd",
+    "copiedOrSharedFromOtherCheckout": false,
+    "finalRunUsedOwnImportCache": true,
+    "note": "The first isolated destruction test imported this checkout and crashed; final source was rerun using only its own Library."
+  },
+  "toolchain": {
+    "unity": "6000.0.81f1",
+    "unityRevision": "6238fec1e98f",
+    "unityCli": "1.0.0-beta.8",
+    "pipeline": "0.6.0-exp.1",
+    "androidPlatform": 36,
+    "buildTools": "36.0.0",
+    "ndk": "27.2.12479018",
+    "jdk": "17.0.18+8",
+    "gradle": "9.1.0",
+    "androidGradlePlugin": "9.0.0"
+  },
+  "sdkVersions": {
+    "iap": "5.4.3",
+    "servicesCore": "1.18.0",
+    "uniTask": "2.5.11",
+    "googlePlayGamesUnity": "2.2.1",
+    "googlePlayGamesAndroid": "22.0.0",
+    "externalDependencyManager": "1.2.189",
+    "playFab": "2.242.260805",
+    "googleMobileAdsUnity": "11.5.0",
+    "googleMobileAdsAndroidStandard": "25.4.0",
+    "ump": "4.0.0",
+    "googlePlayBilling": "9.0.0"
+  },
+  "editMode": {
+    "result": "Passed",
+    "total": 248,
+    "passed": 248,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 3.5548825,
+    "fixtures": {
+      "RevivalAdEntitlementTests": 20,
+      "RevivalAdManagerTests": 20,
+      "RevivalAdPopupTests": 6,
+      "RevivalAdRequestPolicyTests": 18,
+      "RevivalBaselineTests": 4,
+      "RevivalDataSyncTests": 42,
+      "RevivalLoginContinuityTests": 56,
+      "RevivalMonsterLifecycleTests": 6,
+      "RevivalPoolTests": 5,
+      "RevivalRewardedAdSessionTests": 20,
+      "RevivalSaveQueueTests": 3,
+      "RevivalSdkMigrationTests": 4,
+      "RevivalServerRequestTests": 14,
+      "RevivalIAPConfigurationTests": 3,
+      "RevivalIAPFulfillmentTests": 13,
+      "RevivalIAPOrderTests": 14
+    },
+    "resultSha256": "e692f36dea38dd9e6e7dbe40f8826bf6aa91a1883c2bc5847ff2f79a554edada"
+  },
+  "pythonTests": {
+    "passed": 31,
+    "failed": 0
+  },
+  "assetRestore": {
+    "verifiedFiles": 4561,
+    "copiedFiles": 0
+  },
+  "guidAudit": {
+    "checkedYamlFiles": 132,
+    "unresolvedGuids": 0,
+    "assetMetaGuidDefinitions": 3508,
+    "invalidGuids": 0,
+    "duplicateGuids": 0
+  },
+  "build": {
+    "result": "Succeeded",
+    "errors": 0,
+    "scenes": [
+      "Assets/Tests/Scenes/RevivalSmoke.unity",
+      "Assets/Scenes/Login.unity",
+      "Assets/Scenes/Main.unity",
+      "Assets/Scenes/Game.unity",
+      "Assets/Scenes/SetCharacter.unity",
+      "Assets/Scenes/NextScene.unity"
+    ],
+    "buildReportTotalSizeIsApkFileSize": false
+  },
+  "apk": {
+    "apk": "Build/revival/Tamer-development.apk",
+    "bytes": 104785252,
+    "sha256": "0d51f218491d90aa7e963b0e42b3ebf5606fc8e0d91f4b710d246fb8223eeb27",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "applicationId": "com.AeDeong.MonsterTamer.revival",
+    "version": "1.0.5",
+    "versionCode": 26,
+    "debuggable": true,
+    "debugSignatureVerified": true
+  },
+  "native": {
+    "defaultExitCode": 0,
+    "strictRelroExitCode": 1,
+    "sdkZipalignExitCode": 0,
+    "manifestExtractNativeLibs": true,
+    "loadZipChecksPassed": true,
+    "relroChecksPassed": false,
+    "libraryCount": 6,
+    "loadSegmentCount": 23,
+    "compressedLibraryCount": 6,
+    "relroEndAlignmentFailureCount": 5,
+    "wholeLoadRelroCount": 6,
+    "roundedRelroWritableOverlapCount": 0,
+    "runtime16KBVerified": false,
+    "libraries": [
+      {
+        "path": "lib/arm64-v8a/lib_burst_generated.so",
+        "sha256": "b780ee9732a216747c5040bd8a094dade9394d6a10e0bd20f6c2c416632f5bae",
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 538192,
+            "memorySize": 18864,
+            "endAddress": 557056,
+            "endAligned16KB": true,
+            "endRemainder16KB": 0,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libc++_shared.so",
+        "sha256": "4397241b4bd20a8e579bfb41d21107857e12985f6a01ca0c2a5f83380d1270b4",
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 1282800,
+            "memorySize": 40208,
+            "endAddress": 1323008,
+            "endAligned16KB": false,
+            "endRemainder16KB": 12288,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libil2cpp.so",
+        "sha256": "da8971e2f4b8fc80a2ee734bb5cbf3f9705fb2aaa0bdbbdb0c69efc79b8d90f0",
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 133555728,
+            "memorySize": 6732272,
+            "endAddress": 140288000,
+            "endAligned16KB": false,
+            "endRemainder16KB": 8192,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libmain.so",
+        "sha256": "046e865bbd5a73ee5b4469d6ad65a4ac3add761a82b031eac1597280f068ea2d",
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 36640,
+            "memorySize": 4320,
+            "endAddress": 40960,
+            "endAligned16KB": false,
+            "endRemainder16KB": 8192,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libswappywrapper.so",
+        "sha256": "7bafa9717040b56db3207b4011aa682587668972ac28c54ee30af0ba7a43ca62",
+        "relro": [
+          {
+            "index": 5,
+            "virtualAddress": 222832,
+            "memorySize": 10640,
+            "endAddress": 233472,
+            "endAligned16KB": false,
+            "endRemainder16KB": 4096,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libunity.so",
+        "sha256": "ee605856ad4163bba065c80c5def7bc396315a76ca9fa2dead4ddcd43f1d07dd",
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 32975872,
+            "memorySize": 492544,
+            "endAddress": 33468416,
+            "endAligned16KB": false,
+            "endRemainder16KB": 12288,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      }
+    ],
+    "scope": "Static ELF/ZIP and declared writable-byte geometry only. Official guide modulo failures remain; no device, mmap, runtime-write, AAB split or store validation."
+  },
+  "investigatedFailures": [
+    "Old ad test fixtures failed on the batch runner untitled scene; preview fixtures and one new invalid test.meta were corrected.",
+    "Unity Mono native crash reproduced for isolated OnDestroy on GMA 9.1.1 and 11.5.0. Flattening cleanup exception handlers passed the isolated experiment and the final 248-test suite; internal Mono cause is not proven."
+  ],
+  "postRun": "Own Editor exited. Incidental key-alias clearing, scene-template serialization and line-ending changes were restored to the pre-run tracked state. Final follow-up changes are documentation only.",
+  "remaining": [
+    "Real Android account/login/save, purchase/restore, ad/audio and gameplay flows",
+    "16KB Android runtime, final AAB/split packaging and store review",
+    "Families policy, actual served version and AdMob account/network settings (#91)",
+    "Data safety/privacy, deletion/retention and existing Public-key migration (#105)",
+    "Signing certificate relationship, OAuth need and private licensed asset archive operation",
+    "Unity 6000.3.24f1 installation requires Windows UAC approval (#86)"
+  ],
+  "productionOperationsPerformed": false,
+  "ciOrDeploymentPerformed": false
+}
