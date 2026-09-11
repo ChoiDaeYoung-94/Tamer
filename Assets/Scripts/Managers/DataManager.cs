@@ -1,388 +1,222 @@
 using System;
 using System.IO;
-using System.Globalization;
 using System.Threading;
 using System.Collections.Generic;
-
 using UnityEngine;
-
 using PlayFab.ClientModels;
-
 using Cysharp.Threading.Tasks;
 
 namespace AD
 {
-    /// <summary>
-    /// 플레이어 데이터(로컬 및 서버), 몬스터 데이터, 아이템 데이터를 관리
-    /// </summary>
+    /// <summary>Login restores the server snapshot; gameplay uploads only explicitly changed keys.</summary>
     public class DataManager : MonoBehaviour
     {
-        public Dictionary<string, UserDataRecord> PlayFabPlayerData = null;
-        public Dictionary<string, string> LocalPlayerData = null;
-        public Dictionary<string, object> MonsterData = null;
-        public Dictionary<string, object> ItemData = null;
+        public Dictionary<string, UserDataRecord> PlayFabPlayerData;
+        public Dictionary<string, string> LocalPlayerData;
+        public Dictionary<string, object> MonsterData;
+        public Dictionary<string, object> ItemData;
+        public string PlayFabId { get; private set; } = string.Empty;
+        public bool IsServerDataReady { get; private set; }
+        public bool HasKnownAccount => !string.IsNullOrEmpty(_localOwner) || !string.IsNullOrEmpty(PlayFabId);
+        // Retained for existing serialized scenes. Conflicts no longer trigger a bulk upload.
+        public bool IsConflict;
 
-        private string _playFabId = string.Empty;
-        public string PlayFabId { get { return _playFabId; } set { _playFabId = value; } }
-
-        [Tooltip("PlayerData 초기화 시 server, local 충돌 여부")]
-        public bool IsConflict = false;
-
-        [Tooltip("Application.persistentDataPath에 위치한 PlayerData.json 파일 경로")]
         private string _playerDataPath = string.Empty;
-        private string _resourcePlayerData = string.Empty;
-        private string _resourceMonstersData = string.Empty;
-        private string _resourceItemsData = string.Empty;
-
+        private const string OwnerKey = "__TamerAccountOwner";
+        private string _localOwner = string.Empty;
+        private bool _sessionBackupCreated;
+        private Dictionary<string, string> _defaults;
+        private readonly PlayerDataChanges _changes = new PlayerDataChanges();
         private CancellationTokenSource _ctsLocalDataUpdate;
-        private CancellationTokenSource _ctsRefreshData;
 
-        /// <summary>
-        /// Managers - Awake() -> InitializeData()
-        /// 필요한 데이터를 미리 로드 및 초기화하며, 주기적으로 로컬 데이터를 갱신하는 코루틴을 시작
-        /// </summary>
         public void InitializeData()
         {
             LoadPlayerData();
-            LoadMonstersData();
-            LoadItemsData();
-
-            // 주기적인 로컬 데이터 업데이트 시작 (UniTask 사용)
+            MonsterData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString()) as Dictionary<string, object>;
+            ItemData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString()) as Dictionary<string, object>;
+            _ctsLocalDataUpdate?.Cancel();
+            _ctsLocalDataUpdate?.Dispose();
             _ctsLocalDataUpdate = new CancellationTokenSource();
             PeriodicLocalDataUpdateAsync(_ctsLocalDataUpdate.Token).Forget();
         }
 
-        #region Load data
-
-        /// <summary>
-        /// 게임 시작 시 PlayerData를 초기화
-        /// 첫 실행 시 Resources에 있는 PlayerData.json을 사용하며, 이후에는 persistentDataPath의 파일을 사용
-        /// </summary>
         private void LoadPlayerData()
         {
-            AD.DebugLogger.Log("DataManager", "LoadPlayerData() -> PlayerData 초기화");
-
-            LocalPlayerData = new Dictionary<string, string>();
-
             _playerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");
-            _resourcePlayerData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString();
-
-            string playerDataJson = File.Exists(_playerDataPath)
-                ? File.ReadAllText(_playerDataPath)
-                : _resourcePlayerData;
-
-            InitializePlayerData(playerDataJson);
+            _defaults = ParseData(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString());
+            // Never rewrite a legacy or malformed save during initialization.
+            LocalPlayerData = File.Exists(_playerDataPath)
+                ? ParseData(File.ReadAllText(_playerDataPath))
+                : new Dictionary<string, string>(_defaults);
+            foreach (var entry in _defaults)
+                if (!LocalPlayerData.ContainsKey(entry.Key)) LocalPlayerData.Add(entry.Key, entry.Value);
+            _localOwner = LocalPlayerData.TryGetValue(OwnerKey, out var owner) ? owner : string.Empty;
+            LocalPlayerData.Remove(OwnerKey);
         }
 
-        /// <summary>
-        /// JSON 데이터를 파싱하여 로컬 플레이어 데이터를 초기화
-        /// </summary>
-        private void InitializePlayerData(string data)
+        private static Dictionary<string, string> ParseData(string json)
         {
-            Dictionary<string, object> tempData = AD.Utility.DeserializeFromJson(data) as Dictionary<string, object>;
-            foreach (KeyValuePair<string, object> kv in tempData)
-            {
-                LocalPlayerData.Add(kv.Key, kv.Value.ToString());
-            }
-
-            if (File.Exists(_playerDataPath))
-            {
-                CheckForNewPlayerData();
-            }
-
-            File.WriteAllText(_playerDataPath, data);
-
-            AD.DebugLogger.Log("DataManager", "InitializePlayerData() -> PlayerData 초기화 완료");
+            var parsed = Utility.DeserializeFromJson(json) as Dictionary<string, object>;
+            if (parsed == null) throw new InvalidDataException("Player data is not an object; original file preserved.");
+            var result = new Dictionary<string, string>();
+            foreach (var entry in parsed) result.Add(entry.Key, entry.Value?.ToString() ?? "null");
+            return result;
         }
 
-        /// <summary>
-        /// 기존 플레이어 데이터와 리소스의 플레이어 데이터를 비교하여 새로운 데이터가 있으면 추가
-        /// </summary>
-        private void CheckForNewPlayerData()
+        /// <summary>Bind only after authentication. An owner mismatch requires explicit account recovery.</summary>
+        public void BeginAccountSession(string playFabId)
         {
-            AD.DebugLogger.Log("DataManager", "CheckForNewPlayerData() -> 새로운 PlayerData 검출");
-
-            Dictionary<string, object> resourceData = AD.Utility.DeserializeFromJson(_resourcePlayerData) as Dictionary<string, object>;
-            if (resourceData.Count > LocalPlayerData.Count)
-            {
-                foreach (KeyValuePair<string, object> newData in resourceData)
-                {
-                    if (!LocalPlayerData.ContainsKey(newData.Key))
-                    {
-                        LocalPlayerData.Add(newData.Key, newData.Value.ToString());
-                    }
-                }
-            }
+            SuspendAccountSession();
+            if (!PlayerDataSyncPolicy.CanBindAccount(_localOwner, playFabId))
+                throw new InvalidOperationException("The local save belongs to another account. Account recovery is required.");
+            PlayFabId = playFabId;
+            PlayFabPlayerData = null;
+            IsConflict = false;
+            _sessionBackupCreated = false;
+            _changes.Clear();
         }
 
-        /// <summary>
-        /// Resources에서 몬스터 데이터를 로드
-        /// </summary>
-        private void LoadMonstersData()
+        public void SuspendAccountSession()
         {
-            _resourceMonstersData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString();
-            MonsterData = AD.Utility.DeserializeFromJson(_resourceMonstersData) as Dictionary<string, object>;
+            IsServerDataReady = false;
+            Managers.ServerM.CancelPendingRequests();
         }
 
-        /// <summary>
-        /// Resources에서 아이템 데이터를 로드합니다.
-        /// </summary>
-        private void LoadItemsData()
-        {
-            _resourceItemsData = Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString();
-            ItemData = AD.Utility.DeserializeFromJson(_resourceItemsData) as Dictionary<string, object>;
-        }
-
-        #endregion
-
-        #region Update, save data
-
-        /// <summary>
-        /// UniTask를 사용하여 60초마다 로컬 데이터를 업데이트합니다.
-        /// </summary>
         private async UniTask PeriodicLocalDataUpdateAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
-                await UniTask.Delay(TimeSpan.FromSeconds(60), cancellationToken: token);
+                if (await UniTask.Delay(TimeSpan.FromSeconds(60), cancellationToken: token).SuppressCancellationThrow()) return;
                 UpdateLocalData("null", "null", updateAll: true);
             }
         }
 
-        /// <summary>
-        /// 플레이어의 고유 데이터를 갱신한 후 JSON 파일로 저장
-        /// </summary>
-        /// <param name="key">갱신할 데이터의 키</param>
-        /// <param name="value">갱신할 데이터의 값</param>
-        /// <param name="updateAll">전체 데이터를 갱신할지 여부</param>
         public void UpdateLocalData(string key, string value, bool updateAll = false)
         {
-            if (Player.Instance)
+            if (updateAll)
             {
-                if (updateAll)
-                {
-                    LocalPlayerData["Gold"] = Player.Instance.Gold.ToString();
-                }
-                else
-                {
-                    LocalPlayerData[key] = value;
-                }
-
-                SaveLocalData();
+                if (Player.Instance) TryUpdateLocalData("Gold", Player.Instance.Gold.ToString());
+                return;
             }
+            TryUpdateLocalData(key, value);
         }
 
-        /// <summary>
-        /// 로컬 플레이어 데이터를 JSON 파일로 저장
-        /// </summary>
+        /// <summary>Durable local mutation, including purchase restoration before Player exists.</summary>
+        public bool TryUpdateLocalData(string key, string value)
+        {
+            if (!IsServerDataReady || LocalPlayerData == null || string.IsNullOrEmpty(key) || key == OwnerKey || value == null)
+                return false;
+            if (key == "GooglePlay")
+            {
+                LocalPlayerData.TryGetValue(key, out var entitlement);
+                value = PlayerDataSyncPolicy.UnionEntitlements(entitlement, value);
+            }
+            bool existed = LocalPlayerData.TryGetValue(key, out var previous);
+            LocalPlayerData[key] = value;
+            try { SaveLocalData(); }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            {
+                if (existed) LocalPlayerData[key] = previous;
+                else LocalPlayerData.Remove(key);
+                Debug.LogWarning("[Tamer/Data] Local save failed; pending purchase or data must be retried.");
+                return false;
+            }
+            if (!existed || previous != value) _changes.Track(key, value);
+            return true;
+        }
+
+        /// <summary>True only after ProductNoAds is durable. Cloud failure does not revoke that grant.</summary>
+        public bool TryGrantNoAds()
+        {
+            if (!TryUpdateLocalData("GooglePlay", "ProductNoAds")) return false;
+            _changes.Track("GooglePlay", LocalPlayerData["GooglePlay"]);
+            UpdatePlayerData();
+            return true;
+        }
+
         public void SaveLocalData()
         {
-            string json = AD.Utility.SerializeToJson(LocalPlayerData);
-            File.WriteAllText(_playerDataPath, json);
-            AD.DebugLogger.Log("DataManager", "SaveLocalData() -> PlayerData json 저장 완료");
+            if (LocalPlayerData == null || string.IsNullOrEmpty(_playerDataPath))
+                throw new InvalidOperationException("Player data has not been initialized.");
+            WritePlayerData(LocalPlayerData, _localOwner);
         }
 
-        /// <summary>
-        /// 서버에 존재하는 플레이어 데이터를 가져와 업데이트
-        /// </summary>
+        private void WritePlayerData(Dictionary<string, string> data, string owner)
+        {
+            var stored = new Dictionary<string, string>(data);
+            if (!string.IsNullOrEmpty(owner)) stored[OwnerKey] = owner;
+            WriteAtomically(_playerDataPath, Utility.SerializeToJson(stored));
+        }
+
+        private static void WriteAtomically(string path, string contents)
+        {
+            string temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
+            try
+            {
+                File.WriteAllText(temporary, contents);
+                if (File.Exists(path)) File.Replace(temporary, path, null);
+                else File.Move(temporary, path);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        }
+
         public void UpdatePlayerData()
         {
-            AD.DebugLogger.Log("DataManager", "UpdatePlayerData() -> PlayerData 갱신 작업 시작");
-            AD.Managers.ServerM.GetAllData(update: true);
+            if (!IsServerDataReady)
+            {
+                Managers.ServerM.GetAllData(update: true);
+                return;
+            }
+            var patch = _changes.Snapshot();
+            if (patch.Count == 0)
+            {
+                Managers.ServerM.GetAllData(update: true);
+                return;
+            }
+            // Acknowledge only the submitted values. Newer changes made in flight remain pending.
+            Managers.ServerM.SetData(patch, getAllData: true, update: true,
+                onWritten: () => _changes.Acknowledge(patch));
         }
 
-        /// <summary>
-        /// server data, local data를 비교하여 최신화
-        /// _dic_PlayFabPlayerData.Count가 1인 경우 -> NickName data만 가지고 있는 경우 -> 케릭터 선택 전 이기 때문에 무시
-        /// _dic_PlayFabPlayerData.Count가 2인 경우 -> NickName, Sex data 가지고 있기 때문에 게임 씬 진입 -> 기본 데이터 세팅
-        /// 만약 데이터가 추가 된다면(10개 이상 추가되지 않는다고 가정) PlayerData.json을 통해 데이터를 추가하고 이 경우 서버에 데이터를 다시 세팅
-        /// RefreshData() 후 데이터가 다를 경우 데이터 갱신
-        /// </summary>
+        /// <summary>Called only for a successful server read. No write requests originate here.</summary>
         public void UpdateData()
         {
-            // 서버 데이터를 못 받았거나 닉네임만 있는 경우 -> 케릭터 선택 전이므로 비교하지 않는다
-            // (여기서 예외가 나면 IsInProgress가 계속 true로 남아 로그인이 멈춘다)
-            if (PlayFabPlayerData == null || LocalPlayerData == null || PlayFabPlayerData.Count <= 1)
+            if (PlayFabPlayerData == null || LocalPlayerData == null || _defaults == null)
+                throw new InvalidOperationException("A successful server snapshot is required.");
+            var server = new Dictionary<string, string>();
+            foreach (var entry in PlayFabPlayerData)
             {
-                AD.Managers.ServerM.SetInProgress(false);
-                return;
+                if (entry.Key == OwnerKey) throw new InvalidDataException("Reserved local metadata appeared in the server snapshot.");
+                if (entry.Value == null || entry.Value.Value == null)
+                    throw new InvalidDataException("Incomplete server record; local save preserved.");
+                server.Add(entry.Key, entry.Value.Value);
             }
-
-            if (PlayFabPlayerData.Count == 2)
+            if (!PlayerDataSyncPolicy.CanBindAccount(_localOwner, PlayFabId))
+                throw new InvalidOperationException("Local account mismatch; save preserved.");
+            if (!_sessionBackupCreated)
             {
-                SyncFromServer("NickName");
-                SyncFromServer("Sex");
-
-                AD.Managers.ServerM.SetData(LocalPlayerData, getAllData: true, update: true);
-                _ctsRefreshData = new CancellationTokenSource();
-                RefreshDataAsync(_ctsRefreshData.Token).Forget();
-                return;
+                if (File.Exists(_playerDataPath))
+                {
+                    var directory = Path.Combine(Path.GetDirectoryName(_playerDataPath), "PlayerDataBackups");
+                    Directory.CreateDirectory(directory);
+                    File.Copy(_playerDataPath, Path.Combine(directory, "PlayerData-" + Guid.NewGuid().ToString("N") + ".json"), false);
+                }
+                _sessionBackupCreated = true;
             }
-
-            if (PlayFabPlayerData.Count > 2 && LocalPlayerData.Count > PlayFabPlayerData.Count)
-            {
-                AD.Managers.ServerM.UpdateNewPlayerData();
-                return;
-            }
-
-            SanitizeData();
+            var merged = PlayerDataSyncPolicy.Merge(_defaults, LocalPlayerData, server, _changes.Snapshot());
+            // A legacy file is bound on the first successful read; it is never used as a cloud patch.
+            // Ownership and values are committed together in one atomic JSON replacement.
+            WritePlayerData(merged, PlayFabId);
+            LocalPlayerData = merged;
+            _localOwner = PlayFabId;
+            IsServerDataReady = true;
+            IsConflict = false;
         }
-
-        /// <summary>
-        /// 서버 데이터 갱신 작업이 완료될 때까지 대기 후 데이터 정리
-        /// </summary>
-        private async UniTask RefreshDataAsync(CancellationToken token)
-        {
-            while (AD.Managers.ServerM.IsInProgress && !token.IsCancellationRequested)
-            {
-                await UniTask.Yield(PlayerLoopTiming.Update, token);
-            }
-            StopRefreshDataTask();
-        }
-
-        /// <summary>
-        /// RefreshDataAsync 관련 작업을 중지하고 데이터 정리
-        /// </summary>
-        private void StopRefreshDataTask()
-        {
-            if (_ctsRefreshData != null)
-            {
-                _ctsRefreshData.Cancel();
-                _ctsRefreshData.Dispose();
-                _ctsRefreshData = null;
-            }
-            SanitizeData();
-        }
-
-        /// <summary>
-        /// 서버와 로컬 데이터를 비교하여 최신화
-        /// 충돌이 발생하면 서버에 데이터를 다시 설정
-        /// </summary>
-        private void SanitizeData()
-        {
-            AD.DebugLogger.Log("DataManager", "SanitizeData() -> local, server 비교하여 PlayerData 최신화");
-
-            if (PlayFabPlayerData == null || LocalPlayerData == null)
-            {
-                AD.Managers.ServerM.SetInProgress(false);
-                return;
-            }
-
-            // 동기화: NickName, Sex, Tutorial
-            SyncFromServer("NickName");
-            SyncFromServer("Sex");
-            SyncFromServer("Tutorial");
-
-            // 충돌 비교
-            CompareValues(ParseInt(GetLocal("Gold")), ParseInt(GetServer("Gold")));
-            CompareValues(ParseFloat(GetLocal("Power")), ParseFloat(GetServer("Power")));
-            CompareValues(ParseFloat(GetLocal("AttackSpeed")), ParseFloat(GetServer("AttackSpeed")));
-            CompareValues(ParseFloat(GetLocal("MoveSpeed")), ParseFloat(GetServer("MoveSpeed")));
-            CompareValues(GetLocal("AllyMonsters"), GetServer("AllyMonsters"));
-
-            string googlePlayValue = GetServer("GooglePlay");
-            int comparisonResult = CompareValues(GetLocal("GooglePlay"), googlePlayValue);
-            if (comparisonResult < 0 && !string.IsNullOrEmpty(googlePlayValue) && !string.Equals(googlePlayValue, "null"))
-            {
-                LocalPlayerData["GooglePlay"] = googlePlayValue;
-            }
-
-            if (IsConflict)
-            {
-                AD.Managers.ServerM.SetData(LocalPlayerData, getAllData: true, update: false);
-            }
-            else
-            {
-                AD.Managers.ServerM.SetInProgress(false);
-            }
-        }
-
-        #region Safe accessors
-
-        /// <summary>
-        /// 서버 값으로 로컬 값을 덮어쓴다.
-        /// 서버에 해당 key가 없으면 로컬 값을 올려야 하므로 충돌로 표시한다.
-        /// (직접 인덱서로 접근하면 key 누락 시 예외가 발생해 로그인이 멈춘다)
-        /// </summary>
-        private void SyncFromServer(string key)
-        {
-            if (PlayFabPlayerData.TryGetValue(key, out UserDataRecord record) && record != null && record.Value != null)
-                LocalPlayerData[key] = record.Value;
-            else
-                IsConflict = true;
-        }
-
-        /// <summary>
-        /// 서버 데이터 조회 (없으면 "null")
-        /// </summary>
-        private string GetServer(string key)
-        {
-            if (PlayFabPlayerData.TryGetValue(key, out UserDataRecord record) && record != null && record.Value != null)
-                return record.Value;
-
-            IsConflict = true;
-            return "null";
-        }
-
-        /// <summary>
-        /// 로컬 데이터 조회 (없으면 "null")
-        /// </summary>
-        private string GetLocal(string key)
-        {
-            return LocalPlayerData.TryGetValue(key, out string value) && value != null ? value : "null";
-        }
-
-        /// <summary>
-        /// 파싱 실패 시 0을 반환 (예외로 데이터 동기화가 중단되지 않도록)
-        /// </summary>
-        private static int ParseInt(string value)
-        {
-            if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
-                return result;
-
-            return int.TryParse(value, out result) ? result : 0;
-        }
-
-        /// <summary>
-        /// 파싱 실패 시 0을 반환. 소수점 표기가 다른 지역 설정도 함께 처리한다.
-        /// </summary>
-        private static float ParseFloat(string value)
-        {
-            if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float result))
-                return result;
-
-            return float.TryParse(value, out result) ? result : 0f;
-        }
-
-        #endregion
-
-        /// <summary>
-        /// 두 값을 비교합니다.
-        /// 값이 다르면 IsConflict 플래그를 true로 설정합니다.
-        /// </summary>
-        /// <typeparam name="T">비교 가능한 타입</typeparam>
-        /// <param name="value1">첫 번째 값</param>
-        /// <param name="value2">두 번째 값</param>
-        /// <returns>비교 결과</returns>
-        private int CompareValues<T>(T value1, T value2) where T : System.IComparable
-        {
-            int result = value1.CompareTo(value2);
-
-            if (result != 0)
-            {
-                IsConflict = true;
-            }
-            return result;
-        }
-
-        #endregion
 
         private void OnDestroy()
         {
             _ctsLocalDataUpdate?.Cancel();
             _ctsLocalDataUpdate?.Dispose();
-            _ctsRefreshData?.Cancel();
-            _ctsRefreshData?.Dispose();
         }
     }
 }
