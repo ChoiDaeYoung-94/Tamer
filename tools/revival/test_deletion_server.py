@@ -155,10 +155,16 @@ class DeletionTests(unittest.TestCase):
             self.service.advance(request['requestId'])
         self.assertEqual(self.service.status('fresh-a', request['requestId'])['state'], 'processing')
 
-    def test_second_active_request_rejected(self):
-        self.request()
-        with self.assertRaisesRegex(Rejected, 'request_already_exists'):
-            self.request('b' * 32)
+    def test_reopened_client_resumes_one_active_request_after_reauthentication(self):
+        first = self.request()
+        resumed = self.request('b' * 32)
+        self.assertEqual(first['requestId'], resumed['requestId'])
+        self.assertNotEqual(first['challenge'], resumed['challenge'])
+        self.confirm(resumed)
+        self.service = self.new_service()
+        after_restart = self.request('c' * 32)
+        self.assertEqual(after_restart['requestId'], first['requestId'])
+        self.assertEqual(after_restart['state'], 'queued')
 
     def test_http_rejects_client_supplied_account_and_worker_route(self):
         status, _ = self.call('request', {'proof': 'fresh-a', 'clientKey': 'a' * 32, 'account': 'synthetic-b'})

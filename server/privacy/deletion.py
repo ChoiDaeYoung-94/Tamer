@@ -102,6 +102,12 @@ class DeletionService:
             db.execute('BEGIN IMMEDIATE')
             old = db.execute('SELECT * FROM deletion_requests WHERE account=? AND client_key=?',
                              (account, client_key)).fetchone()
+            if old is None:
+                # A reopened app/web flow has no persisted client key. Freshly
+                # authenticated owners resume their one outstanding request.
+                old = db.execute("SELECT * FROM deletion_requests WHERE account=? AND state NOT IN ('cancelled','completed')", (account,)).fetchone()
+                if old:
+                    client_key = old['client_key']
             if old:
                 # A lost initial response may ask for a new challenge for the same request.
                 if old['state'] != 'awaiting_confirmation':
@@ -110,9 +116,6 @@ class DeletionService:
                     raise Rejected('policy_changed')
                 request_id = old['id']
             else:
-                active = db.execute("SELECT id FROM deletion_requests WHERE account=? AND state NOT IN ('cancelled','completed')", (account,)).fetchone()
-                if active:
-                    raise Rejected('request_already_exists')
                 request_id = uuid.uuid4().hex
             challenge = secrets.token_urlsafe(32)
             digest = hashlib.sha256(challenge.encode()).hexdigest()
