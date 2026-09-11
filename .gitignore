@@ -14,9 +14,32 @@
 
 .vsconfig
 
-Tests/
-ThirdParty/
-ThirdPartyAssets/
+/Assets/Tests/*
+!/Assets/Tests/Editor/
+!/Assets/Tests/Editor.meta
+!/Assets/Tests/Scenes/
+!/Assets/Tests/Scenes.meta
+/Assets/ThirdParty/*
+!/Assets/ThirdParty/PlayFabSDK/
+!/Assets/ThirdParty/PlayFabSDK.meta
+!/Assets/ThirdParty/PlayFabEditorExtensions/
+!/Assets/ThirdParty/PlayFabEditorExtensions.meta
+/Assets/ThirdPartyAssets/
+/Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset
+**/PlayFabEditorPrefsSO.asset
+**/PlayFabEditorPrefsSO.asset.meta
+/Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Fonts/
+**/__pycache__/
+/.revival-local/
+/tools/.local/
+/.utmp/
+/UserSettings/
+/Assets/Logs/
+/Assets/Logs.meta
+/Assets/Resources/PerformanceTestRun*.json
+/Assets/Resources/PerformanceTestRun*.json.meta
+/.claude/
+/.agents/skills/
 
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data

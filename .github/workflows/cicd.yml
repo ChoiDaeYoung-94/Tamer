@@ -1,8 +1,7 @@
 name: cicd
 on:
-  # main branch에 push 할 경우 작동 (trigger를 push로 했을 뿐 Github Action doc를 통해 다양한 trigger를 볼 수 있음)
-  push:
-    branches: [main]
+  # 개인 프로젝트 복구 중: 자동 실행 중지. 기존 App Center 구성은 기록으로 보존한다.
+  # App Center Distribution은 종료되었으므로 아래 배포를 실행해도 서비스가 복구되지 않는다.
   workflow_dispatch:
 
 env:
@@ -17,8 +16,9 @@ env:
 
 jobs:
   Checkout:
-    # 마지막 commit message에 ci skip이 없을 경우 작동하도록 함
-    if: "!contains(github.event.head_commit.message, 'ci skip')"
+    # 명시적인 재검토 전에는 수동 dispatch에서도 실행하지 않는다.
+    # 기존 조건: !contains(github.event.head_commit.message, 'ci skip')
+    if: false
 
     # 생성한 runner의 labels로 runner를 구분 참고 - https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job
     runs-on: [ self-hosted, buildpc ]

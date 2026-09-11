@@ -1,0 +1,2 @@
+# Preserve vendored SDK bytes so the restoration manifest is independent of core.autocrlf.
+/Assets/ThirdParty/** -text

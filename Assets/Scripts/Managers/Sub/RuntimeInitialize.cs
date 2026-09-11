@@ -11,7 +11,12 @@ public class RuntimeInitialize : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void FirstLoad()
     {
+#if TAMER_REVIVAL_SMOKE
+        return;
+#endif
 #if UNITY_EDITOR
+        if (SceneManager.GetActiveScene().path == "Assets/Tests/Scenes/RevivalSmoke.unity")
+            return;
         if (SceneManager.GetActiveScene().name.CompareTo("Test") == 0)
             return;
 

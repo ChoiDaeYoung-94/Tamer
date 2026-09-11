@@ -1,0 +1,5 @@
+{
+  "name": "Revival.EditorTests",
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}
