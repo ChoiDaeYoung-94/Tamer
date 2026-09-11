@@ -14,6 +14,7 @@ public class CanvasSelectCharacter : MonoBehaviour
     private Vector3 _targetMalePosition;
     private Vector3 _targetFemalePosition;
     private UniTask _moveTask = UniTask.CompletedTask;
+    private bool _isSaving;
 
     private void Start()
     {
@@ -22,6 +23,8 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     public void ButtonPlay()
     {
+        if (_isSaving || !_moveTask.Status.IsCompleted()) return;
+        _isSaving = true;
         AD.Managers.PopupM.SetException();
         AD.Managers.SoundM.UI_Ok();
 
@@ -30,7 +33,7 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     public void ButtonDirection(string direction)
     {
-        if (!_moveTask.Status.IsCompleted())
+        if (_isSaving || !_moveTask.Status.IsCompleted())
             return;
 
         AD.Managers.SoundM.UI_Click();
@@ -66,18 +69,29 @@ public class CanvasSelectCharacter : MonoBehaviour
         _trFemale.position = _targetFemalePosition;
     }
 
-    private async UniTaskVoid Play()
+    private async UniTask Play()
     {
-        string selectedGender = Mathf.Approximately(_trMale.position.x, 0) ? "Man" : "Woman";
-        AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", selectedGender } }, false, false);
-
-        _maleAnimator.CrossFade("Select", 0.1f);
-        _femaleAnimator.CrossFade("Select", 0.1f);
-
-        await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress);
-        AD.Managers.DataM.UpdatePlayerData();
-        await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress);
-
-        AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.Main);
+        try
+        {
+            string selectedGender = Mathf.Approximately(_trMale.position.x, 0) ? "Man" : "Woman";
+            AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", selectedGender } },
+                getAllData: true, update: true);
+            _maleAnimator.CrossFade("Select", 0.1f);
+            _femaleAnimator.CrossFade("Select", 0.1f);
+            if (await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress,
+                cancellationToken: this.GetCancellationTokenOnDestroy()).SuppressCancellationThrow()) return;
+            if (AD.Managers.ServerM.HasFailed || !AD.Managers.DataM.IsServerDataReady ||
+                !AD.Managers.DataM.LocalPlayerData.TryGetValue("Sex", out var savedGender) || savedGender != selectedGender)
+            {
+                Debug.LogWarning("[Tamer/Character] Character save was not confirmed. Please retry.");
+                return;
+            }
+            AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.Main);
+        }
+        finally
+        {
+            _isSaving = false;
+            if (this) AD.Managers.PopupM.ReleaseException();
+        }
     }
 }

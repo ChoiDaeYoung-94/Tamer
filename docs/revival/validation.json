@@ -130,5 +130,68 @@
     "CI/CD deferred by owner",
     "Access review #94",
     "Device and Families policy verification #91"
-  ]
+  ],
+  "finalCacheFreeClone": {
+    "codeCommit": "4c1f2e72c8f14c715ad004ac067cb1c869d7ff20",
+    "initialProjectLibraryPresent": false,
+    "initialUtmpPresent": false,
+    "initialUserSettingsPresent": false,
+    "restoreVerifiedOriginalFiles": 4537,
+    "tests": {
+      "result": "Passed",
+      "total": "3",
+      "passed": "3",
+      "failed": "0",
+      "duration": "2.9996807"
+    },
+    "build": {
+      "result": "Succeeded",
+      "bytes": "1637191496",
+      "unity": "6000.0.81f1",
+      "applicationId": "com.AeDeong.MonsterTamer.revival",
+      "version": "1.0.5",
+      "errors": 0,
+      "versionCode": 26,
+      "scenes": [
+        "Assets/Tests/Scenes/RevivalSmoke.unity",
+        "Assets/Scenes/Login.unity",
+        "Assets/Scenes/Main.unity",
+        "Assets/Scenes/Game.unity",
+        "Assets/Scenes/SetCharacter.unity",
+        "Assets/Scenes/NextScene.unity"
+      ]
+    },
+    "apk": {
+      "apk": "Build/revival/Tamer-development.apk",
+      "bytes": 102066128,
+      "sha256": "025b5f65857c805becb13dfd76e9f10c0c5e3f8f112bc7ce874a4dc4000e68e7",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "abi": [
+        "arm64-v8a"
+      ],
+      "applicationId": "com.AeDeong.MonsterTamer.revival",
+      "version": "1.0.5",
+      "versionCode": 26,
+      "debuggable": true,
+      "debugSignatureVerified": true
+    },
+    "fullScriptExitCode": 0
+  },
+  "postReviewSafetyValidation": {
+    "codeCommit": "900a2ca6dd13112748a6fbb93084c87e83919575",
+    "tests": {
+      "result": "Passed",
+      "total": "4",
+      "passed": "4",
+      "failed": "0",
+      "duration": "4.0169826"
+    },
+    "pythonTestsPassed": 4,
+    "markerPreflightCases": 3,
+    "guidCheckedFiles": 132,
+    "unresolvedGuids": 0,
+    "apkRebuilt": false,
+    "scope": "Editor-only guards and validation tools; cold-clone APK evidence remains at 4c1f2e7."
+  }
 }
