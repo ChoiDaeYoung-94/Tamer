@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "fd879eccb11c50409fd204a3bb248c75a11c8883",
+  "sourceCommit": "e66acbcc745d8489339e6661393a1722d9aad1b8",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -10,6 +10,19 @@
       "lines": 30,
       "declaredTypes": [
         "GPGSIds"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Advertising/AdConsentGate.cs",
+      "kind": "runtime",
+      "lines": 130,
+      "declaredTypes": [
+        "IAdConsentClient",
+        "AdConsentGate",
+        "Stage"
       ],
       "managerReferences": [],
       "singletonReferences": [],
@@ -29,7 +42,7 @@
     {
       "path": "Assets/Scripts/Advertising/AdRequestPolicy.cs",
       "kind": "runtime",
-      "lines": 32,
+      "lines": 36,
       "declaredTypes": [
         "AdRequestPolicy"
       ],
@@ -200,6 +213,18 @@
       "declaredTypes": [
         "RevivalBuild",
         "Summary"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/RevivalGameplayBuild.cs",
+      "kind": "editor",
+      "lines": 110,
+      "declaredTypes": [
+        "RevivalGameplayBuild",
+        "CatalogFlags"
       ],
       "managerReferences": [],
       "singletonReferences": [],
@@ -423,7 +448,7 @@
     {
       "path": "Assets/Scripts/Login/Login.cs",
       "kind": "runtime",
-      "lines": 977,
+      "lines": 984,
       "declaredTypes": [
         "Login",
         "ApiResult",
@@ -511,7 +536,7 @@
     {
       "path": "Assets/Scripts/Managers/DataManager.cs",
       "kind": "runtime",
-      "lines": 243,
+      "lines": 247,
       "declaredTypes": [
         "DataManager"
       ],
@@ -561,7 +586,7 @@
     {
       "path": "Assets/Scripts/Managers/GoogleAdMobManager.cs",
       "kind": "runtime",
-      "lines": 377,
+      "lines": 412,
       "declaredTypes": [
         "GoogleAdMobManager",
         "PendingCallback"
@@ -580,9 +605,20 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/Managers/GoogleUmpConsentClient.cs",
+      "kind": "runtime",
+      "lines": 24,
+      "declaredTypes": [
+        "GoogleUmpConsentClient"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/Managers/IAPManager.cs",
       "kind": "runtime",
-      "lines": 500,
+      "lines": 505,
       "declaredTypes": [
         "IAPStatus",
         "IAPManager"
@@ -611,7 +647,7 @@
     {
       "path": "Assets/Scripts/Managers/Managers.cs",
       "kind": "runtime",
-      "lines": 149,
+      "lines": 153,
       "declaredTypes": [
         "Managers"
       ],
@@ -985,7 +1021,7 @@
     {
       "path": "Assets/Scripts/RevivalAdHarness.cs",
       "kind": "runtime",
-      "lines": 131,
+      "lines": 134,
       "declaredTypes": [
         "RevivalAdHarness"
       ],
@@ -1003,6 +1039,43 @@
       "lines": 6,
       "declaredTypes": [
         "RevivalAdReceiptOwner"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/RevivalGameplayHarness.cs",
+      "kind": "runtime",
+      "lines": 115,
+      "declaredTypes": [
+        "RevivalGameplayHarness"
+      ],
+      "managerReferences": [
+        "DataM",
+        "GameM",
+        "GoogleAdMobM",
+        "IAPM",
+        "Instance",
+        "SceneM",
+        "ServerM"
+      ],
+      "singletonReferences": [
+        "CameraManage",
+        "JoyStick",
+        "Managers",
+        "MonsterGenerator",
+        "Player",
+        "PlayerUICanvas"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/RevivalGameplayIsolation.cs",
+      "kind": "runtime",
+      "lines": 73,
+      "declaredTypes": [
+        "RevivalGameplayIsolation"
       ],
       "managerReferences": [],
       "singletonReferences": [],
@@ -1135,6 +1208,18 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Tests/Editor/RevivalAdConsentTests.cs",
+      "kind": "tests",
+      "lines": 189,
+      "declaredTypes": [
+        "RevivalAdConsentTests",
+        "Client"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Tests/Editor/RevivalAdEntitlementTests.cs",
       "kind": "tests",
       "lines": 35,
@@ -1148,9 +1233,10 @@
     {
       "path": "Assets/Tests/Editor/RevivalAdManagerTests.cs",
       "kind": "tests",
-      "lines": 539,
+      "lines": 571,
       "declaredTypes": [
-        "RevivalAdManagerTests"
+        "RevivalAdManagerTests",
+        "MissingConsentUpdate"
       ],
       "managerReferences": [],
       "singletonReferences": [
@@ -1217,6 +1303,17 @@
       "lines": 101,
       "declaredTypes": [
         "RevivalEquipmentLifecycleTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalGameplayIsolationTests.cs",
+      "kind": "tests",
+      "lines": 84,
+      "declaredTypes": [
+        "RevivalGameplayIsolationTests"
       ],
       "managerReferences": [],
       "singletonReferences": [],

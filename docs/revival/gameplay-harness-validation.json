@@ -1,0 +1,87 @@
+{
+  "apkSourceCommit": "f2ab1d9ec09a4181e04a19d824bf62c8c9775811",
+  "integratedEditorSourceCommit": "e66acbcc745d8489339e6661393a1722d9aad1b8",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "firstEditmode": {
+    "total": 320,
+    "passed": 320,
+    "failed": 0,
+    "skipped": 0,
+    "newCases": 3,
+    "startUtc": "2026-09-11 07:52:04Z",
+    "endUtc": "2026-09-11 07:52:08Z",
+    "durationSeconds": 4.1061361,
+    "xmlSha256": "6b673ee679eb1f03cce867aeae7a7e647bfe956b0dcc9d57c7a2ca576b47ffb5"
+  },
+  "integratedEditmode": {
+    "result": "Passed",
+    "total": "335",
+    "passed": "335",
+    "failed": "0",
+    "skipped": "0",
+    "duration": "3.4721046",
+    "start-time": "2026-09-11 07:57:19Z",
+    "end-time": "2026-09-11 07:57:23Z"
+  },
+  "integratedXmlSha256": "67dffae2f327d0d0ca9f3e0e92c67a72b9415bf5e9028c4c122795723a48abe4",
+  "apk": {
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gameplay",
+    "bytes": 104528624,
+    "sha256": "5dff250e3a85b972b27430753ccd7a3e51a8e1a601654fce948ae3d9821dde18",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "privateAssetsVerified": 4561,
+  "ownEditorsAfter": 0,
+  "projectSettingsRestored": true,
+  "device": {
+    "android": 13,
+    "api": 33,
+    "abi": "arm64-v8a",
+    "pageSizeBytes": 4096,
+    "roundTrips": 2,
+    "playerAndManagersPreserved": true,
+    "errors": 0,
+    "memoryReads": 6,
+    "memoryWrites": 0,
+    "syntheticLocalSaveCreated": true,
+    "initialIapBlocked": 1,
+    "loginBlocked": 1,
+    "adsAllowed": false,
+    "mainGameVisualsObserved": true,
+    "homeReturnSameTaskAndState": true,
+    "firstRoundTripLocalTime": "2026-09-11 16:56:33.154+09:00",
+    "secondRoundTripLocalTime": "2026-09-11 16:57:15.113+09:00",
+    "cleanup": {
+      "uninstallSuccess": true,
+      "pmPathEmpty": true,
+      "namedRemoteVideoAndScreenshotRemoved": true
+    }
+  },
+  "privateEvidenceSha256": {
+    "first.png": "672b06830cd445c489c6c577c40b9279d4601d43e89af36f69c480998c152bec",
+    "roundtrip.png": "fde5221cba60c13515d5d6e4172c96d6a47886c660bc6ad68856236de38ac464",
+    "home-return.png": "398542ca4609a5d56659cea21f0fba528958c6e8155e1567fa1d6044f70d1e5e",
+    "roundtrip.mp4": "778525cfab7976707d7d03d1e6e9350272549800e1335eae5de3461591c2ae1d",
+    "final.log": "64ed658706b0bc8178fb33ff0a80979e319399a151cf7657c80516b7a5bcc1ce"
+  },
+  "unverified": [
+    "Device APK predates UMP merge; latest combined source was tested in Editor only.",
+    "No changed-progress cloud write in device run (memory writes=0).",
+    "Production login, save transport, purchases/restores, consent and ads.",
+    "Capture, equipment purchase, death/reinstall recovery and all character/screen combinations.",
+    "16KB device and release AAB."
+  ]
+}
