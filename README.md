@@ -1,121 +1,73 @@
-# About
+# Monster Tamer
 
-Unity 6000.0.81f1 기반 Android 3D 게임 프로젝트입니다.
+Unity로 만든 Android 3D 게임입니다. 플레이어가 몬스터를 동료로 모아 전투하고, 마을에서 장비와 캐릭터를 관리합니다. [WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko)의 플레이를 3D로 재구성한 프로젝트입니다.
 
-로컬 에셋 복원, 격리 개발 APK 빌드와 검증 명령은 [기준 빌드 문서](docs/revival/baseline.ko.md)를 참고하세요. CI/CD는 보류 중이며 아래 App Center 구성은 기존 기록으로 보존합니다.
+[트레일러](https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd) · [기존 Google Play 페이지](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer) · [복구 로드맵 #90](https://github.com/ChoiDaeYoung-94/Tamer/issues/90)
 
-[WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko) 를 3d로 재구성한 게임입니다.
+## 현재 개발 상태
 
-본 프로젝트는 Microsoft의 C# Convention을 따릅니다.
+복구 기준은 **Unity 6000.0.81f1**, Android **min API 24 / target API 36 / ARM64**, 앱 **1.0.5 / versionCode 26**입니다. 정확한 버전은 [도구 잠금](tools/revival/toolchain.json), [UPM 잠금](Packages/packages-lock.json), [의존성 문서](docs/revival/dependencies.ko.md)를 확인합니다.
 
-### Trailer
+에셋 복원·Unity EditMode 테스트·격리 개발 APK의 빌드와 서명 검증 결과는 [기준 빌드 기록](docs/revival/baseline.ko.md)과 [검증 데이터](docs/revival/validation.json)에 커밋별로 남깁니다. 기기에서의 로그인·저장·구매·광고와 Google Play 심사 통과는 별도 검증 대상입니다. [Families 광고 이슈 #91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91)은 빌드 성공만으로 종료하지 않습니다.
 
-https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd
+**CI/CD는 보류 중입니다.** 기존 App Center 설정은 보존하며 자동 빌드·배포를 실행하지 않습니다. 과거 다운로드 링크를 현재 검증된 빌드로 안내하지 않습니다.
 
+## 시작하기 — Windows PowerShell
 
-### Getting Started
+필요한 환경은 Git, Python 3.11 이상, Unity **6000.0.81f1**과 Android Build Support(SDK/NDK/OpenJDK), 활성 Unity 라이선스입니다. 구매 에셋은 공개 저장소에 들어 있지 않으므로 권한 있는 원본 또는 비공개 아카이브도 필요합니다.
 
-1. Clone
-~~~
+```powershell
 git clone https://github.com/ChoiDaeYoung-94/Tamer.git
-~~~
-2. [Download Assets](https://drive.google.com/file/d/1Uf0BY7eUKvNS3aNMrFp-G1Bj6n61p1Fk/view?usp=sharing)
-3. Open Project in Unity
+Set-Location Tamer
 
+# Editor를 열기 전에 원본 경로를 실제 경로로 바꿉니다.
+python tools/revival/restore_assets.py --source 'D:/path/to/authorized-original'
+if ($LASTEXITCODE -ne 0) { throw '에셋 복원 실패' }
+python tools/revival/restore_assets.py --verify
+if ($LASTEXITCODE -ne 0) { throw '에셋 검증 실패' }
+python tools/revival/install_cli.py
+if ($LASTEXITCODE -ne 0) { throw 'CLI 설치 실패' }
 
-### Download
+# 이 checkout의 Editor를 닫은 상태에서 실행합니다.
+./tools/revival/Run-Baseline.ps1
+```
 
-- [GOOGLE PLAY](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)
-- [APK](https://drive.google.com/file/d/1QRBccQp2nN7IfOA2lUJiDJoxs_siM7ew/view?usp=sharing)
+성공 시 `Build/revival/Tamer-development.apk`와 `Logs/revival`의 결과를 확인합니다. APK는 별도 앱 ID(`com.AeDeong.MonsterTamer.revival`), debug 서명, 격리 시작 씬을 사용합니다. 기존 운영 앱의 업데이트나 스토어 제출용 빌드가 아닙니다. Library는 checkout마다 새로 생성합니다.
 
+해시 충돌, 설치 경로 변경, 라이선스, Editor 연결과 일상 개발은 [개발 안내](docs/development.ko.md)를 따릅니다. 원본 에셋을 공개 Git/LFS에 추가하거나 복원 manifest를 임의 재생성하지 않습니다.
 
-## Technologies and Techniques (링크 클릭 시 해당 내용 코드로 이동합니다.)
+## 코드와 디렉터리
 
-- [Creature code](https://github.com/ChoiDaeYoung-94/Tamer/tree/main/Assets/Scripts/Creatures)
-  - Player, Monster 군집이동 구현
-    - [Player](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Creatures/Player.cs)
-    - [Monster](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Creatures/Monster.cs)
-- Manager Singleton 개선
-- [Login 비동기 작업 UniTask 사용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Login/Login.cs)
-- [씬 전환 시 빈씬 거친 후 전환](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/SceneManager.cs)
-- [stack 으로 팝업 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/PopupManager.cs)
-- [Object pooling 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/PoolManager.cs)
-- [GoogleAdMob 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/GoogleAdMobManager.cs)
-  - [admob buff 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Creatures/BuffingMan.cs)
-- [간단한 장비 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/EquipmentManager.cs)
-- [IAP 인앱 결제 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/IAPManager.cs)
-- [AudioMixer로 사운드 관리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Managers/SoundManager.cs)
-- [Login 시 체크해야 할 부분 State Pattern](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Main/LoginCheck.cs)
-- [위치 별 몬스터 생성 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Game/MonsterGenerator.cs)
-- MiniMap에 [FogOfWar](https://github.com/MicKami/FogOfWar) 적용
-- [google v2, playfab 로그인 적용](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Login/Login.cs)
-  - playfab 데이터 저장을 위해 사용
-- [CICD를 통해 디버깅이 가능한 테스트용 빌드와 실제 스토어에 올라갈 빌드를 분리](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/Assets/Scripts/Editor/BuildScript.cs)
+| 경로 | 역할 |
+| --- | --- |
+| `Assets/Scripts/Creatures` | Player, Monster, Creature의 이동·전투·동료·버프 |
+| `Assets/Scripts/Managers` | 데이터·서버·광고·IAP·씬·풀·사운드 관리자 |
+| `Assets/Scripts/Login`, `Main`, `Game`, `SetCharacter`, `NextScene` | 씬별 진입과 화면 흐름 |
+| `Assets/Scripts/UI`, `Cameras`, `MiniMap`, `Effects` | 조작 UI, 카메라, 미니맵, 효과 |
+| `Assets/Scripts/Editor` | 기존 빌드 코드와 격리 `RevivalBuild` 진입점 |
+| `Assets/Scenes`, `Prefabs`, `Resources`, `Settings` | 게임 씬·프리팹·런타임 리소스·렌더링 설정 |
+| `Assets/Tests/Editor`, `Assets/Tests/Scenes` | 자동 회귀 테스트와 `RevivalSmoke` 검증 씬 |
+| `Assets/ThirdParty` | 선별 공개 SDK와 로컬 서비스 설정 |
+| `Assets/ThirdPartyAssets` | 권한 있는 원본에서 복원하는 비공개 게임 에셋 |
+| `Packages`, `ProjectSettings` | UPM 버전 잠금과 Unity 프로젝트 설정 |
+| `tools/revival`, `docs/revival` | 복원·빌드·APK 검사 도구와 근거 기록 |
 
+기존 게임 씬 흐름은 `Login → SetCharacter/Main → Game`이며 `NextScene`을 전환 씬으로 사용합니다. 로그인/동기화는 Play Games·PlayFab, 결제는 Unity IAP, 광고는 Google Mobile Ads를 사용합니다. 패키지 업그레이드와 실제 서비스 호환성 검증은 단계별 PR로 관리합니다.
 
-## Self Feedback
-- prefab 잘 사용하여 여러 monster 유지보수 용의하도록
-  - 추후 프로젝트 진행 시 겹치는 부분 활용 잘 해야 함
-- 장착 아이템 코드 확장 관련 개선 필요
-    - FPS 프로젝트에서 각 부위별 무기로 개선해보기
-- 데이터 관리 시 로컬, 서버 데이터 잘 구분해둬야 함
-- Player, Monster에 너무 많은 기능이 몰려있기 때문에 솔리드 원칙 중 단일 책임 원칙에 위반됨 추후 기능 분리가 필요함
+## 개발과 기여
 
+[AGENTS.md](AGENTS.md)와 [개발 안내](docs/development.ko.md)를 먼저 읽습니다. 작은 이슈·브랜치·PR에 변경 이유, 재현 입력, 테스트 결과, 미검증 범위를 남기고 검증한 커밋을 병합합니다. `.meta`/GUID, 기존 계정·진행도·No Ads 권한을 보존합니다. 공개 clone 및 외부 PR 제안은 원본 저장소의 push/merge 권한과 다릅니다. 접근 정책은 [#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)에서 추적합니다.
 
-## SDK, Package ...
+주요 개발 문서:
 
-- [PlayFabEditorExtensions, PlayFabSDK](https://docs.microsoft.com/ko-kr/gaming/playfab/sdks/unity3d/installing-unity3d-sdk)
-- [play games plugin](https://github.com/playgameservices/play-games-plugin-for-unity/releases)
-- [Google AdMob](https://developers.google.com/admob/android/quick-start?hl=ko)
-- [MiniJson ](https://github.com/Unity-Technologies/UnityCsReference/blob/master/External/JsonParsers/MiniJson/MiniJSON.cs)
-- [IngameDebugConsole](https://assetstore.unity.com/packages/tools/gui/in-game-debug-console-68068)
-- [Safe Area Helper](https://assetstore.unity.com/packages/tools/gui/safe-area-helper-130488)
+- [개발·검증·PR 작업 안내](docs/development.ko.md)
+- [복원 에셋과 라이선스 범위](docs/revival/dependencies.ko.md)
+- [기준 빌드와 검증 근거](docs/revival/baseline.ko.md)
+- [복구 계획과 단계별 상태](docs/revival/plan.ko.md)
 
+## 개인정보처리방침
 
-## Build
-
-| platform  | output   |
-| --------- | -------- |
-| AOS       | apk, aab |
-| iOS       |   TODO   |
-
-build 추출물은 Project root/Build/AOS, Project root/Build/iOS 에 위치한다.
-
-
-### Unity Scenario
-
-시작 전 게임 프로젝트의 root 경로에 Build 폴더를 만든 뒤 진행한다.
-
-- apk
-  - Unity Menu - Build - AOS - APK
-- aab
-  - Unity Menu - Build - AOS - AAB
-
-
-### CLI Scenario
-
-https://github.com/ChoiDaeYoung-94/unity-cicd 레포의 build.py를 사용하여 빌드한다.
-
-build.py를 통해 build 시 aab, apk 모두 빌드된다.
-
-terminal > python build.py > 매개변수 입력 > build
-
-
-### Github Actions Scenario
-
-main branch에 push 할 경우 Github Action이 작동하고 BuildPC에서 빌드를 진행한다.
-
-마지막 commit message에 ci skip 이 포함되어 있을 경우 Github Actions을 skip 한다.
-
-빌드 추출물(aab)은 Appcenter에 upload 되며 Appcenter에서 다운로드 시 apk로 다운로드 하기때문에 apk는 추출하지 않는다.
-
-정상적으로 upload 되었다면 Appcenter에 등록되어 있는 group 사용자에게 알림(e-mail)을 보낸다.
-
-
----
-
-
-# 개인정보처리방침
+아래는 기존에 게시된 정책입니다. 복구 중인 코드와 Play Console/AdMob/PlayFab의 실제 설정, 보관·삭제 방식 및 Data safety 대조는 남아 있습니다. 이 문서 개편은 그 검증을 완료했다는 의미가 아닙니다.
 
 **AeDeong**는 [Monster Tamer]를 운영합니다. 이 내용는 귀하가 앱을 사용할 때 개인 데이터의 수집, 사용 및 공개에 대한 정책을 알려주기 위해 만들어졌습니다.
 
