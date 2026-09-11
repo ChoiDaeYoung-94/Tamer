@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <DefineConstants>UNITY_EDITOR</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../../../Assets/Scripts/Privacy/DeletionFlow.cs" Link="DeletionFlow.cs" />
+    <Compile Include="../../../Assets/Scripts/Privacy/SyntheticLoopbackDeletionGateway.cs" Link="SyntheticLoopbackDeletionGateway.cs" />
+  </ItemGroup>
+</Project>
