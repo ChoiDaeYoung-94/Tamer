@@ -1,18 +1,91 @@
 {
-  "sourceCommit": "e0f87800b4d7c94b7c28dc884b9b2f98431a24a9",
+  "sourceCommit": "db32fcb25342ec07c40bf5c1b13426fe6cfaf0ef",
   "checkout": "C:/Users/pc_17/.codex/worktrees/7b9b/Tamer",
   "unity": "6000.0.81f1",
   "iap": "5.4.3",
   "unityCli": "1.0.0-beta.8",
-  "editorTests": {"passed": 361, "failed": 0, "skipped": 0, "seconds": 4.6079884, "newPlayFabPolicyCases": 6},
-  "xmlSha256": "6b31b5fd5ab15a91a1cc54ef5fb6100700fdd767be7b791f70840315b80f248b",
-  "firstPartyFiles": 116,
+  "editorTests": {
+    "passed": 370,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 3.6837712,
+    "newCompositionCases": 6,
+    "newSdkHttpCases": 3
+  },
+  "xmlSha256": "b80efc3a54de77c48fb68aa83125990ee8d90e1b95cffb64862a6f061b4e9598",
+  "firstPartyFiles": 121,
   "missingMeta": 0,
   "ownEditorsAfterRun": 0,
   "settingsRestored": true,
-  "testTitle": {"created": true, "name": "Tamer IAP Test", "newPlayerNamespace": true, "mode": "development", "initialPlayers": 0},
+  "testTitle": {
+    "created": true,
+    "name": "Tamer IAP Test",
+    "newPlayerNamespace": true,
+    "mode": "development",
+    "initialPlayers": 0
+  },
   "googleTestAppCreated": true,
-  "googleTestApp": {"name": "Monster Tamer IAP Test", "package": "com.AeDeong.MonsterTamer.iaptest", "category": "game", "price": "free", "defaultLanguage": "en-US", "state": "unpublished_setup", "buildUploaded": false, "releaseSubmitted": false},
+  "googleTestApp": {
+    "name": "Monster Tamer IAP Test",
+    "package": "com.AeDeong.MonsterTamer.iaptest",
+    "category": "game",
+    "price": "free",
+    "defaultLanguage": "en-US",
+    "state": "unpublished_setup",
+    "buildUploaded": false,
+    "releaseSubmitted": false
+  },
   "externalPurchaseValidationPerformed": false,
-  "unverified": ["Google test product and license tester setup", "PlayFab Google add-on and permanent test catalog", "test login and actual license-test purchase", "isolated app composition", "Legacy API obfuscated-account binding and TEST-only equivalence"]
+  "unverified": [
+    "Test account creation blocked by PlayerCreationDisabled; security policy unchanged",
+    "Google test product and approved license tester setup",
+    "test login and actual license-test purchase",
+    "Play upload signing and build upload",
+    "Legacy API obfuscated-account binding and TEST-only equivalence"
+  ],
+  "testCatalog": {
+    "created": true,
+    "version": "iap-test-v1",
+    "item": "com.aedeong.monstertamer.no_ads",
+    "persistent": true,
+    "stackable": false,
+    "tradable": false,
+    "RM": 99
+  },
+  "googleAddon": {
+    "installed": true,
+    "testPackageAndPublicLicenseKey": true,
+    "oauthCredentialsAdded": false,
+    "serviceAccountKeyAdded": false
+  },
+  "apk": {
+    "sha256": "5424cfffe431bae18c2d2c4e5ca09bbb8c140c2c4e9f0231e9af4221cd9b5bd6",
+    "bytes": 100483764,
+    "applicationId": "com.AeDeong.MonsterTamer.iaptest",
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debugSignatureVerified": true,
+    "debuggable": true,
+    "internetPermission": true,
+    "billingPermission": true,
+    "gmsAdIdPermission": false,
+    "mobileAdsInitProvider": false,
+    "adServicesPermissionsRemain": true
+  },
+  "licenseTesterLists": {
+    "existingListsRead": true,
+    "modified": false,
+    "approvedDeviceAccountConfirmed": false
+  },
+  "device": {
+    "installed": true,
+    "launched": true,
+    "manualLoginAttempted": true,
+    "loginSucceeded": false,
+    "result": "PlayerCreationDisabled",
+    "storeInitialized": false,
+    "purchaseAttempted": false
+  }
 }

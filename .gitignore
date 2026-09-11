@@ -106,3 +106,7 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # End of https://www.toptal.com/developers/gitignore/api/unity
+
+# Temporary, local-only IAP build configuration
+/Assets/Resources/RevivalIapLocal.json
+/Assets/Resources/RevivalIapLocal.json.meta

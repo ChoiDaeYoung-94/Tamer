@@ -49,7 +49,9 @@ namespace AD
 
         private void LoadPlayerData()
         {
-#if TAMER_GAMEPLAY_HARNESS
+#if TAMER_IAP_HARNESS
+            _playerDataPath = RevivalIapIsolation.CreateSavePath(Application.persistentDataPath);
+#elif TAMER_GAMEPLAY_HARNESS
             _playerDataPath = RevivalGameplayIsolation.CreateSavePath(Application.persistentDataPath);
 #else
             _playerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");

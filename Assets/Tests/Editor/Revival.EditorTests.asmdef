@@ -1,6 +1,13 @@
 {
   "name": "Revival.EditorTests",
-  "references": ["AD.Advertising"],
-  "includePlatforms": ["Editor"],
-  "optionalUnityReferences": ["TestAssemblies"]
+  "references": [
+    "AD.Advertising",
+    "PlayFab"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
 }

@@ -2735,11 +2735,13 @@
     },
     {
       "path": "Assets/ThirdParty/PlayFabSDK/Shared/Internal/PlayFabHttp/PlayFabHTTP.cs",
-      "bytes": 21015,
-      "sha256": "3679d62ca099dcf3721a2ab47e8b8c5300f0c8af9d1045f9b69f1371cd64fe53",
+      "bytes": 21339,
+      "sha256": "491ad9b7c78f6ccce6a17d7afa144b28b0637d2eb655d491afa48a05e7a8b277",
       "disposition": "git-sdk",
       "license": "Apache-2.0",
-      "version": "2.242.260805"
+      "version": "2.242.260805",
+      "upstreamSha256": "3679d62ca099dcf3721a2ab47e8b8c5300f0c8af9d1045f9b69f1371cd64fe53",
+      "localPatch": "Instance HTTP initialization validates supplied settings; see playfab-iap-test.ko.md"
     },
     {
       "path": "Assets/ThirdParty/PlayFabSDK/Shared/Internal/PlayFabHttp/PlayFabHTTP.cs.meta",

@@ -135,3 +135,25 @@ inventory 기준 `e0f87800b4d7c94b7c28dc884b9b2f98431a24a9`에서 신규 3개를
 | `Assets/Tests/Editor/IAP/RevivalPlayFabReceiptTests.cs` | 결과/중복/계정교체/취소 | SDK·통합: fake delegate/TCS, 네트워크·실구매 없음 | 6/6 및 전체361/361 |
 
 근거: [PlayFab 검증 기록](playfab-iap-test-validation.json), [구성 경계](playfab-iap-test.ko.md).
+
+
+## 격리 IAP 앱 구성 추가
+
+신규 4개 파일을 포함해 inventory 120개/meta 누락0이다. source `8af3f0b`의 Editor367/367/0skip(3.7794598초)를 확인했다. 실제 Play 구매는 미검증이다.
+
+| 파일 | 책임 | 검토 결과 | 검증 |
+| --- | --- | --- | --- |
+| `Assets/Scripts/RevivalIapIsolation.cs` | 테스트 설정·독립 로그인·저장·검증기 구성 | SDK: 별도 package/title 필수, static 인증 불변, 계정 소유권 실패 시 저장 보존 | 구성 거부 회귀5 |
+| `Assets/Scripts/RevivalIapHarness.cs` | 전용 테스트 플레이어 수동 조작 | SDK: 로그인/연결/복원/구매 버튼, 자동 구매 없음 | Android 빌드 후 확인 |
+| `Assets/Scripts/Editor/RevivalIapBuild.cs` | 격리 APK 빌드 | SDK: 빌드 한정 define, 임시 config, 광고 provider 제거, finally 복원 | manifest 회귀1 |
+| `Assets/Tests/Editor/RevivalIapIsolationTests.cs` | 구성·manifest 경계 | SDK: 동일 타이틀/운영 패키지/빈 catalog/잘못된 title 거부 | 6/6 |
+
+공유 수정: Managers의 테스트 한정 주입, DataManager의 별도 저장 경로, Login의 초기화/재시도 차단, AdRequestPolicy의 광고 차단, GameplayIsolation의 캡처된 테스트 계정용 메모리 서버를 검토했다. 기존 오프라인 서버 API는 유지한다.
+
+
+후속 source는 PlayFab HTTP instance 설정 전달 오류를 수정했고 `RevivalPlayFabHttpTests.cs` 3개 회귀를 추가했다. inventory121/meta0, Editor370/370/0skip(3.6837712초). vendor `PlayFabHTTP.cs`의 좁은 패치는 별도 manifest upstreamSha256/localPatch로 추적한다. 최초 APK의 로그인 실패를 수정 후 결과와 구분한다. 최종 해시/실기기 결과는 playfab-iap-test-validation.json을 따른다.
+
+
+| 파일 | 책임 | 검토 결과 | 검증 |
+| --- | --- | --- | --- |
+| `Assets/Tests/Editor/RevivalPlayFabHttpTests.cs` | PlayFab HTTP 초기화 회귀 | SDK·통합: 실제 instance API→fake transport settings/context 보존, 빈 타이틀 거부, 기존 초기화 호환, 임시 SO/transport 복구 | 신규3/3·전체370/370 |

@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -36,7 +36,9 @@ namespace AD
             ["GooglePlay"] = ""
         };
 
-        public static ServerManager CreateServer(DataManager owner)
+        public static ServerManager CreateServer(DataManager owner) => CreateTestServer(owner, () => AccountId);
+
+        public static ServerManager CreateTestServer(DataManager owner, Func<string> expectedAccount)
         {
             if (owner == null) throw new ArgumentNullException(nameof(owner));
             var cloud = Seed();
@@ -44,13 +46,13 @@ namespace AD
                 () => owner != null && owner.IsServerDataReady,
                 (account, success, failure) =>
                 {
-                    if (account != AccountId) { failure(403); return; }
+                    if (string.IsNullOrEmpty(account) || account != expectedAccount?.Invoke()) { failure(403); return; }
                     Reads++;
                     success(new Dictionary<string, string>(cloud));
                 },
                 (account, patch, success, failure) =>
                 {
-                    if (account != AccountId) { failure(403); return; }
+                    if (string.IsNullOrEmpty(account) || account != expectedAccount?.Invoke()) { failure(403); return; }
                     Writes++;
                     foreach (var entry in patch)
                         if (entry.Value == null) cloud.Remove(entry.Key);

@@ -16,7 +16,7 @@ namespace AD.Advertising
             bool isIos,
             bool isBatchMode)
         {
-#if TAMER_GAMEPLAY_HARNESS
+#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
             return false;
 #else
             return !isBatchMode
