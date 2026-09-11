@@ -12,13 +12,15 @@ namespace AD
     public enum IAPStatus
     {
         NotInitialized, Connecting, LoadingProducts, Ready, Purchasing,
-        Restoring, Deferred, WaitingForPersistence, Confirming, Failed, Unavailable
+        Restoring, Deferred, WaitingForPersistence, Confirming, Failed, Unavailable,
+        WaitingForVerification
     }
 
     /// <summary>
     /// Google Play / Apple platform billing for the existing No Ads SKU.
-    /// This adapter trusts paid orders delivered by Unity IAP; it does not claim
-    /// to perform server-side receipt validation or refund reconciliation.
+    /// Default construction retains the existing store-trust behavior. A reviewed
+    /// server verifier can be explicitly injected before store initialization.
+    /// Refund reconciliation is not performed by this adapter.
     /// </summary>
     public sealed class IAPManager : IDisposable
     {
@@ -37,6 +39,20 @@ namespace AD
         private readonly Dictionary<string, DateTime> _confirming = new Dictionary<string, DateTime>();
         private readonly HashSet<string> _completedTransactions = new HashSet<string>();
         private readonly NoAdsPurchaseFulfillment _fulfillment = new NoAdsPurchaseFulfillment(TryPersistNoAds);
+        private readonly IReceiptVerifier _receiptVerifier;
+        private readonly Func<ReceiptSession> _receiptSession;
+        private readonly HashSet<string> _validating = new HashSet<string>();
+        private int _validationGeneration;
+
+        public IAPManager() { }
+
+        // No production URL or secret is embedded. Deployment and test-account
+        // setup must be reviewed before the composition root opts into this path.
+        public IAPManager(IReceiptVerifier receiptVerifier, Func<ReceiptSession> receiptSession)
+        {
+            _receiptVerifier = receiptVerifier ?? throw new ArgumentNullException(nameof(receiptVerifier));
+            _receiptSession = receiptSession ?? throw new ArgumentNullException(nameof(receiptSession));
+        }
 
         public string ProductNoAds => NoAdsPurchaseFulfillment.ProductId;
         public IAPStatus Status { get; private set; } = IAPStatus.NotInitialized;
@@ -162,6 +178,8 @@ namespace AD
         private void OnAuthAccountChanged()
         {
             if (_disposed) return;
+            _validationGeneration++;
+            _validating.Clear();
             // IAP 5.4 clears its caches before this event. Never use old Product
             // or Order objects for a new authenticated store session.
             _unfinished.Clear();
@@ -188,6 +206,24 @@ namespace AD
             {
                 SetStatus(IAPStatus.Unavailable);
                 return;
+            }
+            if (_receiptVerifier != null)
+            {
+                try
+                {
+                    var session = _receiptSession();
+                    if (session == null || !session.IsValid || _store.GooglePlayStoreExtendedService == null)
+                    {
+                        SetStatus(IAPStatus.Unavailable);
+                        return;
+                    }
+                    _store.GooglePlayStoreExtendedService.SetObfuscatedAccountId(session.ObfuscatedAccountId);
+                }
+                catch (Exception)
+                {
+                    SetStatus(IAPStatus.Unavailable);
+                    return;
+                }
             }
             _purchaseInProgress = true;
             SetStatus(IAPStatus.Purchasing);
@@ -296,6 +332,41 @@ namespace AD
                 DateTime.UtcNow - since < TimeSpan.FromSeconds(60)) return;
             _confirming.Remove(key);
 
+            if (_receiptVerifier != null)
+            {
+                if (_validating.Add(key)) _ = VerifyAndFulfillAsync(key, order, _validationGeneration);
+                return;
+            }
+            FulfillVerified(key, order);
+        }
+
+        private async Task VerifyAndFulfillAsync(string key, Order order, int generation)
+        {
+            SetStatus(IAPStatus.WaitingForVerification);
+            try
+            {
+                var session = _receiptSession();
+                bool verified = await ReceiptVerification.VerifyCurrentAsync(_receiptVerifier,
+                    order.Info.Receipt, _receiptSession, _lifetime.Token);
+                if (_disposed || !_connected || generation != _validationGeneration ||
+                    !_unfinished.TryGetValue(key, out var current) || !ReferenceEquals(order, current)) return;
+                if (verified && session != null && session.Matches(_receiptSession())) FulfillVerified(key, order);
+                // Rejected/unavailable verification never grants or confirms.
+                // Keep the order for the existing bounded retry loop.
+            }
+            catch (Exception)
+            {
+                // A session supplier may be torn down with its owning scene.
+                // Retain the order and never expose account/receipt exception text.
+            }
+            finally
+            {
+                if (generation == _validationGeneration) _validating.Remove(key);
+            }
+        }
+
+        private void FulfillVerified(string key, Order order)
+        {
             var pending = order as PendingOrder;
             var result = _fulfillment.Process(pending != null ? PurchaseDeliveryState.Pending :
                 PurchaseDeliveryState.Confirmed, new[] { ProductNoAds }, pending == null ? null : (Action)(() =>
@@ -392,6 +463,8 @@ namespace AD
         {
             if (_disposed) return;
             _disposed = true;
+            _validationGeneration++;
+            _validating.Clear();
             _lifetime.Cancel();
             _lifetime.Dispose();
             if (_store != null)
