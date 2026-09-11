@@ -76,9 +76,8 @@ namespace AD
 
         private void OnDestroy()
         {
-#if UNITY_EDITOR
-            instance = null;
-#endif
+            _IAPM.Dispose();
+            if (instance == this) instance = null;
         }
 
         /// <summary>

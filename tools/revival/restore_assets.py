@@ -79,6 +79,8 @@ def restore(source, verify=False):
             continue
         if verify:
             raise ValueError('Missing restored file: ' + relative)
+        if entry['disposition'] == 'git-sdk':
+            raise ValueError('Missing tracked SDK file; restore from Git, not the legacy asset archive: ' + relative)
         src = contained(source, relative)
         if not src.is_file() or digest(src) != entry['sha256']:
             raise ValueError('Source missing or hash mismatch: ' + relative)

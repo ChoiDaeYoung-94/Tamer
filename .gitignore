@@ -38,6 +38,8 @@
 /Assets/Logs.meta
 /Assets/Resources/PerformanceTestRun*.json
 /Assets/Resources/PerformanceTestRun*.json.meta
+/Assets/GooglePlayGames/Resources/PlayGamesSettings.asset
+/Assets/GooglePlayGames/Resources/PlayGamesSettings.asset.meta
 /.claude/
 /.agents/skills/
 

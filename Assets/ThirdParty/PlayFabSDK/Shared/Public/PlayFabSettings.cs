@@ -29,7 +29,29 @@ namespace PlayFab
 
     public static class PlayFabSettings
     {
-        static PlayFabSettings() { }
+        static PlayFabSettings()
+        {
+#if UNITY_GAMECORE || UNITY_GAMECORE_XBOXONE || UNITY_GAMECORE_SCARLETT || MICROSOFT_GAME_CORE
+            PlatformString = "GDK";
+#else
+        switch (Application.platform)
+        {
+            case RuntimePlatform.WindowsEditor:
+            case RuntimePlatform.WindowsPlayer:
+            case RuntimePlatform.WindowsServer:
+                PlatformString = "Windows";
+                break;
+
+            case RuntimePlatform.IPhonePlayer:
+                PlatformString = "iOS";
+                break;
+
+            default:
+                PlatformString = Application.platform.ToString();
+                break;
+        }
+#endif
+        }
 
         private static PlayFabSharedSettings _playFabShared = null;
         private static PlayFabSharedSettings PlayFabSharedPrivate { get { if (_playFabShared == null) _playFabShared = GetSharedSettingsObjectPrivate(); return _playFabShared; } }
@@ -43,9 +65,11 @@ namespace PlayFab
         /// </summary>
         public static readonly PlayFabAuthenticationContext staticPlayer = new PlayFabAuthenticationContext();
 
-        public const string SdkVersion = "2.138.220621";
+        public const string SdkVersion = "2.242.260805";
         public const string BuildIdentifier = "adobuild_unitysdk_167";
-        public const string VersionString = "UnitySDK-2.138.220621";
+        public const string VersionString = "UnitySDK-2.242.260805";
+        public static string EngineVersion = UnityEngine.Application.unityVersion;
+        public static string PlatformString;
 
         public const string DefaultPlayFabApiUrl = "playfabapi.com";
 
@@ -85,11 +109,9 @@ namespace PlayFab
         // You must set this value for PlayFabSdk to work properly (Found in the Game Manager for your title, at the PlayFab Website)
         public static string TitleId { get { return staticSettings.TitleId; } set { staticSettings.TitleId = value; } }
 
-        // Set this value to override specific title connection point
-        public static string ConnectionString { get {return staticSettings.ConnectionString; } set { staticSettings.ConnectionString = value; } }
         /// <summary> The name of a customer vertical. This is only for customers running a private cluster.  Generally you shouldn't touch this </summary>
         internal static string VerticalName { get { return staticSettings.VerticalName; } set { staticSettings.VerticalName = value; } }
-#if ENABLE_PLAYFABSERVER_API || ENABLE_PLAYFABADMIN_API || UNITY_EDITOR
+#if ENABLE_PLAYFABSERVER_API || ENABLE_PLAYFABADMIN_API || UNITY_EDITOR || ENABLE_PLAYFAB_SECRETKEY
         public static string DeveloperSecretKey { get { return staticSettings.DeveloperSecretKey; } set { staticSettings.DeveloperSecretKey = value; } }
 #endif
         /// <summary> Set this to true to prevent hardware information from leaving the device </summary>
@@ -131,19 +153,29 @@ namespace PlayFab
             }
         }
 
+        [ThreadStatic]
+        private static StringBuilder _cachedStringBuilder;
+
+        private static StringBuilder AcquireStringBuilder()
+        {
+            if (_cachedStringBuilder == null)
+            {
+                _cachedStringBuilder = new StringBuilder(1000);
+            }
+
+            _cachedStringBuilder.Clear();
+            return _cachedStringBuilder;
+        }
+
         public static string GetFullUrl(string apiCall, Dictionary<string, string> getParams, PlayFabApiSettings apiSettings = null)
         {
-            StringBuilder sb = new StringBuilder(1000);
+            StringBuilder sb = AcquireStringBuilder();
 
             string productionEnvironmentUrl = null, verticalName = null, titleId = null;
+
             if (apiSettings != null)
             {
-                if(apiSettings.ConnectionString != "")
-                {
-                    productionEnvironmentUrl = apiSettings.ConnectionString;
-                }
-                else
-                {
+
                     if (!string.IsNullOrEmpty(apiSettings.ProductionEnvironmentUrl))
                     {
                         productionEnvironmentUrl = apiSettings.ProductionEnvironmentUrl;
@@ -156,12 +188,9 @@ namespace PlayFab
                     {
                         titleId = apiSettings.TitleId;
                     }
-                }
+
             }
-            else if(ConnectionString != "")
-            {
-                productionEnvironmentUrl = ConnectionString;
-            }
+
 
 
             if (productionEnvironmentUrl == null)
@@ -193,9 +222,9 @@ namespace PlayFab
 
             sb.Append(baseUrl).Append(apiCall);
 
+            bool firstParam = true;
             if (getParams != null)
             {
-                bool firstParam = true;
                 foreach (var paramPair in getParams)
                 {
                     if (firstParam)
@@ -210,6 +239,10 @@ namespace PlayFab
                     sb.Append(paramPair.Key).Append("=").Append(paramPair.Value);
                 }
             }
+
+            sb.Append(firstParam ? "?" : "&");
+            sb.Append("engine=").Append(EngineVersion);
+            sb.Append("&platform=").Append(PlatformString);
 
             return sb.ToString();
         }

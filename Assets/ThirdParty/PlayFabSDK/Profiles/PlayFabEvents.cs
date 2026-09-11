@@ -13,6 +13,10 @@ namespace PlayFab.Events
         public event PlayFabResultEvent<GetEntityProfilesResponse> OnProfilesGetProfilesResultEvent;
         public event PlayFabRequestEvent<GetTitlePlayersFromMasterPlayerAccountIdsRequest> OnProfilesGetTitlePlayersFromMasterPlayerAccountIdsRequestEvent;
         public event PlayFabResultEvent<GetTitlePlayersFromMasterPlayerAccountIdsResponse> OnProfilesGetTitlePlayersFromMasterPlayerAccountIdsResultEvent;
+        public event PlayFabRequestEvent<GetTitlePlayersFromXboxLiveIDsRequest> OnProfilesGetTitlePlayersFromXboxLiveIDsRequestEvent;
+        public event PlayFabResultEvent<GetTitlePlayersFromProviderIDsResponse> OnProfilesGetTitlePlayersFromXboxLiveIDsResultEvent;
+        public event PlayFabRequestEvent<SetDisplayNameRequest> OnProfilesSetDisplayNameRequestEvent;
+        public event PlayFabResultEvent<SetDisplayNameResponse> OnProfilesSetDisplayNameResultEvent;
         public event PlayFabRequestEvent<SetGlobalPolicyRequest> OnProfilesSetGlobalPolicyRequestEvent;
         public event PlayFabResultEvent<SetGlobalPolicyResponse> OnProfilesSetGlobalPolicyResultEvent;
         public event PlayFabRequestEvent<SetProfileLanguageRequest> OnProfilesSetProfileLanguageRequestEvent;

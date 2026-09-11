@@ -142,10 +142,6 @@ namespace PlayFab.ProfilesModels
         /// </summary>
         public string Language;
         /// <summary>
-        /// Leaderboard metadata for the entity.
-        /// </summary>
-        public string LeaderboardMetadata;
-        /// <summary>
         /// The lineage of this profile.
         /// </summary>
         public EntityLineage Lineage;
@@ -162,6 +158,10 @@ namespace PlayFab.ProfilesModels
         /// The statistics on this profile.
         /// </summary>
         public Dictionary<string,EntityStatisticValue> Statistics;
+        /// <summary>
+        /// A mapping of statistic name to the columns defined in the corresponding definition.
+        /// </summary>
+        public Dictionary<string,StatisticColumnCollection> StatisticsColumnDetails;
         /// <summary>
         /// The version number of the profile in persistent storage at the time of the read. Used for optional optimistic
         /// concurrency during update.
@@ -194,31 +194,10 @@ namespace PlayFab.ProfilesModels
     }
 
     [Serializable]
-    public class EntityStatisticChildValue : PlayFabBaseModel
-    {
-        /// <summary>
-        /// Child name value, if child statistic
-        /// </summary>
-        public string ChildName;
-        /// <summary>
-        /// Child statistic metadata
-        /// </summary>
-        public string Metadata;
-        /// <summary>
-        /// Child statistic value
-        /// </summary>
-        public int Value;
-    }
-
-    [Serializable]
     public class EntityStatisticValue : PlayFabBaseModel
     {
         /// <summary>
-        /// Child statistic values
-        /// </summary>
-        public Dictionary<string,EntityStatisticChildValue> ChildStatistics;
-        /// <summary>
-        /// Statistic metadata
+        /// Metadata associated with the Statistic.
         /// </summary>
         public string Metadata;
         /// <summary>
@@ -226,9 +205,9 @@ namespace PlayFab.ProfilesModels
         /// </summary>
         public string Name;
         /// <summary>
-        /// Statistic value
+        /// Statistic scores
         /// </summary>
-        public int? Value;
+        public List<string> Scores;
         /// <summary>
         /// Statistic version
         /// </summary>
@@ -258,6 +237,10 @@ namespace PlayFab.ProfilesModels
         /// The optional entity to perform this action on. Defaults to the currently logged in entity.
         /// </summary>
         public EntityKey Entity;
+        /// <summary>
+        /// Determines whether the entity statistics will be returned in the entity profile. Default is false.
+        /// </summary>
+        public bool IncludeStatistics;
     }
 
     [Serializable]
@@ -289,6 +272,10 @@ namespace PlayFab.ProfilesModels
         /// Entity keys of the profiles to load. Must be between 1 and 25
         /// </summary>
         public List<EntityKey> Entities;
+        /// <summary>
+        /// Determines whether the entity statistics will be returned in the entity profile. Default is false.
+        /// </summary>
+        public bool IncludeStatistics;
     }
 
     [Serializable]
@@ -359,12 +346,84 @@ namespace PlayFab.ProfilesModels
         public Dictionary<string,EntityKey> TitlePlayerAccounts;
     }
 
+    [Serializable]
+    public class GetTitlePlayersFromProviderIDsResponse : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Dictionary of provider identifiers mapped to title_player_account lineage. Missing lineage indicates the player either
+        /// doesn't exist or doesn't play the requested title.
+        /// </summary>
+        public Dictionary<string,EntityLineage> TitlePlayerAccounts;
+    }
+
+    /// <summary>
+    /// Given a collection of Xbox IDs (XUIDs), returns all title player accounts.
+    /// </summary>
+    [Serializable]
+    public class GetTitlePlayersFromXboxLiveIDsRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Xbox Sandbox the players had on their Xbox tokens.
+        /// </summary>
+        public string Sandbox;
+        /// <summary>
+        /// Optional ID of title to get players from, required if calling using a master_player_account.
+        /// </summary>
+        public string TitleId;
+        /// <summary>
+        /// List of Xbox Live XUIDs
+        /// </summary>
+        public List<string> XboxLiveIds;
+    }
+
     public enum OperationTypes
     {
         Created,
         Updated,
         Deleted,
         None
+    }
+
+    /// <summary>
+    /// Given an entity profile, will update its display name to the one passed in if the profile's version is equal to the
+    /// specified value
+    /// </summary>
+    [Serializable]
+    public class SetDisplayNameRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// The new value to be set on Entity Profile's display name
+        /// </summary>
+        public string DisplayName;
+        /// <summary>
+        /// The optional entity to perform this action on. Defaults to the currently logged in entity.
+        /// </summary>
+        public EntityKey Entity;
+        /// <summary>
+        /// The expected version of a profile to perform this update on
+        /// </summary>
+        public int? ExpectedVersion;
+    }
+
+    [Serializable]
+    public class SetDisplayNameResponse : PlayFabResultCommon
+    {
+        /// <summary>
+        /// The type of operation that occured on the profile's display name
+        /// </summary>
+        public OperationTypes? OperationResult;
+        /// <summary>
+        /// The updated version of the profile after the display name update
+        /// </summary>
+        public int? VersionNumber;
     }
 
     /// <summary>
@@ -456,6 +515,36 @@ namespace PlayFab.ProfilesModels
         /// The updated version of the profile after the language update
         /// </summary>
         public int? VersionNumber;
+    }
+
+    public enum StatisticAggregationMethod
+    {
+        Last,
+        Min,
+        Max,
+        Sum
+    }
+
+    [Serializable]
+    public class StatisticColumn : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Aggregation method for calculating new value of a statistic.
+        /// </summary>
+        public StatisticAggregationMethod AggregationMethod;
+        /// <summary>
+        /// Name of the statistic column, as originally configured.
+        /// </summary>
+        public string Name;
+    }
+
+    [Serializable]
+    public class StatisticColumnCollection : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Columns for the statistic defining the aggregation method for each column.
+        /// </summary>
+        public List<StatisticColumn> Columns;
     }
 }
 #endif
