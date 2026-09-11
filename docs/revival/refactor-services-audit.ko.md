@@ -29,6 +29,27 @@
 이 디렉터리에 InputManager/MonsterManager.cs는 없다. 파일을 추정해 새 서비스를 만들지 않았다.
 전체 프로젝트 감사표와 게임플레이 범위는 통합 담당 문서에서 연결한다.
 
+## 테스트 파일별 감사
+
+2026-09-11 main `41f1dc0be79722ab7de2ae9a860e34b60941263b`에서 아래 6개 파일의 전체 본문과
+fixture 생성·정리·호출 경로를 읽었다. 이번 후속 감사는 문서만 추가하며 테스트 코드를 변경하지 않는다.
+`Revival.EditorTests.asmdef`는 Editor/TestAssemblies 범위이고, 런타임 Assembly-CSharp 타입은 reflection으로 호출한다.
+
+| 파일 (Assets/Tests/Editor 기준) | 책임·검증하는 계약 | 격리·정리 | 미수정 이유와 검증 한계 |
+| --- | --- | --- | --- |
+| RevivalDataSyncTests.cs (43) | 서버 우선 merge, pending revision, No Ads 토큰 합집합, 계정 귀속, backup 원문 보존, 잘못된 값/레코드 거부, 영속 저장 실패 rollback, Shutdown 이후 쓰기 차단 | GUID로 만든 OS 임시 폴더에 파일 경로를 주입하고 합성 UserData record를 사용. HideAndDontSave DataManager는 InitializeData를 호출하지 않으며 현재 Awake/Start/OnEnable 초기화도 없음. using Dispose가 객체와 자기 임시 폴더를 정리 | 메모리뿐 아니라 저장 원문·backup·pending·owner를 비교해 계약을 확인하므로 유지. atomic replacement 실패는 WindowsEditor에서만 실행하며 다른 플랫폼은 Ignore. Android 파일시스템·실제 앱 종료 중 전원 손실까지 검증하지 않음 |
+| RevivalLoginContinuityTests.cs (56) | 기존 GPGS ID와 device/custom 선택 보존, 모호한 레거시 선택 거부, 신규 등록 조건, 닉네임/로그인 gate, 늦은·중복 callback과 선행 취소 | 순수 정책/gate 객체와 합성 PlayFabError만 생성. 취소 CTS는 using으로 정리. Login의 static predicate/응답 분류만 호출하고 로그인·PlayerPrefs·씬 생성 없음 | 계정 선택 경계와 gate 상태 전이를 유지할 근거가 있어 변경하지 않음. 실제 GPGS 인증, PlayFab 응답, 재설치 후 계정 복구를 대신하지 않음 |
+| RevivalSaveQueueTests.cs (3) | 실제 DataManager+ServerManager 조합에서 100→90→100 revision과 이전 ACK/후속 조회 경합, 마지막 쓰기 실패·재시도, 쓰기 성공 후 조회 실패 | 고유 임시 저장 폴더와 메모리 cloud, 6개 delegate 전송/시계 주입. callback을 순서대로 직접 해제. Dispose가 요청 취소·Data 객체 파괴·자기 폴더 삭제 | 값만 같고 revision이 다른 손실을 저장 파일까지 검사하는 통합 회귀라 유지. 가짜 scheduler는 동작하지 않으므로 timeout/backoff 책임은 ServerRequestTests에 둠. 실제 서버/시계/Managers singleton 없음 |
+| RevivalServerRequestTests.cs (16) | 요청 복사·10키 청크·직렬화, bounded retry/timeout, account/generation 차단, Dispose, ACK 순서·단일 적용, null/적용 실패, Private 요청 생성 | 모든 전송 callback과 시계가 fixture 내부 목록. Advance가 가짜 시간을 진행하며 무한 실행 상한 검사. production CreateWriteRequest도 합성 인증 context로 DTO만 만들고 전송하지 않음 | 전달값·호출 수·결과 상태를 확인해 회귀 가치가 있음. 일반 harness는 외부 timer/handle을 만들지 않으며 fixture 종료 후 참조 해제; Dispose 동작은 별도 두 사례가 검사. DeleteData 사례는 null 키 제거 payload 계약일 뿐 실제 삭제/계정 삭제 시험 아님 |
+| RevivalManagerLifecycleTests.cs (6) | 중복 owner 차단, 멱등 Shutdown과 static 해제, Pool/IAP 종료, 늦은 서버 응답, 이전 Login의 새 Data 취소 방지, production Data 바인딩, GameOver 전환 중 조기 반환 | 비활성 PreviewScene의 Managers/Data/Login으로 Init/Start를 건너뜀. 이전 singleton을 보관하고 TearDown finally에서 복원. 생산 Server 생성자는 delegate 바인딩만 수행하며 적용 callback을 update=false로 직접 호출; 요청/파일 저장 없음 | owner 교체와 종료 경계를 확인해 유지. 실제 Awake→Init→Start 순서, 초기화 실패 시 Destroy 타이밍, 전체 Main/Game 왕복은 검증하지 않음. GameOver 사례는 전환 중 접근 차단 검사이며 Player reset의 정상 경로 검사가 아님 |
+| RevivalEquipmentLifecycleTests.cs (2) | 반복 Init과 Player 교체 후 동일 dictionary 참조·새 객체 mapping, 기존 장착 문자열/목록·이전 객체 상태 보존, Player 없음 시 기존 mapping 보존 | 비활성 PreviewScene Player와 합성 장비 객체. Awake/PlayerPrefs 미실행, 기존 Player singleton 보관. scene 정리 후 finally에서 singleton 복원 | 장비 효과/저장 규칙을 건드리지 않는 재바인딩 회귀라 유지. 실제 prefab 직렬화 연결, 능력치 효과, 미지의 장비/슬롯 교체 정책은 범위 밖 |
+
+확정된 추가 결함은 없었다. 사례 수는 서비스 검증 XML의 126개 합계이며, 실행 전체 결과와 구별한다.
+위 파일은 통합 테스트 소스 `300d427e4c557fd3cc4cda347b255a22a9a53bc7`와 감사 기준 사이에 변경이 없음을
+git diff로 확인했다. 통합 담당의 [317/317 검증 기록](gameplay-followup-validation.json)을 재사용하며
+이번 문서 감사에서 Unity를 다시 실행하지 않았다. 이전 서비스 자체 실행은 아래 283/283 기록이다.
+반영 범위가 다른 두 실행의 전체 수를 합산하지 않는다. 운영 인증·저장·구매 또는 Android 빌드 성공을 추가 주장하지 않는다.
+
 ## 소유권과 호환 경계
 
 Managers가 없는 시점의 accessor는 null을 반환한다. 기존 이름·반환 타입은 같고,
