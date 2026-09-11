@@ -97,7 +97,11 @@ namespace AD
             DontDestroyOnLoad(gameObject);
             try
             {
+#if TAMER_GAMEPLAY_HARNESS
+                _serverM = RevivalGameplayIsolation.CreateServer(_dataM);
+#else
                 _serverM = new ServerManager(_dataM);
+#endif
                 InitM();
                 _initialized = true;
             }

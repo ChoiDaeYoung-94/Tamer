@@ -72,6 +72,9 @@ namespace AD
 
         private void Awake()
         {
+#if TAMER_GAMEPLAY_HARNESS
+            return;
+#endif
 #if UNITY_ANDROID && !UNITY_EDITOR
             try
             {
@@ -88,6 +91,10 @@ namespace AD
 
         private void Start()
         {
+#if TAMER_GAMEPLAY_HARNESS
+            RevivalGameplayIsolation.BlockLogin();
+            return;
+#endif
             _dataOwner = AD.Managers.DataM;
             _cts = new CancellationTokenSource();
             StartLogin();

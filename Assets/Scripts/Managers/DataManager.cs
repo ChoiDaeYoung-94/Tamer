@@ -49,7 +49,11 @@ namespace AD
 
         private void LoadPlayerData()
         {
+#if TAMER_GAMEPLAY_HARNESS
+            _playerDataPath = RevivalGameplayIsolation.CreateSavePath(Application.persistentDataPath);
+#else
             _playerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");
+#endif
             _defaults = ParseData(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString());
             // Never rewrite a legacy or malformed save during initialization.
             LocalPlayerData = File.Exists(_playerDataPath)
