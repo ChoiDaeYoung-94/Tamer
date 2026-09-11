@@ -29,16 +29,21 @@ namespace AD
         private ServerManager _server;
         private readonly PlayerDataChanges _changes = new PlayerDataChanges();
         private CancellationTokenSource _ctsLocalDataUpdate;
+        private bool _initialized;
+        private bool _shutdown;
 
         public void InitializeData()
         {
-            _server = Managers.ServerM;
+            if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
+            if (_initialized) return;
+            _server = Managers.ServerM ?? throw new InvalidOperationException("Server service is not initialized.");
             LoadPlayerData();
             MonsterData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString()) as Dictionary<string, object>;
             ItemData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString()) as Dictionary<string, object>;
             _ctsLocalDataUpdate?.Cancel();
             _ctsLocalDataUpdate?.Dispose();
             _ctsLocalDataUpdate = new CancellationTokenSource();
+            _initialized = true;
             PeriodicLocalDataUpdateAsync(_ctsLocalDataUpdate.Token).Forget();
         }
 
@@ -68,6 +73,7 @@ namespace AD
         /// <summary>Bind only after authentication. An owner mismatch requires explicit account recovery.</summary>
         public void BeginAccountSession(string playFabId)
         {
+            if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             SuspendAccountSession();
             if (!PlayerDataSyncPolicy.CanBindAccount(_localOwner, playFabId))
                 throw new InvalidOperationException("The local save belongs to another account. Account recovery is required.");
@@ -81,7 +87,7 @@ namespace AD
         public void SuspendAccountSession()
         {
             IsServerDataReady = false;
-            _server.CancelPendingRequests();
+            _server?.CancelPendingRequests();
         }
 
         private async UniTask PeriodicLocalDataUpdateAsync(CancellationToken token)
@@ -108,7 +114,7 @@ namespace AD
         /// <summary>Durable local mutation, including purchase restoration before Player exists.</summary>
         public bool TryUpdateLocalData(string key, string value)
         {
-            if (!IsServerDataReady || LocalPlayerData == null || string.IsNullOrEmpty(key) || key == OwnerKey || value == null)
+            if (_shutdown || !IsServerDataReady || LocalPlayerData == null || string.IsNullOrEmpty(key) || key == OwnerKey || value == null)
                 return false;
             if (key == "GooglePlay")
             {
@@ -140,6 +146,7 @@ namespace AD
 
         public void SaveLocalData()
         {
+            if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (LocalPlayerData == null || string.IsNullOrEmpty(_playerDataPath))
                 throw new InvalidOperationException("Player data has not been initialized.");
             WritePlayerData(LocalPlayerData, _localOwner);
@@ -166,6 +173,7 @@ namespace AD
 
         public void UpdatePlayerData()
         {
+            if (_shutdown) return;
             if (!IsServerDataReady)
             {
                 _server.GetAllData(update: true);
@@ -186,6 +194,7 @@ namespace AD
         /// <summary>Called only for a successful server read. No write requests originate here.</summary>
         public void UpdateData()
         {
+            if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (PlayFabPlayerData == null || LocalPlayerData == null || _defaults == null)
                 throw new InvalidOperationException("A successful server snapshot is required.");
             var server = new Dictionary<string, string>();
@@ -219,10 +228,16 @@ namespace AD
             IsConflict = false;
         }
 
-        private void OnDestroy()
+        public void Shutdown()
         {
+            if (_shutdown) return;
+            _shutdown = true;
+            SuspendAccountSession();
             _ctsLocalDataUpdate?.Cancel();
             _ctsLocalDataUpdate?.Dispose();
+            _ctsLocalDataUpdate = null;
         }
+
+        private void OnDestroy() => Shutdown();
     }
 }

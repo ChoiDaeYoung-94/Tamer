@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "9044b6fc2027332649f326ce012d253ab831d3ca",
+  "unity": "6000.0.81f1",
+  "command": "tools/revival/Run-Baseline.ps1 -TestsOnly",
+  "result": "Passed",
+  "total": 254,
+  "passed": 254,
+  "failed": 0,
+  "skipped": 0,
+  "startUtc": "2026-09-11T07:06:09Z",
+  "endUtc": "2026-09-11T07:06:13Z",
+  "durationSeconds": 3.442808,
+  "xmlSha256": "6400008b7fac4ac2a9a692d2ed19c9adb1f5570a7ad1fbb595847c843db6c14e",
+  "privateAssetsVerified": 4561,
+  "ownEditorsAfter": 0,
+  "projectSettingsRestored": true,
+  "limitations": [
+    "Isolated EditMode regression; production gameplay and Android build not run for this source.",
+    "Whole recovery and remaining per-file audit are still in progress."
+  ]
+}

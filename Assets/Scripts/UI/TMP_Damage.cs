@@ -52,7 +52,8 @@ public class TMP_Damage : MonoBehaviour
     {
         if (_effect != null)
         {
-            DOTween.Kill(transform);
+            // The sequence owns nested position/fade tweens and the pool callback.
+            _effect.Kill();
             _effect = null;
         }
 

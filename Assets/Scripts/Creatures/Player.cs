@@ -42,6 +42,7 @@ public class Player : Creature
     private Monster _curTargetMonster;
     private Monster _ableCaptureMonster;
     private string _monsterCollection = string.Empty;
+    private AD.UpdateManager _updateSource;
 
     private const string PLAYER_MONSTERS_KEY = "AllyMonsters";
     private const string PLAYER_EQUIPPED_ITEMS_KEY = "playerEquippedItems";
@@ -66,6 +67,7 @@ public class Player : Creature
     /// </summary>
     private void OnEnable()
     {
+        BindUpdates(AD.Managers.Instance != null ? AD.Managers.UpdateM : null);
         JoyStick.Instance.StartInit();
         CameraManage.Instance.StartInit();
         PlayerUICanvas.Instance.StartInit();
@@ -73,7 +75,22 @@ public class Player : Creature
 
     private void OnDisable()
     {
+        BindUpdates(null);
         StopBattle();
+    }
+
+    private void OnDestroy()
+    {
+        BindUpdates(null);
+        StopBattle();
+        if (_instance == this) _instance = null;
+    }
+
+    private void BindUpdates(AD.UpdateManager source)
+    {
+        if (_updateSource != null) _updateSource.OnUpdateEvent -= TouchEvent;
+        _updateSource = source;
+        if (_updateSource != null) _updateSource.OnUpdateEvent += TouchEvent;
     }
 
     private void Update()
@@ -104,8 +121,6 @@ public class Player : Creature
 
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
-        AD.Managers.UpdateM.OnUpdateEvent -= TouchEvent;
-        AD.Managers.UpdateM.OnUpdateEvent += TouchEvent;
     }
 
     public void ReSetPlayer()

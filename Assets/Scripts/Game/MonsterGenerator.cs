@@ -34,23 +34,41 @@ public class MonsterGenerator : MonoBehaviour
 
     private void OnDisable()
     {
-        _spawnLoopTokenSource?.Cancel();
-        _spawnLoopTokenSource?.Dispose();
+        StopSpawning();
     }
 
     private void OnDestroy()
     {
-        _instance = null;
+        StopSpawning();
+        if (_instance == this) _instance = null;
     }
 
     #region Functions
 
     public void Init()
     {
+        // Scene initialization can be requested more than once while enabled.
+        if (_spawnLoopTokenSource != null) return;
         _spawnLoopTokenSource = new CancellationTokenSource();
+        try
+        {
+            SpawnMonsters(_currentRegion);
+            SpawnLoop(_spawnLoopTokenSource.Token).Forget();
+        }
+        catch
+        {
+            StopSpawning();
+            throw;
+        }
+    }
 
-        SpawnMonsters(_currentRegion);
-        SpawnLoop(_spawnLoopTokenSource.Token).Forget();
+    private void StopSpawning()
+    {
+        var source = _spawnLoopTokenSource;
+        _spawnLoopTokenSource = null;
+        if (source == null) return;
+        source.Cancel();
+        source.Dispose();
     }
 
     private async UniTask SpawnLoop(CancellationToken token)
