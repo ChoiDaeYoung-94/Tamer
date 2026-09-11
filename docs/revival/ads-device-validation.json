@@ -1,0 +1,104 @@
+{
+  "observedDate": "2026-09-11",
+  "sourceCommit": "5e276549913f28436b503fd7841277db42fce07d",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "device": {
+    "model": "SM-N986N",
+    "androidApi": 33,
+    "pageSizeBytes": 4096
+  },
+  "artifacts": [
+    {
+      "variant": "sample",
+      "bytes": 130886198,
+      "sha256": "e5cdbf8284fe591f0cd78d6d7a437c12884051fd15ee3dfae8caf520c5ec38c3",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.ads",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": true,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    },
+    {
+      "variant": "control",
+      "bytes": 63581281,
+      "sha256": "9dbd3870cd5527691f5afe6ff923b1cce1dcc52e428d81982a5c8b5c54d66811",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.adscontrol",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": false,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    }
+  ],
+  "evidence": [
+    {
+      "privateFile": "first-ad.mp4",
+      "sha256": "73389333aba99b0b024109b9c634c49543d3ea56ad6dc085f90025d5113e427a"
+    },
+    {
+      "privateFile": "cancel2.log",
+      "sha256": "51067899306643abbfa9a267eed43f8149a8a147cb6fd0a406860ed15985100b"
+    },
+    {
+      "privateFile": "owner-close.log",
+      "sha256": "8c0602019ce022ce97eab1cede8708f1dc66c51421846fd6b18a171c29f7b845"
+    },
+    {
+      "privateFile": "scene.log",
+      "sha256": "e4e87c498bcdfcf01f3c0c97e4ccf978fd5a1192b2d73f6fe9cb791dfcc83530"
+    },
+    {
+      "privateFile": "bgm.log",
+      "sha256": "311bc7ab1de4d3e6076720425c3c71d591251c3ed8b1a91936ee639c91a05e12"
+    },
+    {
+      "privateFile": "background.log",
+      "sha256": "8636214d2e7a6d30f92003c63dc7d3bb6a495c45de1b7465a52365fbe5f19e3e"
+    },
+    {
+      "privateFile": "manager.log",
+      "sha256": "216f5a2b82e9860df5a640098539627ede35ce08f71a3c026c318cac574ac7b0"
+    },
+    {
+      "privateFile": "control-v3.log",
+      "sha256": "d9edac32bd97d58763b25c50d655e178202a39da96779ad3df18c9d604dc905b"
+    },
+    {
+      "privateFile": "manager-after.png",
+      "sha256": "4f5803a25efe4d846094bec905cd2c24c000b8409bb70445c7e21c33d68b6cae"
+    },
+    {
+      "privateFile": "control-v3.png",
+      "sha256": "a2e0806979a23c9f0ef70952a1751cf582878465ca1d4a1a68f2a4ac9e250388"
+    }
+  ],
+  "limits": [
+    "16KB device not tested",
+    "Exact native first-pixel 5-second close deadline unconfirmed",
+    "Production creatives not tested",
+    "Active-ad background, duplicate request and native failed callback not exercised",
+    "No payload-level network observation",
+    "AdMob child-age settings and published privacy messages unconfirmed"
+  ],
+  "cleanup": {
+    "sampleUninstalled": true,
+    "controlUninstalled": true,
+    "remoteTestRecordingRemoved": true
+  }
+}
