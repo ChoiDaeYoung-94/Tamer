@@ -30,6 +30,8 @@ public class ShopMan : MonoBehaviour
     public List<IAPItem> IAPitemList = new List<IAPItem>();
 
     private bool _isEquipmentItem;
+    private bool _purchasePending;
+    private bool _purchaseResultOpen;
 
     private void Awake()
     {
@@ -41,7 +43,7 @@ public class ShopMan : MonoBehaviour
 
     private void OnDestroy()
     {
-        _instance = null;
+        if (_instance == this) _instance = null;
     }
 
     #region Functions
@@ -53,6 +55,7 @@ public class ShopMan : MonoBehaviour
 
     public void SaveItem(string item)
     {
+        if (CurrentItemsList.Contains(item)) return;
         if (string.IsNullOrEmpty(_currentItemsText))
             _currentItemsText = item;
         else
@@ -72,6 +75,7 @@ public class ShopMan : MonoBehaviour
 
     public void ChooseItem(string itemName, string price, string info, bool isEquipment)
     {
+        _purchasePending = false;
         AD.Managers.SoundM.UI_Click();
 
         _currentItemName = itemName;
@@ -84,37 +88,47 @@ public class ShopMan : MonoBehaviour
     public void ClickBuy()
     {
         AD.Managers.SoundM.UI_Click();
+        _purchasePending = false;
 
-        if (_currentItemPrice > Player.Instance.Gold)
+        if (_currentItemPrice < 0 || string.IsNullOrEmpty(_currentItemName) ||
+            _currentItemPrice > Player.Instance.Gold ||
+            (_isEquipmentItem && CurrentItemsList.Contains(_currentItemName)))
         {
             ShowPurchaseResult(_failedBuyMessage);
             return;
         }
 
+        _purchasePending = true;
         ShowPurchaseResult(_successBuyMessage);
     }
 
     private void ShowPurchaseResult(string message)
     {
+        _purchaseResultOpen = true;
         _afterBuyText.text = message;
         _afterBuyPanel.SetActive(true);
     }
 
     public void CheckSuccessBuy()
     {
+        if (!_purchaseResultOpen) return;
+        _purchaseResultOpen = false;
         AD.Managers.SoundM.UI_Click();
 
-        if (_afterBuyText.text != _successBuyMessage)
+        if (!_purchasePending)
         {
             AD.Managers.PopupM.DisablePop();
             return;
         }
 
-        if (_afterBuyText.text == _successBuyMessage)
+        if (!TryConsumePurchase(Player.Instance.Gold))
         {
-            AD.Managers.PopupM.DisablePop();
-            AD.Managers.PopupM.DisablePop();
+            ShowPurchaseResult(_failedBuyMessage);
+            return;
         }
+
+        AD.Managers.PopupM.DisablePop();
+        AD.Managers.PopupM.DisablePop();
 
         if (_isEquipmentItem)
         {
@@ -128,6 +142,15 @@ public class ShopMan : MonoBehaviour
         }
 
         Player.Instance.MinusGold(_currentItemPrice);
+    }
+
+    private bool TryConsumePurchase(int availableGold)
+    {
+        if (!_purchasePending) return false;
+        _purchasePending = false; // Consume before popup callbacks or a second button click.
+        return _currentItemPrice >= 0 && _currentItemPrice <= availableGold &&
+            !string.IsNullOrEmpty(_currentItemName) &&
+            (!_isEquipmentItem || !CurrentItemsList.Contains(_currentItemName));
     }
 
     public void ResetItems()

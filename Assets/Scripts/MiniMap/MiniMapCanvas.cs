@@ -2,8 +2,13 @@ using UnityEngine;
 
 public class MiniMapCanvas : MonoBehaviour
 {
+    private MiniMap _owner;
+
+    private void OnEnable() => _owner = MiniMap.Instance;
+
     private void OnDisable()
     {
-        MiniMap.Instance.CloseMap();
+        if (_owner != null) _owner.CloseMap();
+        _owner = null;
     }
 }
