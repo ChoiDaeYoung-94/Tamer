@@ -26,11 +26,13 @@ namespace AD
         private string _localOwner = string.Empty;
         private bool _sessionBackupCreated;
         private Dictionary<string, string> _defaults;
+        private ServerManager _server;
         private readonly PlayerDataChanges _changes = new PlayerDataChanges();
         private CancellationTokenSource _ctsLocalDataUpdate;
 
         public void InitializeData()
         {
+            _server = Managers.ServerM;
             LoadPlayerData();
             MonsterData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString()) as Dictionary<string, object>;
             ItemData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString()) as Dictionary<string, object>;
@@ -79,7 +81,7 @@ namespace AD
         public void SuspendAccountSession()
         {
             IsServerDataReady = false;
-            Managers.ServerM.CancelPendingRequests();
+            _server.CancelPendingRequests();
         }
 
         private async UniTask PeriodicLocalDataUpdateAsync(CancellationToken token)
@@ -166,18 +168,19 @@ namespace AD
         {
             if (!IsServerDataReady)
             {
-                Managers.ServerM.GetAllData(update: true);
+                _server.GetAllData(update: true);
                 return;
             }
             var patch = _changes.Snapshot();
+            var revisions = _changes.SnapshotRevisions();
             if (patch.Count == 0)
             {
-                Managers.ServerM.GetAllData(update: true);
+                _server.GetAllData(update: true);
                 return;
             }
-            // Acknowledge only the submitted values. Newer changes made in flight remain pending.
-            Managers.ServerM.SetData(patch, getAllData: true, update: true,
-                onWritten: () => _changes.Acknowledge(patch));
+            // Match mutation revisions as well as values, including an A -> B -> A change in flight.
+            _server.SetData(patch, getAllData: true, update: true,
+                onWritten: () => _changes.Acknowledge(patch, revisions));
         }
 
         /// <summary>Called only for a successful server read. No write requests originate here.</summary>

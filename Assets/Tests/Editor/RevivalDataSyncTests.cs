@@ -169,9 +169,10 @@ public class RevivalDataSyncTests
         Invoke(changes, "Track", "Gold", "10");
         Invoke(changes, "Track", "AllyMonsters", "Slime");
         var submitted = (Dictionary<string, string>)Invoke(changes, "Snapshot");
+        var revisions = (Dictionary<string, long>)Invoke(changes, "SnapshotRevisions");
         Invoke(changes, "Track", "Gold", "15");
         Invoke(changes, "Track", "GooglePlay", "ProductNoAds");
-        Invoke(changes, "Acknowledge", submitted);
+        Invoke(changes, "Acknowledge", submitted, revisions);
         var pending = (Dictionary<string, string>)Invoke(changes, "Snapshot");
         CollectionAssert.AreEquivalent(new Dictionary<string, string> { { "Gold", "15" }, { "GooglePlay", "ProductNoAds" } }, pending);
         submitted["Gold"] = "mutated copy";

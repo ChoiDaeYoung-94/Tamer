@@ -64,14 +64,30 @@ namespace AD
     public sealed class PlayerDataChanges
     {
         private readonly Dictionary<string, string> _pending = new Dictionary<string, string>();
-        public void Track(string key, string value) => _pending[key] = value;
+        private readonly Dictionary<string, long> _revisions = new Dictionary<string, long>();
+        private long _revision;
+        public void Track(string key, string value)
+        {
+            _pending[key] = value;
+            _revisions[key] = ++_revision;
+        }
         public Dictionary<string, string> Snapshot() => new Dictionary<string, string>(_pending);
-        public void Clear() => _pending.Clear();
-        public void Acknowledge(Dictionary<string, string> submitted)
+        public Dictionary<string, long> SnapshotRevisions() => new Dictionary<string, long>(_revisions);
+        public void Clear()
+        {
+            _pending.Clear();
+            _revisions.Clear();
+        }
+        public void Acknowledge(Dictionary<string, string> submitted, Dictionary<string, long> revisions)
         {
             foreach (var entry in submitted)
-                if (_pending.TryGetValue(entry.Key, out var current) && current == entry.Value)
+                if (_pending.TryGetValue(entry.Key, out var current) && current == entry.Value
+                    && revisions.TryGetValue(entry.Key, out var submittedRevision)
+                    && _revisions.TryGetValue(entry.Key, out var currentRevision) && currentRevision == submittedRevision)
+                {
                     _pending.Remove(entry.Key);
+                    _revisions.Remove(entry.Key);
+                }
         }
     }
 }
