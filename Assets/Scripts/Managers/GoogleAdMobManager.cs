@@ -119,8 +119,11 @@ namespace AD
                 try { CompleteSession(closing, RewardedAdOutcome.Cancelled); }
                 catch (Exception exception) { Debug.LogException(exception); }
             }
-            if ((_loading || _initializing) && !IsConsentBusy && Time.realtimeSinceStartup >= _loadDeadline)
+            if ((_loading || _initializing) && (!IsConsentBusy || _consent.IsUpdating) &&
+                Time.realtimeSinceStartup >= _loadDeadline)
             {
+                // Expire only UMP's network update, not a visible consent form.
+                _consent?.ExpireUpdate();
                 // Invalidate late loads; never treat a visible native ad as closed.
                 _loadVersion++;
                 _loading = _initializing = false;

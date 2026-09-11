@@ -20,6 +20,7 @@ namespace AD.Advertising
         private readonly Action<string> _trace;
         private Stage _stage;
         private int _version;
+        private Action<bool> _pendingCompletion;
 
         public AdConsentGate(IAdConsentClient client, Action<Action> dispatch, Action<string> trace = null)
         {
@@ -28,6 +29,7 @@ namespace AD.Advertising
             _trace = trace ?? (_ => { });
         }
 
+        public bool IsUpdating => _stage == Stage.Updating;
         public bool IsBusy => _stage == Stage.Updating || _stage == Stage.Gathering || _stage == Stage.Privacy;
         public bool CanRequestAds => _stage == Stage.Ready && ReadCanRequestAds();
         public bool PrivacyOptionsRequired
@@ -51,6 +53,7 @@ namespace AD.Advertising
             if (_stage == Stage.Disposed || IsBusy) return false;
             if (CanRequestAds) { completed(true); return true; }
             int version = ++_version;
+            _pendingCompletion = completed;
             _stage = Stage.Updating;
             _trace("consent_update_call");
             try
@@ -82,6 +85,7 @@ namespace AD.Advertising
         {
             if (_stage == Stage.Disposed || IsBusy || !PrivacyOptionsRequired) return false;
             int version = ++_version;
+            _pendingCompletion = completed;
             _stage = Stage.Privacy;
             _trace("privacy_options_call");
             try
@@ -100,14 +104,26 @@ namespace AD.Advertising
 
         private void Finish(bool allowed, Action<bool> completed)
         {
+            _pendingCompletion = null;
             _stage = allowed ? Stage.Ready : Stage.Blocked;
             _trace(allowed ? "consent_allowed" : "consent_blocked");
             completed(allowed);
         }
 
+        // Only the network update has a host deadline. Never time out an open form.
+        public bool ExpireUpdate()
+        {
+            if (!IsUpdating) return false;
+            ++_version;
+            _trace("consent_update_timeout");
+            Finish(false, _pendingCompletion);
+            return true;
+        }
+
         public void Dispose()
         {
             ++_version;
+            _pendingCompletion = null;
             _stage = Stage.Disposed;
         }
     }

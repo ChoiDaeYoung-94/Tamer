@@ -156,4 +156,34 @@ public class RevivalAdConsentTests
         Assert.That(results, Is.EqualTo(new[] { false }));
         Assert.That(gate.IsBusy, Is.False);
     }
+    [Test]
+    public void Revival_MissingConsentUpdateTimesOutAndLateReplyCannotUnlockRetry()
+    {
+        gate.Request(results.Add); var late = client.Updated;
+        Assert.That(gate.ExpireUpdate(), Is.True);
+        Assert.That(gate.IsBusy, Is.False);
+        Assert.That(results, Is.EqualTo(new[] { false }));
+        Assert.That(gate.Request(results.Add), Is.True);
+        client.Allowed = true; late(true); Drain();
+        Assert.That(client.Forms, Is.Zero);
+        Assert.That(gate.CanRequestAds, Is.False);
+        client.Updated(true); Drain(); client.Gathered(true); Drain();
+        Assert.That(results, Is.EqualTo(new[] { false, true }));
+    }
+
+    [Test]
+    public void Revival_NetworkDeadlineDoesNotDismissConsentOrPrivacyForms()
+    {
+        gate.Request(results.Add); client.Updated(true); Drain();
+        Assert.That(gate.ExpireUpdate(), Is.False);
+        Assert.That(gate.IsBusy, Is.True);
+        Assert.That(results, Is.Empty);
+        client.Allowed = true; client.Gathered(true); Drain(); client.Required = true;
+        gate.OpenPrivacyOptions(results.Add);
+        Assert.That(gate.ExpireUpdate(), Is.False);
+        Assert.That(gate.IsBusy, Is.True);
+        client.PrivacyClosed(true); Drain();
+        Assert.That(results, Is.EqualTo(new[] { true, true }));
+    }
+
 }
