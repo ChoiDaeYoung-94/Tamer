@@ -103,9 +103,25 @@ public class RevivalUILifecycleTests
         var sequence = Get(damage, "_effect");
         var isActive = Find("DG.Tweening.TweenExtensions").GetMethod("IsActive", BindingFlags.Static | BindingFlags.Public);
         Assert.That(isActive.Invoke(null, new[] { sequence }), Is.True);
-        Call(damage, "Clear");
-        Assert.That(isActive.Invoke(null, new[] { sequence }), Is.False,
-            "A pooled popup must not retain a completion callback from its old use.");
-        Assert.That(Get(damage, "_effect"), Is.Null);
+        // DOTween intentionally skips Init outside Play mode; Kill is otherwise a
+        // no-op in EditMode. Scope its runtime-ready flag to this synchronous test
+        // without starting a player, account managers, or the global update loop.
+        var initialized = Find("DG.Tweening.DOTween").GetField("initialized",
+            BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        var previous = initialized.GetValue(null);
+        try
+        {
+            initialized.SetValue(null, true);
+            Call(damage, "Clear");
+            Assert.That(isActive.Invoke(null, new[] { sequence }), Is.False,
+                "A pooled popup must not retain a completion callback from its old use.");
+            Assert.That(Get(damage, "_effect"), Is.Null);
+        }
+        finally
+        {
+            Find("DG.Tweening.TweenExtensions").GetMethod("Kill", BindingFlags.Static | BindingFlags.Public)
+                .Invoke(null, new object[] { sequence, false });
+            initialized.SetValue(null, previous);
+        }
     }
 }
