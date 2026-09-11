@@ -14,11 +14,22 @@ public static class RevivalBuild
     public const string SmokeScene = "Assets/Tests/Scenes/RevivalSmoke.unity";
     public const string ApplicationId = "com.AeDeong.MonsterTamer.revival";
 
-    public static void PrepareSmokeScene()
+    public static void RequireSavedScenes()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Edit Mode required.");
-        if (SceneManager.GetActiveScene().isDirty)
-            throw new InvalidOperationException("Save existing scene before preparing smoke scene.");
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var scene = SceneManager.GetSceneAt(i);
+            // A new batch Editor can start with an empty, untouched default scene.
+            bool emptyBatchScene = Application.isBatchMode && !scene.isDirty && scene.rootCount == 0;
+            if (scene.isDirty || (string.IsNullOrEmpty(scene.path) && !emptyBatchScene))
+                throw new InvalidOperationException("Save all open scenes before baseline scene operations.");
+        }
+    }
+
+    public static void PrepareSmokeScene()
+    {
+        RequireSavedScenes();
         Directory.CreateDirectory(Path.GetDirectoryName(SmokeScene));
         if (!File.Exists(SmokeScene))
         {
@@ -34,6 +45,7 @@ public static class RevivalBuild
 
     public static void VerifySmokeScene()
     {
+        RequireSavedScenes();
         var guid = AssetDatabase.AssetPathToGUID(SmokeScene);
         if (string.IsNullOrEmpty(guid)) throw new InvalidOperationException("Missing smoke scene GUID.");
         var scene = EditorSceneManager.OpenScene(SmokeScene, OpenSceneMode.Single);
