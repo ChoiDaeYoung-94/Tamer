@@ -4,6 +4,10 @@
 안전성 보완을 포함한 main `c845364`를 병합했다. 정책 근거는
 [Families 정책 조사](families-ads-policy.ko.md)에 기록한다.
 
+최신 Editor 검증: 광고 수정 `b4764b4`를 포함한 SDK 11.5.0 통합 커밋
+[`f5b7e404`](https://github.com/ChoiDaeYoung-94/Tamer/commit/f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf)에서
+**248/248 통과, 실패 0, 건너뜀 0**을 확인했다. APK 검증은 이 기록 시점에 진행 중이다.
+
 ## 변경된 게임 동작
 
 | 조건 | 처리 |
@@ -66,7 +70,7 @@ python -m unittest discover -s tools/revival -p 'test_*.py'
 python tools/revival/audit_guids.py
 ```
 
-2026-09-11 광고 checkout `worktrees/e5e5/Tamer`, source `21a00f3` 기준 기록이다.
+아래 표는 2026-09-11 광고 checkout `worktrees/e5e5/Tamer`, source `21a00f3`까지의 기록이다.
 Unity는 6000.0.81f1, CLI는 1.0.0-beta.8이며 이 checkout의 SDK는 GMA 9.1.1이다.
 
 | 검사 | 확인된 결과 |
@@ -77,7 +81,7 @@ Unity는 6000.0.81f1, CLI는 1.0.0-beta.8이며 이 checkout의 SDK는 GMA 9.1.1
 | GUID 참조 감사 | 132개 씬/프리팹 검사, 미해결 참조 0. 신규 테스트 meta의 33자리 오타는 별도로 32자리로 수정 |
 | 별도 API 컴파일 | 실제 Unity/GMA/Unity bundled NUnit 참조 manager·테스트 컴파일 통과. 게임 의존성 stub 사용으로 전체 Editor 실행과 구분 |
 | 실제 Unity 컴파일 | `8a56d17` 전체 스크립트 컴파일 후 테스트 실행 진입 확인 |
-| 실제 Unity 테스트 | **최종 통과 판정 없음.** 아래 실패와 후속 검증 이관 참조 |
+| 구 SDK 실제 Unity 테스트 | 이 checkout 실행에서는 최종 통과 판정 없음. 아래 실패 및 수정 후 SDK 11.5.0 합본 통과 기록 참조 |
 
 첫 Editor 실행은 지원하지 않는 `NonParallelizable` 속성 때문에 컴파일에서 종료되어 속성을 제거했다.
 다음 실행은 62개 중 42개 통과, 20개가 준비 단계에서 실패했다. batch runner의 미저장 씬에서는
@@ -88,12 +92,29 @@ additive 새 씬을 만들 수 없어서 테스트 격리를 preview scene으로
 새 결과를 내지 못했다. 제한된 진단에서 종료 handler의 잠금·구독 해제·광고 정리·대기 콜백 폐기는
 모두 반환했지만 정확한 crash 원인은 확정하지 않았다. `21a00f3`은 EditMode에서 자동 전달되지 않는
 종료 handler를 명시적으로 호출하고 파괴한 컴포넌트의 reflection 조회를 제거한 테스트 보완이다.
-이 최종 fixture의 실행 판정은 통합 담당에게 이관했다. 앞선 XML을 최신 성공 증거로 재사용하지 않는다.
+이 fixture를 받은 통합 담당도 SDK 11.5.0의 새 Library에서 동일 native crash
+(`-1073741819`, CLI 6)를 재현했다. 따라서 구 SDK 9.1.1만의 문제로 분류하지 않는다.
+앞선 XML을 최신 성공 증거로 재사용하지 않았다.
+
+통합 담당은 `OnDestroy`의 중첩 `finally` 안에 있던 콜백 정리 루프를 분리한 실험에서
+같은 단일 테스트 **1/1 통과**를 확인했다. 공식 수정
+[`b4764b4`](https://github.com/ChoiDaeYoung-94/Tamer/commit/b4764b4635304328762810ea07ededc7a96f6d9e)는
+세션 종료, 로드된 광고 정리, 대기 콜백 폐기를 각각 예외 기록 후 계속하는 순차 단계로 바꾼다.
+정리 동작은 유지하면서 중첩 예외 처리 구조를 단순화한 변경이다. 동일 사례의 수정 전 중단과
+수정 후 통과는 확인했지만, Unity Mono 내부의 결함 원인까지 확정한 것은 아니다.
+
+공식 수정을 병합한 `f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf`,
+통합 checkout `worktrees/7819/Tamer`의 `Logs/revival/editmode.xml`을 읽기 전용으로 확인했다.
+Unity 6000.0.81f1/GMA Unity 11.5.0 합본에서 **248/248 통과**, 실패 0, 건너뜀 0,
+테스트 실행 시간 3.5548825초다. 순수 보상 20·정책 18·No Ads 20·manager 20·popup 6이
+모두 포함되어 통과했다. baseline 4를 합친 광고 측 88개 전체도 이 결과에 포함된다.
+통합 담당은 Python 31개 및 복원 에셋 4,561개 검증 통과도 보고했다.
+`b4764b4` 독립 코드 재검토에서는 추가 P1/P2를 발견하지 않았다.
 
 광고 측 최종 검사 대상은 순수 58 + manager 20 + popup 6 + baseline 4 = 88개다.
 manager/popup 검사는 실제 컴포넌트의 handler를 명시 호출하며 게임 씬 실행이나 실제 광고·오디오를
-대체하지 않는다. 통합 담당이 SDK 11.5.0·광고·데이터 변경을 합쳐 단일 실패 사례, 전체 회귀와
-최종 APK를 검증한다. 구 SDK 단독 APK 빌드는 생략했으므로 이 광고 작업의 APK SHA-256은 없다.
+대체하지 않는다. SDK 11.5.0·광고·데이터 합본의 전체 Editor 회귀는 위와 같이 통과했으며,
+최종 APK 검증은 기록 시점에 진행 중이다. 구 SDK 단독 APK 빌드는 생략했으므로 이 광고 작업의 APK SHA-256은 없다.
 최종 통합 결과와 APK 해시는 통합 검증 기록 및 PR #104에서 별도로 확인해야 한다.
 
 ## 통합 및 미검증
