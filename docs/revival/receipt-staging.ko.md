@@ -4,6 +4,8 @@
 
 ## 실행 계약
 
+검증 환경의 전이 의존성까지 재현하려면 `python -m pip install -r server/receipts/requirements.lock`을 사용한다. 잠금 기준은 Windows x64 CPython 3.14이며 배포 호스트 OS에서 설치·테스트를 다시 확인한다.
+
 Python 가상환경에 `server/receipts/requirements.txt`를 설치한다. `staging.env.example`의 변수는 서비스 관리자가 환경으로 제공해야 한다. `.env` 자동 로딩은 없다. 키 내용 대신 기존 권한 있는 secret 파일의 절대 경로를 전달한다. 일반 서비스 계정에는 secret 읽기와 전용 DB 디렉터리 쓰기만 허용하고, 디렉터리/백업은 해당 계정만 접근하도록 OS 권한을 설정한다. Windows에서는 POSIX mode 대신 ACL을 확인한다.
 
 `ENV=staging`, `.iaptest` 패키지, 운영과 다른 타이틀, 1~20개의 명시적 테스트 PlayFab 계정이 필수다. 운영 타이틀 ID는 관리자가 실제 inventory와 대조해야 한다. 문자열이 다르다는 검사만으로 원격 리소스의 격리가 증명되지는 않는다. `PUBLIC_ORIGIN`은 경로 없는 HTTPS origin이며 proxy가 전달하는 Host와 정확히 일치해야 한다.
