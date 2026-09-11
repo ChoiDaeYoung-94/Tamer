@@ -14,7 +14,7 @@ Unity `6000.0.81f1`, IAP `5.4.3`, PlayFab `2.242.260805`를 유지한다. 기존
 2. 구매 직전에 `SHA256("tamer-iap-v1:" + PlayFabId)`를 Google obfuscated account ID로 설정한다. 서버는 클라이언트가 보낸 ID를 신뢰하지 않고 PlayFab `AuthenticateSessionTicket` 결과의 ID를 사용한다.
 3. 서버는 고정 package/SKU, 실제 Google `purchases.productsv2.getproductpurchasev2` 응답의 PURCHASED, 테스트 카드, 계정 binding, 단일 영구 상품·수량 1·미소비·미환불 수량 1을 검사한다. SDK receipt의 서명 문자열 자체를 검증했다고 주장하지 않으며 Google 서버 조회가 진위 판단 근거다.
 4. 허용된 테스트 계정만 받을 수 있다. SQLite 트랜잭션으로 token SHA-256을 단일 계정에 귀속시키고 영속 기록한 뒤 성공을 응답한다. 같은 계정 재시도는 중복 기록하지 않으며 재시도마다 Google 상태를 다시 조회한다. 원시 token/ticket/receipt를 DB에 저장하지 않는다.
-5. 클라이언트는 HTTPS 성공 응답의 nonce·계정·SKU를 대조한다. 비동기 대기 중 계정/세션 교체, IAP store 계정 교체, manager 종료 또는 주문 객체 교체가 있으면 늦은 응답을 적용하지 않는다. 검증 성공 후 기존 로컬 영속 저장, 이후 pending 확인을 수행한다. confirmed 복원도 검증을 거친다.
+5. 클라이언트는 검증 시작 시 실제 DataManager 소유자와 세션을 함께 캡처하며 HTTPS 성공 응답의 nonce·계정·SKU를 대조한다. 비동기 대기 중 계정/세션 교체, IAP store 계정 교체, manager 종료 또는 주문 객체 교체가 있으면 늦은 응답을 적용하지 않는다. 검증 성공 후 저장 직전에 현재 DataManager가 캡처한 동일 인스턴스인지, 준비 상태·계정 ID·세션이 모두 일치하는지 다시 확인하고 캡처한 소유자에게만 로컬 영속 저장, 이후 pending 확인을 수행한다. confirmed 복원도 검증을 거친다.
 
 서버 확인/권한 기록이 실패하면 새 권한과 acknowledgement가 모두 보류된다. No Ads는 비소비 상품이므로 consume API를 호출하지 않는다. 이 구현의 서버는 acknowledgement/환불/계정 데이터 쓰기를 호출하지 않고, 확인은 기존 Unity IAP 경로가 담당한다. 오래된 binding 없는 구매의 최초 귀속은 자동 허용하지 않으며 기존 저장 권한은 유지한다.
 
@@ -22,11 +22,13 @@ PlayFabId와 token 해시도 계정·거래에 연결되는 식별자이며 익�
 
 ## 로컬 재현
 
-2026-09-11 소스 `50ec779373d478e7b263418bef540c86d62e53a1`에서 Unity EditMode **261/261**(신규 receipt 12개), Python **88/88**(서버 13개), 에셋 복원 4,561개 및 YAML GUID 132개 미해결 0을 확인했다. `Run-Baseline -TestsOnly` 종료 0이며 APK는 새로 빌드하지 않았다. [정확한 검증 데이터](receipt-verification-validation.json)
+2026-09-11 main `f4405c80`을 포함한 소스 `4b7b06388c9a8655ccadc77e7a0459e84f309a55`에서 Unity EditMode **299/299**(신규 receipt 16개)를 확인했다. Python **88/88**(서버 13개)은 직전 통합 소스 `11c3ac9`에서 실행했으며 이후 C# 취소 테스트의 예외 타입 조건만 수정했다. 에셋 복원 4,561개를 확인했고, YAML GUID 132개 미해결 0은 최초 구현 소스 `50ec779`의 검사다. `Run-Baseline -TestsOnly` 종료 0이며 APK는 새로 빌드하지 않았다. [정확한 검증 데이터](receipt-verification-validation.json)
 
 `python -m unittest discover -s tools/revival -p test_receipt_server.py`는 합성 ticket/receipt와 임시 DB만 사용한다. 실제 서비스 호출·소켓 리스너·계정 생성이 없다. Unity `RevivalReceiptVerificationTests`는 지연 성공/거절/오류/세션 교체/취소/HTTPS 구성 및 저장→확인 계약을 검증한다.
 
 서버 host는 `Upstream(title_id, secret_key, access_token_provider)`, `Ledger(private_db_path)`, `Verifier(..., package, test_accounts)`, `create_app(verifier)`를 조합한다. `access_token_provider`는 서버의 ADC/workload identity 또는 비밀 저장소를 사용해 androidpublisher OAuth token을 반환해야 한다. **실제 host/자격 증명 주입/배포 구성은 미제공**이며 import만으로 서버나 네트워크가 시작되지 않는다. WSGI factory 자체는 TLS·rate limit·관리자 인증·가용성 운영 계층을 제공하지 않는다.
+
+독립 리뷰에서 세션 공급자는 이전 계정 A를 반환하지만 실제 저장 대상이 새 DataManager B일 수 있는 문제를 보완했고, 지급·확인 차단 회귀를 추가했다. 첫 통합 실행 298/299의 한 실패는 취소 예외의 정확한 타입을 기대한 테스트 문제였다. 하위 `TaskCanceledException`도 허용하도록 수정한 뒤 299/299를 확인했다. 이전 실행 XML은 비공개 경로에 보존했다.
 
 ## 실제 테스트 전에 필요한 구체적 설정
 
