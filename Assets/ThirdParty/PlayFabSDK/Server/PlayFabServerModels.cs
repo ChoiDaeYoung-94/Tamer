@@ -6,23 +6,6 @@ using PlayFab.SharedModels;
 namespace PlayFab.ServerModels
 {
     [Serializable]
-    public class AdCampaignAttribution : PlayFabBaseModel
-    {
-        /// <summary>
-        /// UTC time stamp of attribution
-        /// </summary>
-        public DateTime AttributedAt;
-        /// <summary>
-        /// Attribution campaign identifier
-        /// </summary>
-        public string CampaignId;
-        /// <summary>
-        /// Attribution network name
-        /// </summary>
-        public string Platform;
-    }
-
-    [Serializable]
     public class AdCampaignAttributionModel : PlayFabBaseModel
     {
         /// <summary>
@@ -101,6 +84,32 @@ namespace PlayFab.ServerModels
         /// PlayFabId of the user to link.
         /// </summary>
         public string PlayFabId;
+    }
+
+    /// <summary>
+    /// This API adds a contact email to the specified player's profile. If the player's profile already contains a contact
+    /// email, it will update the contact email to the email address specified.
+    /// </summary>
+    [Serializable]
+    public class AddOrUpdateContactEmailRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// The new contact email to associate with the player.
+        /// </summary>
+        public string EmailAddress;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class AddOrUpdateContactEmailResult : PlayFabResultCommon
+    {
     }
 
     /// <summary>
@@ -284,6 +293,10 @@ namespace PlayFab.ServerModels
         /// The reason why this ban was applied.
         /// </summary>
         public string Reason;
+        /// <summary>
+        /// The family type of the user that is included in the ban.
+        /// </summary>
+        public string UserFamilyType;
     }
 
     /// <summary>
@@ -301,10 +314,6 @@ namespace PlayFab.ServerModels
         /// </summary>
         public string IPAddress;
         /// <summary>
-        /// MAC address to be banned. May affect multiple players.
-        /// </summary>
-        public string MACAddress;
-        /// <summary>
         /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
         /// </summary>
         public string PlayFabId;
@@ -312,11 +321,15 @@ namespace PlayFab.ServerModels
         /// The reason for this ban. Maximum 140 characters.
         /// </summary>
         public string Reason;
+        /// <summary>
+        /// The family type of the user that should be included in the ban if applicable. May affect multiple players.
+        /// </summary>
+        public UserFamilyType? UserFamilyType;
     }
 
     /// <summary>
-    /// The existence of each user will not be verified. When banning by IP or MAC address, multiple players may be affected, so
-    /// use this feature with caution. Returns information about the new bans.
+    /// The existence of each user will not be verified. When banning by IP, multiple players may be affected, so use this
+    /// feature with caution. Returns information about the new bans.
     /// </summary>
     [Serializable]
     public class BanUsersRequest : PlayFabRequestCommon
@@ -338,6 +351,19 @@ namespace PlayFab.ServerModels
         /// Information on the bans that were applied
         /// </summary>
         public List<BanInfo> BanData;
+    }
+
+    [Serializable]
+    public class BattleNetAccountPlayFabIdPair : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Unique Battle.net account identifier for a user.
+        /// </summary>
+        public string BattleNetAccountId;
+        /// <summary>
+        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the Battle.net account identifier.
+        /// </summary>
+        public string PlayFabId;
     }
 
     /// <summary>
@@ -605,23 +631,6 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
-    public class ContactEmailInfo : PlayFabBaseModel
-    {
-        /// <summary>
-        /// The email address
-        /// </summary>
-        public string EmailAddress;
-        /// <summary>
-        /// The name of the email info data
-        /// </summary>
-        public string Name;
-        /// <summary>
-        /// The verification status of the email
-        /// </summary>
-        public EmailVerificationStatus? VerificationStatus;
-    }
-
-    [Serializable]
     public class ContactEmailInfoModel : PlayFabBaseModel
     {
         /// <summary>
@@ -646,7 +655,8 @@ namespace PlayFab.ServerModels
         EU,
         NA,
         OC,
-        SA
+        SA,
+        Unknown
     }
 
     public enum CountryCode
@@ -899,7 +909,8 @@ namespace PlayFab.ServerModels
         EH,
         YE,
         ZM,
-        ZW
+        ZW,
+        Unknown
     }
 
     /// <summary>
@@ -1090,6 +1101,19 @@ namespace PlayFab.ServerModels
         ZWD
     }
 
+    [Serializable]
+    public class CustomPropertyDetails : PlayFabBaseModel
+    {
+        /// <summary>
+        /// The custom property's name.
+        /// </summary>
+        public string Name;
+        /// <summary>
+        /// The custom property's value.
+        /// </summary>
+        public object Value;
+    }
+
     /// <summary>
     /// This function will delete the specified character from the list allowed by the user, and will also delete any inventory
     /// or VC currently held by that character. It will NOT delete any statistics associated for this character, in order to
@@ -1120,6 +1144,62 @@ namespace PlayFab.ServerModels
     [Serializable]
     public class DeleteCharacterFromUserResult : PlayFabResultCommon
     {
+    }
+
+    [Serializable]
+    public class DeletedPropertyDetails : PlayFabBaseModel
+    {
+        /// <summary>
+        /// The name of the property which was requested to be deleted.
+        /// </summary>
+        public string Name;
+        /// <summary>
+        /// Indicates whether or not the property was deleted. If false, no property with that name existed.
+        /// </summary>
+        public bool WasDeleted;
+    }
+
+    /// <summary>
+    /// Deletes custom properties for the specified player. The list of provided property names must be non-empty.
+    /// </summary>
+    [Serializable]
+    public class DeletePlayerCustomPropertiesRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Optional field used for concurrency control. One can ensure that the delete operation will only be performed if the
+        /// player's properties have not been updated by any other clients since the last version.
+        /// </summary>
+        public int? ExpectedPropertiesVersion;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// A list of property names denoting which properties should be deleted.
+        /// </summary>
+        public List<string> PropertyNames;
+    }
+
+    [Serializable]
+    public class DeletePlayerCustomPropertiesResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// The list of properties requested to be deleted.
+        /// </summary>
+        public List<DeletedPropertyDetails> DeletedProperties;
+        /// <summary>
+        /// PlayFab unique identifier of the user whose properties were deleted.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Indicates the current version of a player's properties that have been set. This is incremented after updates and
+        /// deletes. This version can be provided in update and delete calls for concurrency control.
+        /// </summary>
+        public int PropertiesVersion;
     }
 
     /// <summary>
@@ -1170,24 +1250,6 @@ namespace PlayFab.ServerModels
         /// Unique identifier for the shared group.
         /// </summary>
         public string SharedGroupId;
-    }
-
-    [Serializable]
-    public class DeregisterGameRequest : PlayFabRequestCommon
-    {
-        /// <summary>
-        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
-        /// </summary>
-        public Dictionary<string,string> CustomTags;
-        /// <summary>
-        /// Unique identifier for the Game Server Instance that is being deregistered.
-        /// </summary>
-        public string LobbyId;
-    }
-
-    [Serializable]
-    public class DeregisterGameResponse : PlayFabResultCommon
-    {
     }
 
     public enum EmailVerificationStatus
@@ -1354,6 +1416,41 @@ namespace PlayFab.ServerModels
         public int? SpecificRevision;
     }
 
+    /// <summary>
+    /// Request must contain the Segment ID
+    /// </summary>
+    [Serializable]
+    public class ExportPlayersInSegmentRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Unique identifier of the requested segment.
+        /// </summary>
+        public string SegmentId;
+    }
+
+    [Serializable]
+    public class ExportPlayersInSegmentResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Unique identifier of the export for the requested Segment.
+        /// </summary>
+        public string ExportId;
+        /// <summary>
+        /// Unique identifier of the requested Segment.
+        /// </summary>
+        public string SegmentId;
+    }
+
+    public enum ExternalFriendSources
+    {
+        None,
+        Steam,
+        Facebook,
+        Xbox,
+        Psn,
+        All
+    }
+
     [Serializable]
     public class FacebookInstantGamesPlayFabIdPair : PlayFabBaseModel
     {
@@ -1384,7 +1481,7 @@ namespace PlayFab.ServerModels
     public class FriendInfo : PlayFabBaseModel
     {
         /// <summary>
-        /// Available Facebook information (if the user and PlayFab friend are also connected in Facebook).
+        /// Available Facebook information (if the user and connected Facebook friend both have PlayFab Accounts in the same title).
         /// </summary>
         public UserFacebookInfo FacebookInfo;
         /// <summary>
@@ -1392,7 +1489,8 @@ namespace PlayFab.ServerModels
         /// </summary>
         public string FriendPlayFabId;
         /// <summary>
-        /// Available Game Center information (if the user and PlayFab friend are also connected in Game Center).
+        /// Available Game Center information (if the user and connected Game Center friend both have PlayFab Accounts in the same
+        /// title).
         /// </summary>
         public UserGameCenterInfo GameCenterInfo;
         /// <summary>
@@ -1400,11 +1498,12 @@ namespace PlayFab.ServerModels
         /// </summary>
         public PlayerProfileModel Profile;
         /// <summary>
-        /// Available PSN information, if the user and PlayFab friend are both connected to PSN.
+        /// Available PlayStation :tm: Network information, if the user connected PlayStation :tm Network friend both have PlayFab
+        /// Accounts in the same title.
         /// </summary>
         public UserPsnInfo PSNInfo;
         /// <summary>
-        /// Available Steam information (if the user and PlayFab friend are also connected in Steam).
+        /// Available Steam information (if the user and connected Steam friend both have PlayFab Accounts in the same title).
         /// </summary>
         public UserSteamInfo SteamInfo;
         /// <summary>
@@ -1420,15 +1519,9 @@ namespace PlayFab.ServerModels
         /// </summary>
         public string Username;
         /// <summary>
-        /// Available Xbox information, if the user and PlayFab friend are both connected to Xbox Live.
+        /// Available Xbox information, (if the user and connected Xbox Live friend both have PlayFab Accounts in the same title).
         /// </summary>
         public UserXboxInfo XboxInfo;
-    }
-
-    public enum GameInstanceState
-    {
-        Open,
-        Closed
     }
 
     public enum GenericErrorCodes
@@ -1537,7 +1630,6 @@ namespace PlayFab.ServerModels
         UnableToConnectToDatabase,
         InternalServerError,
         InvalidReportDate,
-        ReportNotAvailable,
         DatabaseThroughputExceeded,
         InvalidGameTicket,
         ExpiredGameTicket,
@@ -1913,7 +2005,6 @@ namespace PlayFab.ServerModels
         InsightsManagementGetOperationStatusInvalidParameter,
         DuplicatePurchaseTransactionId,
         EvaluationModePlayerCountExceeded,
-        GetPlayersInSegmentRateLimitExceeded,
         CloudScriptFunctionNameSizeExceeded,
         PaidInsightsFeaturesNotEnabled,
         CloudScriptAzureFunctionsQueueRequestError,
@@ -1965,6 +2056,80 @@ namespace PlayFab.ServerModels
         AutomationInvalidInput,
         AutomationInvalidRuleName,
         AutomationRuleAlreadyExists,
+        AutomationRuleLimitExceeded,
+        InvalidGooglePlayGamesServerAuthCode,
+        PlayStreamConnectionFailed,
+        InvalidEventContents,
+        InsightsV1Deprecated,
+        AnalysisSubscriptionNotFound,
+        AnalysisSubscriptionFailed,
+        AnalysisSubscriptionFoundAlready,
+        AnalysisSubscriptionManagementInvalidInput,
+        InvalidGameCenterId,
+        InvalidNintendoSwitchAccountId,
+        EntityAPIKeysNotSupported,
+        IpAddressBanned,
+        EntityLineageBanned,
+        NamespaceMismatch,
+        InvalidServiceConfiguration,
+        InvalidNamespaceMismatch,
+        LeaderboardColumnLengthMismatch,
+        InvalidStatisticScore,
+        LeaderboardColumnsNotSpecified,
+        LeaderboardMaxSizeTooLarge,
+        InvalidAttributeStatisticsSpecified,
+        LeaderboardNotFound,
+        TokenSigningKeyNotFound,
+        LeaderboardNameConflict,
+        LinkedStatisticColumnMismatch,
+        NoLinkedStatisticToLeaderboard,
+        StatDefinitionAlreadyLinkedToLeaderboard,
+        LinkingStatsNotAllowedForEntityType,
+        LeaderboardCountLimitExceeded,
+        LeaderboardSizeLimitExceeded,
+        LeaderboardDefinitionModificationNotAllowedWhileLinked,
+        StatisticDefinitionModificationNotAllowedWhileLinked,
+        LeaderboardUpdateNotAllowedWhileLinked,
+        CloudScriptAzureFunctionsEventHubRequestError,
+        ExternalEntityNotAllowedForTier,
+        InvalidBaseTimeForInterval,
+        EntityTypeMismatchWithStatDefinition,
+        SpecifiedVersionLeaderboardNotFound,
+        LeaderboardColumnLengthMismatchWithStatDefinition,
+        DuplicateColumnNameFound,
+        LinkedStatisticColumnNotFound,
+        LinkedStatisticColumnRequired,
+        MultipleLinkedStatisticsNotAllowed,
+        DuplicateLinkedStatisticColumnNameFound,
+        AggregationTypeNotAllowedForMultiColumnStatistic,
+        MaxQueryableVersionsValueNotAllowedForTier,
+        StatisticDefinitionHasNullOrEmptyVersionConfiguration,
+        StatisticColumnLengthMismatch,
+        InvalidExternalEntityId,
+        UpdatingStatisticsUsingTransactionIdNotAvailableForFreeTier,
+        TransactionAlreadyApplied,
+        ReportDataNotRetrievedSuccessfully,
+        ResetIntervalCannotBeModified,
+        VersionIncrementRateExceeded,
+        InvalidSteamUsername,
+        InvalidVersionResetForLinkedLeaderboard,
+        BattleNetNotEnabledForTitle,
+        ReportNotProcessed,
+        DataNotAvailable,
+        InvalidReportName,
+        ResourceNotModified,
+        StudioCreationLimitExceeded,
+        StudioDeletionInitiated,
+        ProductDisabledForTitle,
+        PreconditionFailed,
+        CannotEnableAnonymousPlayerCreation,
+        ParentCustomerAccountNotFound,
+        AccountLinkedToABannedPlayer,
+        AzureSubscriptionNotEligibleForLinking,
+        EntityIsNotAMember,
+        IPAddressNotFound,
+        PSNNextGenNotConfiguredForTitle,
+        InvalidNintendoIssuer,
         MatchmakingEntityInvalid,
         MatchmakingPlayerAttributesInvalid,
         MatchmakingQueueNotFound,
@@ -2008,6 +2173,8 @@ namespace PlayFab.ServerModels
         CatalogItemTypeInvalid,
         CatalogBadRequest,
         CatalogTooManyRequests,
+        InvalidCatalogItemConfiguration,
+        LegacyEconomyDisabled,
         ExportInvalidStatusUpdate,
         ExportInvalidPrefix,
         ExportBlobContainerDoesNotExist,
@@ -2053,6 +2220,8 @@ namespace PlayFab.ServerModels
         PartyVersionNotFound,
         MultiplayerServerBuildReferencedByMatchmakingQueue,
         MultiplayerServerBuildReferencedByBuildAlias,
+        MultiplayerServerBuildAliasReferencedByMatchmakingQueue,
+        PartySerializationError,
         ExperimentationExperimentStopped,
         ExperimentationExperimentRunning,
         ExperimentationExperimentNotFound,
@@ -2076,6 +2245,10 @@ namespace PlayFab.ServerModels
         ExperimentationExclusionGroupCannotDelete,
         ExperimentationExclusionGroupInvalidTrafficAllocation,
         ExperimentationExclusionGroupInvalidName,
+        ExperimentationLegacyExperimentInvalidOperation,
+        ExperimentationExperimentStopFailed,
+        ExperimentationExperimentDeleteFailed,
+        ExperimentationExperimentStartFailed,
         MaxActionDepthExceeded,
         TitleNotOnUpdatedPricingPlan,
         SegmentManagementTitleNotInFlight,
@@ -2092,8 +2265,12 @@ namespace PlayFab.ServerModels
         AsyncExportNotInFlight,
         AsyncExportNotFound,
         AsyncExportRateLimitExceeded,
+        AnalyticsSegmentCountOverLimit,
+        GetSegmentPlayerCountNotInFlight,
+        GetSegmentPlayerCountRateLimitExceeded,
         SnapshotNotFound,
         InventoryApiNotImplemented,
+        InventoryCollectionDeletionDisallowed,
         LobbyDoesNotExist,
         LobbyRateLimitExceeded,
         LobbyPlayerAlreadyJoined,
@@ -2106,10 +2283,23 @@ namespace PlayFab.ServerModels
         LobbyNewOwnerMustBeConnected,
         LobbyCurrentOwnerStillConnected,
         LobbyMemberIsNotOwner,
+        LobbyServerMismatch,
+        LobbyServerNotFound,
+        LobbyDifferentServerAlreadyJoined,
+        LobbyServerAlreadyJoined,
+        LobbyIsNotClientOwned,
+        LobbyDoesNotUseConnections,
         EventSamplingInvalidRatio,
         EventSamplingInvalidEventNamespace,
         EventSamplingInvalidEventName,
         EventSamplingRatioNotFound,
+        TelemetryKeyNotFound,
+        TelemetryKeyInvalidName,
+        TelemetryKeyAlreadyExists,
+        TelemetryKeyInvalid,
+        TelemetryKeyCountOverLimit,
+        TelemetryKeyDeactivated,
+        TelemetryKeyLongInsightsRetentionNotAllowed,
         EventSinkConnectionInvalid,
         EventSinkConnectionUnauthorized,
         EventSinkRegionInvalid,
@@ -2122,9 +2312,171 @@ namespace PlayFab.ServerModels
         EventSinkTenantNotFound,
         EventSinkAadNotFound,
         EventSinkDatabaseNotFound,
+        EventSinkTitleUnauthorized,
+        EventSinkInsufficientRoleAssignment,
+        EventSinkContainerNotFound,
+        EventSinkTenantIdInvalid,
+        EventSinkResourceMisconfigured,
+        EventSinkAccessDenied,
+        EventSinkWriteConflict,
+        EventSinkResourceNotFound,
+        EventSinkResourceFeatureNotSupported,
+        EventSinkBucketNameInvalid,
+        EventSinkResourceUnavailable,
         OperationCanceled,
         InvalidDisplayNameRandomSuffixLength,
-        AllowNonUniquePlayerDisplayNamesDisableNotAllowed
+        AllowNonUniquePlayerDisplayNamesDisableNotAllowed,
+        PartitionedEventInvalid,
+        PartitionedEventCountOverLimit,
+        ManageEventNamespaceInvalid,
+        ManageEventNameInvalid,
+        ManagedEventNotFound,
+        ManageEventsInvalidRatio,
+        ManagedEventInvalid,
+        PlayerCustomPropertiesPropertyNameTooLong,
+        PlayerCustomPropertiesPropertyNameIsInvalid,
+        PlayerCustomPropertiesStringPropertyValueTooLong,
+        PlayerCustomPropertiesValueIsInvalidType,
+        PlayerCustomPropertiesVersionMismatch,
+        PlayerCustomPropertiesPropertyCountTooHigh,
+        PlayerCustomPropertiesDuplicatePropertyName,
+        PlayerCustomPropertiesPropertyDoesNotExist,
+        AddonAlreadyExists,
+        AddonDoesntExist,
+        TrueSkillUnauthorized,
+        TrueSkillInvalidTitleId,
+        TrueSkillInvalidScenarioId,
+        TrueSkillInvalidModelId,
+        TrueSkillInvalidModelName,
+        TrueSkillInvalidPlayerIds,
+        TrueSkillInvalidEntityKey,
+        TrueSkillInvalidConditionKey,
+        TrueSkillInvalidConditionValue,
+        TrueSkillInvalidConditionAffinityWeight,
+        TrueSkillInvalidEventName,
+        TrueSkillMatchResultCreated,
+        TrueSkillMatchResultAlreadySubmitted,
+        TrueSkillBadPlayerIdInMatchResult,
+        TrueSkillInvalidBotIdInMatchResult,
+        TrueSkillDuplicatePlayerInMatchResult,
+        TrueSkillNoPlayerInMatchResultTeam,
+        TrueSkillPlayersInMatchResultExceedingLimit,
+        TrueSkillInvalidPreMatchPartyInMatchResult,
+        TrueSkillInvalidTimestampInMatchResult,
+        TrueSkillStartTimeMissingInMatchResult,
+        TrueSkillEndTimeMissingInMatchResult,
+        TrueSkillInvalidPlayerSecondsPlayedInMatchResult,
+        TrueSkillNoTeamInMatchResult,
+        TrueSkillNotEnoughTeamsInMatchResult,
+        TrueSkillInvalidRanksInMatchResult,
+        TrueSkillNoWinnerInMatchResult,
+        TrueSkillMissingRequiredCondition,
+        TrueSkillMissingRequiredEvent,
+        TrueSkillUnknownEventName,
+        TrueSkillInvalidEventCount,
+        TrueSkillUnknownConditionKey,
+        TrueSkillUnknownConditionValue,
+        TrueSkillScenarioConfigDoesNotExist,
+        TrueSkillUnknownModelId,
+        TrueSkillNoModelInScenario,
+        TrueSkillNotSupportedForTitle,
+        TrueSkillModelIsNotActive,
+        TrueSkillUnauthorizedToQueryOtherPlayerSkills,
+        TrueSkillInvalidMaxIterations,
+        TrueSkillEndTimeBeforeStartTime,
+        TrueSkillInvalidJobId,
+        TrueSkillInvalidMetadataId,
+        TrueSkillMissingBuildVerison,
+        TrueSkillJobAlreadyExists,
+        TrueSkillJobNotFound,
+        TrueSkillOperationCanceled,
+        TrueSkillActiveModelLimitExceeded,
+        TrueSkillTotalModelLimitExceeded,
+        TrueSkillUnknownInitialModelId,
+        TrueSkillUnauthorizedForJob,
+        TrueSkillInvalidScenarioName,
+        TrueSkillConditionStateIsRequired,
+        TrueSkillEventStateIsRequired,
+        TrueSkillDuplicateEvent,
+        TrueSkillDuplicateCondition,
+        TrueSkillInvalidAnomalyThreshold,
+        TrueSkillConditionKeyLimitExceeded,
+        TrueSkillConditionValuePerKeyLimitExceeded,
+        TrueSkillInvalidTimestamp,
+        TrueSkillEventLimitExceeded,
+        TrueSkillInvalidPlayers,
+        TrueSkillTrueSkillPlayerNull,
+        TrueSkillInvalidPlayerId,
+        TrueSkillInvalidSquadSize,
+        TrueSkillConditionSetNotInModel,
+        TrueSkillModelStateInvalidForOperation,
+        TrueSkillScenarioContainsActiveModel,
+        TrueSkillInvalidConditionRank,
+        TrueSkillTotalScenarioLimitExceeded,
+        TrueSkillInvalidConditionsList,
+        GameSaveManifestNotFound,
+        GameSaveManifestVersionAlreadyExists,
+        GameSaveConflictUpdatingManifest,
+        GameSaveManifestUpdatesNotAllowed,
+        GameSaveFileAlreadyExists,
+        GameSaveManifestVersionNotFinalized,
+        GameSaveUnknownFileInManifest,
+        GameSaveFileExceededReportedSize,
+        GameSaveFileNotUploaded,
+        GameSaveBadRequest,
+        GameSaveOperationNotAllowed,
+        GameSaveDataStorageQuotaExceeded,
+        GameSaveNewerManifestExists,
+        GameSaveBaseVersionNotAvailable,
+        GameSaveManifestVersionQuarantined,
+        GameSaveManifestUploadProgressUpdateNotAllowed,
+        GameSaveNotFinalizedManifestNotEligibleAsKnownGood,
+        GameSaveNoUpdatesRequested,
+        GameSaveTitleDoesNotExist,
+        GameSaveOperationNotAllowedForTitle,
+        GameSaveManifestFilesLimitExceeded,
+        GameSaveManifestDescriptionUpdateNotAllowed,
+        GameSaveTitleConfigNotFound,
+        GameSaveTitleAlreadyOnboarded,
+        GameSaveServiceNotEnabledForTitle,
+        GameSaveServiceOnboardingPending,
+        GameSaveManifestNotEligibleAsConflictingVersion,
+        GameSaveServiceUnavailable,
+        GameSaveConflict,
+        GameSaveManifestNotEligibleForRollback,
+        GameSaveTitleClientAnonymousAccountCreationNotDisabled,
+        GameSaveTitleConfigNoUpdatesRequested,
+        GameSavePlayerNotEligibleForTransfer,
+        GameSaveAlreadyAutoRolledBack,
+        StateShareForbidden,
+        StateShareTitleNotInFlight,
+        StateShareStateNotFound,
+        StateShareLinkNotFound,
+        StateShareStateRedemptionLimitExceeded,
+        StateShareStateRedemptionLimitNotUpdated,
+        StateShareCreatedStatesLimitExceeded,
+        StateShareIdMissingOrMalformed,
+        PlayerCreationDisabled,
+        AccountAlreadyExists,
+        TagInvalid,
+        TagTooLong,
+        StatisticColumnAggregationMismatch,
+        StatisticResetIntervalMismatch,
+        VersionConfigurationCannotBeSpecifiedForLinkedStat,
+        VersionConfigurationIsRequired,
+        InvalidEntityTypeForAggregation,
+        MultiLevelAggregationNotAllowed,
+        AggregationTypeNotAllowedForLinkedStat,
+        OperationDeniedDueToDefinitionPolicy,
+        StatisticUpdateNotAllowedWhileLinked,
+        UnsupportedEntityType,
+        EntityTypeSpecifiedRequiresAggregationSource,
+        PlayFabErrorEventNotSupportedForEntityType,
+        MetadataLengthExceeded,
+        MaxQueryableVersionsExceeded,
+        StatisticVersionIncrementNotAllowedWhileLinked,
+        StoreMetricsRequestInvalidInput,
+        StoreMetricsErrorRetrievingMetrics
     }
 
     [Serializable]
@@ -2291,10 +2643,6 @@ namespace PlayFab.ServerModels
     public class GetCharacterLeaderboardRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Optional character type on which to filter the leaderboard entries.
-        /// </summary>
-        public string CharacterType;
-        /// <summary>
         /// Maximum number of entries to retrieve.
         /// </summary>
         public int MaxResultsCount;
@@ -2390,13 +2738,10 @@ namespace PlayFab.ServerModels
         /// </summary>
         public Dictionary<string,string> CustomTags;
         /// <summary>
-        /// Indicates whether Facebook friends should be included in the response. Default is true.
+        /// Indicates which other platforms' friends should be included in the response. In HTTP, it is represented as a
+        /// comma-separated list of platforms.
         /// </summary>
-        public bool? IncludeFacebookFriends;
-        /// <summary>
-        /// Indicates whether Steam service friends should be included in the response. Default is true.
-        /// </summary>
-        public bool? IncludeSteamFriends;
+        public ExternalFriendSources? ExternalPlatformFriends;
         /// <summary>
         /// Maximum number of entries to retrieve.
         /// </summary>
@@ -2437,13 +2782,15 @@ namespace PlayFab.ServerModels
         /// </summary>
         public Dictionary<string,string> CustomTags;
         /// <summary>
-        /// Indicates whether Facebook friends should be included in the response. Default is true.
+        /// Indicates which other platforms' friends should be included in the response. In HTTP, it is represented as a
+        /// comma-separated list of platforms.
         /// </summary>
-        public bool? IncludeFacebookFriends;
+        public ExternalFriendSources? ExternalPlatformFriends;
         /// <summary>
-        /// Indicates whether Steam service friends should be included in the response. Default is true.
+        /// If true, include friends from the same namespace even if they have not logged in to the current title. Defaults to
+        /// false.
         /// </summary>
-        public bool? IncludeSteamFriends;
+        public bool? NamespaceWide;
         /// <summary>
         /// PlayFab identifier of the player whose friend list to get.
         /// </summary>
@@ -2455,7 +2802,8 @@ namespace PlayFab.ServerModels
         /// </summary>
         public PlayerProfileViewConstraints ProfileConstraints;
         /// <summary>
-        /// Xbox token if Xbox friends should be included. Requires Xbox be configured on PlayFab.
+        /// Xbox token if Xbox friends should be included. Requires Xbox be configured on PlayFab. When provided, all Xbox Live
+        /// users the caller is following are included regardless of whether they follow the caller back.
         /// </summary>
         public string XboxToken;
     }
@@ -2464,7 +2812,9 @@ namespace PlayFab.ServerModels
     /// If any additional services are queried for the user's friends, those friends who also have a PlayFab account registered
     /// for the title will be returned in the results. For Facebook, user has to have logged into the title's Facebook app
     /// recently, and only friends who also plays this game will be included. For Xbox Live, user has to have logged into the
-    /// Xbox Live recently, and only friends who also play this game will be included.
+    /// Xbox Live recently, and only friends who also play this game will be included. Xbox Live friends include all users the
+    /// caller is following, regardless of whether those users follow the caller back. This differs from FindFriendLobbies,
+    /// which only considers mutual Xbox Live friends.
     /// </summary>
     [Serializable]
     public class GetFriendsListResult : PlayFabResultCommon
@@ -2482,10 +2832,6 @@ namespace PlayFab.ServerModels
         /// Unique PlayFab assigned ID for a specific character owned by a user
         /// </summary>
         public string CharacterId;
-        /// <summary>
-        /// Optional character type on which to filter the leaderboard entries.
-        /// </summary>
-        public string CharacterType;
         /// <summary>
         /// Maximum number of entries to retrieve.
         /// </summary>
@@ -2797,6 +3143,37 @@ namespace PlayFab.ServerModels
         public Dictionary<string,VirtualCurrencyRechargeTime> UserVirtualCurrencyRechargeTimes;
     }
 
+    [Serializable]
+    public class GetPlayerCustomPropertyRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Specific property name to search for in the player's properties.
+        /// </summary>
+        public string PropertyName;
+    }
+
+    [Serializable]
+    public class GetPlayerCustomPropertyResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// PlayFab unique identifier of the user whose properties are being returned.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Indicates the current version of a player's properties that have been set. This is incremented after updates and
+        /// deletes. This version can be provided in update and delete calls for concurrency control.
+        /// </summary>
+        public int PropertiesVersion;
+        /// <summary>
+        /// Player specific property and its corresponding value.
+        /// </summary>
+        public CustomPropertyDetails Property;
+    }
+
     /// <summary>
     /// This API allows for access to details regarding a user in the PlayFab service, usually for purposes of customer support.
     /// Note that data returned may be Personally Identifying Information (PII), such as email address, and so care should be
@@ -2842,55 +3219,28 @@ namespace PlayFab.ServerModels
     }
 
     /// <summary>
-    /// Initial request must contain at least a Segment ID. Subsequent requests must contain the Segment ID as well as the
-    /// Continuation Token. Failure to send the Continuation Token will result in a new player segment list being generated.
-    /// Each time the Continuation Token is passed in the length of the Total Seconds to Live is refreshed. If too much time
-    /// passes between requests to the point that a subsequent request is past the Total Seconds to Live an error will be
-    /// returned and paging will be terminated. This API is resource intensive and should not be used in scenarios which might
-    /// generate high request volumes. Only one request to this API at a time should be made per title. Concurrent requests to
-    /// the API may be rejected with the APIConcurrentRequestLimitExceeded error.
+    /// Request must contain the ExportId
     /// </summary>
     [Serializable]
-    public class GetPlayersInSegmentRequest : PlayFabRequestCommon
+    public class GetPlayersInSegmentExportRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Continuation token if retrieving subsequent pages of results.
+        /// Unique identifier of the export for the requested Segment.
         /// </summary>
-        public string ContinuationToken;
-        /// <summary>
-        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
-        /// </summary>
-        public Dictionary<string,string> CustomTags;
-        /// <summary>
-        /// Maximum number of profiles to load. Default is 1,000. Maximum is 10,000.
-        /// </summary>
-        public uint? MaxBatchSize;
-        /// <summary>
-        /// Number of seconds to keep the continuation token active. After token expiration it is not possible to continue paging
-        /// results. Default is 300 (5 minutes). Maximum is 1,800 (30 minutes).
-        /// </summary>
-        public uint? SecondsToLive;
-        /// <summary>
-        /// Unique identifier for this segment.
-        /// </summary>
-        public string SegmentId;
+        public string ExportId;
     }
 
     [Serializable]
-    public class GetPlayersInSegmentResult : PlayFabResultCommon
+    public class GetPlayersInSegmentExportResponse : PlayFabResultCommon
     {
         /// <summary>
-        /// Continuation token to use to retrieve subsequent pages of results. If token returns null there are no more results.
+        /// Url from which the index file can be downloaded.
         /// </summary>
-        public string ContinuationToken;
+        public string IndexUrl;
         /// <summary>
-        /// Array of player profiles in this segment.
+        /// Shows the current status of the export
         /// </summary>
-        public List<PlayerProfile> PlayerProfiles;
-        /// <summary>
-        /// Count of profiles matching this segment.
-        /// </summary>
-        public int ProfilesInSegment;
+        public string State;
     }
 
     [Serializable]
@@ -3002,10 +3352,33 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
+    public class GetPlayFabIDsFromBattleNetAccountIdsRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Array of unique Battle.net account identifiers for which the title needs to get PlayFab identifiers. The array cannot
+        /// exceed 10 in length.
+        /// </summary>
+        public List<string> BattleNetAccountIds;
+    }
+
+    /// <summary>
+    /// For Battle.net account identifiers which have not been linked to PlayFab accounts, null will be returned.
+    /// </summary>
+    [Serializable]
+    public class GetPlayFabIDsFromBattleNetAccountIdsResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Mapping of Battle.net account identifiers to PlayFab identifiers.
+        /// </summary>
+        public List<BattleNetAccountPlayFabIdPair> Data;
+    }
+
+    [Serializable]
     public class GetPlayFabIDsFromFacebookIDsRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Array of unique Facebook identifiers for which the title needs to get PlayFab identifiers.
+        /// Array of unique Facebook identifiers for which the title needs to get PlayFab identifiers. The array cannot exceed 25 in
+        /// length.
         /// </summary>
         public List<string> FacebookIDs;
     }
@@ -3026,7 +3399,8 @@ namespace PlayFab.ServerModels
     public class GetPlayFabIDsFromFacebookInstantGamesIdsRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Array of unique Facebook Instant Games identifiers for which the title needs to get PlayFab identifiers.
+        /// Array of unique Facebook Instant Games identifiers for which the title needs to get PlayFab identifiers. The array
+        /// cannot exceed 25 in length.
         /// </summary>
         public List<string> FacebookInstantGamesIds;
     }
@@ -3069,7 +3443,13 @@ namespace PlayFab.ServerModels
     public class GetPlayFabIDsFromNintendoServiceAccountIdsRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Array of unique Nintendo Switch Account identifiers for which the title needs to get PlayFab identifiers.
+        /// Nintendo NSA issuer URL identifying the environment. When provided, only accounts registered in that environment are
+        /// returned. If null or empty, falls back to the default environment.
+        /// </summary>
+        public string Issuer;
+        /// <summary>
+        /// Array of unique Nintendo Switch Account identifiers for which the title needs to get PlayFab identifiers. The array
+        /// cannot exceed 25 in length.
         /// </summary>
         public List<string> NintendoAccountIds;
     }
@@ -3090,7 +3470,8 @@ namespace PlayFab.ServerModels
     public class GetPlayFabIDsFromNintendoSwitchDeviceIdsRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Array of unique Nintendo Switch Device identifiers for which the title needs to get PlayFab identifiers.
+        /// Array of unique Nintendo Switch Device identifiers for which the title needs to get PlayFab identifiers. The array
+        /// cannot exceed 25 in length.
         /// </summary>
         public List<string> NintendoSwitchDeviceIds;
     }
@@ -3108,35 +3489,115 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
-    public class GetPlayFabIDsFromPSNAccountIDsRequest : PlayFabRequestCommon
+    public class GetPlayFabIDsFromOpenIdsRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Id of the PSN issuer environment. If null, defaults to production environment.
+        /// Array of unique OpenId Connect identifiers for which the title needs to get PlayFab identifiers. The array cannot exceed
+        /// 10 in length.
         /// </summary>
-        public int? IssuerId;
-        /// <summary>
-        /// Array of unique PlayStation Network identifiers for which the title needs to get PlayFab identifiers.
-        /// </summary>
-        public List<string> PSNAccountIDs;
+        public List<OpenIdSubjectIdentifier> OpenIdSubjectIdentifiers;
     }
 
     /// <summary>
-    /// For PlayStation Network identifiers which have not been linked to PlayFab accounts, null will be returned.
+    /// For OpenId identifiers which have not been linked to PlayFab accounts, null will be returned.
+    /// </summary>
+    [Serializable]
+    public class GetPlayFabIDsFromOpenIdsResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Mapping of OpenId Connect identifiers to PlayFab identifiers.
+        /// </summary>
+        public List<OpenIdSubjectIdentifierPlayFabIdPair> Data;
+    }
+
+    [Serializable]
+    public class GetPlayFabIDsFromPSNAccountIDsRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Id of the PlayStation :tm: Network issuer environment. If null, defaults to production environment.
+        /// </summary>
+        public int? IssuerId;
+        /// <summary>
+        /// Array of unique PlayStation :tm: Network identifiers for which the title needs to get PlayFab identifiers. The array
+        /// cannot exceed 25 in length.
+        /// </summary>
+        public List<string> PSNAccountIDs;
+        /// <summary>
+        /// Optional sandbox id. When provided, resolves players that logged in from that PlayStation :tm: Network sandbox.
+        /// </summary>
+        public string SandboxId;
+    }
+
+    /// <summary>
+    /// For PlayStation :tm: Network identifiers which have not been linked to PlayFab accounts, null will be returned.
     /// </summary>
     [Serializable]
     public class GetPlayFabIDsFromPSNAccountIDsResult : PlayFabResultCommon
     {
         /// <summary>
-        /// Mapping of PlayStation Network identifiers to PlayFab identifiers.
+        /// Mapping of PlayStation :tm: Network identifiers to PlayFab identifiers.
         /// </summary>
         public List<PSNAccountPlayFabIdPair> Data;
+    }
+
+    [Serializable]
+    public class GetPlayFabIDsFromPSNOnlineIDsRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Id of the PlayStation :tm: Network issuer environment. If null, defaults to production environment.
+        /// </summary>
+        public int? IssuerId;
+        /// <summary>
+        /// Array of unique PlayStation :tm: Network identifiers for which the title needs to get PlayFab identifiers. The array
+        /// cannot exceed 25 in length.
+        /// </summary>
+        public List<string> PSNOnlineIDs;
+        /// <summary>
+        /// Optional sandbox id. When provided, resolves players that logged in from that PlayStation :tm: Network sandbox.
+        /// </summary>
+        public string SandboxId;
+    }
+
+    /// <summary>
+    /// For PlayStation :tm: Network identifiers which have not been linked to PlayFab accounts, null will be returned.
+    /// </summary>
+    [Serializable]
+    public class GetPlayFabIDsFromPSNOnlineIDsResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Mapping of PlayStation :tm: Network identifiers to PlayFab identifiers.
+        /// </summary>
+        public List<PSNOnlinePlayFabIdPair> Data;
+    }
+
+    [Serializable]
+    public class GetPlayFabIDsFromServerCustomIDsRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Array of unique server custom player identifiers for which the title needs to get PlayFab identifiers. Cannot contain
+        /// more than 25 identifiers.
+        /// </summary>
+        public List<string> ServerCustomIds;
+    }
+
+    /// <summary>
+    /// For a server player that is not linked to a PlayFab account the PlayFabId will be returned null.
+    /// </summary>
+    [Serializable]
+    public class GetPlayFabIDsFromServerCustomIDsResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Mapping of server custom identifiers to PlayFab identifiers.
+        /// </summary>
+        public List<ServerCustomIDPlayFabIDPair> Data;
     }
 
     [Serializable]
     public class GetPlayFabIDsFromSteamIDsRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Array of unique Steam identifiers (Steam profile IDs) for which the title needs to get PlayFab identifiers.
+        /// Array of unique Steam identifiers (Steam profile IDs) for which the title needs to get PlayFab identifiers. The array
+        /// cannot exceed 25 in length.
         /// </summary>
         public List<string> SteamStringIDs;
     }
@@ -3154,6 +3615,50 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
+    public class GetPlayFabIDsFromSteamNamesRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Array of unique Steam identifiers for which the title needs to get PlayFab identifiers. The array cannot exceed 25 in
+        /// length.
+        /// </summary>
+        public List<string> SteamNames;
+    }
+
+    /// <summary>
+    /// For Steam identifiers which have not been linked to PlayFab accounts, null will be returned.
+    /// </summary>
+    [Serializable]
+    public class GetPlayFabIDsFromSteamNamesResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Mapping of Steam identifiers to PlayFab identifiers.
+        /// </summary>
+        public List<SteamNamePlayFabIdPair> Data;
+    }
+
+    [Serializable]
+    public class GetPlayFabIDsFromTwitchIDsRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Array of unique Twitch identifiers (Twitch's _id) for which the title needs to get PlayFab identifiers. The array cannot
+        /// exceed 25 in length.
+        /// </summary>
+        public List<string> TwitchIds;
+    }
+
+    /// <summary>
+    /// For Twitch identifiers which have not been linked to PlayFab accounts, null will be returned.
+    /// </summary>
+    [Serializable]
+    public class GetPlayFabIDsFromTwitchIDsResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Mapping of Twitch identifiers to PlayFab identifiers.
+        /// </summary>
+        public List<TwitchPlayFabIdPair> Data;
+    }
+
+    [Serializable]
     public class GetPlayFabIDsFromXboxLiveIDsRequest : PlayFabRequestCommon
     {
         /// <summary>
@@ -3161,7 +3666,8 @@ namespace PlayFab.ServerModels
         /// </summary>
         public string Sandbox;
         /// <summary>
-        /// Array of unique Xbox Live account identifiers for which the title needs to get PlayFab identifiers.
+        /// Array of unique Xbox Live account identifiers for which the title needs to get PlayFab identifiers. The array cannot
+        /// exceed 25 in length.
         /// </summary>
         public List<string> XboxLiveAccountIDs;
     }
@@ -3173,7 +3679,7 @@ namespace PlayFab.ServerModels
     public class GetPlayFabIDsFromXboxLiveIDsResult : PlayFabResultCommon
     {
         /// <summary>
-        /// Mapping of PlayStation Network identifiers to PlayFab identifiers.
+        /// Mapping of Xbox Live identifiers to PlayFab identifiers.
         /// </summary>
         public List<XboxLiveAccountPlayFabIdPair> Data;
     }
@@ -3227,6 +3733,27 @@ namespace PlayFab.ServerModels
         /// array of random result tables currently available
         /// </summary>
         public Dictionary<string,RandomResultTableListing> Tables;
+    }
+
+    /// <summary>
+    /// Request must contain a valid Segment ID.
+    /// </summary>
+    [Serializable]
+    public class GetSegmentPlayerCountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Unique identifier for the requested segment.
+        /// </summary>
+        public string SegmentId;
+    }
+
+    [Serializable]
+    public class GetSegmentPlayerCountResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// Count of profiles matching this segment.
+        /// </summary>
+        public int ProfilesInSegment;
     }
 
     [Serializable]
@@ -3898,6 +4425,27 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
+    public class LinkBattleNetAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to a specific Battle.net account, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// The JSON Web Token (JWT) returned by Battle.net after login
+        /// </summary>
+        public string IdentityToken;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
     public class LinkedPlatformAccountModel : PlayFabBaseModel
     {
         /// <summary>
@@ -3919,12 +4467,86 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
+    public class LinkNintendoServiceAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to a specific Nintendo Switch account, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// The JSON Web token (JWT) returned by Nintendo after login. Used to validate the request and find the user ID (Nintendo
+        /// Switch subject) to link with.
+        /// </summary>
+        public string IdentityToken;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class LinkNintendoServiceAccountSubjectRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to a specific Nintendo Service Account, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// The Nintendo Service Account subject or id to link to the PlayFab user.
+        /// </summary>
+        public string Subject;
+    }
+
+    [Serializable]
+    public class LinkNintendoSwitchDeviceIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to the Nintendo Switch Device ID, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// Nintendo Switch unique identifier for the user's device.
+        /// </summary>
+        public string NintendoSwitchDeviceId;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class LinkNintendoSwitchDeviceIdResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
     public class LinkPSNAccountRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Authentication code provided by the PlayStation Network.
+        /// Authentication code provided by the PlayStation :tm: Network.
         /// </summary>
         public string AuthCode;
+        /// <summary>
+        /// Optional PlayStation :tm: Network auth version. Controls which PlayStation :tm: Network auth version is used. Accepted
+        /// values are "v2" and "v3".
+        /// </summary>
+        public string AuthVersion;
         /// <summary>
         /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
         /// </summary>
@@ -3934,7 +4556,7 @@ namespace PlayFab.ServerModels
         /// </summary>
         public bool? ForceLink;
         /// <summary>
-        /// Id of the PSN issuer environment. If null, defaults to production environment.
+        /// Id of the PlayStation :tm: Network issuer environment. If null, defaults to production environment.
         /// </summary>
         public int? IssuerId;
         /// <summary>
@@ -3942,13 +4564,47 @@ namespace PlayFab.ServerModels
         /// </summary>
         public string PlayFabId;
         /// <summary>
-        /// Redirect URI supplied to PSN when requesting an auth code
+        /// Redirect URI supplied to PlayStation :tm: Network when requesting an auth code
         /// </summary>
         public string RedirectUri;
     }
 
     [Serializable]
     public class LinkPSNAccountResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
+    public class LinkPSNIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to the account, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// Id of the PlayStation :tm: Network issuer environment. If null, defaults to production environment.
+        /// </summary>
+        public int? IssuerId;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Id of the PlayStation :tm: Network user. Also known as the PSN Account Id.
+        /// </summary>
+        public string PSNUserId;
+        /// <summary>
+        /// Optional sandbox id. When provided, resolves and links the player on that PlayStation :tm: Network sandbox.
+        /// </summary>
+        public string SandboxId;
+    }
+
+    [Serializable]
+    public class LinkPSNIdResponse : PlayFabResultCommon
     {
     }
 
@@ -3979,6 +4635,53 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
+    public class LinkSteamIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to the account, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// PlayFab unique identifier of the user to link.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Unique Steam identifier for a user.
+        /// </summary>
+        public string SteamId;
+    }
+
+    [Serializable]
+    public class LinkSteamIdResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
+    public class LinkTwitchAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Twitch access token for authentication.
+        /// </summary>
+        public string AccessToken;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to the account, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// PlayFab unique identifier of the user to link.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
     public class LinkXboxAccountRequest : PlayFabRequestCommon
     {
         /// <summary>
@@ -3990,7 +4693,7 @@ namespace PlayFab.ServerModels
         /// </summary>
         public bool? ForceLink;
         /// <summary>
-        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the Xbox Live identifier.
+        /// PlayFab unique identifier of the user to link.
         /// </summary>
         public string PlayFabId;
         /// <summary>
@@ -4002,6 +4705,58 @@ namespace PlayFab.ServerModels
     [Serializable]
     public class LinkXboxAccountResult : PlayFabResultCommon
     {
+    }
+
+    [Serializable]
+    public class LinkXboxIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// If another user is already linked to the account, unlink the other user and re-link.
+        /// </summary>
+        public bool? ForceLink;
+        /// <summary>
+        /// PlayFab unique identifier of the user to link.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// The id of Xbox Live sandbox.
+        /// </summary>
+        public string Sandbox;
+        /// <summary>
+        /// Unique Xbox identifier for a user.
+        /// </summary>
+        public string XboxId;
+    }
+
+    [Serializable]
+    public class ListPlayerCustomPropertiesRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class ListPlayerCustomPropertiesResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// PlayFab unique identifier of the user whose properties are being returned.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Player specific properties and their corresponding values for this title.
+        /// </summary>
+        public List<CustomPropertyDetails> Properties;
+        /// <summary>
+        /// Indicates the current version of a player's properties that have been set. This is incremented after updates and
+        /// deletes. This version can be provided in update and delete calls for concurrency control.
+        /// </summary>
+        public int PropertiesVersion;
     }
 
     /// <summary>
@@ -4088,7 +4843,181 @@ namespace PlayFab.ServerModels
         FacebookInstantGames,
         OpenIdConnect,
         Apple,
-        NintendoSwitchAccount
+        NintendoSwitchAccount,
+        GooglePlayGames,
+        XboxMobileStore,
+        King,
+        BattleNet
+    }
+
+    /// <summary>
+    /// On Android devices, the recommendation is to use the Settings.Secure.ANDROID_ID as the AndroidDeviceId, as described in
+    /// this blog post (http://android-developers.blogspot.com/2011/03/identifying-app-installations.html). More information on
+    /// this identifier can be found in the Android documentation
+    /// (http://developer.android.com/reference/android/provider/Settings.Secure.html). If this is the first time a user has
+    /// signed in with the Android device and CreateAccount is set to true, a new PlayFab account will be created and linked to
+    /// the Android device ID. In this case, no email or username will be associated with the PlayFab account. Otherwise, if no
+    /// PlayFab account is linked to the Android device, an error indicating this will be returned, so that the title can guide
+    /// the user through creation of a PlayFab account. Please note that while multiple devices of this type can be linked to a
+    /// single user account, only the one most recently used to login (or most recently linked) will be reflected in the user's
+    /// account information. We will be updating to show all linked devices in a future release.
+    /// </summary>
+    [Serializable]
+    public class LoginWithAndroidDeviceIDRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Specific model of the user's device.
+        /// </summary>
+        public string AndroidDevice;
+        /// <summary>
+        /// Android device identifier for the user's device.
+        /// </summary>
+        public string AndroidDeviceId;
+        /// <summary>
+        /// Automatically create a PlayFab account if one is not currently linked to this ID.
+        /// </summary>
+        public bool? CreateAccount;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Flags for which pieces of info to return for the user.
+        /// </summary>
+        public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
+        /// <summary>
+        /// Specific Operating System version for the user's device.
+        /// </summary>
+        public string OS;
+    }
+
+    [Serializable]
+    public class LoginWithBattleNetRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Automatically create a PlayFab account if one is not currently linked to this ID.
+        /// </summary>
+        public bool? CreateAccount;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// The JSON Web Token (JWT) returned by Battle.net after login
+        /// </summary>
+        public string IdentityToken;
+        /// <summary>
+        /// Flags for which pieces of info to return for the user.
+        /// </summary>
+        public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
+    }
+
+    /// <summary>
+    /// It is highly recommended that developers ensure that it is extremely unlikely that a customer could generate an ID which
+    /// is already in use by another customer. If this is the first time a user has signed in with the Custom ID and
+    /// CreateAccount is set to true, a new PlayFab account will be created and linked to the Custom ID. In this case, no email
+    /// or username will be associated with the PlayFab account. Otherwise, if no PlayFab account is linked to the Custom ID, an
+    /// error indicating this will be returned, so that the title can guide the user through creation of a PlayFab account.
+    /// </summary>
+    [Serializable]
+    public class LoginWithCustomIDRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Automatically create a PlayFab account if one is not currently linked to this ID.
+        /// </summary>
+        public bool? CreateAccount;
+        /// <summary>
+        /// Custom unique identifier for the user, generated by the title.
+        /// </summary>
+        public string CustomId;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Flags for which pieces of info to return for the user.
+        /// </summary>
+        public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
+    }
+
+    /// <summary>
+    /// On iOS devices, the identifierForVendor
+    /// (https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/index.html#//apple_ref/occ/instp/UIDevice/identifierForVendor)
+    /// must be used as the DeviceId, as the UIDevice uniqueIdentifier has been deprecated as of iOS 5, and use of the
+    /// advertisingIdentifier for this purpose will result in failure of Apple's certification process. If this is the first
+    /// time a user has signed in with the iOS device and CreateAccount is set to true, a new PlayFab account will be created
+    /// and linked to the vendor-specific iOS device ID. In this case, no email or username will be associated with the PlayFab
+    /// account. Otherwise, if no PlayFab account is linked to the iOS device, an error indicating this will be returned, so
+    /// that the title can guide the user through creation of a PlayFab account.
+    /// </summary>
+    [Serializable]
+    public class LoginWithIOSDeviceIDRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Automatically create a PlayFab account if one is not currently linked to this ID.
+        /// </summary>
+        public bool? CreateAccount;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Vendor-specific iOS identifier for the user's device.
+        /// </summary>
+        public string DeviceId;
+        /// <summary>
+        /// Specific model of the user's device.
+        /// </summary>
+        public string DeviceModel;
+        /// <summary>
+        /// Flags for which pieces of info to return for the user.
+        /// </summary>
+        public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
+        /// <summary>
+        /// Specific Operating System version for the user's device.
+        /// </summary>
+        public string OS;
+    }
+
+    /// <summary>
+    /// If this is the first time a user has signed in with the PlayStation :tm: Network account and CreateAccount is set to
+    /// true, a new PlayFab account will be created and linked to the PlayStation :tm: Network account. In this case, no email
+    /// or username will be associated with the PlayFab account. Otherwise, if no PlayFab account is linked to the PlayStation
+    /// :tm: Network account, an error indicating this will be returned, so that the title can guide the user through creation
+    /// of a PlayFab account.
+    /// </summary>
+    [Serializable]
+    public class LoginWithPSNRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Auth code provided by the PlayStation :tm: Network OAuth provider.
+        /// </summary>
+        public string AuthCode;
+        /// <summary>
+        /// Optional PlayStation :tm: Network auth version. Controls which PlayStation :tm: Network auth version is used. Accepted
+        /// values are "v2" and "v3".
+        /// </summary>
+        public string AuthVersion;
+        /// <summary>
+        /// Automatically create a PlayFab account if one is not currently linked to this ID.
+        /// </summary>
+        public bool? CreateAccount;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Flags for which pieces of info to return for the user.
+        /// </summary>
+        public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
+        /// <summary>
+        /// Id of the PlayStation :tm: Network issuer environment. If null, defaults to production environment.
+        /// </summary>
+        public int? IssuerId;
+        /// <summary>
+        /// Redirect URI supplied to PlayStation :tm: Network when requesting an auth code
+        /// </summary>
+        public string RedirectUri;
     }
 
     [Serializable]
@@ -4107,7 +5036,7 @@ namespace PlayFab.ServerModels
         /// </summary>
         public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
         /// <summary>
-        /// Player secret that is used to verify API request signatures (Enterprise Only).
+        /// Player secret that is used to verify API request signatures.
         /// </summary>
         public string PlayerSecret;
         /// <summary>
@@ -4140,9 +5069,47 @@ namespace PlayFab.ServerModels
         /// </summary>
         public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
         /// <summary>
-        /// Unique Steam identifier for a user
+        /// Unique Steam identifier for a user.
         /// </summary>
         public string SteamId;
+    }
+
+    /// <summary>
+    /// More details regarding Twitch and their authentication system can be found at
+    /// https://github.com/justintv/Twitch-API/blob/master/authentication.md. Developers must provide the Twitch access token
+    /// that is generated using one of the Twitch authentication flows. PlayFab will use the title's unique Twitch Client ID to
+    /// authenticate the token and log in to the PlayFab system. If CreateAccount is set to true and there is not already a user
+    /// matched to the Twitch username that generated the token, then PlayFab will create a new account for this user and link
+    /// the ID. In this case, no email or username will be associated with the PlayFab account. If there is already a different
+    /// PlayFab user linked with this account, then an error will be returned.
+    /// </summary>
+    [Serializable]
+    public class LoginWithTwitchRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Twitch access token for authentication.
+        /// </summary>
+        public string AccessToken;
+        /// <summary>
+        /// If true, create a new PlayFab account if one does not exist.
+        /// </summary>
+        public bool? CreateAccount;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Parameters for requesting additional player info.
+        /// </summary>
+        public GetPlayerCombinedInfoRequestParams InfoRequestParameters;
+        /// <summary>
+        /// Player secret for additional authentication.
+        /// </summary>
+        public string PlayerSecret;
+        /// <summary>
+        /// PlayFab unique identifier of the user.
+        /// </summary>
+        public string PlayFabId;
     }
 
     /// <summary>
@@ -4171,7 +5138,7 @@ namespace PlayFab.ServerModels
         /// </summary>
         public string Sandbox;
         /// <summary>
-        /// Unique Xbox identifier for a user
+        /// Unique Xbox identifier for a user.
         /// </summary>
         public string XboxId;
     }
@@ -4427,37 +5394,29 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
-    public class NotifyMatchmakerPlayerLeftRequest : PlayFabRequestCommon
+    public class OpenIdSubjectIdentifier : PlayFabBaseModel
     {
         /// <summary>
-        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// The issuer URL for the OpenId Connect provider, or the override URL if an override exists.
         /// </summary>
-        public Dictionary<string,string> CustomTags;
+        public string Issuer;
         /// <summary>
-        /// Unique identifier of the Game Instance the user is leaving.
+        /// The unique subject identifier within the context of the issuer.
         /// </summary>
-        public string LobbyId;
-        /// <summary>
-        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
-        /// </summary>
-        public string PlayFabId;
+        public string Subject;
     }
 
     [Serializable]
-    public class NotifyMatchmakerPlayerLeftResult : PlayFabResultCommon
+    public class OpenIdSubjectIdentifierPlayFabIdPair : PlayFabBaseModel
     {
         /// <summary>
-        /// State of user leaving the Game Server Instance.
+        /// Unique OpenId Connect identifier for a user.
         /// </summary>
-        public PlayerConnectionState? PlayerState;
-    }
-
-    public enum PlayerConnectionState
-    {
-        Unassigned,
-        Connecting,
-        Participating,
-        Participated
+        public OpenIdSubjectIdentifier OpenIdSubjectIdentifier;
+        /// <summary>
+        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the OpenId Connect identifier.
+        /// </summary>
+        public string PlayFabId;
     }
 
     [Serializable]
@@ -4483,141 +5442,6 @@ namespace PlayFab.ServerModels
         /// Specific value of the user's statistic.
         /// </summary>
         public int StatValue;
-    }
-
-    [Serializable]
-    public class PlayerLinkedAccount : PlayFabBaseModel
-    {
-        /// <summary>
-        /// Linked account's email
-        /// </summary>
-        public string Email;
-        /// <summary>
-        /// Authentication platform
-        /// </summary>
-        public LoginIdentityProvider? Platform;
-        /// <summary>
-        /// Platform user identifier
-        /// </summary>
-        public string PlatformUserId;
-        /// <summary>
-        /// Linked account's username
-        /// </summary>
-        public string Username;
-    }
-
-    [Serializable]
-    public class PlayerLocation : PlayFabBaseModel
-    {
-        /// <summary>
-        /// City of the player's geographic location.
-        /// </summary>
-        public string City;
-        /// <summary>
-        /// The two-character continent code for this location
-        /// </summary>
-        public ContinentCode ContinentCode;
-        /// <summary>
-        /// The two-character ISO 3166-1 country code for the country associated with the location
-        /// </summary>
-        public CountryCode CountryCode;
-        /// <summary>
-        /// Latitude coordinate of the player's geographic location.
-        /// </summary>
-        public double? Latitude;
-        /// <summary>
-        /// Longitude coordinate of the player's geographic location.
-        /// </summary>
-        public double? Longitude;
-    }
-
-    [Serializable]
-    public class PlayerProfile : PlayFabBaseModel
-    {
-        /// <summary>
-        /// Array of ad campaigns player has been attributed to
-        /// </summary>
-        public List<AdCampaignAttribution> AdCampaignAttributions;
-        /// <summary>
-        /// Image URL of the player's avatar.
-        /// </summary>
-        public string AvatarUrl;
-        /// <summary>
-        /// Banned until UTC Date. If permanent ban this is set for 20 years after the original ban date.
-        /// </summary>
-        public DateTime? BannedUntil;
-        /// <summary>
-        /// Array of contact email addresses associated with the player
-        /// </summary>
-        public List<ContactEmailInfo> ContactEmailAddresses;
-        /// <summary>
-        /// Player record created
-        /// </summary>
-        public DateTime? Created;
-        /// <summary>
-        /// Player Display Name
-        /// </summary>
-        public string DisplayName;
-        /// <summary>
-        /// Last login
-        /// </summary>
-        public DateTime? LastLogin;
-        /// <summary>
-        /// Array of third party accounts linked to this player
-        /// </summary>
-        public List<PlayerLinkedAccount> LinkedAccounts;
-        /// <summary>
-        /// Dictionary of player's locations by type.
-        /// </summary>
-        public Dictionary<string,PlayerLocation> Locations;
-        /// <summary>
-        /// Player account origination
-        /// </summary>
-        public LoginIdentityProvider? Origination;
-        /// <summary>
-        /// List of player variants for experimentation
-        /// </summary>
-        public List<string> PlayerExperimentVariants;
-        /// <summary>
-        /// PlayFab Player ID
-        /// </summary>
-        public string PlayerId;
-        /// <summary>
-        /// Array of player statistics
-        /// </summary>
-        public List<PlayerStatistic> PlayerStatistics;
-        /// <summary>
-        /// Publisher this player belongs to
-        /// </summary>
-        public string PublisherId;
-        /// <summary>
-        /// Array of configured push notification end points
-        /// </summary>
-        public List<PushNotificationRegistration> PushNotificationRegistrations;
-        /// <summary>
-        /// Dictionary of player's statistics using only the latest version's value
-        /// </summary>
-        public Dictionary<string,int> Statistics;
-        /// <summary>
-        /// List of player's tags for segmentation.
-        /// </summary>
-        public List<string> Tags;
-        /// <summary>
-        /// Title ID this profile applies to
-        /// </summary>
-        public string TitleId;
-        /// <summary>
-        /// A sum of player's total purchases in USD across all currencies.
-        /// </summary>
-        public uint? TotalValueToDateInUSD;
-        /// <summary>
-        /// Dictionary of player's total purchases by currency.
-        /// </summary>
-        public Dictionary<string,uint> ValuesToDate;
-        /// <summary>
-        /// Dictionary of player's virtual currency balances
-        /// </summary>
-        public Dictionary<string,int> VirtualCurrencyBalances;
     }
 
     [Serializable]
@@ -4782,27 +5606,6 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
-    public class PlayerStatistic : PlayFabBaseModel
-    {
-        /// <summary>
-        /// Statistic ID
-        /// </summary>
-        public string Id;
-        /// <summary>
-        /// Statistic name
-        /// </summary>
-        public string Name;
-        /// <summary>
-        /// Current statistic value
-        /// </summary>
-        public int StatisticValue;
-        /// <summary>
-        /// Statistic version (0 if not a versioned statistic)
-        /// </summary>
-        public int StatisticVersion;
-    }
-
-    [Serializable]
     public class PlayerStatisticVersion : PlayFabBaseModel
     {
         /// <summary>
@@ -4835,13 +5638,28 @@ namespace PlayFab.ServerModels
     public class PSNAccountPlayFabIdPair : PlayFabBaseModel
     {
         /// <summary>
-        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the PlayStation Network identifier.
+        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the PlayStation :tm: Network
+        /// identifier.
         /// </summary>
         public string PlayFabId;
         /// <summary>
-        /// Unique PlayStation Network identifier for a user.
+        /// Unique PlayStation :tm: Network identifier for a user.
         /// </summary>
         public string PSNAccountId;
+    }
+
+    [Serializable]
+    public class PSNOnlinePlayFabIdPair : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the PlayStation :tm: Network
+        /// identifier.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Unique PlayStation :tm: Network identifier for a user.
+        /// </summary>
+        public string PSNOnlineId;
     }
 
     [Serializable]
@@ -4877,19 +5695,6 @@ namespace PlayFab.ServerModels
     {
         ApplePushNotificationService,
         GoogleCloudMessaging
-    }
-
-    [Serializable]
-    public class PushNotificationRegistration : PlayFabBaseModel
-    {
-        /// <summary>
-        /// Notification configured endpoint
-        /// </summary>
-        public string NotificationEndpointARN;
-        /// <summary>
-        /// Push notification platform
-        /// </summary>
-        public PushNotificationPlatform? Platform;
     }
 
     [Serializable]
@@ -4959,131 +5764,6 @@ namespace PlayFab.ServerModels
         /// Items granted to the player as a result of redeeming the coupon.
         /// </summary>
         public List<ItemInstance> GrantedItems;
-    }
-
-    /// <summary>
-    /// This function is used by a Game Server Instance to validate with the PlayFab service that a user has been registered as
-    /// connected to the server. The Ticket is provided to the client either as a result of a call to StartGame or Matchmake,
-    /// each of which return a Ticket specific to the Game Server Instance. This function will fail in any case where the Ticket
-    /// presented is not valid for the specific Game Server Instance making the call. Note that data returned may be Personally
-    /// Identifying Information (PII), such as email address, and so care should be taken in how this data is stored and
-    /// managed. Since this call will always return the relevant information for users who have accessed the title, the
-    /// recommendation is to not store this data locally.
-    /// </summary>
-    [Serializable]
-    public class RedeemMatchmakerTicketRequest : PlayFabRequestCommon
-    {
-        /// <summary>
-        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
-        /// </summary>
-        public Dictionary<string,string> CustomTags;
-        /// <summary>
-        /// Unique identifier of the Game Server Instance that is asking for validation of the authorization ticket.
-        /// </summary>
-        public string LobbyId;
-        /// <summary>
-        /// Server authorization ticket passed back from a call to Matchmake or StartGame.
-        /// </summary>
-        public string Ticket;
-    }
-
-    [Serializable]
-    public class RedeemMatchmakerTicketResult : PlayFabResultCommon
-    {
-        /// <summary>
-        /// Error value if the ticket was not validated.
-        /// </summary>
-        public string Error;
-        /// <summary>
-        /// Boolean indicating whether the ticket was validated by the PlayFab service.
-        /// </summary>
-        public bool TicketIsValid;
-        /// <summary>
-        /// User account information for the user validated.
-        /// </summary>
-        public UserAccountInfo UserInfo;
-    }
-
-    [Serializable]
-    public class RefreshGameServerInstanceHeartbeatRequest : PlayFabRequestCommon
-    {
-        /// <summary>
-        /// Unique identifier of the Game Server Instance for which the heartbeat is updated.
-        /// </summary>
-        public string LobbyId;
-    }
-
-    [Serializable]
-    public class RefreshGameServerInstanceHeartbeatResult : PlayFabResultCommon
-    {
-    }
-
-    public enum Region
-    {
-        USCentral,
-        USEast,
-        EUWest,
-        Singapore,
-        Japan,
-        Brazil,
-        Australia
-    }
-
-    [Serializable]
-    public class RegisterGameRequest : PlayFabRequestCommon
-    {
-        /// <summary>
-        /// Unique identifier of the build running on the Game Server Instance.
-        /// </summary>
-        public string Build;
-        /// <summary>
-        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
-        /// </summary>
-        public Dictionary<string,string> CustomTags;
-        /// <summary>
-        /// Game Mode the Game Server instance is running. Note that this must be defined in the Game Modes tab in the PlayFab Game
-        /// Manager, along with the Build ID (the same Game Mode can be defined for multiple Build IDs).
-        /// </summary>
-        public string GameMode;
-        /// <summary>
-        /// Previous lobby id if re-registering an existing game.
-        /// </summary>
-        public string LobbyId;
-        /// <summary>
-        /// Region in which the Game Server Instance is running. For matchmaking using non-AWS region names, set this to any AWS
-        /// region and use Tags (below) to specify your custom region.
-        /// </summary>
-        public Region Region;
-        /// <summary>
-        /// IPV4 address of the game server instance.
-        /// </summary>
-        public string ServerIPV4Address;
-        /// <summary>
-        /// IPV6 address (if any) of the game server instance.
-        /// </summary>
-        public string ServerIPV6Address;
-        /// <summary>
-        /// Port number for communication with the Game Server Instance.
-        /// </summary>
-        public string ServerPort;
-        /// <summary>
-        /// Public DNS name (if any) of the server
-        /// </summary>
-        public string ServerPublicDNSName;
-        /// <summary>
-        /// Tags for the Game Server Instance
-        /// </summary>
-        public Dictionary<string,string> Tags;
-    }
-
-    [Serializable]
-    public class RegisterGameResponse : PlayFabResultCommon
-    {
-        /// <summary>
-        /// Unique identifier generated for the Game Server Instance that is registered. If LobbyId is specified in request and the
-        /// game still exists in PlayFab, the LobbyId in request is returned. Otherwise a new lobby id will be returned.
-        /// </summary>
-        public string LobbyId;
     }
 
     [Serializable]
@@ -5539,7 +6219,7 @@ namespace PlayFab.ServerModels
         /// </summary>
         public DateTime? LastLoginTime;
         /// <summary>
-        /// True if the account was newly created on this login.
+        /// True if the master_player_account was newly created on this login.
         /// </summary>
         public bool NewlyCreated;
         /// <summary>
@@ -5582,61 +6262,6 @@ namespace PlayFab.ServerModels
         public List<string> Tags;
     }
 
-    [Serializable]
-    public class SetGameServerInstanceDataRequest : PlayFabRequestCommon
-    {
-        /// <summary>
-        /// Custom data to set for the specified game server instance.
-        /// </summary>
-        public string GameServerData;
-        /// <summary>
-        /// Unique identifier of the Game Instance to be updated, in decimal format.
-        /// </summary>
-        public string LobbyId;
-    }
-
-    [Serializable]
-    public class SetGameServerInstanceDataResult : PlayFabResultCommon
-    {
-    }
-
-    [Serializable]
-    public class SetGameServerInstanceStateRequest : PlayFabRequestCommon
-    {
-        /// <summary>
-        /// Unique identifier of the Game Instance to be updated, in decimal format.
-        /// </summary>
-        public string LobbyId;
-        /// <summary>
-        /// State to set for the specified game server instance.
-        /// </summary>
-        public GameInstanceState State;
-    }
-
-    [Serializable]
-    public class SetGameServerInstanceStateResult : PlayFabResultCommon
-    {
-    }
-
-    [Serializable]
-    public class SetGameServerInstanceTagsRequest : PlayFabRequestCommon
-    {
-        /// <summary>
-        /// Unique identifier of the Game Server Instance to be updated.
-        /// </summary>
-        public string LobbyId;
-        /// <summary>
-        /// Tags to set for the specified Game Server Instance. Note that this is the complete list of tags to be associated with
-        /// the Game Server Instance.
-        /// </summary>
-        public Dictionary<string,string> Tags;
-    }
-
-    [Serializable]
-    public class SetGameServerInstanceTagsResult : PlayFabResultCommon
-    {
-    }
-
     /// <summary>
     /// APIs that require signatures require that the player have a configured Player Secret Key that is used to sign all
     /// requests. Players that don't have a secret will be blocked from making API calls until it is configured. To create a
@@ -5649,7 +6274,7 @@ namespace PlayFab.ServerModels
     public class SetPlayerSecretRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// Player secret that is used to verify API request signatures (Enterprise Only).
+        /// Player secret that is used to verify API request signatures.
         /// </summary>
         public string PlayerSecret;
         /// <summary>
@@ -5700,19 +6325,10 @@ namespace PlayFab.ServerModels
     public class SetTitleDataRequest : PlayFabRequestCommon
     {
         /// <summary>
-        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
-        /// </summary>
-        public Dictionary<string,string> CustomTags;
-        /// <summary>
         /// key we want to set a value on (note, this is additive - will only replace an existing key's value if they are the same
         /// name.) Keys are trimmed of whitespace. Keys may not begin with the '!' character.
         /// </summary>
         public string Key;
-        /// <summary>
-        /// Unique identifier for the title, found in the Settings > Game Properties section of the PlayFab developer site when a
-        /// title has been selected.
-        /// </summary>
-        public string TitleId;
         /// <summary>
         /// new value to set. Set to null to remove a value
         /// </summary>
@@ -5819,6 +6435,19 @@ namespace PlayFab.ServerModels
         /// for updates to an existing statistic value for a player, the version of the statistic when it was loaded
         /// </summary>
         public uint Version;
+    }
+
+    [Serializable]
+    public class SteamNamePlayFabIdPair : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the Steam identifier.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Unique Steam identifier for a user, also known as Steam persona name.
+        /// </summary>
+        public string SteamName;
     }
 
     [Serializable]
@@ -6027,6 +6656,143 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
+    public class TwitchPlayFabIdPair : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the Twitch identifier.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Unique Twitch identifier for a user.
+        /// </summary>
+        public string TwitchId;
+    }
+
+    [Serializable]
+    public class UnlinkAppleRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkAppleResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
+    public class UnlinkBattleNetAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkFacebookAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// PlayFab unique identifier of the user to unlink.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkFacebookAccountResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
+    public class UnlinkFacebookInstantGamesIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Facebook Instant Games identifier for the user. If not specified, the most recently linked identifier will be used.
+        /// </summary>
+        public string FacebookInstantGamesId;
+        /// <summary>
+        /// PlayFab unique identifier of the user to unlink.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkFacebookInstantGamesIdResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
+    public class UnlinkGameCenterAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkGameCenterAccountResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
+    public class UnlinkNintendoServiceAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkNintendoSwitchDeviceIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Nintendo Switch Device identifier for the user. If not specified, the most recently signed in device ID will be used.
+        /// </summary>
+        public string NintendoSwitchDeviceId;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkNintendoSwitchDeviceIdResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
     public class UnlinkPSNAccountRequest : PlayFabRequestCommon
     {
         /// <summary>
@@ -6067,6 +6833,42 @@ namespace PlayFab.ServerModels
     }
 
     [Serializable]
+    public class UnlinkSteamIdRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the Steam account.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
+    public class UnlinkSteamIdResult : PlayFabResultCommon
+    {
+    }
+
+    [Serializable]
+    public class UnlinkTwitchAccountRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// Valid token issued by Twitch. Used to specify which twitch account to unlink from the profile. By default it uses the
+        /// one that is present on the profile.
+        /// </summary>
+        public string AccessToken;
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// PlayFab unique identifier of the user to unlink.
+        /// </summary>
+        public string PlayFabId;
+    }
+
+    [Serializable]
     public class UnlinkXboxAccountRequest : PlayFabRequestCommon
     {
         /// <summary>
@@ -6074,7 +6876,7 @@ namespace PlayFab.ServerModels
         /// </summary>
         public Dictionary<string,string> CustomTags;
         /// <summary>
-        /// Unique PlayFab identifier for a user, or null if no PlayFab account is linked to the Xbox Live identifier.
+        /// PlayFab unique identifier of the user to unlink.
         /// </summary>
         public string PlayFabId;
     }
@@ -6207,10 +7009,6 @@ namespace PlayFab.ServerModels
         /// </summary>
         public string IPAddress;
         /// <summary>
-        /// The updated MAC address for the ban. Null for no change.
-        /// </summary>
-        public string MACAddress;
-        /// <summary>
         /// Whether to make this ban permanent. Set to true to make this ban permanent. This will not modify Active state.
         /// </summary>
         public bool? Permanent;
@@ -6218,6 +7016,10 @@ namespace PlayFab.ServerModels
         /// The updated reason for the ban to be updated. Maximum 140 characters. Null for no change.
         /// </summary>
         public string Reason;
+        /// <summary>
+        /// The updated family type of the user that should be included in the ban. Null for no change.
+        /// </summary>
+        public UserFamilyType? UserFamilyType;
     }
 
     /// <summary>
@@ -6320,6 +7122,47 @@ namespace PlayFab.ServerModels
     }
 
     /// <summary>
+    /// Performs an additive update of the custom properties for the specified player. In updating the player's custom
+    /// properties, properties which already exist will have their values overwritten. No other properties will be changed apart
+    /// from those specified in the call.
+    /// </summary>
+    [Serializable]
+    public class UpdatePlayerCustomPropertiesRequest : PlayFabRequestCommon
+    {
+        /// <summary>
+        /// The optional custom tags associated with the request (e.g. build number, external trace identifiers, etc.).
+        /// </summary>
+        public Dictionary<string,string> CustomTags;
+        /// <summary>
+        /// Optional field used for concurrency control. One can ensure that the update operation will only be performed if the
+        /// player's properties have not been updated by any other clients since last the version.
+        /// </summary>
+        public int? ExpectedPropertiesVersion;
+        /// <summary>
+        /// Unique PlayFab assigned ID of the user on whom the operation will be performed.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Collection of properties to be set for a player.
+        /// </summary>
+        public List<UpdateProperty> Properties;
+    }
+
+    [Serializable]
+    public class UpdatePlayerCustomPropertiesResult : PlayFabResultCommon
+    {
+        /// <summary>
+        /// PlayFab unique identifier of the user whose properties were updated.
+        /// </summary>
+        public string PlayFabId;
+        /// <summary>
+        /// Indicates the current version of a player's properties that have been set. This is incremented after updates and
+        /// deletes. This version can be provided in update and delete calls for concurrency control.
+        /// </summary>
+        public int PropertiesVersion;
+    }
+
+    /// <summary>
     /// This operation is additive. Statistics not currently defined will be added, while those already defined will be updated
     /// with the given values. All other user statistics will remain unchanged.
     /// </summary>
@@ -6348,6 +7191,19 @@ namespace PlayFab.ServerModels
     [Serializable]
     public class UpdatePlayerStatisticsResult : PlayFabResultCommon
     {
+    }
+
+    [Serializable]
+    public class UpdateProperty : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Name of the custom property. Can contain Unicode letters and digits. They are limited in size.
+        /// </summary>
+        public string Name;
+        /// <summary>
+        /// Value of the custom property. Limited to booleans, numbers, and strings.
+        /// </summary>
+        public object Value;
     }
 
     /// <summary>
@@ -6507,6 +7363,10 @@ namespace PlayFab.ServerModels
         /// </summary>
         public UserAppleIdInfo AppleAccountInfo;
         /// <summary>
+        /// Battle.net account information, if a Battle.net account has been linked
+        /// </summary>
+        public UserBattleNetInfo BattleNetAccountInfo;
+        /// <summary>
         /// Timestamp indicating when the user account was created
         /// </summary>
         public DateTime Created;
@@ -6530,6 +7390,10 @@ namespace PlayFab.ServerModels
         /// User Google account information, if a Google account has been linked
         /// </summary>
         public UserGoogleInfo GoogleInfo;
+        /// <summary>
+        /// User Google Play Games account information, if a Google Play Games account has been linked
+        /// </summary>
+        public UserGooglePlayGamesInfo GooglePlayGamesInfo;
         /// <summary>
         /// User iOS device information, if an iOS device has been linked
         /// </summary>
@@ -6559,9 +7423,13 @@ namespace PlayFab.ServerModels
         /// </summary>
         public UserPrivateAccountInfo PrivateInfo;
         /// <summary>
-        /// User PSN account information, if a PSN account has been linked
+        /// User PlayStation :tm: Network account information, if a PlayStation :tm: Network account has been linked
         /// </summary>
         public UserPsnInfo PsnInfo;
+        /// <summary>
+        /// Server Custom ID information, if a server custom ID has been assigned
+        /// </summary>
+        public UserServerCustomIdInfo ServerCustomIdInfo;
         /// <summary>
         /// User Steam information, if a Steam account has been linked
         /// </summary>
@@ -6600,6 +7468,19 @@ namespace PlayFab.ServerModels
         /// Apple subject ID
         /// </summary>
         public string AppleSubjectId;
+    }
+
+    [Serializable]
+    public class UserBattleNetInfo : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Battle.net identifier
+        /// </summary>
+        public string BattleNetAccountId;
+        /// <summary>
+        /// Battle.net display name
+        /// </summary>
+        public string BattleNetBattleTag;
     }
 
     [Serializable]
@@ -6661,6 +7542,13 @@ namespace PlayFab.ServerModels
         public string FacebookInstantGamesId;
     }
 
+    public enum UserFamilyType
+    {
+        None,
+        Xbox,
+        Steam
+    }
+
     [Serializable]
     public class UserGameCenterInfo : PlayFabBaseModel
     {
@@ -6693,6 +7581,23 @@ namespace PlayFab.ServerModels
         /// Name of the Google account user
         /// </summary>
         public string GoogleName;
+    }
+
+    [Serializable]
+    public class UserGooglePlayGamesInfo : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Avatar image url of the Google Play Games player
+        /// </summary>
+        public string GooglePlayGamesPlayerAvatarImageUrl;
+        /// <summary>
+        /// Display name of the Google Play Games player
+        /// </summary>
+        public string GooglePlayGamesPlayerDisplayName;
+        /// <summary>
+        /// Google Play Games player ID
+        /// </summary>
+        public string GooglePlayGamesPlayerId;
     }
 
     [Serializable]
@@ -6776,7 +7681,11 @@ namespace PlayFab.ServerModels
         FacebookInstantGamesId,
         OpenIdConnect,
         Apple,
-        NintendoSwitchAccount
+        NintendoSwitchAccount,
+        GooglePlayGames,
+        XboxMobileStore,
+        King,
+        BattleNet
     }
 
     [Serializable]
@@ -6792,13 +7701,22 @@ namespace PlayFab.ServerModels
     public class UserPsnInfo : PlayFabBaseModel
     {
         /// <summary>
-        /// PSN account ID
+        /// PlayStation :tm: Network account ID
         /// </summary>
         public string PsnAccountId;
         /// <summary>
-        /// PSN online ID
+        /// PlayStation :tm: Network online ID
         /// </summary>
         public string PsnOnlineId;
+    }
+
+    [Serializable]
+    public class UserServerCustomIdInfo : PlayFabBaseModel
+    {
+        /// <summary>
+        /// Custom ID
+        /// </summary>
+        public string CustomId;
     }
 
     [Serializable]

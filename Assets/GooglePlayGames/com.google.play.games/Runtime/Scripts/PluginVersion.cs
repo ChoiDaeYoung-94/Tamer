@@ -18,9 +18,9 @@ namespace GooglePlayGames
 {
     public class PluginVersion
     {
-        // Current Version.
-        public const int VersionInt = 0x20000;
-        public const string VersionString = "2.1.0";
-        public const string VersionKey = "20100" ;
+        // Tamer: official 2.2.1 package ships stale 2.1.0 version constants.
+        public const int VersionInt = 0x20201;
+        public const string VersionString = "2.2.1";
+        public const string VersionKey = "20201";
     }
 }

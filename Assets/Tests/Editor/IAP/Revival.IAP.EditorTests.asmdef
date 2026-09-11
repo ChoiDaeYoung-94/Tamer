@@ -1,0 +1,6 @@
+{
+  "name": "Revival.IAP.EditorTests",
+  "references": ["Tamer.Purchasing", "Unity.Purchasing"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}
