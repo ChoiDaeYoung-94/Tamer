@@ -139,7 +139,7 @@ public class RevivalDeletionUITests
     [Test] public void Revival_DeletionViewRendersWithinPortraitBounds()
     {
         var cameraObject = new GameObject("UI verification camera", typeof(Camera));
-        cameraObject.transform.SetParent(root.transform, false);
+        SceneManager.MoveGameObjectToScene(cameraObject, preview);
         var camera = cameraObject.GetComponent<Camera>();
         camera.scene = preview;
         camera.clearFlags = CameraClearFlags.SolidColor;
@@ -186,6 +186,7 @@ public class RevivalDeletionUITests
         {
             camera.targetTexture = null; RenderTexture.active = previous;
             UnityEngine.Object.DestroyImmediate(texture); UnityEngine.Object.DestroyImmediate(target);
+            UnityEngine.Object.DestroyImmediate(cameraObject);
         }
     }
 
