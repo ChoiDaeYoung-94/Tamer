@@ -32,6 +32,7 @@ public class PlayerUICanvas : MonoBehaviour
     [SerializeField] private GameObject _gameSceneUIPanel;
     [SerializeField] private GameObject _captureButton;
 
+    private AD.UpdateManager _updateManager;
     private bool _isBuffActive = false;
     private double _remainingBuffTime = 0f;
 
@@ -52,8 +53,15 @@ public class PlayerUICanvas : MonoBehaviour
         ViewSettings();
         DataSettings();
 
-        AD.Managers.UpdateM.OnUpdateEvent -= UpdateBuffPanel;
-        AD.Managers.UpdateM.OnUpdateEvent += UpdateBuffPanel;
+        if (_updateManager != null) _updateManager.OnUpdateEvent -= UpdateBuffPanel;
+        _updateManager = AD.Managers.UpdateM;
+        if (_updateManager != null) _updateManager.OnUpdateEvent += UpdateBuffPanel;
+    }
+
+    private void OnDestroy()
+    {
+        if (_updateManager != null) _updateManager.OnUpdateEvent -= UpdateBuffPanel;
+        if (_instance == this) _instance = null;
     }
 
     #region Functions
