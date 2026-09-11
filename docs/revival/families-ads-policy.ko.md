@@ -49,7 +49,9 @@ batch 실행에서는 모든 광고 요청을 막는다.
 
 차단 대상은 앱 코드의 `MobileAds.Initialize`, `RewardedAd.Load`, `Show` 호출이다.
 SDK가 Android manifest의 provider 등을 통해 수행하는 native 시작 동작·측정까지
-이 런타임 변경만으로 중단했다고 주장하지 않는다. SDK/manifest 담당의 측정 지연 설정과 최종 병합 APK를 별도로 검증한다.
+이 런타임 변경만으로 중단했다고 주장하지 않는다. SDK/manifest 담당 변경과 최종 병합 APK의
+native 시작 동작을 별도로 검증한다. 통합 예정 SDK 11.5.0에서는 구형 측정 지연 옵션이 제거되어
+과거 플래그를 다시 추가하지 않는다.
 
 [Unity 9.1.1 공식 샘플](https://raw.githubusercontent.com/googleads/googleads-mobile-unity/v9.1.1/samples/HelloWorld/Assets/Scripts/RewardedAdController.cs)의
 보상형 테스트 광고 ID만 사용한다.

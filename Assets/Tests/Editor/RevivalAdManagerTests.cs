@@ -12,7 +12,6 @@ using UnityEngine.SceneManagement;
 /// Exercises the manager's lifecycle with fake receipts and audio callbacks only.
 /// No Managers prefab, account initialization, or real/sample ad object is created.
 /// </summary>
-[NonParallelizable]
 public class RevivalAdManagerTests
 {
     private const BindingFlags InstanceMembers = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -155,7 +154,7 @@ public class RevivalAdManagerTests
     }
 
     [Test]
-    public void Revival_RewardInLaterFrameCannotReviveCompletedClose()
+    public void Revival_RewardInLaterFrameGrantsOnceWithoutRepeatingPresentationCompletion()
     {
         var rewards = 0;
         var resumes = 0;
@@ -173,13 +172,81 @@ public class RevivalAdManagerTests
         Assert.That(session.IsCompleted, Is.True);
         Enqueue(session.EarnReward);
         Invoke("Update");
+        Enqueue(session.EarnReward);
+        Invoke("Update");
 
         AssertCleared();
-        Assert.That(rewards, Is.Zero);
+        Assert.That(rewards, Is.EqualTo(1));
         Assert.That(resumes, Is.EqualTo(1));
         Assert.That(completions, Is.EqualTo(1));
         Assert.That(result, Is.EqualTo(RewardedAdOutcome.Cancelled));
     }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_LateRewardOrFailureCannotReleaseNewPresentation(bool failureFirst)
+    {
+        var oldRewards = 0;
+        var oldResumes = 0;
+        var newResumes = 0;
+        var oldSession = new RewardedAdSession(() => true, () => oldRewards++, _ => { });
+        Install(oldSession, () => oldResumes++);
+        Enqueue(() => Invoke("QueueClose", oldSession));
+        Invoke("Update");
+        var nextSession = new RewardedAdSession(() => true, () => { }, _ => { });
+        Install(nextSession, () => newResumes++);
+
+        if (failureFirst)
+            Enqueue(() => Invoke("CompleteSession", oldSession, RewardedAdOutcome.Failed));
+        Enqueue(oldSession.EarnReward);
+        Enqueue(() => Invoke("QueueClose", oldSession));
+        Enqueue(oldSession.EarnReward);
+        Invoke("Update");
+
+        Assert.That(oldRewards, Is.EqualTo(failureFirst ? 0 : 1));
+        Assert.That(oldResumes, Is.EqualTo(1));
+        Assert.That(newResumes, Is.Zero);
+        Assert.That(Get<RewardedAdSession>("_session"), Is.SameAs(nextSession));
+        Assert.That(nextSession.IsCompleted, Is.False);
+        Assert.That(Property<bool>("IsInProgress"), Is.True);
+    }
+
+    [Test]
+    public void Revival_ClosedReceiptCannotRewardAfterLeavingAndReturningToSameScene()
+    {
+        var rewards = 0;
+        var session = CreateOwnedSession(() => rewards++);
+        Install(session, () => { });
+        Invoke("CompleteSession", session, RewardedAdOutcome.Cancelled);
+
+        changedScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+        SceneManager.SetActiveScene(changedScene);
+        Invoke("OnSceneChanged", testScene, changedScene);
+        SceneManager.SetActiveScene(testScene);
+        Invoke("OnSceneChanged", changedScene, testScene);
+        Enqueue(session.EarnReward);
+        Invoke("Update");
+
+        Assert.That(rewards, Is.Zero);
+        AssertCleared();
+    }
+
+    [Test]
+    public void Revival_ClosedReceiptCannotRewardAfterManagerDestruction()
+    {
+        var rewards = 0;
+        var session = CreateOwnedSession(() => rewards++);
+        Install(session, () => { });
+        Invoke("CompleteSession", session, RewardedAdOutcome.Cancelled);
+        UnityEngine.Object.DestroyImmediate(manager.gameObject);
+
+        session.EarnReward();
+        Assert.That(rewards, Is.Zero);
+    }
+
+    private RewardedAdSession CreateOwnedSession(Action reward) =>
+        (RewardedAdSession)Invoke("CreateSession", manager, reward,
+            (Action<RewardedAdOutcome>)(_ => { }));
 
     [Test]
     public void Revival_RewardExceptionCannotLeaveAudioOrSessionLocked()
@@ -368,7 +435,7 @@ public class RevivalAdManagerTests
         // handler after changing real scene handles in this EditMode test.
         Invoke("OnSceneChanged", testScene, changedScene);
 
-        Assert.That(session.IsCompleted, Is.True);
+        Assert.That(session.IsCompleted, Is.False);
         Assert.That(Get<RewardedAdSession>("_session"), Is.SameAs(session));
         Assert.That(Property<bool>("IsInProgress"), Is.True);
         Assert.That(resumes, Is.Zero);

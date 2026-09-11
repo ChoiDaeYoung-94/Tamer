@@ -77,7 +77,7 @@ public class RevivalRewardedAdSessionTests
     }
 
     [Test]
-    public void Revival_LateRewardCannotReviveClosedSession()
+    public void Revival_LateRewardPaysOnceWithoutRepeatingPresentationCompletion()
     {
         var rewards = 0;
         var completions = 0;
@@ -89,10 +89,13 @@ public class RevivalRewardedAdSessionTests
         });
 
         session.Complete(RewardedAdOutcome.Cancelled);
+        Assert.That(rewards, Is.Zero);
+        Assert.That(session.IsCompleted, Is.True);
+        session.EarnReward();
         session.EarnReward();
         session.Complete(RewardedAdOutcome.Rewarded);
 
-        Assert.That(rewards, Is.Zero);
+        Assert.That(rewards, Is.EqualTo(1));
         Assert.That(completions, Is.EqualTo(1));
         Assert.That(result, Is.EqualTo(RewardedAdOutcome.Cancelled));
     }
@@ -123,7 +126,7 @@ public class RevivalRewardedAdSessionTests
     }
 
     [Test]
-    public void Revival_CompletionIsTerminalBeforeOwnerAndRewardCallbacks()
+    public void Revival_PresentationCompletionAndRewardAreConsumedBeforeReentrantCallbacks()
     {
         var rewards = 0;
         var completions = 0;
@@ -131,7 +134,7 @@ public class RevivalRewardedAdSessionTests
         session = new RewardedAdSession(() =>
         {
             Assert.That(session.IsCompleted, Is.True);
-            session.Complete(RewardedAdOutcome.Failed);
+            session.Complete(RewardedAdOutcome.Cancelled);
             return true;
         }, () =>
         {
@@ -150,6 +153,123 @@ public class RevivalRewardedAdSessionTests
         session.Complete(RewardedAdOutcome.Cancelled);
 
         Assert.That(rewards, Is.EqualTo(1));
+        Assert.That(completions, Is.EqualTo(1));
+    }
+
+    [TestCase(RewardedAdOutcome.Failed)]
+    [TestCase(RewardedAdOutcome.Unavailable)]
+    [TestCase(RewardedAdOutcome.PolicyBlocked)]
+    public void Revival_FailureAfterCloseRevokesPendingRewardWithoutRepeatingCompletion(RewardedAdOutcome failure)
+    {
+        var rewards = 0;
+        var completions = 0;
+        var session = new RewardedAdSession(() => true, () => rewards++, _ => completions++);
+
+        session.Complete(RewardedAdOutcome.Cancelled);
+        session.Complete(failure);
+        session.EarnReward();
+
+        Assert.That(rewards, Is.Zero);
+        Assert.That(completions, Is.EqualTo(1));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_ExplicitInvalidationPermanentlySuppressesPendingReward(bool closeFirst)
+    {
+        var rewards = 0;
+        var completions = 0;
+        var session = new RewardedAdSession(() => true, () => rewards++, _ => completions++);
+
+        if (closeFirst) session.Complete(RewardedAdOutcome.Cancelled);
+        session.Invalidate();
+        session.EarnReward();
+        session.Complete(RewardedAdOutcome.Cancelled);
+
+        Assert.That(rewards, Is.Zero);
+        Assert.That(completions, Is.EqualTo(closeFirst ? 1 : 0));
+    }
+
+    [Test]
+    public void Revival_LateRewardRechecksOriginalOwnerAndCannotRetryAfterOwnerBecomesValid()
+    {
+        var ownerValid = true;
+        var rewards = 0;
+        var completions = 0;
+        var session = new RewardedAdSession(() => ownerValid, () => rewards++, _ => completions++);
+
+        session.Complete(RewardedAdOutcome.Cancelled);
+        ownerValid = false;
+        session.EarnReward();
+        ownerValid = true;
+        session.EarnReward();
+
+        Assert.That(rewards, Is.Zero);
+        Assert.That(completions, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Revival_LateRewardExceptionCannotRetryOrRepeatCompletion()
+    {
+        var rewards = 0;
+        var completions = 0;
+        var failure = new InvalidOperationException("Late reward failed.");
+        var session = new RewardedAdSession(() => true, () =>
+        {
+            rewards++;
+            throw failure;
+        }, _ => completions++);
+
+        session.Complete(RewardedAdOutcome.Cancelled);
+        Assert.That(Assert.Throws<InvalidOperationException>(session.EarnReward), Is.SameAs(failure));
+        session.EarnReward();
+        session.Complete(RewardedAdOutcome.Cancelled);
+
+        Assert.That(rewards, Is.EqualTo(1));
+        Assert.That(completions, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Revival_LateRewardOwnerValidationCannotReenterRewardDelivery()
+    {
+        var rewards = 0;
+        var completions = 0;
+        var validations = 0;
+        RewardedAdSession session = null;
+        session = new RewardedAdSession(() =>
+        {
+            validations++;
+            if (validations == 2) session.EarnReward();
+            return true;
+        }, () => rewards++, _ => completions++);
+
+        session.Complete(RewardedAdOutcome.Cancelled);
+        session.EarnReward();
+
+        Assert.That(validations, Is.EqualTo(2));
+        Assert.That(rewards, Is.EqualTo(1));
+        Assert.That(completions, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Revival_InvalidationDuringLateOwnerValidationStillSuppressesReward()
+    {
+        var validations = 0;
+        var rewards = 0;
+        var completions = 0;
+        RewardedAdSession session = null;
+        session = new RewardedAdSession(() =>
+        {
+            validations++;
+            if (validations == 2) session.Invalidate();
+            return true;
+        }, () => rewards++, _ => completions++);
+
+        session.Complete(RewardedAdOutcome.Cancelled);
+        session.EarnReward();
+        session.EarnReward();
+
+        Assert.That(rewards, Is.Zero);
         Assert.That(completions, Is.EqualTo(1));
     }
 
