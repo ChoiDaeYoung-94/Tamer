@@ -2,6 +2,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 import restore_assets as restore
@@ -60,6 +61,19 @@ class RestoreTests(unittest.TestCase):
             restore.restore(self.source)
         self.assertFalse((self.root / 'Assets/a.meta').exists())
         self.assertFalse((self.root / 'Assets/b.txt').exists())
+
+
+class TrackedSdkManifestTests(unittest.TestCase):
+    def test_every_git_sdk_manifest_entry_is_tracked(self):
+        root = Path(__file__).resolve().parents[2]
+        tracked = set(subprocess.check_output(
+            ['git', '-C', str(root), 'ls-files', '--cached'], text=True,
+            encoding='utf-8').splitlines())
+        entries = json.loads((root / 'docs/revival/assets-manifest.json').read_text(
+            encoding='utf-8'))['entries']
+        missing = [entry['path'] for entry in entries
+                   if entry['disposition'] == 'git-sdk' and entry['path'] not in tracked]
+        self.assertEqual([], missing, 'git-sdk entries must survive a clean clone')
 
 
 if __name__ == '__main__':

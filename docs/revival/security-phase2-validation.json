@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "checkedOn": "2026-09-11",
+  "issue": 94,
+  "relatedIssue": 92,
+  "repository": "ChoiDaeYoung-94/Tamer",
+  "baselineSource": "4e8c0398c700bc133d3b1e8d6592fca24f0b4d89",
+  "metadataFixSource": "76d83b124818e0859e30f8e19249eeaec44f6e9b",
+  "validatedImplementationSource": "7c38704d03e850b56dea8cd7ed1cee9db48abfb7",
+  "signing": {
+    "applicationId": "com.AeDeong.MonsterTamer",
+    "playAppSigningEnabled": true,
+    "localPublicCertificateEntries": 1,
+    "localCertificateMatchesPlayUploadSha256": true,
+    "localCertificateMatchesPlayUploadSha1": true,
+    "localCertificateMatchesPlayAppSigning": false,
+    "appSigningDerMatchesConsoleDigitalAssetLinks": true,
+    "keystoreFileUnchanged": true,
+    "passwordRetrieved": false,
+    "privateKeyDecryptedOrExported": false,
+    "jksIntegrityAuthenticated": false,
+    "productionSigningTest": false,
+    "rotationOrResetSubmitted": false,
+    "historyRewritten": false,
+    "publicCertificateRelocation": {
+      "outsideWorktree": true,
+      "sourceRemovedOnlyAfterHashAndDerVerification": true,
+      "recordsAndAclStoredPrivately": true,
+      "offDeviceBackup": false
+    }
+  },
+  "oauth": {
+    "forkCurrentlyUsed": "owner-confirmed",
+    "otherLegacyDevelopmentToolsCurrentUsage": "unconfirmed",
+    "connectionsRevokedInPhase2": 0
+  },
+  "snapshot": {
+    "privateFiles": 4204,
+    "privateBytes": 574358085,
+    "manifestCanonicalSha256": "bcc98f4d0945831e2e40aa334308f2fa4f540c3ac4c8844604e33545503d0552",
+    "receiptSchema": 1,
+    "sourceHashPreflight": true,
+    "destinationHashVerification": true,
+    "exactFileSetVerification": true,
+    "serviceSettings": "excluded",
+    "signingMaterial": "excluded",
+    "sdk": "restore-from-git",
+    "stableStorageOutsideWorktree": true,
+    "originalAndSnapshotOnDifferentPhysicalDisks": true,
+    "sameComputer": true,
+    "encryptedByThisWork": false,
+    "offDeviceBackupVerified": false,
+    "licensesVerified": false
+  },
+  "restore": {
+    "initialCleanCloneSource": "4e8c0398c700bc133d3b1e8d6592fca24f0b4d89",
+    "initialResult": "failed before copying because a manifest git-sdk metadata file was not tracked",
+    "fixedGitSdkEntriesTracked": 357,
+    "finalCleanCloneSource": "7c38704d03e850b56dea8cd7ed1cee9db48abfb7",
+    "source": "stable private snapshot; original path not supplied",
+    "initialExistingFilesVerified": 362,
+    "filesAndNeutralTemplatesCreated": 4201,
+    "finalFilesHashVerified": 4561,
+    "serviceSettingValuesCopied": false,
+    "trackedCloneChanges": 0,
+    "libraryCreated": false,
+    "backupTests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "restoreTests": {
+      "passed": 5,
+      "failed": 0
+    }
+  },
+  "validation": {
+    "independentIntegrationReview": "no confirmed P1/P2 findings in metadata fix and snapshot code",
+    "diffCheck": "pass except 3 original trailing whitespace lines in byte-preserved metadata; manifest hash and GUID verified separately",
+    "unityExecuted": false,
+    "apkOrAabBuilt": false,
+    "deviceTest": false,
+    "productionServiceCalls": false,
+    "storeSubmission": false
+  },
+  "remaining": [
+    "Owner authorization and secure destination for new private upload key before executing reset plan",
+    "Current usage review for remaining legacy OAuth tools",
+    "Asset license/purchase evidence",
+    "Encrypted independently stored off-device backup and restore exercise"
+  ]
+}
