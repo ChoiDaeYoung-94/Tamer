@@ -1,0 +1,1268 @@
+{
+  "schema": 1,
+  "sourceCommit": "9044b6fc2027332649f326ce012d253ab831d3ca",
+  "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
+  "lexicalReferencesOnly": true,
+  "files": [
+    {
+      "path": "Assets/GPGSIds.cs",
+      "kind": "generated-platform-ids",
+      "lines": 30,
+      "declaredTypes": [
+        "GPGSIds"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Advertising/AdEntitlement.cs",
+      "kind": "runtime",
+      "lines": 17,
+      "declaredTypes": [
+        "AdEntitlement"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Advertising/AdRequestPolicy.cs",
+      "kind": "runtime",
+      "lines": 32,
+      "declaredTypes": [
+        "AdRequestPolicy"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Advertising/RewardedAdSession.cs",
+      "kind": "runtime",
+      "lines": 129,
+      "declaredTypes": [
+        "RewardedAdOutcome",
+        "RewardedAdSession"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Cameras/CameraManage.cs",
+      "kind": "runtime",
+      "lines": 33,
+      "declaredTypes": [
+        "CameraManage"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Creatures/BuffingMan.cs",
+      "kind": "runtime",
+      "lines": 134,
+      "declaredTypes": [
+        "BuffingMan"
+      ],
+      "managerReferences": [
+        "DataM",
+        "GoogleAdMobM"
+      ],
+      "singletonReferences": [
+        "Player",
+        "PlayerUICanvas"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Creatures/Creature.cs",
+      "kind": "runtime",
+      "lines": 226,
+      "declaredTypes": [
+        "Creature",
+        "CreatureState"
+      ],
+      "managerReferences": [
+        "DataM",
+        "PoolM",
+        "SoundM"
+      ],
+      "singletonReferences": [
+        "Player",
+        "PlayerUICanvas"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Creatures/GameMan.cs",
+      "kind": "runtime",
+      "lines": 18,
+      "declaredTypes": [
+        "GameMan"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Creatures/Monster.cs",
+      "kind": "runtime",
+      "lines": 808,
+      "declaredTypes": [
+        "Monster"
+      ],
+      "managerReferences": [
+        "DataM",
+        "PoolM"
+      ],
+      "singletonReferences": [
+        "MonsterGenerator",
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Creatures/Player.cs",
+      "kind": "runtime",
+      "lines": 566,
+      "declaredTypes": [
+        "Player"
+      ],
+      "managerReferences": [
+        "DataM",
+        "EquipmentM",
+        "GameM",
+        "Instance",
+        "PoolM",
+        "SoundM",
+        "UpdateM"
+      ],
+      "singletonReferences": [
+        "BuffingMan",
+        "CameraManage",
+        "JoyStick",
+        "Managers",
+        "PlayerUICanvas"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Creatures/ShopMan.cs",
+      "kind": "runtime",
+      "lines": 162,
+      "declaredTypes": [
+        "ShopMan"
+      ],
+      "managerReferences": [
+        "EquipmentM",
+        "IAPM",
+        "PopupM",
+        "SoundM"
+      ],
+      "singletonReferences": [
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/BuildScript.cs",
+      "kind": "editor",
+      "lines": 308,
+      "declaredTypes": [
+        "BuildScript",
+        "EditorCoroutine"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/RevivalAdHarnessBuild.cs",
+      "kind": "editor",
+      "lines": 121,
+      "declaredTypes": [
+        "RevivalAdHarnessBuild",
+        "CatalogFlags"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/RevivalBuild.cs",
+      "kind": "editor",
+      "lines": 150,
+      "declaredTypes": [
+        "RevivalBuild",
+        "Summary"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/RevivalPackageUpgrade.cs",
+      "kind": "editor",
+      "lines": 61,
+      "declaredTypes": [
+        "RevivalPackageUpgrade"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Editor/RevivalSdkValidation.cs",
+      "kind": "editor",
+      "lines": 38,
+      "declaredTypes": [
+        "RevivalSdkValidation"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Effects/EffectActiveControl.cs",
+      "kind": "runtime",
+      "lines": 11,
+      "declaredTypes": [
+        "EffectActiveControl"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/DebugLogger.cs",
+      "kind": "runtime",
+      "lines": 93,
+      "declaredTypes": [
+        "DebugLogger"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/Extension.cs",
+      "kind": "runtime",
+      "lines": 18,
+      "declaredTypes": [
+        "Extension"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/GameConstants.cs",
+      "kind": "runtime",
+      "lines": 68,
+      "declaredTypes": [
+        "GameConstants",
+        "Scene",
+        "Creatures",
+        "Items",
+        "IAPItems",
+        "ETC"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/Initialize.cs",
+      "kind": "runtime",
+      "lines": 53,
+      "declaredTypes": [
+        "Initialize",
+        "Scripts",
+        "customEditor"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/ScreenSize.cs",
+      "kind": "runtime",
+      "lines": 71,
+      "declaredTypes": [
+        "ScreenSize",
+        "customEditor"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/ScreenSizeRatio.cs",
+      "kind": "runtime",
+      "lines": 73,
+      "declaredTypes": [
+        "ScreenSizeRatio",
+        "customEditor"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/SetFPS.cs",
+      "kind": "runtime",
+      "lines": 18,
+      "declaredTypes": [
+        "SetFPS"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/TimeUtility.cs",
+      "kind": "runtime",
+      "lines": 143,
+      "declaredTypes": [
+        "TimeUtility"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Foundations/Utility.cs",
+      "kind": "runtime",
+      "lines": 64,
+      "declaredTypes": [
+        "Utility"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Game/InitializeGame.cs",
+      "kind": "runtime",
+      "lines": 55,
+      "declaredTypes": [
+        "InitializeGame",
+        "Scripts",
+        "customEditor"
+      ],
+      "managerReferences": [
+        "GameM",
+        "PopupM"
+      ],
+      "singletonReferences": [
+        "MiniMap",
+        "MonsterGenerator"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Game/Map.cs",
+      "kind": "runtime",
+      "lines": 95,
+      "declaredTypes": [
+        "Map"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Game/MonsterGenerator.cs",
+      "kind": "runtime",
+      "lines": 277,
+      "declaredTypes": [
+        "MonsterGenerator"
+      ],
+      "managerReferences": [
+        "PoolM"
+      ],
+      "singletonReferences": [
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Game/Portal.cs",
+      "kind": "runtime",
+      "lines": 67,
+      "declaredTypes": [
+        "Portal",
+        "PortalType"
+      ],
+      "managerReferences": [
+        "PopupM"
+      ],
+      "singletonReferences": [
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Login/Login.cs",
+      "kind": "runtime",
+      "lines": 973,
+      "declaredTypes": [
+        "Login",
+        "ApiResult",
+        "LoginContinuityPolicy",
+        "LoginOperationGate",
+        "LoginCallbackGate"
+      ],
+      "managerReferences": [
+        "DataM",
+        "Instance",
+        "SceneM",
+        "ServerM",
+        "SoundM"
+      ],
+      "singletonReferences": [
+        "Managers",
+        "PlayGamesPlatform"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Main/IAPItem.cs",
+      "kind": "runtime",
+      "lines": 22,
+      "declaredTypes": [
+        "IAPItem"
+      ],
+      "managerReferences": [
+        "DataM"
+      ],
+      "singletonReferences": [
+        "ShopMan"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Main/InitializeMain.cs",
+      "kind": "runtime",
+      "lines": 57,
+      "declaredTypes": [
+        "InitializeMain",
+        "Scripts",
+        "customEditor"
+      ],
+      "managerReferences": [
+        "GameM",
+        "PopupM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Main/Item.cs",
+      "kind": "runtime",
+      "lines": 111,
+      "declaredTypes": [
+        "Item"
+      ],
+      "managerReferences": [
+        "DataM",
+        "EquipmentM"
+      ],
+      "singletonReferences": [
+        "Player",
+        "ShopMan"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Main/LoginCheck.cs",
+      "kind": "runtime",
+      "lines": 78,
+      "declaredTypes": [
+        "LoginCheck",
+        "ILoginState",
+        "SetCharacterState",
+        "CheckTutorialState"
+      ],
+      "managerReferences": [
+        "DataM",
+        "GameM",
+        "ResourceM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/DataManager.cs",
+      "kind": "runtime",
+      "lines": 228,
+      "declaredTypes": [
+        "DataManager"
+      ],
+      "managerReferences": [
+        "ResourceM",
+        "ServerM"
+      ],
+      "singletonReferences": [
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/EquipmentManager.cs",
+      "kind": "runtime",
+      "lines": 112,
+      "declaredTypes": [
+        "EquipmentManager"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "Player",
+        "PlayerUICanvas",
+        "ShopMan"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/GameManager.cs",
+      "kind": "runtime",
+      "lines": 100,
+      "declaredTypes": [
+        "GameManager"
+      ],
+      "managerReferences": [
+        "PopupM",
+        "SceneM"
+      ],
+      "singletonReferences": [
+        "CameraManage",
+        "JoyStick",
+        "Player",
+        "PlayerUICanvas"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/GoogleAdMobManager.cs",
+      "kind": "runtime",
+      "lines": 377,
+      "declaredTypes": [
+        "GoogleAdMobManager",
+        "PendingCallback"
+      ],
+      "managerReferences": [
+        "DataM",
+        "Instance",
+        "SoundM"
+      ],
+      "singletonReferences": [
+        "BuffingMan",
+        "Managers",
+        "Player",
+        "PlayerUICanvas"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/IAPManager.cs",
+      "kind": "runtime",
+      "lines": 417,
+      "declaredTypes": [
+        "IAPStatus",
+        "IAPManager"
+      ],
+      "managerReferences": [
+        "DataM",
+        "Instance"
+      ],
+      "singletonReferences": [
+        "Managers",
+        "ShopMan"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/IapConsentDefaults.cs",
+      "kind": "runtime",
+      "lines": 28,
+      "declaredTypes": [
+        "IapConsentDefaults"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/Managers.cs",
+      "kind": "runtime",
+      "lines": 95,
+      "declaredTypes": [
+        "Managers"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/PlayerDataSyncPolicy.cs",
+      "kind": "runtime",
+      "lines": 93,
+      "declaredTypes": [
+        "PlayerDataSyncPolicy",
+        "PlayerDataChanges"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/PoolManager.cs",
+      "kind": "runtime",
+      "lines": 297,
+      "declaredTypes": [
+        "PoolManager",
+        "Pool"
+      ],
+      "managerReferences": [
+        "Instance"
+      ],
+      "singletonReferences": [
+        "Managers",
+        "MonsterGenerator"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/PopupManager.cs",
+      "kind": "runtime",
+      "lines": 261,
+      "declaredTypes": [
+        "PopupManager"
+      ],
+      "managerReferences": [
+        "GameM",
+        "GoogleAdMobM",
+        "SoundM",
+        "UpdateM"
+      ],
+      "singletonReferences": [
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/ResourceManager.cs",
+      "kind": "runtime",
+      "lines": 31,
+      "declaredTypes": [
+        "ResourceManager"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/SceneManager.cs",
+      "kind": "runtime",
+      "lines": 87,
+      "declaredTypes": [
+        "SceneManager"
+      ],
+      "managerReferences": [
+        "DataM",
+        "PopupM",
+        "ServerM",
+        "SoundM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/ServerManager.cs",
+      "kind": "runtime",
+      "lines": 304,
+      "declaredTypes": [
+        "ServerManager",
+        "Operation"
+      ],
+      "managerReferences": [
+        "DataM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/SoundManager.cs",
+      "kind": "runtime",
+      "lines": 110,
+      "declaredTypes": [
+        "SoundManager"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/Sub/PoolObject.cs",
+      "kind": "runtime",
+      "lines": 9,
+      "declaredTypes": [
+        "PoolObject"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/Sub/PopupObject.cs",
+      "kind": "runtime",
+      "lines": 60,
+      "declaredTypes": [
+        "PopupObject",
+        "CheckType"
+      ],
+      "managerReferences": [
+        "PopupM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/Sub/RuntimeInitialize.cs",
+      "kind": "runtime",
+      "lines": 36,
+      "declaredTypes": [
+        "RuntimeInitialize"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/TapjoyManager.cs",
+      "kind": "runtime",
+      "lines": 330,
+      "declaredTypes": [
+        "TapjoyManager",
+        "customEditor"
+      ],
+      "managerReferences": [
+        "PopupM"
+      ],
+      "singletonReferences": [
+        "Btn_Setting"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Managers/UpdateManager.cs",
+      "kind": "runtime",
+      "lines": 24,
+      "declaredTypes": [
+        "UpdateManager"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWar.cs",
+      "kind": "runtime",
+      "lines": 71,
+      "declaredTypes": [
+        "FogOfWar"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarData.cs",
+      "kind": "runtime",
+      "lines": 21,
+      "declaredTypes": [
+        "FogOfWarData"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarEntity.cs",
+      "kind": "runtime",
+      "lines": 97,
+      "declaredTypes": [
+        "FogOfWarEntity",
+        "BoundsSource"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarGrid.cs",
+      "kind": "runtime",
+      "lines": 43,
+      "declaredTypes": [
+        "FogOfWarGrid"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarMouseVision.cs",
+      "kind": "runtime",
+      "lines": 15,
+      "declaredTypes": [
+        "FogOfWarMouseVision"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarRenderer.cs",
+      "kind": "runtime",
+      "lines": 142,
+      "declaredTypes": [
+        "FogOfWarRenderer"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarUnitGroup.cs",
+      "kind": "runtime",
+      "lines": 16,
+      "declaredTypes": [
+        "FogOfWarUnitGroup"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarUnitVision.cs",
+      "kind": "runtime",
+      "lines": 11,
+      "declaredTypes": [
+        "FogOfWarUnitVision"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarVisionBase.cs",
+      "kind": "runtime",
+      "lines": 22,
+      "declaredTypes": [
+        "FogOfWarVisionBase"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/LineOfSight.cs",
+      "kind": "runtime",
+      "lines": 112,
+      "declaredTypes": [
+        "LineOfSight"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/FogOfWar/SliderValueToText.cs",
+      "kind": "runtime",
+      "lines": 23,
+      "declaredTypes": [
+        "SliderValueToText"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/MiniMap.cs",
+      "kind": "runtime",
+      "lines": 129,
+      "declaredTypes": [
+        "MiniMap"
+      ],
+      "managerReferences": [
+        "DataM",
+        "Instance",
+        "UpdateM"
+      ],
+      "singletonReferences": [
+        "JoyStick",
+        "Managers",
+        "Player",
+        "PlayerUICanvas"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/MiniMap/MiniMapCanvas.cs",
+      "kind": "runtime",
+      "lines": 9,
+      "declaredTypes": [
+        "MiniMapCanvas"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "MiniMap"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/NextScene/NextScene.cs",
+      "kind": "runtime",
+      "lines": 9,
+      "declaredTypes": [
+        "NextScene"
+      ],
+      "managerReferences": [
+        "SceneM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Purchasing/NoAdsPurchaseFulfillment.cs",
+      "kind": "runtime",
+      "lines": 79,
+      "declaredTypes": [
+        "PurchaseDeliveryState",
+        "PurchaseFulfillmentResult",
+        "NoAdsPurchaseFulfillment"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/RevivalAdHarness.cs",
+      "kind": "runtime",
+      "lines": 131,
+      "declaredTypes": [
+        "RevivalAdHarness"
+      ],
+      "managerReferences": [
+        "Instance"
+      ],
+      "singletonReferences": [
+        "Managers"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/RevivalAdReceiptOwner.cs",
+      "kind": "runtime",
+      "lines": 6,
+      "declaredTypes": [
+        "RevivalAdReceiptOwner"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/SetCharacter/CanvasSelectCharacter.cs",
+      "kind": "runtime",
+      "lines": 97,
+      "declaredTypes": [
+        "CanvasSelectCharacter"
+      ],
+      "managerReferences": [
+        "DataM",
+        "PopupM",
+        "SceneM",
+        "ServerM",
+        "SoundM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/UI/JoyStick.cs",
+      "kind": "runtime",
+      "lines": 166,
+      "declaredTypes": [
+        "JoyStick",
+        "Mode"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/UI/Loading.cs",
+      "kind": "runtime",
+      "lines": 8,
+      "declaredTypes": [
+        "Loading"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/UI/PlayerUICanvas.cs",
+      "kind": "runtime",
+      "lines": 216,
+      "declaredTypes": [
+        "PlayerUICanvas"
+      ],
+      "managerReferences": [
+        "DataM",
+        "GameM",
+        "GoogleAdMobM",
+        "PopupM",
+        "SoundM",
+        "UpdateM"
+      ],
+      "singletonReferences": [
+        "MiniMap",
+        "Player"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/UI/TMP_Damage.cs",
+      "kind": "runtime",
+      "lines": 65,
+      "declaredTypes": [
+        "TMP_Damage"
+      ],
+      "managerReferences": [
+        "PoolM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/IAP/RevivalIAPConfigurationTests.cs",
+      "kind": "tests",
+      "lines": 71,
+      "declaredTypes": [
+        "RevivalIAPConfigurationTests",
+        "Catalog",
+        "CatalogProduct"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/IAP/RevivalIAPFulfillmentTests.cs",
+      "kind": "tests",
+      "lines": 138,
+      "declaredTypes": [
+        "RevivalIAPFulfillmentTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/IAP/RevivalIAPOrderTests.cs",
+      "kind": "tests",
+      "lines": 199,
+      "declaredTypes": [
+        "RevivalIAPOrderTests",
+        "FakeOrderInfo"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalAdEntitlementTests.cs",
+      "kind": "tests",
+      "lines": 35,
+      "declaredTypes": [
+        "RevivalAdEntitlementTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalAdManagerTests.cs",
+      "kind": "tests",
+      "lines": 539,
+      "declaredTypes": [
+        "RevivalAdManagerTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalAdPopupTests.cs",
+      "kind": "tests",
+      "lines": 256,
+      "declaredTypes": [
+        "RevivalAdPopupTests"
+      ],
+      "managerReferences": [
+        "Awake",
+        "OnDestroy"
+      ],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalAdRequestPolicyTests.cs",
+      "kind": "tests",
+      "lines": 59,
+      "declaredTypes": [
+        "RevivalAdRequestPolicyTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalBaselineTests.cs",
+      "kind": "tests",
+      "lines": 80,
+      "declaredTypes": [
+        "RevivalBaselineTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalDataSyncTests.cs",
+      "kind": "tests",
+      "lines": 460,
+      "declaredTypes": [
+        "RevivalDataSyncTests",
+        "SaveHarness"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalLoginContinuityTests.cs",
+      "kind": "tests",
+      "lines": 176,
+      "declaredTypes": [
+        "RevivalLoginContinuityTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalMonsterLifecycleTests.cs",
+      "kind": "tests",
+      "lines": 208,
+      "declaredTypes": [
+        "RevivalMonsterLifecycleTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalPoolTests.cs",
+      "kind": "tests",
+      "lines": 165,
+      "declaredTypes": [
+        "RevivalPoolTests",
+        "RevivalPoolReturnOnDisable"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalRewardedAdSessionTests.cs",
+      "kind": "tests",
+      "lines": 301,
+      "declaredTypes": [
+        "RevivalRewardedAdSessionTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalSaveQueueTests.cs",
+      "kind": "tests",
+      "lines": 257,
+      "declaredTypes": [
+        "RevivalSaveQueueTests",
+        "WriteCall",
+        "ReadCall",
+        "SaveQueueHarness"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalSdkMigrationTests.cs",
+      "kind": "tests",
+      "lines": 103,
+      "declaredTypes": [
+        "RevivalSdkMigrationTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalServerRequestTests.cs",
+      "kind": "tests",
+      "lines": 344,
+      "declaredTypes": [
+        "RevivalServerRequestTests",
+        "ReadCall",
+        "WriteCall",
+        "Timer",
+        "Harness"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    }
+  ],
+  "excludedByRoot": {
+    "Assets/GoogleMobileAds": 11,
+    "Assets/GooglePlayGames": 61,
+    "Assets/Plugins": 421,
+    "Assets/ThirdParty": 127
+  }
+}

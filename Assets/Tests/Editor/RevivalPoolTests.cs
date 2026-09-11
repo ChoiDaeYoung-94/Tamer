@@ -116,6 +116,36 @@ public class RevivalPoolTests
         Assert.That(_root.GetComponentsInChildren<Transform>(true).Length, Is.EqualTo(objectsBefore));
     }
 
+    [Test]
+    public void Revival_DisposeRemovesOwnedLoansAndRootsButPreservesExternalParent()
+    {
+        Call("CreatePool", _prefab, false, 2);
+        GameObject borrowed = Pop();
+        var external = new GameObject("Revival unrelated child");
+        external.transform.SetParent(_borrowedRoot);
+        object retainedPool = Pools[_prefab.name];
+        Call("Dispose");
+        Call("Dispose");
+        Assert.That(borrowed == null, Is.True);
+        Assert.That(external != null && _borrowedRoot != null, Is.True);
+        Assert.That(Pools.Count, Is.Zero);
+        Assert.That(retainedPool.GetType().GetMethod("PopFromPool").Invoke(retainedPool,
+            new object[] { _borrowedRoot }), Is.Null);
+        Assert.That(Pop(), Is.Null);
+    }
+
+    [Test]
+    public void Revival_DestroyedStoredObjectIsSkippedOnNextLoan()
+    {
+        Call("CreatePool", _prefab, true, 1);
+        GameObject first = Pop();
+        Call("PushToPool", first);
+        UnityEngine.Object.DestroyImmediate(first);
+        GameObject replacement = Pop();
+        Assert.That(replacement != null, Is.True);
+        Assert.That(replacement.activeSelf, Is.True);
+    }
+
     private static void ExpectPoolError(string message)
     {
         // Match DebugLogger's case-sensitive Conditional("Debug") symbol.
