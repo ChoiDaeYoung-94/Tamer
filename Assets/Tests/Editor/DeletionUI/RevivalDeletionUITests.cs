@@ -141,6 +141,7 @@ public class RevivalDeletionUITests
         var cameraObject = new GameObject("UI verification camera", typeof(Camera));
         cameraObject.transform.SetParent(root.transform, false);
         var camera = cameraObject.GetComponent<Camera>();
+        camera.scene = preview;
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = Color.black;
         var target = new RenderTexture(1080, 1920, 24);
@@ -166,6 +167,8 @@ public class RevivalDeletionUITests
                 camera.Render();
                 RenderTexture.active = target;
                 texture.ReadPixels(new Rect(0, 0, 1080, 1920), 0, 0); texture.Apply();
+                Assert.That(texture.GetPixels32().Any(pixel => pixel.r > 150 && pixel.g > 150 && pixel.b > 150),
+                    Is.True, "The rendered view must contain visible text, not an empty camera image.");
                 System.IO.File.WriteAllBytes(System.IO.Path.Combine(output, state + ".png"), texture.EncodeToPNG());
                 foreach (var button in panel.GetComponentsInChildren<Button>())
                 {

@@ -19,7 +19,7 @@ namespace AD
         public void Build(TMP_FontAsset font, Action close)
         {
             var background = gameObject.AddComponent<UnityEngine.UI.Image>();
-            background.color = new Color(.055f, .065f, .085f, .99f);
+            background.color = new Color(.055f, .065f, .085f, 1f);
             var content = Rect("Content", transform);
             content.anchorMin = new Vector2(.1f, .08f);
             content.anchorMax = new Vector2(.9f, .92f);
@@ -79,6 +79,7 @@ namespace AD
             label.alignment = TextAlignmentOptions.Center;
             label.raycastTarget = false;
             label.richText = false;
+            label.textWrappingMode = TextWrappingModes.Normal;
             if (height > 0)
             {
                 var element = rect.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
