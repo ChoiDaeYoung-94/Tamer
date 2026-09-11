@@ -200,6 +200,24 @@ public class RevivalMonsterLifecycleTests
         }
     }
 
+    [Test]
+    public void Revival_PlayerGoldBelongsToTheQueriedPlayer()
+    {
+        Component old = Create("Player");
+        Component current = Create("Player");
+        Set(old, "_gold", 10);
+        Set(current, "_gold", 20);
+        var singleton = RuntimeType("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var previous = singleton.GetValue(null);
+        try
+        {
+            singleton.SetValue(null, current);
+            Assert.That(old.GetType().GetProperty("Gold").GetValue(old), Is.EqualTo(10));
+            Assert.That(current.GetType().GetProperty("Gold").GetValue(current), Is.EqualTo(20));
+        }
+        finally { singleton.SetValue(null, previous); }
+    }
+
     [TestCase("ShopMan", "_instance")]
     [TestCase("BuffingMan", "instance")]
     [TestCase("Portal", "_instance")]

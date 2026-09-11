@@ -29,7 +29,7 @@ public class Player : Creature
     public float BuffAttackSpeed;
     public float BuffMoveSpeed;
     private int _gold;
-    public int Gold { get { return _instance._gold; } }
+    public int Gold { get { return _gold; } }
     public int MaxCaptureCapacity = 10;
     public List<string> PlayerMonsterCollection = new List<string>();
     public string EquippedItems = string.Empty;
