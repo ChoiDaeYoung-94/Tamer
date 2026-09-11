@@ -18,6 +18,7 @@ public class MiniMap : MonoBehaviour
     private Vector3 _offsetPos;
     private Vector3 _targetPos;
     private Vector3 _originalCameraPos;
+    private AD.UpdateManager _updateOwner;
 
     private void Awake()
     {
@@ -26,16 +27,13 @@ public class MiniMap : MonoBehaviour
 
     private void OnDisable()
     {
-        if (AD.Managers.Instance)
-        {
-            AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
-            AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
-        }
+        BindUpdates(null);
     }
 
     private void OnDestroy()
     {
-        _instance = null;
+        BindUpdates(null);
+        if (_instance == this) _instance = null;
     }
 
     /// <summary>
@@ -50,8 +48,18 @@ public class MiniMap : MonoBehaviour
     {
         _playerIconRenderer.sprite = AD.Managers.DataM.LocalPlayerData["Sex"] == "Man" ? _playerIcons[0] : _playerIcons[1];
 
-        AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
-        AD.Managers.UpdateM.OnUpdateEvent += SetPlayerIcon;
+        BindUpdates(AD.Managers.UpdateM);
+    }
+
+    private void BindUpdates(AD.UpdateManager owner)
+    {
+        if (_updateOwner != null)
+        {
+            _updateOwner.OnUpdateEvent -= SetPlayerIcon;
+            _updateOwner.OnUpdateEvent -= MiniMapDrag;
+        }
+        _updateOwner = owner;
+        if (_updateOwner != null) _updateOwner.OnUpdateEvent += SetPlayerIcon;
     }
 
     private void SetPlayerIcon()
@@ -70,15 +78,18 @@ public class MiniMap : MonoBehaviour
         _minimapCanvas.SetActive(true);
         _mainCamera.SetActive(false);
 
-        AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
-        AD.Managers.UpdateM.OnUpdateEvent += MiniMapDrag;
+        if (_updateOwner != null)
+        {
+            _updateOwner.OnUpdateEvent -= MiniMapDrag;
+            _updateOwner.OnUpdateEvent += MiniMapDrag;
+        }
     }
 
     public void CloseMap()
     {
         Time.timeScale = 1;
 
-        AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
+        if (_updateOwner != null) _updateOwner.OnUpdateEvent -= MiniMapDrag;
 
         ToggleGameUI(true);
         _mainCamera.SetActive(true);

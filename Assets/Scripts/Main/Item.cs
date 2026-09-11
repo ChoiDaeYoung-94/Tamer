@@ -16,11 +16,18 @@ public class Item : MonoBehaviour
     private bool _isItem;
     private bool _isUnlocked;
     private bool _isEquipped;
+    private ShopMan _shopOwner;
 
     private void Awake()
     {
-        ShopMan.Instance.ItemList.Add(this);
+        _shopOwner = ShopMan.Instance;
+        _shopOwner.ItemList.Add(this);
         Init();
+    }
+
+    private void OnDestroy()
+    {
+        if (_shopOwner != null) _shopOwner.ItemList.Remove(this);
     }
 
     public void Init()
@@ -52,10 +59,10 @@ public class Item : MonoBehaviour
     private void UpdateItemUI()
     {
         string itemInfo = GetItemInfo();
+        _lockIcon.SetActive(!_isUnlocked);
 
         if (_isUnlocked)
         {
-            _lockIcon.SetActive(false);
             if (_creatureType == AD.GameConstants.Creatures.Player)
                 itemInfo = _itemName;
         }

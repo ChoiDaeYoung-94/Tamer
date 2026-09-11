@@ -25,7 +25,7 @@ public class BuffingMan : MonoBehaviour
 
     private void OnDestroy()
     {
-        instance = null;
+        if (instance == this) instance = null;
     }
 
     /// <summary>

@@ -450,7 +450,7 @@ public class Player : Creature
     public string SavePrefs(List<string> list, string str, string data, string key)
     {
         if (list.Contains(data))
-            return string.Empty;
+            return str;
 
         if (string.IsNullOrEmpty(str))
             str = $"{data}";
@@ -466,7 +466,7 @@ public class Player : Creature
     public string RemovePrefs(List<string> list, string str, string data, string key)
     {
         if (!list.Contains(data))
-            return string.Empty;
+            return str;
 
         list.Remove(data);
         str = string.Empty;

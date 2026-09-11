@@ -59,7 +59,7 @@ public class Monster : Creature
 
     private void Update()
     {
-        if (!isDie || !NavMeshAgent.enabled)
+        if (!isDie && NavMeshAgent != null && NavMeshAgent.isActiveAndEnabled && NavMeshAgent.isOnNavMesh)
             MonsterAI();
     }
 
@@ -667,8 +667,13 @@ public class Monster : Creature
 
     public void StartDetection()
     {
-        if (_detectionTokenSource != null)
-            DetectionLoop(_detectionTokenSource.Token).Forget();
+        if (_detectionTokenSource == null) return;
+        // Role changes may start detection again, including after capture.
+        // Retire the previous loop before binding the current role.
+        _detectionTokenSource.Cancel();
+        _detectionTokenSource.Dispose();
+        _detectionTokenSource = new CancellationTokenSource();
+        DetectionLoop(_detectionTokenSource.Token).Forget();
     }
 
     private void BaseSetting()

@@ -28,6 +28,9 @@ public class FogOfWarRenderer : MonoBehaviour
     private Material upscaleShader;
     private Material blurShader;
     private Material fogOfWarMaterial;
+    private Texture2D _persistentCells;
+    private Texture2D _dynamicCells;
+    private Color[] _cellPixels;
 
     private void Awake()
     {
@@ -56,21 +59,21 @@ public class FogOfWarRenderer : MonoBehaviour
     private void Update()
     {
         fogOfWarMaterial.SetFloat("_UseStatic", 0.3f);
-        Texture2D tex_persistent = CellsToTexture(data.StaticFogCells, data.Grid.CellCount.x, data.Grid.CellCount.y);
-        Texture2D tex_dynamic = CellsToTexture(data.DynamicFogCells, data.Grid.CellCount.x, data.Grid.CellCount.y);
+        _persistentCells = CellsToTexture(data.StaticFogCells, data.Grid.CellCount.x, data.Grid.CellCount.y, _persistentCells);
+        _dynamicCells = CellsToTexture(data.DynamicFogCells, data.Grid.CellCount.x, data.Grid.CellCount.y, _dynamicCells);
         if (Upscale)
         {
             output_dynamic.filterMode = FilterMode.Bilinear;
             output_persistent.filterMode = FilterMode.Bilinear;
-            Process(tex_persistent, output_persistent);
-            Process(tex_dynamic, output_dynamic);
+            Process(_persistentCells, output_persistent);
+            Process(_dynamicCells, output_dynamic);
         }
         else
         {
             output_dynamic.filterMode = FilterMode.Point;
             output_persistent.filterMode = FilterMode.Point;
-            Graphics.Blit(tex_persistent, output_persistent);
-            Graphics.Blit(tex_dynamic, output_dynamic);
+            Graphics.Blit(_persistentCells, output_persistent);
+            Graphics.Blit(_dynamicCells, output_dynamic);
         }
     }
 
@@ -90,11 +93,16 @@ public class FogOfWarRenderer : MonoBehaviour
         FogOfWarPlane.transform.localScale = new Vector3(data.Grid.CellCount.x * data.Grid.CellSize, data.Grid.CellCount.y * data.Grid.CellSize, 1);
         FogOfWarPlane.transform.localPosition = data.Grid.Center;
     }
-    private Texture2D CellsToTexture(HashSet<Vector2Int> input, int width, int height)
+    private Texture2D CellsToTexture(HashSet<Vector2Int> input, int width, int height, Texture2D tex)
     {
-        Texture2D tex = new Texture2D(width, height);
+        if (tex == null || tex.width != width || tex.height != height)
+        {
+            DestroyOwned(tex);
+            tex = new Texture2D(width, height);
+        }
         tex.filterMode = FilterMode.Point;
-        Color[] pixels = new Color[width * height];
+        if (_cellPixels == null || _cellPixels.Length != width * height)
+            _cellPixels = new Color[width * height];
 
         for (int y = 0; y < height; y++)
         {
@@ -104,16 +112,16 @@ public class FogOfWarRenderer : MonoBehaviour
                 var postionInTextureSpace = new Vector2Int(Mathf.FloorToInt(x * data.Grid.CellSize), Mathf.FloorToInt(y * data.Grid.CellSize)) - data.Grid.SizeInt / 2;
                 if (input.Contains(postionInTextureSpace))
                 {
-                    pixels[index] = Color.white;
+                    _cellPixels[index] = Color.white;
                 }
                 else
                 {
-                    pixels[index] = Color.black;
+                    _cellPixels[index] = Color.black;
                 }
             }
         }
 
-        tex.SetPixels(pixels);
+        tex.SetPixels(_cellPixels);
         tex.Apply();
         return tex;
     }
@@ -124,15 +132,43 @@ public class FogOfWarRenderer : MonoBehaviour
         buffer1.filterMode = FilterMode.Bilinear;
         buffer2.filterMode = FilterMode.Bilinear;
 
-        Graphics.Blit(input, buffer1, upscaleShader);
-        for (int i = 1; i <= BlurIterations; i++)
+        try
         {
-            Graphics.Blit(buffer1, buffer2, blurShader, 0);
-            Graphics.Blit(buffer2, buffer1, blurShader, 1);
+            Graphics.Blit(input, buffer1, upscaleShader);
+            for (int i = 1; i <= BlurIterations; i++)
+            {
+                Graphics.Blit(buffer1, buffer2, blurShader, 0);
+                Graphics.Blit(buffer2, buffer1, blurShader, 1);
+            }
+            Graphics.Blit(buffer1, output);
         }
-        Graphics.Blit(buffer1, output);
-        RenderTexture.ReleaseTemporary(buffer1);
-        RenderTexture.ReleaseTemporary(buffer2);
+        finally
+        {
+            RenderTexture.ReleaseTemporary(buffer1);
+            RenderTexture.ReleaseTemporary(buffer2);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        DestroyOwned(_persistentCells);
+        DestroyOwned(_dynamicCells);
+        if (output_dynamic != null) output_dynamic.Release();
+        if (output_persistent != null) output_persistent.Release();
+        DestroyOwned(output_dynamic);
+        DestroyOwned(output_persistent);
+        DestroyOwned(upscaleShader);
+        DestroyOwned(blurShader);
+        DestroyOwned(fogOfWarMaterial);
+        DestroyOwned(FogOfWarPlane);
+        _cellPixels = null;
+    }
+
+    private static void DestroyOwned(Object target)
+    {
+        if (target == null) return;
+        if (Application.isPlaying) Destroy(target);
+        else DestroyImmediate(target);
     }
 
     public void SetBlurIterations(float value)

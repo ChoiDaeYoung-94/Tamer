@@ -21,7 +21,7 @@ public class Portal : MonoBehaviour
 
     private void OnDestroy()
     {
-        _instance = null;
+        if (_instance == this) _instance = null;
     }
 
     #region Functions
