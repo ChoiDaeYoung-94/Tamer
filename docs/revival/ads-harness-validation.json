@@ -1,0 +1,79 @@
+{
+  "date": "2026-09-11",
+  "sourceCommit": "643954780f2ce3e8544c9ce94fa312dafb7cf48c",
+  "checkout": "e5e5/Tamer",
+  "unity": "6000.0.81f1",
+  "unityCli": "1.0.0-beta.8",
+  "googleMobileAdsUnity": "11.5.0",
+  "androidGma": "25.4.0",
+  "androidUmp": "4.0.0",
+  "editMode": {
+    "filter": "Revival",
+    "passed": 249,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "Runtime trace change tested; subsequent UI/builder refinements compiled in final APKs"
+  },
+  "assetsVerified": 4561,
+  "assetsCopied": 0,
+  "guidAudit": {
+    "files": 132,
+    "unresolved": 0
+  },
+  "artifacts": [
+    {
+      "variant": "sample",
+      "bytes": 110122561,
+      "sha256": "800cd31ec746f22aeb8c3f426e8a05bef786b079ba683b36585a7e8b6077210e",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.ads",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": true,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    },
+    {
+      "variant": "control",
+      "bytes": 63583489,
+      "sha256": "083e5556faa1f99ef91c4e94dd905127e83006baaa87ceada0e52a9da374ac73",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.adscontrol",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": false,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    }
+  ],
+  "settingsRestoration": {
+    "sdkSettingsManifestPlayerSettingsSceneTemplate": "byte snapshots restored",
+    "resolverCache": "restored manually, then added to wrapper snapshot list",
+    "remainingEditorSerialization": "restored",
+    "ownEditorProcessesAtSlotReturn": 0
+  },
+  "negativeVerification": "sample APK rejected when checked as control",
+  "deviceExecution": {
+    "status": "not_run",
+    "reason": "No bootable device after SDK emulator attempts",
+    "sampleAdLoad": "not_run",
+    "nativeCloseAtFiveSeconds": "not_run",
+    "rewardAndBgm": "not_run",
+    "networkObservation": "not_run"
+  },
+  "productionAdsEnabled": false,
+  "consoleWrites": false,
+  "storeSubmission": false
+}
