@@ -86,7 +86,9 @@ public class BuffingMan : MonoBehaviour
         if (!_rewardAvailable || AD.Managers.GoogleAdMobM.IsInProgress) return;
         AD.Managers.GoogleAdMobM.ShowRewardedAd(this, OnAdSuccess, outcome =>
         {
-            if (outcome == RewardedAdOutcome.Rewarded) return;
+            // An older impression may deliver its earned event after this request
+            // started. Its active buff must not be re-enabled by this cancellation.
+            if (outcome == RewardedAdOutcome.Rewarded || !_rewardAvailable) return;
             SetAdmobState(true);
             _admobTextMesh.text = outcome == RewardedAdOutcome.PolicyBlocked ? _pausedAdMessage
                 : outcome == RewardedAdOutcome.Cancelled ? RewardPrompt() : _failedAdMessage;

@@ -184,17 +184,17 @@ namespace AD
         {
             var player = Player.Instance;
             if (player == null || GoogleAdMobM.IsInProgress) return;
-            GoogleAdMobM.ShowRewardedAd(player, player.Heal, outcome =>
+            GoogleAdMobM.ShowRewardedAd(player, () =>
             {
-                if (outcome == RewardedAdOutcome.Rewarded)
-                {
-                    _popupHeal.SetActive(false);
-                    return;
-                }
+                player.Heal();
+                if (this != null && _popupHeal != null) _popupHeal.SetActive(false);
+            }, outcome =>
+            {
+                if (outcome == RewardedAdOutcome.Rewarded || this == null) return;
                 SetHealMessage(outcome == RewardedAdOutcome.PolicyBlocked
                     ? "Ad healing is currently unavailable. You can keep playing."
                     : outcome == RewardedAdOutcome.Cancelled
-                        ? "Ad closed without a reward. You can keep playing."
+                        ? "Ad closed. You can keep playing."
                         : "Ad is not ready. Please try again shortly.");
                 _popupHeal.SetActive(true);
             });

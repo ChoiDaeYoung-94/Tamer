@@ -30,6 +30,7 @@ namespace AD
         private bool _subscribed;
         private volatile bool _destroyed;
         private int _loadVersion;
+        private int _sceneVersion;
         private float _loadDeadline;
 
         public bool IsInProgress => _session != null;
@@ -79,9 +80,9 @@ namespace AD
                 }
                 catch (Exception exception) { Debug.LogException(exception); }
             }
-            // The Editor placeholder reports close then reward in the same callback
-            // batch (Android Google inventory reports reward then close). Settle only
-            // after draining both, while keeping the fullscreen lock throughout.
+            // Drain a same-frame reward/close batch before releasing fullscreen state.
+            // Android's separate callback threads may still deliver an earned reward
+            // in a later frame; that receipt is independent of presentation cleanup.
             var closing = _closingSession;
             _closingSession = null;
             if (closing != null)
@@ -197,10 +198,7 @@ namespace AD
         {
             if (_destroyed || IsInProgress || owner == null || reward == null || finished == null) return false;
             Init();
-            int sceneHandle = UnitySceneManager.GetActiveScene().handle;
-            var session = new RewardedAdSession(
-                () => !_destroyed && owner != null && UnitySceneManager.GetActiveScene().handle == sceneHandle,
-                reward, finished);
+            var session = CreateSession(owner, reward, finished);
             _session = session;
 
             if (HasNoAds)
@@ -252,7 +250,11 @@ namespace AD
         private void CompleteSession(RewardedAdSession session, RewardedAdOutcome outcome)
         {
             // Stale callbacks cannot clear a newer session or resume its music.
-            if (_session != session) return;
+            if (_session != session)
+            {
+                if (outcome == RewardedAdOutcome.Failed) session.Invalidate();
+                return;
+            }
             _session = null;
             _closingSession = null;
             var shownAd = _showingAd;
@@ -273,11 +275,23 @@ namespace AD
             if (_session == session) _closingSession = session;
         }
 
+        private RewardedAdSession CreateSession(MonoBehaviour owner, Action reward,
+            Action<RewardedAdOutcome> finished)
+        {
+            int sceneHandle = UnitySceneManager.GetActiveScene().handle;
+            int sceneVersion = _sceneVersion;
+            return new RewardedAdSession(
+                () => !_destroyed && owner != null && _sceneVersion == sceneVersion &&
+                    UnitySceneManager.GetActiveScene().handle == sceneHandle,
+                reward, finished);
+        }
+
         private void OnSceneChanged(Scene previous, Scene next)
         {
             // Invalidate the receipt but keep the fullscreen lock until real close/failure.
             // Destroy() is not a reliable way to dismiss native fullscreen UI.
-            _session?.Complete(RewardedAdOutcome.Cancelled);
+            _sceneVersion++;
+            _session?.Invalidate();
         }
 
         private void DestroyLoadedAd()
