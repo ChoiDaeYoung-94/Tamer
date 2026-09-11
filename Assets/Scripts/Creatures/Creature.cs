@@ -133,6 +133,8 @@ public abstract class Creature : MonoBehaviour
 
     protected void StartBattle()
     {
+        // Pool activation and ally setup can both start battle on the same object.
+        StopBattle();
         _battleTokenSource = new CancellationTokenSource();
         _monitorTargetDistanceTokenSource = new CancellationTokenSource();
 

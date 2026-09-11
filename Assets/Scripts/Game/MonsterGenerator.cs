@@ -75,7 +75,8 @@ public class MonsterGenerator : MonoBehaviour
     #region set monsters
     /// <summary>
     /// 몬스터는 최대 15마리 세팅
-    /// 플레이어 주위에는 5개의 그룹이 존재하며 각 그룹의 최대 객체수는 3
+    /// 한 번에 최대 5개 그룹, 각 그룹은 지휘관 1마리와 추종자 1~3마리.
+    /// 실제 생성 수로 남은 예산을 제한한다 (보스는 별도).
     /// </summary>
     private void SpawnMonsters(int region)
     {
@@ -89,12 +90,15 @@ public class MonsterGenerator : MonoBehaviour
 
             for (int j = 0; j < groupMaxCount; j++)
             {
-                int groupSize = UnityEngine.Random.Range(1, 4);
+                int groupSize = GetFollowerCount(_maxMonsters - _activeMonsters.Count,
+                    UnityEngine.Random.Range(1, 4));
+                if (groupSize == 0)
+                    break;
 
                 int temp_random = UnityEngine.Random.Range(range.min, range.max + 1);
                 string temp_name = Enum.GetValues(typeof(AD.GameConstants.Creatures)).GetValue(temp_random).ToString();
                 Monster commanderMonster = AD.Managers.PoolM.PopFromPool(temp_name).GetComponent<Monster>();
-                commanderMonster.IsCommander = true;
+                commanderMonster.SetEnemyRole(true);
                 commanderMonster.StartDetection();
                 commanderMonster.transform.position = SetPosition();
 
@@ -119,6 +123,12 @@ public class MonsterGenerator : MonoBehaviour
             AD.DebugLogger.LogError("MonsterGenerator", "Invalid region number");
     }
 
+    private static int GetFollowerCount(int remaining, int requested)
+    {
+        // Reserve one slot for the commander; never create an empty group.
+        return remaining < 2 ? 0 : Math.Min(Math.Min(requested, 3), remaining - 1);
+    }
+
     private void SetBoss(int region)
     {
         if (region != 4 && BossMonster)
@@ -132,7 +142,7 @@ public class MonsterGenerator : MonoBehaviour
             BossMonster = AD.Managers.PoolM.PopFromPool("FylingDemon");
 
             Monster boss = BossMonster.GetComponent<Monster>();
-            boss.IsCommander = true;
+            boss.SetEnemyRole(true, true);
             boss.StartDetection();
 
             BossMonster.transform.position = new Vector3(-40f, 2f, 20f);
