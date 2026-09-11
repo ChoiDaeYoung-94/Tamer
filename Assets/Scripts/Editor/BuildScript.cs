@@ -250,6 +250,8 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     [UnityEditor.Callbacks.DidReloadScripts]
     private static void CheckCI()
     {
+        // Batch tests/builds must never resume the legacy production build route.
+        if (Application.isBatchMode) return;
         if (File.Exists(CHECK_AOS_SETTING_APK) || File.Exists(CHECK_AOS_SETTING_AAB))
             EditorCoroutine.StartCoroutine(CheckCompiling());
     }
@@ -260,6 +262,7 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     public int callbackOrder { get { return 0; } }
     public void OnPostprocessBuild(BuildReport report)
     {
+        if (Application.isBatchMode) return;
         if (File.Exists(CHECK_BUILD))
         {
             File.Delete(CHECK_BUILD);

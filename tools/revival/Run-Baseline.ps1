@@ -5,6 +5,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path
+foreach ($marker in @('Build/AOSSettingAPK.txt', 'Build/AOSSettingAAB.txt', 'Build/checkedBuilding.txt')) {
+    if (Test-Path -LiteralPath (Join-Path $ProjectPath $marker)) { throw "Legacy build marker exists: $marker" }
+}
 if (!(Test-Path -LiteralPath $EditorPath)) { throw "Editor missing: $EditorPath" }
 # Do not compete with a resident editor. Never terminate another project's editor.
 $running = Get-CimInstance Win32_Process -Filter "name = 'Unity.exe'" | Where-Object {

@@ -8,10 +8,11 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 guid_pattern = re.compile(r'guid: ([0-9a-f]{32})')
+definition_pattern = re.compile(r'^guid: ([0-9a-f]{32})\s*$', re.MULTILINE)
 known = set()
 for folder in ('Assets', 'Packages', 'Library/PackageCache'):
     for path in (root / folder).rglob('*.meta'):
-        known.update(guid_pattern.findall(path.read_text(encoding='utf-8-sig', errors='replace')))
+        known.update(definition_pattern.findall(path.read_text(encoding='utf-8-sig', errors='replace')))
 missing = {}
 checked = 0
 for folder in ('Assets/Scenes', 'Assets/Prefabs', 'Assets/Resources', 'Assets/Art', 'Assets/Materials', 'Assets/Animations', 'Assets/Settings'):
