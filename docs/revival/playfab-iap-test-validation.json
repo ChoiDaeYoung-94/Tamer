@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "e0f87800b4d7c94b7c28dc884b9b2f98431a24a9",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7b9b/Tamer",
+  "unity": "6000.0.81f1",
+  "iap": "5.4.3",
+  "unityCli": "1.0.0-beta.8",
+  "editorTests": {"passed": 361, "failed": 0, "skipped": 0, "seconds": 4.6079884, "newPlayFabPolicyCases": 6},
+  "xmlSha256": "6b31b5fd5ab15a91a1cc54ef5fb6100700fdd767be7b791f70840315b80f248b",
+  "firstPartyFiles": 116,
+  "missingMeta": 0,
+  "ownEditorsAfterRun": 0,
+  "settingsRestored": true,
+  "testTitle": {"created": true, "name": "Tamer IAP Test", "newPlayerNamespace": true, "mode": "development", "initialPlayers": 0},
+  "googleTestAppCreated": false,
+  "externalPurchaseValidationPerformed": false,
+  "unverified": ["Google test app and product setup", "PlayFab Google add-on and permanent test catalog", "test login and actual license-test purchase", "isolated app composition", "Legacy API obfuscated-account binding and TEST-only equivalence"]
+}

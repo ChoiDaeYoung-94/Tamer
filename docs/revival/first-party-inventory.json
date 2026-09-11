@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "37128bd2517afcaa8d263e6b499515ed9d68101c",
+  "sourceCommit": "e0f87800b4d7c94b7c28dc884b9b2f98431a24a9",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -993,6 +993,20 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/PlayFabIapReceiptVerifier.cs",
+      "kind": "runtime",
+      "lines": 102,
+      "declaredTypes": [
+        "PlayFabIapReceiptVerifier",
+        "Receipt",
+        "Payload",
+        "Purchase"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/Privacy/DeletionFlow.cs",
       "kind": "runtime",
       "lines": 169,
@@ -1044,6 +1058,18 @@
         "PurchaseDeliveryState",
         "PurchaseFulfillmentResult",
         "NoAdsPurchaseFulfillment"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/Purchasing/PlayFabNoAdsVerification.cs",
+      "kind": "runtime",
+      "lines": 36,
+      "declaredTypes": [
+        "PlayFabReceiptOutcome",
+        "PlayFabNoAdsVerification"
       ],
       "managerReferences": [],
       "singletonReferences": [],
@@ -1284,6 +1310,17 @@
       "singletonReferences": [
         "BindingFlags"
       ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/IAP/RevivalPlayFabReceiptTests.cs",
+      "kind": "tests",
+      "lines": 50,
+      "declaredTypes": [
+        "RevivalPlayFabReceiptTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
       "metaPresent": true
     },
     {
