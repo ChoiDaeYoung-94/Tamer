@@ -1,0 +1,43 @@
+{
+  "sourceCommit": "b0d3bd2bba1a582998fdc0ecbfeb514030118015",
+  "checkout": "C:\\Users\\pc_17\\.codex\\worktrees\\7299\\Tamer",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "android": {
+    "targetSdk": 36,
+    "architecture": "ARM64",
+    "buildExecuted": false
+  },
+  "execution": "Run-Baseline.ps1 -TestsOnly; Revival EditMode",
+  "result": {
+    "id": "2",
+    "testcasecount": "283",
+    "result": "Passed",
+    "total": "283",
+    "passed": "283",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-11 07:20:51Z",
+    "end-time": "2026-09-11 07:20:54Z",
+    "duration": "3.3293259"
+  },
+  "xmlSha256": "108daa954faccca202e1ca89aea669eb40420590453e7f71602204cc5092bf65",
+  "assetsVerified": 4561,
+  "guidAudit": {
+    "checked": 132,
+    "unresolved": 0
+  },
+  "newServiceRegressionTests": 11,
+  "ownEditorAfterTests": 0,
+  "playerSettingsSnapshotRestored": true,
+  "initialRun": "281/283; two inactive UI fixtures assumed eager server construction; fixed by explicit constructor injection without requests",
+  "notExecuted": [
+    "Production login, save, purchase or ads",
+    "Android build/device test; APK SHA-256 not applicable",
+    "Production Main/Game scene roundtrip"
+  ]
+}
