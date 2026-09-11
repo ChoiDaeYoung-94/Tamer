@@ -1,7 +1,7 @@
 # Tamer 개발·검증 안내
 
 이 문서는 Windows PowerShell 기준이다. 현재 동작하는 복구 도구와 확인된 한계를 설명한다.
-실행 결과는 [기준 빌드 기록](revival/baseline.ko.md), 단계별 작업은 [로드맵](revival/plan.ko.md)을 따른다.
+최신 실행 결과와 남은 작업은 [통합 검증 요약](revival/completion-summary.ko.md)과 [통합 데이터](revival/integration-validation.json), 초기 이력은 [기준 빌드 기록](revival/baseline.ko.md), 단계별 추적은 [로드맵](revival/plan.ko.md)을 따른다.
 
 ## 1. 새 작업본 준비
 
@@ -37,22 +37,22 @@ CLI 설치기는 공식 manifest와 고정 SHA-256을 확인하고 프로젝트�
 프로젝트별 `Library`를 독립 생성한다. 다른 checkout의 Library를 복사하거나 공유하지 않는다. 처음 import와 Android IL2CPP 빌드는 오래 걸릴 수 있다. 여러 작업을 병렬 진행할 때는 무거운 import/build 실행 시간을 조정한다.
 
 ```powershell
-# 빠른 복원 도구 회귀 검사
-python -m unittest discover -s tools/revival -p 'test_*.py'
-if ($LASTEXITCODE -ne 0) { throw '복원 테스트 실패' }
-
 # 이 checkout의 Editor를 닫은 다음 실행한다.
+# 테스트만 필요한 경우:
 ./tools/revival/Run-Baseline.ps1 -TestsOnly
-./tools/revival/Run-Baseline.ps1
 
-# PackageCache가 만들어진 뒤 외부 GUID 참조를 검사한다.
-python tools/revival/audit_guids.py
-if ($LASTEXITCODE -ne 0) { throw '미해결 GUID가 있습니다.' }
+# 전체 검증이 필요한 경우(위 테스트를 별도로 반복할 필요 없음):
+./tools/revival/Run-SdkValidation.ps1
+
+# 공식 가이드의 추가 RELRO 조건은 별도로 확인한다.
+python tools/revival/verify_native_alignment.py --strict-relro --output Logs/revival/native-alignment-strict.json
 git status --short
 git diff --check
 ```
 
-전체 `Run-Baseline.ps1`은 복원 검증 → EditMode 테스트 → 격리 Android 개발 APK 빌드 → APK 메타데이터·서명 검사를 순서대로 수행한다. 전체 검증을 실행할 때 `-TestsOnly`를 별도로 반복할 필요는 없다. 기본 Editor 경로가 다르면 `-EditorPath 'C:/path/to/Editor/Unity.exe'`를 전달한다. 테스트는 고정 버전으로 Editor를 찾고 빌드는 지정한 실행 파일을 사용한다.
+전체 `Run-SdkValidation.ps1`은 Python 회귀 → `Run-Baseline.ps1`의 복원 검증·EditMode·격리 APK 빌드·메타데이터/서명 검사 → GUID → 네이티브 LOAD/ZIP 검사를 순서대로 수행한다. 기본 Editor 경로가 다르면 `-EditorPath 'C:/path/to/Editor/Unity.exe'`를 전달한다. 테스트는 고정 버전으로 Editor를 찾고 빌드는 지정한 실행 파일을 사용한다.
+
+전체 스크립트 성공은 추가 RELRO 검사 통과를 뜻하지 않는다. 최종 통합 APK의 `--strict-relro`는 5개 끝 주소 조건 실패로 종료 코드 1이며, 실제 16KB 기기·AAB 검증도 남아 있다. 판정 범위는 [네이티브 검사 문서](revival/native-alignment.ko.md)를 따른다.
 
 | 결과 | 확인 위치 |
 | --- | --- |
@@ -61,6 +61,7 @@ git diff --check
 | APK | `Build/revival/Tamer-development.apk` |
 | APK 해시·ID·API·ABI·debug 서명 | `Logs/revival/apk-verification.json` |
 | 자체 YAML 외부 GUID 검사 | `Logs/revival/guid-audit.json` |
+| 네이티브 LOAD/ZIP 및 별도 RELRO | `Logs/revival/native-alignment.json`, `native-alignment-strict.json` |
 
 검증 APK의 첫 씬은 게임 스크립트가 없는 `RevivalSmoke`다. 기존 게임 씬 5개도 빌드에 포함하지만 자동으로 운영 로그인·저장·구매·광고에 진입하지 않는다. 개발 빌드는 별도 앱 ID와 debug 서명을 사용하므로 운영 앱/진행도와 분리된다. 기존 `src/AeDeong.keystore`를 수정·교체하지 않는다.
 
