@@ -145,6 +145,17 @@ namespace AD
             _popupHeal.SetActive(true);
         }
 
+        /// <summary>Close a specific popup without consuming a newer popup above it.</summary>
+        public void ClosePopup(GameObject target)
+        {
+            if (target == null) return;
+            var openPopups = _popupStack.ToArray();
+            _popupStack.Clear();
+            for (int index = openPopups.Length - 1; index >= 0; index--)
+                if (openPopups[index] != target) _popupStack.Push(openPopups[index]);
+            target.SetActive(false);
+        }
+
         private GoogleAdMobManager GoogleAdMobM => Managers.GoogleAdMobM;
 
         private void SetHealMessage(string message)
@@ -187,7 +198,7 @@ namespace AD
             GoogleAdMobM.ShowRewardedAd(player, () =>
             {
                 player.Heal();
-                if (this != null && _popupHeal != null) _popupHeal.SetActive(false);
+                if (this != null) ClosePopup(_popupHeal);
             }, outcome =>
             {
                 if (outcome == RewardedAdOutcome.Rewarded || this == null) return;

@@ -19,16 +19,15 @@ public class RevivalAdManagerTests
     private Component manager;
     private Scene previousScene;
     private Scene testScene;
-    private Scene changedScene;
 
     [SetUp]
     public void SetUp()
     {
         managerType = FindType("AD.GoogleAdMobManager");
-        changedScene = default;
         previousScene = SceneManager.GetActiveScene();
-        testScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-        SceneManager.SetActiveScene(testScene);
+        // A preview scene isolates objects without saving/replacing the user's scene
+        // or failing when the batch runner's active scene is untitled.
+        testScene = EditorSceneManager.NewPreviewScene();
         var root = new GameObject("Revival isolated ad manager");
         SceneManager.MoveGameObjectToScene(root, testScene);
         manager = root.AddComponent(managerType);
@@ -39,12 +38,8 @@ public class RevivalAdManagerTests
     {
         if (manager != null)
             UnityEngine.Object.DestroyImmediate(manager.gameObject);
-        if (previousScene.IsValid() && previousScene.isLoaded)
-            SceneManager.SetActiveScene(previousScene);
-        if (changedScene.IsValid() && changedScene.isLoaded)
-            EditorSceneManager.CloseScene(changedScene, true);
         if (testScene.IsValid() && testScene.isLoaded)
-            EditorSceneManager.CloseScene(testScene, true);
+            EditorSceneManager.ClosePreviewScene(testScene);
     }
 
     [TestCase(RewardedAdOutcome.Cancelled, true, RewardedAdOutcome.Rewarded)]
@@ -219,11 +214,10 @@ public class RevivalAdManagerTests
         Install(session, () => { });
         Invoke("CompleteSession", session, RewardedAdOutcome.Cancelled);
 
-        changedScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-        SceneManager.SetActiveScene(changedScene);
-        Invoke("OnSceneChanged", testScene, changedScene);
-        SceneManager.SetActiveScene(testScene);
-        Invoke("OnSceneChanged", changedScene, testScene);
+        // Deliver A -> B -> A notifications. The active handle matches A at receipt
+        // time, so only the captured scene generation can reject the late reward.
+        Invoke("OnSceneChanged", previousScene, testScene);
+        Invoke("OnSceneChanged", testScene, previousScene);
         Enqueue(session.EarnReward);
         Invoke("Update");
 
@@ -418,22 +412,19 @@ public class RevivalAdManagerTests
     [Test]
     public void Revival_SceneChangeInvalidatesRewardButKeepsLockUntilNativeClose()
     {
-        var originalHandle = testScene.handle;
         var resumes = 0;
         var rewards = 0;
         var completions = 0;
         var session = new RewardedAdSession(
-            () => SceneManager.GetActiveScene().handle == originalHandle,
+            () => true,
             () => rewards++, _ => completions++);
         session.EarnReward();
         Install(session, () => resumes++);
         Invoke("Init");
 
-        changedScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-        SceneManager.SetActiveScene(changedScene);
-        // The runtime activeSceneChanged event is Play-mode-only. Deliver the same
-        // handler after changing real scene handles in this EditMode test.
-        Invoke("OnSceneChanged", testScene, changedScene);
+        // Runtime activeSceneChanged is Play-mode-only. Invoke the production handler
+        // with isolated scene handles without replacing the runner's active scene.
+        Invoke("OnSceneChanged", previousScene, testScene);
 
         Assert.That(session.IsCompleted, Is.False);
         Assert.That(Get<RewardedAdSession>("_session"), Is.SameAs(session));
