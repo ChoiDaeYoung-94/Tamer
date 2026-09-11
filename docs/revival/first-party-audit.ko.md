@@ -1,13 +1,20 @@
 # 자체 C# 파일별 감사 진행표
 
-범위: 추적 중인 Assets/Scripts, Assets/Tests, Assets/GPGSIds.cs의 105개 파일. SDK 디렉터리는 별도 공급망 감사 범위다. Scripts/MiniMap/FogOfWar는 출처만으로 제외하지 않고 포함한다. 신규 파일은 통합 시 inventory를 다시 생성해 추가한다.
+범위: 추적 중인 Assets/Scripts, Assets/Tests, Assets/GPGSIds.cs의 112개 파일. SDK 디렉터리는 별도 공급망 감사 범위다. Scripts/MiniMap/FogOfWar는 출처만으로 제외하지 않고 포함한다. 신규 파일은 통합 시 inventory를 다시 생성해 추가한다.
 
-아래 의존성은 소스의 lexical 참조이며 전체 호출 그래프가 아니다. 최신 통합 기준은 `e66acbcc745d8489339e6661393a1722d9aad1b8`이고 Editor 335/335를 통과했다. 기존 98개 감사와 317/332 결과의 실행 시점은 각 근거에 유지하며, UMP 3개·격리 gameplay 4개 신규 파일을 추가했다. 실제 기기 APK 소스는 `f2ab1d9`로 통합 Editor 소스와 구분한다.
+아래 의존성은 소스의 lexical 참조이며 전체 호출 그래프가 아니다. 최신 inventory 통합 기준은 `9623e648a20816d3c47663bc3833b99a63d8c20d`이다. 삭제 core/UI가 포함된 `fff397e1eae26266c415212e4a80011c180d5cbf`에서 Editor 355/355를 통과했고 병합까지 해당 C# 소스 차이는 없다. 기존 98개 감사와 317/332/335 결과의 실행 시점은 각 근거에 유지하며, UMP 3개·격리 gameplay 4개·삭제 core/UI/tests 7개 신규 파일을 추가했다. 실제 기기 APK 소스는 `f2ab1d9`로 통합 Editor 소스와 구분한다. 삭제 UI의 실제 프리팹 렌더 3장을 독립 검토했으며 운영 삭제 연결과 Android 실행은 미검증이다.
 
 근거: [통합 317/317](gameplay-followup-validation.json), [gameplay 판단](gameplay-followup-audit.ko.md), [UI 감사](refactor-ui-audit.ko.md), [서비스와 테스트 감사](refactor-services-audit.ko.md), [영수증 검증](receipt-verification.ko.md). SDK 담당은 IAPManager/지급 core/검증 core/HTTP transport와 IAP 테스트 4파일의 전체 본문·격리 경로를 확인했고, 통합 담당은 해당 변경과 owner 불일치 수정·회귀를 검토했다.
 
 | 파일 | 책임 | 참조(Managers / Singleton) | 담당·판단 | 회귀·검증 |
 | --- | --- | --- | --- | --- |
+| `Assets/Scripts/Privacy/DeletionFlow.cs` | 삭제 요청·재인증·상태 전이와 세션 소유권 |  /  | 서비스/통합: 중복 요청, 늦은 응답, 완료 증거 누락 차단; 기본 gateway 비활성 | PR132; core12 포함 Editor355; account-deletion-validation.json |
+| `Assets/Scripts/Privacy/SyntheticDeletionGateway.cs` | 메모리 합성 삭제 대역 |  /  | 서비스/통합: Editor/dev 제한, synthetic 계정만 허용, 운영 파일·계정 호출 없음 | PR132; core12 포함 Editor355 |
+| `Assets/Scripts/UI/DeletionPresenter.cs` | 삭제 화면 상태·버튼·재시도 의도 |  /  | UI/통합: 닫기 시 흐름 해제, owner 확인, 실제 삭제 완료를 주장하지 않음 | PR133; UI8 포함 Editor355; deletion-ui-validation.json |
+| `Assets/Scripts/UI/DeletionSettingsEntry.cs` | 기존 설정에서 삭제 화면 진입 |  /  | UI/통합: 멱등 생성, prefab 직렬화 보존 | PR133; 진입 멱등 회귀 및 실제 프리팹 렌더 |
+| `Assets/Scripts/UI/DeletionView.cs` | 삭제 안내와 버튼 배치 |  /  | UI/통합: 줄바꿈·상태별 버튼·기본 비활성 표시 | PR133; 1080×1920 화면 3장 독립 시각 검토 |
+| `Assets/Tests/Editor/Privacy/RevivalDeletionFlowTests.cs` | 삭제 core 경계 회귀 |  /  | 서비스/통합: 재시도·세션 교체·중복·완료 증거를 합성 대역으로 검증 | 12개; Editor355 통과 |
+| `Assets/Tests/Editor/DeletionUI/RevivalDeletionUITests.cs` | 삭제 UI 수명·작업 의도·렌더 회귀 |  /  | UI/통합: 카메라 부모 문제 수정 후 batch 재실행, 기기 입력과 구분 | 8개; 최종 Editor355 통과 |
 | `Assets/GPGSIds.cs` | 생성된 GPGS 식별자 계약 |  /  | 통합: 유지, 생성 파일/기존 플랫폼 식별자를 재작성하지 않음 | 기존 플랫폼 구성 검사 |
 | `Assets/Scripts/Advertising/AdEntitlement.cs` | No Ads 토큰 판정 |  /  | 통합: 정확한 저장 토큰 일치와 null/빈 값 계약 유지 | RevivalAdEntitlementTests; 통합317 |
 | `Assets/Scripts/Advertising/AdRequestPolicy.cs` | 테스트 광고 요청·공식 sample ID 제한 |  /  | 통합: batch/production 차단 및 명시적 Android test 조건 유지 | RevivalAdRequestPolicyTests; 통합317; UMP PR128/332 및 통합335; gameplay 빌드에서는 항상 false |
