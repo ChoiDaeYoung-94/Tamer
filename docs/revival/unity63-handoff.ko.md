@@ -1,5 +1,7 @@
 Unity 6.3 설치 재개 인계 (2026-09-11)
 
+현재 사용자 방침은 **Unity 6000.0.81f1 유지, 6.3 설치 보류**다. 아래 내용은 이전 설치 시도의 보관 기록이며 현재 실행해야 할 필수 단계가 아니다. 실제 검증에서 Unity 버전으로 인한 차단이 확인된 경우에만 그 근거와 함께 설치 재개 승인을 요청한다.
+
 대상은 **Unity 6000.3.24f1 LTS, Windows x86_64, 리비전 `4e7b9b5b6244`**와 Android Build Support 및 하위 모듈이다. Editor 다운로드와 검증은 완료됐지만, 공식 Windows 설치기의 관리자 승인 단계에서 `ELEVATION_CANCELLED`로 종료됐다. Editor와 Android 모듈은 아직 설치되지 않았다. 기존 6000.0 Editor와 프로젝트는 변경하지 않았으며, 임시 설치 경로 설정은 원래 값으로 복원했다.
 
 캐시 파일은 PowerShell 기준 `Join-Path $env:APPDATA 'UnityHub\downloads\UnitySetup64-6000.3.24f1.exe'`에 있다.
