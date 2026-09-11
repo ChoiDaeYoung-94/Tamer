@@ -18,6 +18,8 @@ Unity `6000.0.81f1`, IAP `5.4.3`, PlayFab `2.242.260805`를 유지한다. 기존
 
 서버 확인/권한 기록이 실패하면 새 권한과 acknowledgement가 모두 보류된다. No Ads는 비소비 상품이므로 consume API를 호출하지 않는다. 이 구현의 서버는 acknowledgement/환불/계정 데이터 쓰기를 호출하지 않고, 확인은 기존 Unity IAP 경로가 담당한다. 오래된 binding 없는 구매의 최초 귀속은 자동 허용하지 않으며 기존 저장 권한은 유지한다.
 
+PlayFabId와 token 해시도 계정·거래에 연결되는 식별자이며 익명 데이터가 아니다. opt-in 활성화 전에 접근 통제와 보관·삭제 정책 및 개인정보 고지를 확정해야 한다.
+
 ## 로컬 재현
 
 2026-09-11 소스 `50ec779373d478e7b263418bef540c86d62e53a1`에서 Unity EditMode **261/261**(신규 receipt 12개), Python **88/88**(서버 13개), 에셋 복원 4,561개 및 YAML GUID 132개 미해결 0을 확인했다. `Run-Baseline -TestsOnly` 종료 0이며 APK는 새로 빌드하지 않았다. [정확한 검증 데이터](receipt-verification-validation.json)
