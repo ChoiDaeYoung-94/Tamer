@@ -19,15 +19,8 @@ namespace AD
     /// <summary>
     /// 로그인 관리 클래스 (PlayFab, Google Play)
     ///
-    /// 어떤 상황에서도 게임 진입이 막히지 않도록 다단계 fallback을 사용한다.
-    /// 1) Google Play Games 자동 로그인
-    /// 2) Google Play Games 수동 로그인 (계정 선택 UI 노출)
-    /// 3) 이전에 성공했던 Google Play id 캐시로 PlayFab 로그인 (기존 계정 유지)
-    /// 4) Android 기기 id 로그인 (CreateAccount)
-    /// 5) 단말에 저장된 Custom id 로그인 (CreateAccount)
-    ///
-    /// 모든 단계에 timeout과 재시도가 걸려 있으며, 최종 실패 시에도 멈추지 않고
-    /// 재시도 패널을 노출한다. (무한 로딩 = 스토어 정책 위반이므로 반드시 회피)
+    /// 저장된 계정 방식과 식별자를 유지한다. 계정 선택이 모호하거나 서버 동기화가
+    /// 실패하면 다른 계정 또는 로컬 진행도로 진입하지 않고 재시도를 노출한다.
     /// </summary>
     public class Login : MonoBehaviour
     {
@@ -58,7 +51,8 @@ namespace AD
         private const string PrefsKeyLoginMode = "AD_LoginMode";
 
         private const string LoginModeGpgs = "gpgs";
-        private const string LoginModeDevice = "device";
+        private const string LoginModeAndroid = "android";
+        private const string LoginModeCustom = "custom";
 
         private static readonly TimeSpan GpgsTimeout = TimeSpan.FromSeconds(20);
         private static readonly TimeSpan ApiTimeout = TimeSpan.FromSeconds(20);
@@ -70,9 +64,8 @@ namespace AD
         #endregion
 
         private CancellationTokenSource _cts;
-        private bool _isLoginRunning;
-        // 닉네임 등록이 필요한 신규 계정인지 (프로필 조회 실패 시 판단 근거로 사용)
-        private bool _isNewAccount;
+        private readonly LoginOperationGate _operations = new LoginOperationGate();
+        private string _selectedGpgsId;
 
         #region Unity Lifecycle
 
@@ -81,13 +74,13 @@ namespace AD
 #if UNITY_ANDROID && !UNITY_EDITOR
             try
             {
-                PlayGamesPlatform.DebugLogEnabled = true;
+                PlayGamesPlatform.DebugLogEnabled = false;
                 PlayGamesPlatform.Activate();
             }
             catch (Exception e)
             {
                 // Activate 실패해도 아래 fallback으로 진입 가능해야 한다
-                LogStep($"PlayGamesPlatform.Activate 실패 -> {e.Message}");
+                LogStep($"PlayGamesPlatform.Activate 실패 -> {e.GetType().Name}");
             }
 #endif
         }
@@ -101,6 +94,8 @@ namespace AD
         private void OnDestroy()
         {
             _cts?.Cancel();
+            if (AD.Managers.Instance != null && !_operations.HasEnteredScene)
+                AD.Managers.DataM.SuspendAccountSession();
             _cts?.Dispose();
             _cts = null;
         }
@@ -111,16 +106,13 @@ namespace AD
 
         private void StartLogin()
         {
-            if (_isLoginRunning)
+            if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginLogin())
             {
                 LogStep("이미 로그인 진행 중 -> 중복 요청 무시");
                 return;
             }
 
-            if (_cts == null || _cts.IsCancellationRequested)
-                return;
-
-            _isLoginRunning = true;
+            AD.Managers.DataM.SuspendAccountSession();
             RunLoginAsync(_cts.Token).Forget();
         }
 
@@ -129,7 +121,7 @@ namespace AD
         /// </summary>
         public void RetryConnection()
         {
-            if (_isLoginRunning)
+            if (_operations.IsRunning)
                 return;
 
             LogStep("사용자 재시도 요청");
@@ -166,6 +158,11 @@ namespace AD
                     return;
                 }
 
+                // A successful initial read is required before any nickname/progress write.
+                AD.Managers.DataM.UpdatePlayerData();
+                if (!await WaitForServerAsync(token))
+                    return;
+
                 await ResolveProfileAsync(token);
             }
             catch (OperationCanceledException)
@@ -175,12 +172,12 @@ namespace AD
             catch (Exception e)
             {
                 // 예외로 인해 로딩 화면에 갇히는 상황을 막는다
-                LogStep($"로그인 처리 중 예외 -> {e}");
+                LogStep($"로그인 처리 중 예외 -> {e.GetType().Name}");
                 ShowRetry("Sign-in failed. Please try again.");
             }
             finally
             {
-                _isLoginRunning = false;
+                _operations.EndOperation();
             }
         }
 
@@ -202,70 +199,58 @@ namespace AD
 
         #region Platform Login
 
-        /// <summary>
-        /// Android 로그인. GPGS가 실패해도 반드시 진입할 수 있도록 단계적으로 fallback 한다.
-        /// </summary>
+        /// <summary>Keep the selected identity; failures never select a different account.</summary>
         private async UniTask<bool> LoginOnAndroidAsync(CancellationToken token)
         {
             string cachedGpgsId = PlayerPrefs.GetString(PrefsKeyGpgsId, string.Empty);
-
-            // 이미 기기 계정으로 플레이 중인 단말은 계속 기기 계정을 사용한다.
-            // (나중에 Google Play를 쓸 수 있게 되어도 계정이 갈라지면 진행 상황이 끊긴다)
-            if (string.IsNullOrEmpty(cachedGpgsId)
-                && PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty) == LoginModeDevice)
-            {
-                LogStep("기기 계정으로 사용 중인 단말 -> 기기 계정 로그인 유지");
+            string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
+            if (mode == "device" && !string.IsNullOrEmpty(cachedGpgsId))
+                return false; // Conflicting legacy selection has no reliable winner.
+            if (LoginContinuityPolicy.IsDeviceMode(mode))
                 return await LoginWithDeviceAsync(token);
-            }
+            if (!string.IsNullOrEmpty(mode) && mode != LoginModeGpgs && mode != "gpgs-pending")
+                return false;
 
-            string gpgsId = await AuthenticateGooglePlayAsync(token);
-
-            if (!string.IsNullOrEmpty(gpgsId))
-            {
-                // 다음 실행에서 GPGS 인증이 실패하더라도 같은 계정으로 진입하기 위해 저장
-                PlayerPrefs.SetString(PrefsKeyGpgsId, gpgsId);
-                PlayerPrefs.Save();
-
-                // 계정이 특정된 상태이므로 실패해도 다른 계정으로 진입시키지 않는다.
-                // (여기서 기기 계정으로 넘어가면 빈 계정으로 들어가 진행 상황이 사라진 것처럼 보인다)
-                return await LoginOrRegisterWithEmailAsync(gpgsId, token);
-            }
-
-            if (!string.IsNullOrEmpty(cachedGpgsId))
-            {
-                // GPGS 인증에 실패해도 PlayFab 자격 증명은 id 문자열만 있으면 되므로
-                // 캐시된 id로 기존 계정에 그대로 로그인한다 (진행 상황 보존)
-                LogStep("GPGS 인증 실패 -> 캐시된 Google Play id로 로그인 시도");
-                return await LoginOrRegisterWithEmailAsync(cachedGpgsId, token);
-            }
-
+            string authenticatedId = await AuthenticateGooglePlayAsync(token);
             if (token.IsCancellationRequested)
                 return false;
 
-            // 이미 플레이한 기록이 있는 단말이라면 기기 계정을 새로 만들지 않는다.
-            // 기존 계정 대신 빈 계정으로 진입하면 진행 상황이 사라진 것처럼 보이므로,
-            // 차라리 재시도를 유도하는 편이 낫다. (이 버전 이전 유저는 id 캐시가 없다)
-            if (HasLocalProgress())
+            string selectedId = LoginContinuityPolicy.SelectGoogleId(cachedGpgsId, authenticatedId);
+            if (!string.IsNullOrEmpty(cachedGpgsId) && !string.IsNullOrEmpty(authenticatedId)
+                && selectedId == null)
             {
-                LogStep("기존 플레이 기록 있음 -> 기기 계정 생성 대신 재시도 유도");
+                LogStep("Google Play account differs from the saved account; retry with the original account.");
                 return false;
             }
 
-            // Google Play 계정을 한 번도 쓴 적이 없는 단말 -> 기기 계정으로라도 진입시킨다
-            LogStep("사용 가능한 Google Play 계정 없음 -> 기기 계정으로 로그인");
+            if (!string.IsNullOrEmpty(selectedId))
+            {
+                bool allowCreate = LoginContinuityPolicy.CanCreateGoogleAccount(mode, HasLocalProgress(),
+                    !string.IsNullOrEmpty(cachedGpgsId));
+                // Pin a first selection before network I/O; a timeout must retry this same identity.
+                _selectedGpgsId = selectedId;
+                if (string.IsNullOrEmpty(cachedGpgsId) && allowCreate)
+                {
+                    PlayerPrefs.SetString(PrefsKeyGpgsId, selectedId);
+                    PlayerPrefs.SetString(PrefsKeyLoginMode, "gpgs-pending");
+                    PlayerPrefs.Save();
+                }
+                return await LoginOrRegisterWithEmailAsync(selectedId, allowCreate, token);
+            }
+
+            if (!string.IsNullOrEmpty(mode) || HasLocalProgress())
+                return false;
+
             return await LoginWithDeviceAsync(token);
         }
 
         /// <summary>
-        /// 이 단말에서 케릭터를 만들어 플레이한 적이 있는지 (Sex는 케릭터 생성 시 저장된다)
+        /// 캐릭터 생성 전 계정/닉네임/구매 기록도 신규 계정 생성 방지 근거로 사용한다.
         /// </summary>
         private static bool HasLocalProgress()
         {
-            var local = AD.Managers.DataM.LocalPlayerData;
-            if (local == null)
-                return false;
-
-            return local.TryGetValue("Sex", out string sex) && !string.IsNullOrEmpty(sex) && sex != "null";
+            return AD.Managers.DataM.HasKnownAccount
+                || LoginContinuityPolicy.HasLocalProgress(AD.Managers.DataM.LocalPlayerData);
         }
 
         /// <summary>
@@ -314,87 +299,86 @@ namespace AD
         /// </summary>
         private async UniTask<SignInStatus> RequestGpgsSignInAsync(bool manual, CancellationToken token)
         {
+            if (token.IsCancellationRequested) return SignInStatus.InternalError;
             SignInStatus status = SignInStatus.InternalError;
-            bool done = false;
-
+            var pending = new LoginCallbackGate();
             try
             {
                 Action<SignInStatus> callback = result =>
                 {
+                    if (!pending.TryComplete(token.IsCancellationRequested)) return;
                     status = result;
-                    done = true;
                 };
-
-                if (manual)
-                    PlayGamesPlatform.Instance.ManuallyAuthenticate(callback);
-                else
-                    PlayGamesPlatform.Instance.Authenticate(callback);
+                if (manual) PlayGamesPlatform.Instance.ManuallyAuthenticate(callback);
+                else PlayGamesPlatform.Instance.Authenticate(callback);
+                if (!await WaitUntilAsync(() => pending.IsCompleted, GpgsTimeout, token))
+                    return SignInStatus.InternalError;
+                return status;
             }
             catch (Exception e)
             {
-                LogStep($"GPGS Authenticate 호출 예외 -> {e.Message}");
+                LogStep($"GPGS request exception: {e.GetType().Name}");
                 return SignInStatus.InternalError;
             }
-
-            if (!await WaitUntilAsync(() => done, GpgsTimeout, token))
-            {
-                LogStep($"GPGS {(manual ? "수동" : "자동")} 로그인 timeout({GpgsTimeout.TotalSeconds}s)");
-                return SignInStatus.InternalError;
-            }
-
-            return status;
+            finally { pending.Expire(); }
         }
 #endif
 
-        /// <summary>
-        /// GPGS를 사용할 수 없는 환경의 최종 fallback.
-        /// 기기 id -> Custom id 순으로 시도하며, 두 경우 모두 계정이 없으면 생성한다.
-        /// </summary>
+        /// <summary>Choose one device identity. Never fall through after a request fails.</summary>
         private async UniTask<bool> LoginWithDeviceAsync(CancellationToken token)
         {
+            if (token.IsCancellationRequested) return false;
             ShowLoading("LogIn...");
+            string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
+            string customId = PlayerPrefs.GetString(PrefsKeyCustomId, string.Empty);
+            string deviceId = null;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            deviceId = SystemInfo.deviceUniqueIdentifier;
+            if (deviceId == SystemInfo.unsupportedIdentifier) deviceId = null;
+#endif
+            string selectedMode = LoginContinuityPolicy.SelectDeviceMode(mode,
+                !string.IsNullOrEmpty(customId), !string.IsNullOrEmpty(deviceId));
+            bool allowCreate = LoginContinuityPolicy.CanCreateAccount(mode, HasLocalProgress());
+            if (selectedMode == null || (string.IsNullOrEmpty(mode) && !allowCreate))
+                return false;
+
+            if (string.IsNullOrEmpty(mode))
+            {
+                if (selectedMode == LoginModeCustom) customId = GetOrCreateCustomId();
+                PlayerPrefs.SetString(PrefsKeyLoginMode, selectedMode + "-pending");
+                PlayerPrefs.Save();
+            }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            string deviceId = SystemInfo.deviceUniqueIdentifier;
-            if (!string.IsNullOrEmpty(deviceId) && deviceId != SystemInfo.unsupportedIdentifier)
+            if (selectedMode == LoginModeAndroid)
             {
                 var device = await CallWithRetryAsync<LoginResult>(
                     (onOk, onError) => PlayFabClientAPI.LoginWithAndroidDeviceID(new LoginWithAndroidDeviceIDRequest
                     {
+                        AuthenticationContext = new PlayFabAuthenticationContext(),
                         AndroidDeviceId = deviceId,
                         OS = SystemInfo.operatingSystem,
                         AndroidDevice = SystemInfo.deviceModel,
-                        CreateAccount = true
-                    }, onOk, onError),
-                    "LoginWithAndroidDeviceID", token);
-
-                if (device.IsSuccess)
-                {
-                    OnLoggedIn(device.Result.PlayFabId, device.Result.NewlyCreated, "AndroidDeviceID", LoginModeDevice);
-                    return true;
-                }
+                        CreateAccount = allowCreate
+                    }, onOk, onError), "LoginWithAndroidDeviceID", token);
+                if (!device.IsSuccess || token.IsCancellationRequested) return false;
+                OnLoggedIn(device.Result.PlayFabId, device.Result.NewlyCreated,
+                    "AndroidDeviceID", device.Result.AuthenticationContext, LoginModeAndroid);
+                return true;
             }
 #endif
-
-            if (token.IsCancellationRequested)
-                return false;
-
-            string customId = GetOrCreateCustomId();
+            if (selectedMode != LoginModeCustom || string.IsNullOrEmpty(customId)) return false;
             var custom = await CallWithRetryAsync<LoginResult>(
                 (onOk, onError) => PlayFabClientAPI.LoginWithCustomID(new LoginWithCustomIDRequest
                 {
+                    AuthenticationContext = new PlayFabAuthenticationContext(),
                     CustomId = customId,
-                    CreateAccount = true
-                }, onOk, onError),
-                "LoginWithCustomID", token);
-
-            if (custom.IsSuccess)
-            {
-                OnLoggedIn(custom.Result.PlayFabId, custom.Result.NewlyCreated, "CustomID", LoginModeDevice);
-                return true;
-            }
-
-            return false;
+                    CreateAccount = allowCreate
+                }, onOk, onError), "LoginWithCustomID", token);
+            if (!custom.IsSuccess || token.IsCancellationRequested) return false;
+            OnLoggedIn(custom.Result.PlayFabId, custom.Result.NewlyCreated,
+                "CustomID", custom.Result.AuthenticationContext, LoginModeCustom);
+            return true;
         }
 
         /// <summary>
@@ -418,40 +402,41 @@ namespace AD
         #region PlayFab Login
 
         /// <summary>
-        /// 기존 계정 로그인 -> 계정이 없을 때만 신규 등록.
-        /// 일시적 오류(네트워크/서버)로 등록 흐름을 타지 않도록 오류 종류를 구분한다.
+        /// 기존 계정 로그인 후, 신규 생성이 허용된 첫 식별자만 같은 이메일로 등록을 시도한다.
+        /// 이메일 로그인은 미등록 이메일과 잘못된 암호를 별도 오류로 구분하지 않는다.
         /// </summary>
-        private async UniTask<bool> LoginOrRegisterWithEmailAsync(string userId, CancellationToken token)
+        private async UniTask<bool> LoginOrRegisterWithEmailAsync(string userId, bool allowCreate, CancellationToken token)
         {
             string email = $"{userId}{EmailDomain}";
 
             var login = await LoginWithEmailAsync(email, token);
-            if (login.IsSuccess)
+            if (login.IsSuccess && !token.IsCancellationRequested)
             {
-                OnLoggedIn(login.Result.PlayFabId, isNewAccount: false, "EmailAddress", LoginModeGpgs);
+                OnLoggedIn(login.Result.PlayFabId, false, "EmailAddress", login.Result.AuthenticationContext, LoginModeGpgs);
                 return true;
             }
 
-            if (login.Error == null || !IsAccountMissing(login.Error))
+            if (token.IsCancellationRequested || !IsRegistrationCandidate(login.Error, allowCreate))
             {
-                // 계정이 없어서가 아니라 통신/서버 문제 -> 신규 등록하면 안 된다
+                // Existing identity, transient failure or invalid input cannot create an account.
                 LogStep($"LoginWithEmailAddress 실패(등록 대상 아님) -> {Describe(login)}");
                 return false;
             }
 
-            LogStep("계정 없음 -> 신규 등록 시도");
+            LogStep("첫 계정 선택 -> 동일 이메일 등록 시도");
             var register = await CallWithRetryAsync<RegisterPlayFabUserResult>(
                 (onOk, onError) => PlayFabClientAPI.RegisterPlayFabUser(new RegisterPlayFabUserRequest
                 {
+                    AuthenticationContext = new PlayFabAuthenticationContext(),
                     Email = email,
                     Password = PlayFabPassword,
                     RequireBothUsernameAndEmail = false
                 }, onOk, onError),
                 "RegisterPlayFabUser", token);
 
-            if (register.IsSuccess)
+            if (register.IsSuccess && !token.IsCancellationRequested)
             {
-                OnLoggedIn(register.Result.PlayFabId, isNewAccount: true, "Register", LoginModeGpgs);
+                OnLoggedIn(register.Result.PlayFabId, true, "Register", register.Result.AuthenticationContext, LoginModeGpgs);
                 return true;
             }
 
@@ -460,9 +445,9 @@ namespace AD
             {
                 LogStep("이미 존재하는 계정 -> 로그인 재시도");
                 var retry = await LoginWithEmailAsync(email, token);
-                if (retry.IsSuccess)
+                if (retry.IsSuccess && !token.IsCancellationRequested)
                 {
-                    OnLoggedIn(retry.Result.PlayFabId, isNewAccount: false, "EmailAddress(retry)", LoginModeGpgs);
+                    OnLoggedIn(retry.Result.PlayFabId, false, "EmailAddress(retry)", retry.Result.AuthenticationContext, LoginModeGpgs);
                     return true;
                 }
             }
@@ -476,20 +461,22 @@ namespace AD
             return CallWithRetryAsync<LoginResult>(
                 (onOk, onError) => PlayFabClientAPI.LoginWithEmailAddress(new LoginWithEmailAddressRequest
                 {
+                    AuthenticationContext = new PlayFabAuthenticationContext(),
                     Email = email,
                     Password = PlayFabPassword
                 }, onOk, onError),
                 "LoginWithEmailAddress", token);
         }
 
-        private void OnLoggedIn(string playFabId, bool isNewAccount, string method, string loginMode = null)
+        private void OnLoggedIn(string playFabId, bool isNewAccount, string method, PlayFabAuthenticationContext context, string loginMode = null)
         {
-            AD.Managers.DataM.PlayFabId = playFabId;
-            _isNewAccount = isNewAccount;
+            AD.Managers.DataM.BeginAccountSession(playFabId);
+            PlayFabSettings.staticPlayer.CopyFrom(context);
 
             // 다음 실행에서 같은 방식의 계정으로 접속하도록 기록
             if (!string.IsNullOrEmpty(loginMode))
             {
+                if (loginMode == LoginModeGpgs) PlayerPrefs.SetString(PrefsKeyGpgsId, _selectedGpgsId);
                 PlayerPrefs.SetString(PrefsKeyLoginMode, loginMode);
                 PlayerPrefs.Save();
             }
@@ -507,29 +494,34 @@ namespace AD
             var login = await CallWithRetryAsync<LoginResult>(
                 (onOk, onError) => PlayFabClientAPI.LoginWithEmailAddress(new LoginWithEmailAddressRequest
                 {
+                    AuthenticationContext = new PlayFabAuthenticationContext(),
                     Email = email,
                     Password = "TestAccount"
                 }, onOk, onError),
                 "LoginWithEmailAddress(Test)", token);
 
-            if (login.IsSuccess)
+            if (login.IsSuccess && !token.IsCancellationRequested)
             {
-                OnLoggedIn(login.Result.PlayFabId, isNewAccount: false, "TestAccount");
+                OnLoggedIn(login.Result.PlayFabId, false, "TestAccount", login.Result.AuthenticationContext);
                 return true;
             }
+
+            if (token.IsCancellationRequested || !IsRegistrationCandidate(login.Error, !HasLocalProgress()))
+                return false;
 
             var register = await CallWithRetryAsync<RegisterPlayFabUserResult>(
                 (onOk, onError) => PlayFabClientAPI.RegisterPlayFabUser(new RegisterPlayFabUserRequest
                 {
+                    AuthenticationContext = new PlayFabAuthenticationContext(),
                     Email = email,
                     Password = "TestAccount",
                     RequireBothUsernameAndEmail = false
                 }, onOk, onError),
                 "RegisterPlayFabUser(Test)", token);
 
-            if (register.IsSuccess)
+            if (register.IsSuccess && !token.IsCancellationRequested)
             {
-                OnLoggedIn(register.Result.PlayFabId, isNewAccount: true, "TestAccount(Register)");
+                OnLoggedIn(register.Result.PlayFabId, true, "TestAccount(Register)", register.Result.AuthenticationContext);
                 return true;
             }
 
@@ -545,7 +537,7 @@ namespace AD
 
         /// <summary>
         /// 닉네임 등록 여부를 판단.
-        /// 프로필 조회에 실패하더라도 로그인 자체는 끝났으므로 진입을 막지 않는다.
+        /// 프로필 조회 실패는 재시도하며 닉네임 상태를 추측하지 않는다.
         /// </summary>
         private async UniTask ResolveProfileAsync(CancellationToken token)
         {
@@ -554,6 +546,7 @@ namespace AD
             var profile = await CallWithRetryAsync<GetPlayerProfileResult>(
                 (onOk, onError) => PlayFabClientAPI.GetPlayerProfile(new GetPlayerProfileRequest
                 {
+                    AuthenticationContext = CopySessionContext(),
                     PlayFabId = AD.Managers.DataM.PlayFabId,
                     ProfileConstraints = new PlayerProfileViewConstraints { ShowDisplayName = true }
                 }, onOk, onError),
@@ -562,26 +555,22 @@ namespace AD
             if (token.IsCancellationRequested)
                 return;
 
-            bool needsNickname;
-            if (profile.IsSuccess)
+            if (!profile.IsSuccess)
             {
-                needsNickname = profile.Result.PlayerProfile == null
-                    || string.IsNullOrEmpty(profile.Result.PlayerProfile.DisplayName);
-            }
-            else
-            {
-                // 조회 실패 -> 방금 만든 계정이면 닉네임이 없고, 기존 계정이면 있다고 본다
-                LogStep($"GetPlayerProfile 실패 -> 신규 계정 여부({_isNewAccount})로 판단");
-                needsNickname = _isNewAccount;
+                ShowRetry("Could not load your profile. Please try again.");
+                return;
             }
 
+            bool needsNickname = profile.Result.PlayerProfile == null
+                || string.IsNullOrEmpty(profile.Result.PlayerProfile.DisplayName);
             if (needsNickname)
             {
+                _operations.AwaitNickname();
                 ShowNicknamePanel();
                 return;
             }
 
-            GoNext();
+            await GoNextAsync(token);
         }
 
         #endregion
@@ -590,99 +579,87 @@ namespace AD
 
         public void CheckNickName()
         {
-            string nickname = _nicknameInput != null ? _nicknameInput.text : string.Empty;
-            nickname = nickname.Trim();
+            if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginNickname())
+                return;
 
+            string nickname = _nicknameInput != null ? _nicknameInput.text.Trim() : string.Empty;
             if (string.IsNullOrEmpty(nickname) || nickname.Contains(" ") || nickname.Length < 3 || nickname.Length > 20)
             {
-                _nicknameRulePanel.SetActive(true);
+                if (_nicknameRulePanel != null) _nicknameRulePanel.SetActive(true);
+                _operations.EndOperation();
                 return;
             }
 
-            UpdateDisplayNameAsync(nickname, _cts != null ? _cts.Token : CancellationToken.None).Forget();
+            UpdateDisplayNameAsync(nickname, _cts.Token).Forget();
         }
 
         private async UniTask UpdateDisplayNameAsync(string name, CancellationToken token)
         {
-            var update = await CallWithRetryAsync<UpdateUserTitleDisplayNameResult>(
-                (onOk, onError) => PlayFabClientAPI.UpdateUserTitleDisplayName(new UpdateUserTitleDisplayNameRequest
+            try
+            {
+                var update = await CallWithRetryAsync<UpdateUserTitleDisplayNameResult>(
+                    (onOk, onError) => PlayFabClientAPI.UpdateUserTitleDisplayName(new UpdateUserTitleDisplayNameRequest
+                    {
+                        AuthenticationContext = CopySessionContext(),
+                        DisplayName = name
+                    }, onOk, onError), "UpdateUserTitleDisplayName", token);
+
+                if (token.IsCancellationRequested) return;
+                if (!update.IsSuccess)
                 {
-                    DisplayName = name
-                }, onOk, onError),
-                "UpdateUserTitleDisplayName", token);
-
-            if (token.IsCancellationRequested)
-                return;
-
-            if (!update.IsSuccess)
-            {
-                // 중복/규칙 위반이 아닌 통신 오류까지 "중복"으로 안내하지 않는다
-                LogStep($"UpdateUserTitleDisplayName 실패 -> {Describe(update)}");
-
-                if (update.Error != null && IsTransient(update.Error))
-                    ShowRetry("Network error. Please try again.");
-                else
-                    _nicknameConflictPanel.SetActive(true);
-
-                return;
-            }
-
-            _nicknamePanel.SetActive(false);
-            _nicknameRulePanel.SetActive(false);
-            _nicknameConflictPanel.SetActive(false);
-
-            ShowLoading("Save NickName...");
-            AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", name } }, false, false);
-
-            // 저장이 끝나기를 기다리되, 끝나지 않아도 진입은 막지 않는다
-            if (!await WaitUntilAsync(() => !AD.Managers.ServerM.IsInProgress, ServerSyncTimeout, token))
-            {
-                if (token.IsCancellationRequested)
+                    if (update.IsTimeout || (update.Error != null && IsTransient(update.Error)))
+                        ShowRetry("Network error. Please try again.");
+                    else if (_nicknameConflictPanel != null)
+                        _nicknameConflictPanel.SetActive(true);
                     return;
+                }
 
-                LogStep("닉네임 저장 timeout -> 그대로 진행");
-                AD.Managers.ServerM.SetInProgress(false);
+                if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
+                if (_nicknameRulePanel != null) _nicknameRulePanel.SetActive(false);
+                if (_nicknameConflictPanel != null) _nicknameConflictPanel.SetActive(false);
+                ShowLoading("Save NickName...");
+                AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", name } }, false, false);
+                if (!await WaitForServerAsync(token)) return;
+                await GoNextAsync(token);
             }
-
-            GoNext();
+            catch (OperationCanceledException) { }
+            catch (Exception)
+            {
+                if (!token.IsCancellationRequested) ShowRetry("Could not save your profile. Please try again.");
+            }
+            finally { _operations.EndOperation(); }
         }
 
         #endregion
 
         #region Scene transition
 
-        private void GoNext()
+        private async UniTask GoNextAsync(CancellationToken token)
         {
             ShowLoading("Check Data...");
             AD.Managers.DataM.UpdatePlayerData();
-
-            InitPlayerDataAsync(_cts != null ? _cts.Token : CancellationToken.None).Forget();
-        }
-
-        private async UniTask InitPlayerDataAsync(CancellationToken token)
-        {
-            if (!await WaitUntilAsync(() => !AD.Managers.ServerM.IsInProgress, ServerSyncTimeout, token))
-            {
-                if (token.IsCancellationRequested)
-                    return;
-
-                // 서버 동기화가 끝나지 않아도 로컬 데이터로 진입시킨다 (무한 로딩 방지)
-                LogStep("서버 데이터 동기화 timeout -> 로컬 데이터로 진입");
-                AD.Managers.ServerM.SetInProgress(false);
-            }
-
-            if (token.IsCancellationRequested)
-                return;
+            if (!await WaitForServerAsync(token) || !_operations.TryEnterScene()) return;
 
             string sex = "null";
             var localData = AD.Managers.DataM.LocalPlayerData;
-            if (localData != null && localData.TryGetValue("Sex", out string value))
-                sex = value;
-
-            LogStep($"Scene 이동 (Sex: {sex})");
-            AD.Managers.SceneM.NextScene(sex != "null"
+            if (localData != null && localData.TryGetValue("Sex", out string value)) sex = value;
+            AD.Managers.SceneM.NextScene(!string.IsNullOrEmpty(sex) && sex != "null"
                 ? AD.GameConstants.Scene.Main
                 : AD.GameConstants.Scene.SetCharacter);
+        }
+
+        private async UniTask<bool> WaitForServerAsync(CancellationToken token)
+        {
+            bool completed = await WaitUntilAsync(() => !AD.Managers.ServerM.IsInProgress, ServerSyncTimeout, token);
+            if (!completed || token.IsCancellationRequested)
+                AD.Managers.ServerM.CancelPendingRequests();
+            if (token.IsCancellationRequested) return false;
+            if (!completed || AD.Managers.ServerM.HasFailed)
+            {
+                ShowRetry("Could not load your saved progress. Please try again.");
+                return false;
+            }
+            return true;
         }
 
         #endregion
@@ -741,39 +718,31 @@ namespace AD
         private async UniTask<ApiResult<T>> CallAsync<T>(
             Action<Action<T>, Action<PlayFabError>> invoke, string label, CancellationToken token) where T : class
         {
+            if (token.IsCancellationRequested) return new ApiResult<T> { IsTimeout = true };
             T apiResult = null;
             PlayFabError apiError = null;
-            bool done = false;
-
+            var callback = new LoginCallbackGate();
             try
             {
-                invoke(
-                    value =>
+                invoke(value =>
                     {
+                        if (!callback.TryComplete(token.IsCancellationRequested)) return;
                         apiResult = value;
-                        done = true;
-                    },
-                    error =>
+                    }, error =>
                     {
+                        if (!callback.TryComplete(token.IsCancellationRequested)) return;
                         apiError = error;
-                        done = true;
                     });
+                if (!await WaitUntilAsync(() => callback.IsCompleted, ApiTimeout, token))
+                    return new ApiResult<T> { IsTimeout = true };
+                return new ApiResult<T> { Result = apiResult, Error = apiError };
             }
             catch (Exception e)
             {
-                LogStep($"{label} 호출 예외 -> {e.Message}");
+                LogStep($"{label} request exception: {e.GetType().Name}");
                 return new ApiResult<T> { IsTimeout = true };
             }
-
-            if (!await WaitUntilAsync(() => done, ApiTimeout, token))
-            {
-                if (!token.IsCancellationRequested)
-                    LogStep($"{label} timeout({ApiTimeout.TotalSeconds}s)");
-
-                return new ApiResult<T> { IsTimeout = true };
-            }
-
-            return new ApiResult<T> { Result = apiResult, Error = apiError };
+            finally { callback.Expire(); }
         }
 
         /// <summary>
@@ -795,20 +764,28 @@ namespace AD
         }
 
         /// <summary>
-        /// 계정이 존재하지 않아서 실패한 것인지 판단 (신규 등록 여부 결정)
+        /// Fresh pinned identities may try registration with the same generated email.
+        /// InvalidEmailOrPassword is not proof that an account is missing; an existing
+        /// email cannot be recreated and the caller retries login on EmailAddressNotAvailable.
         /// </summary>
-        private static bool IsAccountMissing(PlayFabError error)
+        private static bool IsRegistrationCandidate(PlayFabError error, bool allowCreate)
         {
+            if (!allowCreate || error == null) return false;
             switch (error.Error)
             {
                 case PlayFabErrorCode.AccountNotFound:
                 case PlayFabErrorCode.InvalidEmailOrPassword:
-                case PlayFabErrorCode.InvalidEmailAddress:
-                case PlayFabErrorCode.InvalidParams:
                     return true;
                 default:
                     return false;
             }
+        }
+
+        private static PlayFabAuthenticationContext CopySessionContext()
+        {
+            var context = new PlayFabAuthenticationContext();
+            context.CopyFrom(PlayFabSettings.staticPlayer);
+            return context;
         }
 
         private static string Describe<T>(ApiResult<T> result) where T : class
@@ -817,7 +794,7 @@ namespace AD
                 return "timeout";
 
             if (result.Error != null)
-                return $"{result.Error.Error}({result.Error.HttpCode}) {result.Error.ErrorMessage}";
+                return $"{result.Error.Error}({result.Error.HttpCode})";
 
             return "unknown";
         }
@@ -834,15 +811,13 @@ namespace AD
         {
             float deadline = Time.realtimeSinceStartup + (float)timeout.TotalSeconds;
 
-            while (!predicate())
+            while (!token.IsCancellationRequested)
             {
-                if (token.IsCancellationRequested || Time.realtimeSinceStartup >= deadline)
-                    return false;
-
+                if (predicate()) return true;
+                if (Time.realtimeSinceStartup >= deadline) return false;
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
-
-            return true;
+            return false;
         }
 
         /// <summary>
@@ -882,6 +857,8 @@ namespace AD
 
         private void ShowRetry(string message)
         {
+            AD.Managers.DataM.SuspendAccountSession();
+            _operations.ResetForRetry();
             LogStep($"재시도 패널 노출 -> {message}");
 
             if (_loading != null) _loading.SetActive(false);
@@ -900,4 +877,97 @@ namespace AD
 
         #endregion
     }
+
+    internal static class LoginContinuityPolicy
+    {
+        public static bool HasLocalProgress(Dictionary<string, string> local)
+        {
+            // A failed/uninitialized local load is unknown history, never permission to create an account.
+            if (local == null) return true;
+            foreach (var key in new[] { "Sex", "NickName", "Tutorial", "AllyMonsters", "GooglePlay" })
+                if (local.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value) && value != "null")
+                    return true;
+            return local.TryGetValue("Gold", out var gold) && !string.IsNullOrEmpty(gold)
+                && gold != "0" && gold != "null";
+        }
+
+        public static bool IsDeviceMode(string mode) => mode == "device" || mode == "android"
+            || mode == "custom" || mode == "android-pending" || mode == "custom-pending";
+
+        public static string SelectGoogleId(string cachedId, string authenticatedId)
+        {
+            if (!string.IsNullOrEmpty(cachedId) && !string.IsNullOrEmpty(authenticatedId)
+                && !string.Equals(cachedId, authenticatedId, StringComparison.Ordinal)) return null;
+            return string.IsNullOrEmpty(cachedId) ? authenticatedId : cachedId;
+        }
+
+        public static bool CanCreateAccount(string mode, bool hasLocalProgress) => !hasLocalProgress
+            && (string.IsNullOrEmpty(mode) || mode == "gpgs-pending"
+                || mode == "android-pending" || mode == "custom-pending");
+
+        public static bool CanCreateGoogleAccount(string mode, bool hasLocalProgress, bool hasCachedId)
+            => !hasLocalProgress && (string.IsNullOrEmpty(mode) || mode == "gpgs-pending")
+                && (!hasCachedId || mode == "gpgs-pending");
+
+        public static string SelectDeviceMode(string mode, bool hasCustomId, bool hasAndroidId)
+        {
+            if (mode == "custom" || mode == "custom-pending") return hasCustomId ? "custom" : null;
+            if (mode == "android" || mode == "android-pending") return hasAndroidId ? "android" : null;
+            // Old versions recorded both implementations as "device". If a CustomID also
+            // exists, it is impossible to prove which login last succeeded; do not guess.
+            if (mode == "device") return !hasCustomId && hasAndroidId ? "android" : null;
+            if (!string.IsNullOrEmpty(mode)) return null;
+            return hasCustomId || !hasAndroidId ? "custom" : "android";
+        }
+    }
+
+    internal sealed class LoginOperationGate
+    {
+        public bool IsRunning { get; private set; }
+        public bool HasEnteredScene { get; private set; }
+        private bool _awaitingNickname;
+
+        public bool TryBeginLogin()
+        {
+            if (IsRunning || HasEnteredScene || _awaitingNickname) return false;
+            IsRunning = true;
+            return true;
+        }
+
+        public bool TryBeginNickname()
+        {
+            if (IsRunning || HasEnteredScene || !_awaitingNickname) return false;
+            IsRunning = true;
+            return true;
+        }
+
+        public void AwaitNickname() => _awaitingNickname = true;
+        public void EndOperation() => IsRunning = false;
+        public void ResetForRetry()
+        {
+            _awaitingNickname = false;
+            HasEnteredScene = false;
+        }
+
+        public bool TryEnterScene()
+        {
+            if (!IsRunning || HasEnteredScene) return false;
+            HasEnteredScene = true;
+            return true;
+        }
+    }
+
+    internal sealed class LoginCallbackGate
+    {
+        private bool _active = true;
+        public bool IsCompleted { get; private set; }
+        public bool TryComplete(bool cancelled)
+        {
+            if (!_active || IsCompleted || cancelled) return false;
+            IsCompleted = true;
+            return true;
+        }
+        public void Expire() => _active = false;
+    }
+
 }
