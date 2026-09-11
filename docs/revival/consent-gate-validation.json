@@ -1,0 +1,173 @@
+{
+  "sourceCommit": "d67684fd92a85c3fcd768b55d5fc347932f8ff63",
+  "integratedMain": "da11757",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "editmode": {
+    "id": "2",
+    "testcasecount": "332",
+    "result": "Passed",
+    "total": "332",
+    "passed": "332",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-11 07:33:48Z",
+    "end-time": "2026-09-11 07:33:53Z",
+    "duration": "4.5525898"
+  },
+  "editmodeXmlSha256": "77a67a7319090b351422b4ea1711dcabd67a348aa4e9cbff5c5165b3cc7edad0",
+  "pureConsentCasesOutsideUnity": 14,
+  "artifacts": [
+    {
+      "variant": "sample",
+      "bytes": 130926876,
+      "sha256": "0fbfbf97070c5a4c0d6add0269eee9f0bf90af3f61efcf482b0e0c52dd6d474b",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.ads",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": true,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    },
+    {
+      "variant": "control",
+      "bytes": 63618701,
+      "sha256": "d9c58e6e953351a2714a98de9a0a0406ca22bcce18269e22482f218027c1c924",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.adscontrol",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": false,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    }
+  ],
+  "deviceStatus": "executed; test packages removed",
+  "productionAdsEnabled": false,
+  "consoleWrites": false,
+  "device": {
+    "model": "Samsung Note20 Ultra 5G",
+    "android": 13,
+    "api": 33,
+    "abi": "arm64-v8a",
+    "pageSizeBytes": 4096,
+    "control": "managed idle; PolicyBlocked; no UMP/Initialize/Load trace; reward 0",
+    "sampleConsentOrder": [
+      "update",
+      "update_ok",
+      "form_if_required",
+      "allowed",
+      "ad_flags",
+      "initialize",
+      "initialize_callback",
+      "load",
+      "load_ok"
+    ],
+    "callbackMonotonicSeconds": [
+      34317.977,
+      34318.507,
+      34318.507,
+      34318.541,
+      34318.551,
+      34318.551,
+      34319.366,
+      34319.372,
+      34321.137
+    ],
+    "nativeConsentUiObserved": false,
+    "duplicateShow": {
+      "request": 2,
+      "accepted": false,
+      "originalRewardCount": 1,
+      "originalFinishCount": 1
+    },
+    "activeAdHomeReturn": {
+      "request": 3,
+      "outcome": "Cancelled",
+      "rewardIncrement": 0,
+      "bgmRestored": true
+    },
+    "earlyClose": {
+      "request": 4,
+      "outcome": "Cancelled",
+      "rewardIncrement": 0,
+      "openedCallback": 34719.32,
+      "closedCallback": 34725.653
+    },
+    "finalRewards": 1,
+    "finalFinishes": 3,
+    "finalBgmPlaying": true,
+    "cleanup": {
+      "bothUninstallSuccess": true,
+      "bothPmPathEmpty": true,
+      "namedRemoteVideoRemoved": true
+    }
+  },
+  "nativeCloseTiming": {
+    "timebase": "original video PTS seconds; one-based frames",
+    "nativeFirst": {
+      "previousFrame": 67,
+      "previousPts": 2.061578,
+      "frame": 68,
+      "pts": 2.086656
+    },
+    "creativeComplete": {
+      "frame": 93,
+      "pts": 2.313278
+    },
+    "firstX": {
+      "previousFrame": 335,
+      "previousPts": 7.067378,
+      "frame": 336,
+      "pts": 7.090611
+    },
+    "observedDeltaSeconds": 5.003955,
+    "uncertaintyRangeSeconds": [
+      4.980722,
+      5.029033
+    ],
+    "verdict": "boundary inconclusive; no <=5s pass claim; sample only"
+  },
+  "privateEvidenceSha256": {
+    "control-actions.log": "21c5e14475e499f5053b294c22ee972f6f70bc9ffadd0362d9dccec356499dcb",
+    "sample-load.log": "8ca629b21e9053499d79fac68b4efbce580be921a13d19acdfb09763ed306436",
+    "first.mp4": "9667820383f86bd5f24f9b858793c054ee67b1a42ac9d32d7f0b2820293491ad",
+    "frames-pts.log": "7d79275ea06be49fa28bd62792342c0ad8b4029e7e4ecb7b22e3a2882c765925",
+    "first-closed.log": "ade6285f1b58d297665ebb074381f712df7ea89a81798ca6dce68901f0405cd5",
+    "home-before.png": "20b6e8c23f3a580ecf37a5cf2ede91b50006a386c13e9be00a4b672d05de7999",
+    "home-return.png": "f27507a672029da6534698fcd3e32be0458a42ed213b25f232a05d2792d73231",
+    "home-return.log": "2f555155c23cb0088783aa2a0ecb91770340e7c053bd344f801e4d8d3c973152",
+    "cancel-x.png": "82294dc745f06354410dcf41d322ad5decde1953c912fc632962ad3a3fc99ba2",
+    "cancel-dialog.png": "34c9d3ea3139cd953ddf50c8ea3443f58e10e87e8e769924c51cc2179ad80aa0",
+    "cancel-result.png": "59af1ccce14a2071307cc11c9bb5e3593f2e1716938b166cbd6ada8cdc82c0f4",
+    "final.log": "c0af0d55efe3cb2f582d99a40c06ee81c509008b56c0890d629c765561a4a155",
+    "cleanup.json": "661662bd9065122a6c4d5deaf7c387ebbfa173bf12c551851d9f7fcba55e311e"
+  },
+  "unverified": [
+    "production creative compliance",
+    "regional/adult consent and privacy options UI",
+    "native failure callback",
+    "16KB physical device"
+  ],
+  "independentReview": {
+    "apkVerifier": "integration owner matched both artifact hashes and settings",
+    "videoBoundary": "integration owner visually confirmed frames 67/68,92/93,335/336 and inconclusive five-second verdict"
+  }
+}

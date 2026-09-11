@@ -42,6 +42,35 @@ public class RevivalAdManagerTests
             EditorSceneManager.ClosePreviewScene(testScene);
     }
 
+    private sealed class MissingConsentUpdate : IAdConsentClient
+    {
+        public Action<bool> Reply;
+        public bool CanRequestAds => false;
+        public bool PrivacyOptionsRequired => false;
+        public void Update(bool underAge, Action<bool> done) => Reply = done;
+        public void Gather(Action<bool> done) => Assert.Fail("Expired update cannot gather.");
+        public void ShowPrivacyOptions(Action<bool> done) => Assert.Fail("Not required.");
+    }
+
+    [Test]
+    public void Revival_ConsentUpdateDeadlineReleasesManagerForManualRetry()
+    {
+        var client = new MissingConsentUpdate();
+        var gate = new AdConsentGate(client, action => action());
+        var results = new List<bool>();
+        gate.Request(results.Add);
+        managerType.GetField("_consent", InstanceMembers).SetValue(manager, gate);
+        managerType.GetField("_initializing", InstanceMembers).SetValue(manager, true);
+        managerType.GetField("_loadDeadline", InstanceMembers).SetValue(manager, -1f);
+        Invoke("Update");
+        Assert.That(Get<bool>("_initializing"), Is.False);
+        Assert.That(gate.IsBusy, Is.False);
+        Assert.That(results, Is.EqualTo(new[] { false }));
+        client.Reply(true);
+        Assert.That(gate.CanRequestAds, Is.False);
+        Assert.That(results, Is.EqualTo(new[] { false }));
+    }
+
     [TestCase(RewardedAdOutcome.Cancelled, true, RewardedAdOutcome.Rewarded)]
     [TestCase(RewardedAdOutcome.Cancelled, false, RewardedAdOutcome.Cancelled)]
     [TestCase(RewardedAdOutcome.Failed, true, RewardedAdOutcome.Failed)]
@@ -376,6 +405,7 @@ public class RevivalAdManagerTests
         Invoke("Init");
 
         Assert.That(Get<bool>("_subscribed"), Is.True);
+        Assert.That(Get<AdConsentGate>("_consent"), Is.Null);
         AssertNoSdkActivity();
         AssertCleared();
     }
@@ -394,6 +424,8 @@ public class RevivalAdManagerTests
         WithoutManagers(() =>
         {
             Invoke("LoadRewardedAd");
+            Invoke("ShowPrivacyOptions");
+            Assert.That(Get<AdConsentGate>("_consent"), Is.Null);
             var accepted = (bool)Invoke("ShowRewardedAd", manager,
                 (Action)(() => rewards++), (Action<RewardedAdOutcome>)(outcome =>
                 {

@@ -24,6 +24,7 @@ namespace AD
         private RewardedAdSession _session;
         private RewardedAdSession _closingSession;
         private Action _resumeBgm;
+        private AdConsentGate _consent;
         private bool _initialized;
         private bool _initializing;
         private bool _loading;
@@ -51,6 +52,17 @@ namespace AD
         }
 
         public bool IsInProgress => _session != null;
+        public bool IsConsentBusy => _consent != null && _consent.IsBusy;
+        public bool PrivacyOptionsRequired => _consent != null && _consent.PrivacyOptionsRequired;
+
+        public void ShowPrivacyOptions()
+        {
+            if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || _consent == null) return;
+            if (!PrivacyOptionsRequired || IsConsentBusy) return;
+            ++_loadVersion;
+            DestroyLoadedAd();
+            _consent.OpenPrivacyOptions(_ => { }); // Never auto-load after a privacy choice.
+        }
 
         // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
         public bool CanRequestAds =>
@@ -107,8 +119,11 @@ namespace AD
                 try { CompleteSession(closing, RewardedAdOutcome.Cancelled); }
                 catch (Exception exception) { Debug.LogException(exception); }
             }
-            if ((_loading || _initializing) && Time.realtimeSinceStartup >= _loadDeadline)
+            if ((_loading || _initializing) && (!IsConsentBusy || _consent.IsUpdating) &&
+                Time.realtimeSinceStartup >= _loadDeadline)
             {
+                // Expire only UMP's network update, not a visible consent form.
+                _consent?.ExpireUpdate();
                 // Invalidate late loads; never treat a visible native ad as closed.
                 _loadVersion++;
                 _loading = _initializing = false;
@@ -140,45 +155,57 @@ namespace AD
         /// <summary>On-demand sample ads only. Production requests remain blocked.</summary>
         public void LoadRewardedAd()
         {
-            if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing) return;
+            if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy) return;
             Init();
             int version = ++_loadVersion;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
-            if (!_initialized)
+            _initializing = true;
+            if (_consent == null)
+                _consent = new AdConsentGate(new GoogleUmpConsentClient(), callback => Enqueue(callback), name => TraceHarness(name));
+            _consent.Request(allowed =>
             {
-                _initializing = true;
-                try
-                {
-                    // Conservative test-request treatment, not a claim about the user's
-                    // age or a replacement for the unverified Console declaration.
-                    MobileAds.SetRequestConfiguration(new RequestConfiguration
-                    {
-                        TagForChildDirectedTreatment = TagForChildDirectedTreatment.True,
-                        TagForUnderAgeOfConsent = TagForUnderAgeOfConsent.True,
-                        MaxAdContentRating = MaxAdContentRating.G
-                    });
-                    TraceHarness("request_flags_set");
-                    TraceHarness("initialize_call");
-                    MobileAds.Initialize(status =>
-                    {
-                        TraceHarness("initialize_callback");
-                        Enqueue(() =>
-                        {
-                            if (version != _loadVersion) return;
-                            _initializing = false;
-                            _initialized = status != null;
-                            if (_initialized) LoadSampleAd(version);
-                        });
-                    });
-                }
-                catch (Exception)
+                if (_destroyed || version != _loadVersion) return;
+                if (!allowed) { _initializing = false; return; }
+                _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
+                if (_initialized)
                 {
                     _initializing = false;
-                    DebugLogger.LogError("GoogleAdMobManager", "Test ad initialization failed.");
+                    LoadSampleAd(version);
                 }
-                return;
+                else InitializeSampleSdk(version);
+            });
+        }
+
+        private void InitializeSampleSdk(int version)
+        {
+            try
+            {
+                // UMP's TFUA does not forward to Mobile Ads. Set both explicitly.
+                MobileAds.SetRequestConfiguration(new RequestConfiguration
+                {
+                    TagForChildDirectedTreatment = TagForChildDirectedTreatment.True,
+                    TagForUnderAgeOfConsent = TagForUnderAgeOfConsent.True,
+                    MaxAdContentRating = MaxAdContentRating.G
+                });
+                TraceHarness("request_flags_set");
+                TraceHarness("initialize_call");
+                MobileAds.Initialize(status =>
+                {
+                    TraceHarness("initialize_callback");
+                    Enqueue(() =>
+                    {
+                        if (version != _loadVersion) return;
+                        _initializing = false;
+                        _initialized = status != null;
+                        if (_initialized && _consent.CanRequestAds) LoadSampleAd(version);
+                    });
+                });
             }
-            LoadSampleAd(version);
+            catch (Exception)
+            {
+                _initializing = false;
+                DebugLogger.LogError("GoogleAdMobManager", "Test ad initialization failed.");
+            }
         }
 
         private void LoadSampleAd(int version)
@@ -235,6 +262,13 @@ namespace AD
             if (!CanRequestAds)
             {
                 CompleteSession(session, RewardedAdOutcome.PolicyBlocked);
+                return true;
+            }
+            if (_consent == null || !_consent.CanRequestAds)
+            {
+                DestroyLoadedAd();
+                CompleteSession(session, RewardedAdOutcome.Unavailable);
+                LoadRewardedAd();
                 return true;
             }
             bool canShow;
@@ -345,6 +379,7 @@ namespace AD
 
         private void OnDestroy()
         {
+            _consent?.Dispose();
             lock (_callbackLock) _destroyed = true;
             _loadVersion++;
             UnitySceneManager.activeSceneChanged -= OnSceneChanged;
