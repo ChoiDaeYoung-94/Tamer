@@ -94,6 +94,7 @@ public class RevivalServerRequestTests
         public void Get(bool update = true) => Call("GetAllData", update);
         public void Delete(Dictionary<string, string> data) => Call("DeleteData", data, true);
         public void Cancel() => Call("CancelPendingRequests");
+        public void Dispose() => Call("Dispose");
         public void Advance(double seconds)
         {
             double target = _now + seconds;
@@ -112,6 +113,39 @@ public class RevivalServerRequestTests
 
     private static Dictionary<string, string> Data(int count) => Enumerable.Range(0, count)
         .ToDictionary(i => "Key" + i, i => "Value" + i);
+
+    [Test]
+    public void Revival_Server_DisposeInvalidatesLateReadAndRejectsNewRequests()
+    {
+        var h = new Harness();
+        h.Get();
+        h.Dispose();
+        h.Dispose();
+        h.Reads[0].Success(Data(1));
+        h.Get();
+        h.Set(Data(1));
+        h.Advance(100);
+        Assert.That(h.Applied, Is.Empty);
+        Assert.That(h.Reads.Count, Is.EqualTo(1));
+        Assert.That(h.Writes, Is.Empty);
+        Assert.That(h.Busy, Is.False);
+    }
+
+    [Test]
+    public void Revival_Server_DisposeStopsRetryAndQueuedWritesWithoutAcknowledging()
+    {
+        var h = new Harness();
+        int acknowledgements = 0;
+        h.Set(Data(11), written: () => acknowledgements++);
+        h.Set(Data(1));
+        h.Writes[0].Failure(503);
+        h.Dispose();
+        h.Writes[0].Success();
+        h.Advance(100);
+        Assert.That(h.Writes.Count, Is.EqualTo(1));
+        Assert.That(acknowledgements, Is.Zero);
+        Assert.That(h.Busy, Is.False);
+    }
 
     [Test]
     public void Revival_Server_QueuedWritesUseIndependentSnapshotsAndTenKeyChunks()

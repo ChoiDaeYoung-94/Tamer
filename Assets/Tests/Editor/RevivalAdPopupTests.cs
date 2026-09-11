@@ -346,7 +346,10 @@ public class RevivalAdPopupTests
         var sound = inactiveManagersRoot.AddComponent(FindType("AD.SoundManager"));
         managersType.GetField("_dataM", InstanceMembers).SetValue(managers, data);
         managersType.GetField("_soundM", InstanceMembers).SetValue(managers, sound);
-        var server = managersType.GetField("_serverM", InstanceMembers).GetValue(managers);
+        // Service construction now belongs to Managers.Init, which this inactive
+        // fixture deliberately skips. Bind a server without running login/init.
+        var server = Activator.CreateInstance(FindType("AD.ServerManager"), new object[] { data });
+        managersType.GetField("_serverM", InstanceMembers).SetValue(managers, server);
         var operationType = server.GetType().GetNestedType("Operation", BindingFlags.NonPublic);
         server.GetType().GetField("_active", InstanceMembers).SetValue(server,
             Activator.CreateInstance(operationType, true));

@@ -90,6 +90,9 @@ public class RevivalDataSyncTests
         }
         public void Sync() => Invoke(_manager, "UpdateData");
         public bool Update(string key, string value) => (bool)Invoke(_manager, "TryUpdateLocalData", key, value);
+        public void Shutdown() => Invoke(_manager, "Shutdown");
+        public void Begin(string account) => Invoke(_manager, "BeginAccountSession", account);
+        public void Flush() => Invoke(_manager, "UpdatePlayerData");
         public void UpdateLegacy(string key, string value) => Invoke(_manager, "UpdateLocalData", key, value, false);
         public Dictionary<string, string> Pending() => (Dictionary<string, string>)Invoke(Changes, "Snapshot");
         public Dictionary<string, string> Stored() => (Dictionary<string, string>)Invoke(_type, "ParseData", File.ReadAllText(SavePath));
@@ -269,6 +272,26 @@ public class RevivalDataSyncTests
             Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(SaveHarness.Original));
             Assert.That(h.Stored().ContainsKey("__TamerAccountOwner"), Is.False);
             Assert.That(h.Ready, Is.False);
+        }
+    }
+
+    [Test]
+    public void Revival_Data_ShutdownPreservesSaveAndRejectsLateMutations()
+    {
+        using (var h = new SaveHarness())
+        {
+            h.Server(new Dictionary<string, string> { { "Gold", "100" }, { "GooglePlay", "ProductNoAds" } });
+            h.Sync();
+            string saved = File.ReadAllText(h.SavePath);
+            h.Shutdown();
+            h.Shutdown();
+            Assert.That(h.Ready, Is.False);
+            Assert.That(h.Update("Gold", "200"), Is.False);
+            Assert.That(h.Update("GooglePlay", "other"), Is.False);
+            Assert.Throws<ObjectDisposedException>(() => h.Begin("test-account-a"));
+            Assert.Throws<ObjectDisposedException>(() => h.Sync());
+            Assert.DoesNotThrow(() => h.Flush());
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(saved));
         }
     }
 

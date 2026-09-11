@@ -20,25 +20,31 @@ namespace AD
 
         public void Init()
         {
+            var player = Player.Instance;
+            if (player == null) throw new System.InvalidOperationException("Equipment requires a player owner.");
+            // This service survives scene changes; Player may be recreated beneath it.
+            // Keep dictionary references stable for consumers, but drop the previous owner's objects.
+            SegmentedEquipment.Clear();
+            EquipmentMapping.Clear();
             // 장비 카테고리 등록
             SegmentedEquipment.Add("Sword", _swordList);
             SegmentedEquipment.Add("Shield", _shieldList);
 
             // 장비 GameObject 매핑 (Player.Instance의 해당 필드를 사용)
-            EquipmentMapping.Add("SimpleSword", Player.Instance.SimpleSword);
-            EquipmentMapping.Add("MasterSword", Player.Instance.MasterSword);
-            EquipmentMapping.Add("SimpleShield", Player.Instance.Simpleshield);
-            EquipmentMapping.Add("MasterShield", Player.Instance.Mastershield);
+            EquipmentMapping.Add("SimpleSword", player.SimpleSword);
+            EquipmentMapping.Add("MasterSword", player.MasterSword);
+            EquipmentMapping.Add("SimpleShield", player.Simpleshield);
+            EquipmentMapping.Add("MasterShield", player.Mastershield);
 
-            InitEquip();
+            InitEquip(player);
         }
 
         /// <summary>
         /// Player의 _list_playerEquippedItems에 등록된 장비를 활성화
         /// </summary>
-        private void InitEquip()
+        private void InitEquip(Player player)
         {
-            foreach (string equippedItem in Player.Instance.PlayerEquippedItems)
+            foreach (string equippedItem in player.PlayerEquippedItems)
                 EquipmentMapping[equippedItem].SetActive(true);
         }
 
