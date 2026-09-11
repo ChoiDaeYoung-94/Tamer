@@ -136,7 +136,7 @@ class DeletionService:
         with self.connection() as db:
             db.execute('BEGIN IMMEDIATE')
             row = self.owned(db, request_id, account)
-            if row['revision'] != revision or revision != self.policy.revision:
+            if row['revision'] != revision or revision != self.policy.revision or row['scope'] != self.policy.scope:
                 raise Rejected('policy_changed')
             if row['state'] in ('queued', 'processing', 'completed'):
                 return self.view(row)
