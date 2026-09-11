@@ -882,7 +882,8 @@ namespace AD
     {
         public static bool HasLocalProgress(Dictionary<string, string> local)
         {
-            if (local == null) return false;
+            // A failed/uninitialized local load is unknown history, never permission to create an account.
+            if (local == null) return true;
             foreach (var key in new[] { "Sex", "NickName", "Tutorial", "AllyMonsters", "GooglePlay" })
                 if (local.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value) && value != "null")
                     return true;
