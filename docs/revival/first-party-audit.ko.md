@@ -36,29 +36,29 @@
 | `Assets/Scripts/Game/Map.cs` | 배경 랜덤 배치 |  /  | 통합: 빈 prefab 배열 입력과 retry 수명 점검 | 실제 배치 시각 검증 필요 |
 | `Assets/Scripts/Game/MonsterGenerator.cs` | 생성 수·군집·생성 루프 | PoolM / Player | 통합: PR122/254 통과: 반복 Init/Disable 멱등; 군집 반환 후속 점검 | RevivalMonsterLifecycleTests; Unity 대기 |
 | `Assets/Scripts/Game/Portal.cs` | 이동·치유 트리거 | PopupM / Player | 통합: 소유 singleton 해제 조건 후속 | scene lifecycle 회귀 필요 |
-| `Assets/Scripts/Login/Login.cs` | Login / ApiResult / LoginContinuityPolicy / LoginOperationGate / LoginCallbackGate | DataM, Instance, SceneM, ServerM, SoundM / Managers, PlayGamesPlatform | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Login/Login.cs` | GPGS/기기/custom 로그인·프로필·씬 진입, Data/Server/UI | DataM, Instance, SceneM, ServerM, SoundM / Managers, PlayGamesPlatform | 서비스: OnDestroy가 새 singleton 계정을 중지하지 않도록 Start의 Dataowner 캡처. await 서버 대기·취소도 기존 서버 참조 사용. 인증 방식/식별자/캐시 규칙은 유지 | PR121/283 통과; 기존 LoginContinuity 56, 새 owner 교체 후 파괴 회귀. 실제 인증/기기 계정 복원 별도 |
 | `Assets/Scripts/Main/IAPItem.cs` | No Ads 구매 항목 표시 | DataM / ShopMan | 통합: 등록 해제와 저장 키 매칭 검토 필요 | SDK 권한 회귀와 별도 UI 검증 필요 |
 | `Assets/Scripts/Main/InitializeMain.cs` | LoginCheck→BuffingMan→UI/game 초기화 | GameM, PopupM /  | UI: 기존 초기화 순서/직렬화 배열 유지. 문자열 기반 초기화는 서비스 초기화 작업과 연계해 검토 | 267/267 소스1f648f5; 소스/연결 감사, 실제 로그인 실행 안 함 |
 | `Assets/Scripts/Main/Item.cs` | 상점 아이템 표시·선택 | DataM, EquipmentM / Player, ShopMan | 통합: 목록 등록 해제/lock 재표시 점검 필요 | 직접 UI 회귀 없음 |
 | `Assets/Scripts/Main/LoginCheck.cs` | 첫 진입 Player/UI 생성 및 tutorial 확인 | DataM, GameM, ResourceM /  | UI: 계정 연속성 담당 경계, 읽기만. UI 생성 순서 보존 | 267/267 소스1f648f5; 기존 로그인 회귀 유지 |
-| `Assets/Scripts/Managers/DataManager.cs` | DataManager | ResourceM, ServerM / Player | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Managers/EquipmentManager.cs` | EquipmentManager |  / Player, PlayerUICanvas, ShopMan | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Managers/GameManager.cs` | GameManager | PopupM, SceneM / CameraManage, JoyStick, Player, PlayerUICanvas | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Managers/DataManager.cs` | 로컬 영구 저장·계정 귀속·cloud patch, Resource/Server/Player | ResourceM, ServerM / Player | 서비스: 반복 초기화가 진행 중인 메모리 상태를 다시 읽지 않도록 멱등화. Shutdown에서 timer·서버 요청 중지, 종료 후 쓰기 거부. 파일/backup/미확인 구매 권한을 삭제하지 않음 | PR121/283 통과; 기존 DataSync 42 + 종료 후 저장 문자열/No Ads 보존 회귀 |
+| `Assets/Scripts/Managers/EquipmentManager.cs` | Player 장비 목록·GameObject mapping |  / Player, PlayerUICanvas, ShopMan | 서비스: [#118](https://github.com/ChoiDaeYoung-94/Tamer/issues/118)의 반복 Dictionary.Add 예외 수정. dictionary 참조는 유지하면서 현재 Player의 장비로 재바인딩. 기존 장착 목록/저장/효과 불변 | PR121/283 통과; 신규 preview 회귀 2개: 반복 Init·Player 교체·장착 목록/이전 객체 보존·owner 없음. unknown 장비·슬롯 교체 규칙은 변경하지 않음 |
+| `Assets/Scripts/Managers/GameManager.cs` | Main/Game 전환·Player/카메라/UI 조정 | PopupM, SceneM / CameraManage, JoyStick, Player, PlayerUICanvas | 서비스: UI 담당의 IsTransitioning 계약을 사용해 GameOverGoLobby도 Player 초기화 전에 중복 전환을 차단. SwitchMainOrGameScene guard는 UI 담당 변경 | PR121/283 통과; 전환 중 Player/UI 접근 없이 반환하는 신규 회귀. 실제 씬 객체 조합은 통합 책임 |
 | `Assets/Scripts/Managers/GoogleAdMobManager.cs` | GoogleAdMobManager / PendingCallback | DataM, Instance, SoundM / BuffingMan, Managers, Player, PlayerUICanvas | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
 | `Assets/Scripts/Managers/IAPManager.cs` | IAPStatus / IAPManager | DataM, Instance / Managers, ShopMan | SDK: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Managers/IapConsentDefaults.cs` | IapConsentDefaults |  /  | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Managers/Managers.cs` | Managers |  /  | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Managers/PlayerDataSyncPolicy.cs` | PlayerDataSyncPolicy / PlayerDataChanges |  /  | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Managers/IapConsentDefaults.cs` | 초기 동의 기본값 |  /  | 서비스: 정적 순수 변환 + 시작 hook, 수명 자원 없음. 정책 변경 없이 유지 | PR121/283 통과; 기존 IAP 설정 테스트 |
+| `Assets/Scripts/Managers/Managers.cs` | 서비스 조립, static 접근, persistent owner |  /  | 서비스: 중복 Init이 owner를 교체하던 문제 수정. 단일 소유권·멱등 초기화/종료, 초기화 실패 시 owner 해제, 종료 시 소유 서비스 정리. 이름/직렬화 참조 유지 | PR121/283 통과; 신규 preview 테스트: 중복/종료/재획득 차단/서버 늦은 응답. 실제 로그인 씬 재진입은 별도 |
+| `Assets/Scripts/Managers/PlayerDataSyncPolicy.cs` | 순수 merge·값 검증·키별 revision |  /  | 서비스: 수명/외부 구독 없음. 기존 pending revision·No Ads 합집합 정책이 맞아 변경하지 않음 | PR121/283 통과; 기존 DataSync/SaveQueue 회귀 |
 | `Assets/Scripts/Managers/PoolManager.cs` | GO/UI 풀 소유·대여·회수 | Instance / Managers, MonsterGenerator | 통합: PR122/254 통과: 대여 중 객체까지 종료, 외부 parent 보존 | RevivalPoolTests; Unity 대기 |
 | `Assets/Scripts/Managers/PopupManager.cs` | 팝업 순서, 입력 차단; Update/Sound/Game/광고 | GameM, GoogleAdMobM, SoundM, UpdateM / Player | UI: 중복 등록 및 비활성/파괴 객체 제거. reset 전에 스택 snapshot/clear. 객체별 차단 소유자와 기존 명시적 전역 차단을 분리. 구독 원본 보관/해제 | 267/267 소스1f648f5; 광고 popup 회귀 + 외부 disable/중복/겹친 blocker/reset |
-| `Assets/Scripts/Managers/ResourceManager.cs` | ResourceManager |  /  | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Managers/ResourceManager.cs` | Resources load/instantiate·오류 보고 |  /  | 서비스: 소유 loop·구독·mutable cache 없음. DI 계층 추가 없이 유지 | PR121/283 통과; 기존 smoke/GUID 검증; 개별 resource 누락은 asset 검증 책임 |
 | `Assets/Scripts/Managers/SceneManager.cs` | 중간 씬/저장 대기/목적지 로드; Data/Server/Sound | DataM, PopupM, ServerM, SoundM /  | UI: 중복 요청과 CTS 덮어쓰기 방지, 목적지 snapshot, 소유 async finally에서 dispose. native activation 잠금 제거, realtime 대기 | 267/267 소스1f648f5; 중복 NextScene/GoScene, 취소된 load가 native 실행 전 종료 |
-| `Assets/Scripts/Managers/ServerManager.cs` | ServerManager / Operation | DataM /  | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Managers/SoundManager.cs` | SoundManager |  /  | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Managers/ServerManager.cs` | 계정별 직렬 요청·bounded retry·timeout | DataM /  | 서비스: production 콜백을 생성 시 DataManager에 바인딩. Dispose가 요청 generation·queue·timer 수명을 닫음. 종료 후 새 요청/늦은 성공/재시도 무효 | PR121/283 통과; 기존 ServerRequest 14 + 종료/재시도/ACK 회귀. 이미 서버가 수락한 쓰기는 취소로 되돌릴 수 없음 |
+| `Assets/Scripts/Managers/SoundManager.cs` | AudioSource·mixer·설정, PlayerPrefs |  /  | 서비스: coroutine/외부 구독 없음. 광고 재개 callback은 소유 객체 유효성·재생 revision을 검사. 변경하지 않음 | PR121/283 통과; 기존 광고 오디오 동작 계약; 모든 실제 clip 재생은 별도 |
 | `Assets/Scripts/Managers/Sub/PoolObject.cs` | 풀 대상 marker |  /  | 통합: 유지: 타입 자체가 풀 계약 | RevivalPoolTests |
 | `Assets/Scripts/Managers/Sub/PopupObject.cs` | 팝업 enable/disable 연결 | PopupM /  | UI: 등록받은 manager를 보관해 동일 객체를 해제. 자체 닫기 버튼이 다른 top을 닫지 않음. teardown에서 singleton 재조회 안 함 | 267/267 소스1f648f5; 아래 popup 버튼/상위 유지, singleton 제거 후 disable |
-| `Assets/Scripts/Managers/Sub/RuntimeInitialize.cs` | RuntimeInitialize |  /  | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Managers/TapjoyManager.cs` | TapjoyManager / customEditor | PopupM / Btn_Setting | 서비스: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Managers/Sub/RuntimeInitialize.cs` | Editor 시작 씬/개발 console |  /  | 서비스: loop·구독 없음. smoke/ad harness 제외 규칙 유지, SDK 초기화로 확장하지 않음 | PR121/283 통과; 기존 격리 시작 씬 빌드 근거. console 참조 없는 개발 오브젝트 구성은 별도 검사 필요 |
+| `Assets/Scripts/Managers/TapjoyManager.cs` | 과거 Tapjoy 참고 코드 | PopupM / Btn_Setting | 서비스: 파일 전체 주석으로 실행되지 않음. 재활성화하거나 제거하지 않음 | PR121/283 통과; 실행 코드 없음; 구형 광고 통합 완료로 간주하지 않음 |
 | `Assets/Scripts/Managers/UpdateManager.cs` | 공통 프레임 이벤트 |  /  | 통합: UniRx EveryUpdate는 disable 후에도 계속됨; 호출자 pause 의도 확인 | publisher 소유권 회귀 |
 | `Assets/Scripts/MiniMap/FogOfWar/FogOfWar.cs` | 시야/차단 cell 집계·가시성 이벤트 |  /  | 통합: 계산 규칙 유지; visibility callback의 목록 mutation 후속 점검 | 소스 감사, 직접 시야 회귀 없음 |
 | `Assets/Scripts/MiniMap/FogOfWar/FogOfWarData.cs` | 안개 cell 집합/격자 공유 데이터 |  /  | 통합: 유지, Clear가 동일 집합을 비우므로 참조 보존 | renderer 회귀에서 실제 데이터 사용 |
