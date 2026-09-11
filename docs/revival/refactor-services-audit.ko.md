@@ -15,7 +15,7 @@
 | Managers/PlayerDataSyncPolicy.cs | 순수 merge·값 검증·키별 revision | 수명/외부 구독 없음. 기존 pending revision·No Ads 합집합 정책이 맞아 변경하지 않음 | 기존 DataSync/SaveQueue 회귀 |
 | Managers/ResourceManager.cs | Resources load/instantiate·오류 보고 | 소유 loop·구독·mutable cache 없음. DI 계층 추가 없이 유지 | 기존 smoke/GUID 검증; 개별 resource 누락은 asset 검증 책임 |
 | Managers/SoundManager.cs | AudioSource·mixer·설정, PlayerPrefs | coroutine/외부 구독 없음. 광고 재개 callback은 소유 객체 유효성·재생 revision을 검사. 변경하지 않음 | 기존 광고 오디오 동작 계약; 모든 실제 clip 재생은 별도 |
-| Managers/EquipmentManager.cs | Player 장비 목록·GameObject mapping | Init의 Dictionary.Add는 Player 재생성 시 중복 키 가능. 현재 Player.Awake 의존. 수명 PR에서 장비/PlayerPrefs 의미를 바꾸지 않고 후속 장비 재바인딩 과제로 전달 | 전용 장비 회귀 없음. 재생성/unknown 장비·슬롯 교체를 별도 fixture로 검증 필요 |
+| Managers/EquipmentManager.cs | Player 장비 목록·GameObject mapping | Init의 Dictionary.Add는 Player 재생성 시 중복 키 가능. 현재 Player.Awake 의존. 수명 PR에서 장비/PlayerPrefs 의미를 바꾸지 않고 [#118](https://github.com/ChoiDaeYoung-94/Tamer/issues/118)로 분리 | 전용 장비 회귀 없음. 재생성/unknown 장비·슬롯 교체를 별도 fixture로 검증 필요 |
 | Managers/GameManager.cs | Main/Game 전환·Player/카메라/UI 조정 | 강한 씬 객체 의존 확인. 중복 전환 guard는 SceneManager 소유 UI 담당이 해당 메서드에 추가. 나머지 게임 규칙은 변경하지 않음 | UI 담당 전환 회귀, 실제 씬 객체 조합은 통합 책임 |
 | Managers/IAPManager.cs | store 이벤트·pending 주문·durable grant→confirm | IDisposable·취소 token·SDK 이벤트 해제·disposed guard 존재. 이번에는 owner가 기존 Dispose를 호출. 실제 파일 소유는 SDK 담당 | 기존 IAP 30 및 SDK 담당 후속 검증. 서버 영수증 검증은 별도 |
 | Managers/IapConsentDefaults.cs | 초기 동의 기본값 | 정적 순수 변환 + 시작 hook, 수명 자원 없음. 정책 변경 없이 유지 | 기존 IAP 설정 테스트 |
