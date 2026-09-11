@@ -118,4 +118,29 @@ public class RevivalManagerLifecycleTests
         Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(oldData), Is.False);
         Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(newData), Is.True);
     }
+
+    [Test]
+    public void Revival_ServerProductionBindingDoesNotFollowSingletonReplacement()
+    {
+        var dataType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.DataManager")).First(t => t != null);
+        var serverType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.ServerManager")).First(t => t != null);
+        var oldData = _owner.gameObject.AddComponent(dataType);
+        var newData = _duplicate.gameObject.AddComponent(dataType);
+        dataType.GetProperty("PlayFabId").GetSetMethod(true).Invoke(oldData, new object[] { "synthetic-old" });
+        dataType.GetProperty("PlayFabId").GetSetMethod(true).Invoke(newData, new object[] { "synthetic-new" });
+        var server = Activator.CreateInstance(serverType, new object[] { oldData });
+        try
+        {
+            _type.GetField("_dataM", Members).SetValue(_duplicate, newData);
+            Call(_duplicate, "TryClaimInstance");
+            var account = (Func<string>)serverType.GetField("_accountId", Members).GetValue(server);
+            Assert.That(account(), Is.EqualTo("synthetic-old"));
+            var apply = (Action<System.Collections.Generic.Dictionary<string, string>, bool>)
+                serverType.GetField("_applyRead", Members).GetValue(server);
+            apply(new System.Collections.Generic.Dictionary<string, string> { { "Gold", "100" } }, false);
+            Assert.That(dataType.GetField("PlayFabPlayerData").GetValue(oldData), Is.Not.Null);
+            Assert.That(dataType.GetField("PlayFabPlayerData").GetValue(newData), Is.Null);
+        }
+        finally { ((IDisposable)server).Dispose(); }
+    }
 }
