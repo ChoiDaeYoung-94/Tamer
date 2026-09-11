@@ -25,7 +25,9 @@ python tools/revival/verify_release_candidate.py aab --aab <후보.aab> --versio
 JarFile 전체 payload 서명 및 공개 인증서 일치, ARM64 ELF/LOAD/RELRO를 검사한다.
 기존 `VerifyAabSignature.java`의 기본 debug 검사는 보존하고 명시적인 release 지문 모드만 추가했다.
 release 모드는 지문이 일치해도 Android Debug 인증서를 거부한다. 임시 합성 인증서로 정상/변조/
-unsigned 추가/지문 불일치/모드 불일치를 시험했으며 기존 회귀 포함 Python 98개가 통과했다.
+unsigned 추가/지문 불일치/모드 불일치를 시험했다. 독립 검토에서 찾은 출력 경로의 입력 덮어쓰기와
+big-endian ARM64 오인 문제도 수정했다. 같은 경로·hardlink는 검사 전에 거부하고 ELF는 little-endian을 요구한다.
+관련 회귀를 포함한 Python 101개가 통과했다. 기존 debug AAB도 실제 bundletool manifest 단계에서 거부했다.
 
 검사에 제공한 지문과 최대 번호가 실제 Console 상태인지는 이 로컬 도구가 인증하지 않는다.
 split ZIP 정렬·실제 ARM64 16KB·정책·운영 인증/진행도 쓰기/구매 복원·트랙 승인도 별도다.
@@ -45,6 +47,8 @@ BCD 조회는 권한 부족으로 exit1이어서 hypervisorlaunchtype을 확인�
 ```powershell
 ./tools/revival/Get-16KbHostReadiness.ps1 -EmulatorPath <기존SDK/emulator/emulator.exe>
 ```
+
+호스트 결과 파일은 기존 파일을 덮어쓰지 않는다. 재실행할 때는 `-OutputPath`로 새 JSON 경로를 지정한다.
 
 검토 가능한 변경안은 **Windows Hypervisor Platform 기능 활성화 후 사용자가 정한 시점의 재부팅**이다.
 관리자 PowerShell에서 실행할 명령 형식은 다음과 같다. 현재 실행하지 않았다.

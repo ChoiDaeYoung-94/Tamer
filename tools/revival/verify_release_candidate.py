@@ -19,6 +19,33 @@ UNVERIFIED = ['Play Console active upload certificate and highest published vers
               'Families operating settings and creative compliance',
               'Actual ARM64 16KB runtime and device-targeted split validation',
               'Internal-track upload and submission approval']
+SOURCE_INPUTS = ['ProjectSettings/ProjectSettings.asset', 'ProjectSettings/ProjectVersion.txt',
+                 'ProjectSettings/EditorBuildSettings.asset', 'Assets/Resources/IAPProductCatalog.json']
+
+
+def ensure_output_safe(output, inputs):
+    output=Path(output).resolve()
+    for source in inputs:
+        source=Path(source).resolve()
+        if output == source or (output.exists() and source.exists() and output.samefile(source)):
+            raise ValueError('Output collides with an input file; original bytes preserved')
+
+
+def inspect_bundle_libraries(aab):
+    libraries=[]
+    with zipfile.ZipFile(aab) as archive:
+        names=archive.namelist()
+        if len(names)!=len(set(names)): raise ValueError('Duplicate AAB ZIP entries')
+        for name in names:
+            if not name.endswith('.so'): continue
+            if not re.fullmatch(r'[^/]+/lib/arm64-v8a/[^/]+\.so',name):
+                raise ValueError('Unexpected native library path or ABI')
+            result=inspect_elf(archive.read(name))
+            if result['machine'] != 183 or result['bits'] != 64 or result['byteOrder'] != 'little':
+                raise ValueError('Native ELF does not match little-endian ARM64')
+            libraries.append(dict(path=name,loadPassed=result['passed'],relroPassed=result['relroChecksPassed']))
+    if not libraries: raise ValueError('No ARM64 native libraries')
+    return libraries
 
 
 def digest(path):
@@ -80,19 +107,7 @@ def candidate_checks(aab, version_code, published_max, certificate, bundletool, 
     manifest = run([java,'-jar',bundletool,'dump','manifest','--bundle='+str(aab),'--module=base'])
     metadata = validate_manifest(manifest,version_code,published_max)
     signature=json.loads(run([java,ROOT/'tools/revival/VerifyAabSignature.java',aab,'--release-cert-sha256',certificate]))
-    libraries=[]
-    with zipfile.ZipFile(aab) as archive:
-        names=archive.namelist()
-        if len(names)!=len(set(names)): raise ValueError('Duplicate AAB ZIP entries')
-        for name in names:
-            if not name.endswith('.so'): continue
-            if not re.fullmatch(r'[^/]+/lib/arm64-v8a/[^/]+\.so',name):
-                raise ValueError('Unexpected native library path or ABI')
-            result=inspect_elf(archive.read(name))
-            if result['machine'] != 183 or result['bits'] != 64:
-                raise ValueError('Native ELF does not match ARM64')
-            libraries.append(dict(path=name,loadPassed=result['passed'],relroPassed=result['relroChecksPassed']))
-    if not libraries: raise ValueError('No ARM64 native libraries')
+    libraries=inspect_bundle_libraries(aab)
     return dict(schema=1,mode='aab',artifactSha256=digest(aab),manifest=metadata,signature=signature,
                 libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroPassed'] for x in libraries),
                 releaseReady=False,unverified=UNVERIFIED,
@@ -112,6 +127,10 @@ def main():
     candidate.add_argument('--bundletool',type=Path,default=DEST)
     candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
     args=parser.parse_args()
+    inputs=[ROOT/path for path in SOURCE_INPUTS]+[Path(__file__),ROOT/'tools/revival/VerifyAabSignature.java',
+        ROOT/'tools/revival/install_bundletool.py',ROOT/'tools/revival/verify_native_alignment.py']
+    if args.mode=='aab': inputs += [args.aab,args.bundletool,args.java]
+    ensure_output_safe(args.output,inputs)
     result=source_checks(ROOT) if args.mode=='source' else candidate_checks(args.aab,args.version_code,args.published_max_code,args.upload_cert_sha256,args.bundletool,args.java)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')

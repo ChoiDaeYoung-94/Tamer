@@ -65,11 +65,16 @@
     ]
   },
   "pythonTests": {
-    "total": 98,
-    "passed": 98,
-    "durationSeconds": 7.934
+    "total": 101,
+    "passed": 101,
+    "durationSeconds": 8.017
   },
   "actualReleaseAabVerified": false,
   "windowsChangesApplied": false,
-  "rebootPerformed": false
+  "rebootPerformed": false,
+  "independentReviewFixes": [
+    "output/input resolved-path and hardlink collision rejected before verification",
+    "big-endian AArch64 rejected despite aligned LOAD/RELRO"
+  ],
+  "existingDebugAabRejectedByActualBundletoolManifest": true
 }

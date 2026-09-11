@@ -4,6 +4,8 @@ param(
 )
 # Read-only host inventory. Does not enable Windows features, edit BCD, boot an AVD or reboot.
 $ErrorActionPreference = 'Stop'
+$hostReadinessFullOutput = [IO.Path]::GetFullPath($OutputPath)
+if (Test-Path -LiteralPath $hostReadinessFullOutput) { throw 'Choose a new output path; existing files are preserved.' }
 $hostReadinessOs = Get-CimInstance Win32_OperatingSystem
 $hostReadinessComputer = Get-CimInstance Win32_ComputerSystem
 $hostReadinessCpu = @(Get-CimInstance Win32_Processor)
@@ -33,8 +35,11 @@ $hostReadinessReport = [ordered]@{
     rebootPerformed = $false
     runtime16KBVerified = $false
 }
-$hostReadinessFullOutput = [IO.Path]::GetFullPath($OutputPath)
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($hostReadinessFullOutput)) | Out-Null
 $hostReadinessJson = $hostReadinessReport | ConvertTo-Json -Depth 6
-[IO.File]::WriteAllText($hostReadinessFullOutput, $hostReadinessJson, [Text.UTF8Encoding]::new($false))
+$hostReadinessStream = [IO.File]::Open($hostReadinessFullOutput, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+try {
+    $hostReadinessBytes = [Text.UTF8Encoding]::new($false).GetBytes($hostReadinessJson)
+    $hostReadinessStream.Write($hostReadinessBytes, 0, $hostReadinessBytes.Length)
+} finally { $hostReadinessStream.Dispose() }
 $hostReadinessJson
