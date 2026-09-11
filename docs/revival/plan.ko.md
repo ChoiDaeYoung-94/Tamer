@@ -23,7 +23,7 @@
 | Pipeline | 0.6.0-exp.1 | UPM manifest/lock |
 | 복원 | SDK 이행 후 파일 4,561개 해시 확인, 서비스 설정 제외 유지 | assets-manifest.json 및 integration-validation.json |
 | 자동화 | Python 71개, Unity EditMode 249개, 격리 APK 메타데이터/서명·GUID·LOAD/ZIP 통과 | tools/revival 및 phase2-validation.json; strict RELRO 5개 실패 별도 |
-| 기기·스토어 | 별도 검증 필요 | 기준 작업 당시 연결 Android 기기 0대 |
+| 기기·스토어 | Android 13 ARM64 4KB에서 격리 APK·split 화면 확인; 전체 게임·16KB·스토어는 별도 | device-smoke-validation.json; 최초 전경 확인 실패와 재시도 성공 구분 |
 
 초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK/IAP 이행 PR #106은 병합됐으며 실제 최종 버전은 [통합 요약](completion-summary.ko.md)에 기록했다. 현재 checkout의 manifest/lock과 vendor 파일이 실행 기준이다. 사용자 방침에 따라 Unity 6000.0.81f1을 유지하고 6.3 설치는 보류한다. 이전 UAC 중단과 조건부 재개 절차는 [#86 기록](unity63-handoff.ko.md)에 보관한다.
 

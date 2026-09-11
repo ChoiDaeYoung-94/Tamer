@@ -2,6 +2,8 @@
 
 검증일: 2026-09-11. **최종 통합 APK는 LOAD/ZIP 검사를 통과했지만 공식 Android 가이드의 RELRO 끝 주소 modulo 검사는 5개 실패했다. 실제 16KB 실행·스토어 승인은 미검증이다. 2차 AAB·split 정적 검사 결과는 [별도 기록](aab-16kb-validation.ko.md)에 있으며 동일한 strict RELRO 5개 실패가 남는다.** 아래 SDK 단독 APK의 4개 실패 기록과 구분한다.
 
+후속 [실제 기기 검사](device-smoke-validation.ko.md)에서 Android 13 ARM64의 APK·split 설치와 Unity 화면을 확인했다. 관측 페이지 크기는 4KB이므로 이 성공을 16KB 판정으로 확대하지 않는다.
+
 ## 최신 최종 통합 APK
 
 계정 저장 #100, 게임플레이 #101, 풀 #102, 광고 #104, SDK/IAP #106을 포함한다. 빌드·테스트와 도구 버전의 전체 증거는 [integration-validation.json](integration-validation.json)에 기록했다.
