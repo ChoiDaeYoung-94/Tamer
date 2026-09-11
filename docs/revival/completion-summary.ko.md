@@ -1,6 +1,6 @@
 # Tamer 복구 구현·통합 검증 결과
 
-2026-09-11 기준, 아래 8개 PR을 **main에 병합**했다. 로컬 구현·회귀 테스트·격리 개발 APK 검증을 완료한 기록이며, 실제 기기·운영 서비스·스토어 복구 완료를 뜻하지 않는다.
+2026-09-11 1차 구현에서는 아래 8개 PR을 **main에 병합**했다. 로컬 구현·회귀 테스트·격리 개발 APK 검증을 완료한 기록이며, 실제 기기·운영 서비스·스토어 복구 완료를 뜻하지 않는다.
 
 | 영역 | 변경 전 → 변경 후 | 병합 PR |
 | --- | --- | --- |
@@ -24,7 +24,7 @@
 | Play Games Unity / Android | `2.2.1` / `22.0.0` |
 | Mobile Ads Unity / Android Standard / UMP | `11.5.0` / `25.4.0` / `4.0.0` |
 
-통합 검증 소스는 [`f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf`](https://github.com/ChoiDaeYoung-94/Tamer/commit/f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf)다. 우리 checkout에서 `Run-SdkValidation.ps1` 종료 코드 0을 확인했다. 최종 기능 병합 main `7cba8dbbcfb733b4e7b8fc8eb818cb330003504a`와 이 소스의 `Assets`·`Packages`·`ProjectSettings`·`tools` 차이는 없다. 이후 통합 변경은 문서와 검증 기록이다.
+1차 통합 검증 소스는 [`f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf`](https://github.com/ChoiDaeYoung-94/Tamer/commit/f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf)다. 우리 checkout에서 `Run-SdkValidation.ps1` 종료 코드 0을 확인했다. 최종 기능 병합 main `7cba8dbbcfb733b4e7b8fc8eb818cb330003504a`와 이 소스의 `Assets`·`Packages`·`ProjectSettings`·`tools` 차이는 없다. 1차 최종 문서는 이 소스를 기준으로 한다. 이후 2차 코드·도구 변경과 검증 범위는 아래에 구분했다.
 
 | 실제 검증 | 결과 |
 | --- | --- |
@@ -39,13 +39,29 @@ APK SHA-256: `0d51f218491d90aa7e963b0e42b3ebf5606fc8e0d91f4b710d246fb8223eeb27`.
 
 정확한 checkout·테스트 fixture·XML 해시·APK·네이티브 수치는 [integration-validation.json](integration-validation.json)에 있다. 처음에는 이 checkout의 Library가 없었으며, 최종 재실행은 여기서 생성한 자체 캐시를 사용했다. 광고 파괴 테스트의 Mono native crash는 종료 정리 수정 후 단일 실험과 전체 회귀에서 해소됐지만 Mono 내부 원인까지 확정하지 않았다. APK는 격리 시작 씬과 기존 게임 씬 5개를 포함하며 운영 서비스에 자동 진입하지 않는다. APK·구매 에셋·민감 설정·원시 로그는 공개하지 않았다.
 
-16KB 검사는 통과 범위를 구분해야 한다. 6개 모두 RELRO가 전체 LOAD와 일치하고 16KB 보호 범위 확장이 원 RELRO 밖의 선언된 쓰기 가능 바이트와 겹치는 경우는 0개였다. 이 정적 배치만으로 실행 불가를 단정할 수 없지만, **공식 가이드의 끝 주소 검사 실패와 실제 16KB/AAB 미검증은 그대로 남는다.** [네이티브 검사 해석과 후속 검증](native-alignment.ko.md)
+16KB 검사는 통과 범위를 구분해야 한다. 6개 모두 RELRO가 전체 LOAD와 일치하고 16KB 보호 범위 확장이 원 RELRO 밖의 선언된 쓰기 가능 바이트와 겹치는 경우는 0개였다. 이 정적 배치만으로 실행 불가를 단정할 수 없지만, **공식 가이드의 끝 주소 검사 실패와 실제 16KB 실행 미검증은 그대로 남는다.** [네이티브 검사 해석과 후속 검증](native-alignment.ko.md)
+
+## 2차 검증·도구 보완
+
+PR [#108](https://github.com/ChoiDaeYoung-94/Tamer/pull/108)·[#109](https://github.com/ChoiDaeYoung-94/Tamer/pull/109)·[#110](https://github.com/ChoiDaeYoung-94/Tamer/pull/110)·[#111](https://github.com/ChoiDaeYoung-94/Tamer/pull/111)을 main에 병합했다.
+
+| 영역 | 완료한 범위와 근거 |
+| --- | --- |
+| 개인정보 | [Data safety 후보 답안](data-safety-draft.ko.md), [Public→Private 오프라인 사전·사후 비교](userdata-private-migration.ko.md). 운영 데이터 변경·삭제·서버 영수증 검증은 수행하지 않음 |
+| AAB | debug AAB와 bundletool split 생성·서명·LOAD/ZIP 검사. 601개 payload 서명 확인, manifest 순서 경고와 strict RELRO 5개 실패는 유지. [정확한 소스·해시](aab-16kb-validation.ko.md) |
+| 광고 | 공식 샘플 App ID를 쓰는 별도 sample/control APK 빌드·서명·앱 ID 확인. 테스트 요청 추적 UI와 시작 경로·제출 초안. [빌드 근거와 미검증 범위](families-store-readiness.ko.md) |
+| 보안·복원 | 로컬 JKS 공개 인증서는 Console upload cert와 일치하고 Play signing cert와 다름. 비공개 백업 4,204개 생성, fresh clone 4,561개 복원 확인. 누락 meta 추적 수정. [인증서·백업 근거](signing-and-private-backup.ko.md) |
+| 통합 | `d1f6a2505cdd820059284077ee4bd9df7d29abe9`에서 EditMode **249/249**, Python **71/71**, 에셋 **4,561개** 통과. `Run-Baseline -TestsOnly` 종료 0, Editor 시작 전후 ProjectSettings.asset 바이트 일치 |
+
+공통 wrapper가 Editor 시작 전 설정을 백업하고 종료 후 복원하도록 보완했다. 이 보호 범위는 ProjectSettings.asset이며, 최종 실행의 SceneTemplate 재직렬화와 두 에셋의 줄바꿈 변화는 Editor 종료 후 별도 복원했다. 전체 APK/AAB는 재빌드하지 않았고 각각의 빌드 소스·해시를 유지했다. 통합 담당이 두 광고 APK의 실제 메타데이터·서명·해시와 AAB 해시를 재확인했다. [2차 통합 데이터](phase2-validation.json)
+
+16KB 에뮬레이터는 두 번 모두 부팅하지 못해 PAGE_SIZE·ABI·설치·실행을 관찰하지 못했다. Windows 가상화 기능·드라이버·재부팅은 변경하지 않았다. 비공개 백업은 같은 PC의 별도 디스크에 있으며 암호화·오프사이트 재해 백업을 뜻하지 않는다.
 
 남은 작업은 다음과 같다.
 
-- **기기·결제:** 기존 계정 로그인·저장 실패/재시도·No Ads 구매/복원·광고/음악·전투, 16KB Android 실행과 최종 AAB/split 검사. 서버 영수증 검증은 이번 구현에 포함되지 않았다.
+- **기기·결제:** 기존 계정 로그인·저장 실패/재시도·No Ads 구매/복원·광고/음악·전투, 16KB Android 실행과 AAB/split 설치·실행. 서버 영수증 검증은 이번 구현에 포함되지 않았다.
 - **광고·스토어 [#91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91):** Families 5초 닫힘, 공급자·consent 설정과 심사. Console의 거절 연결 번들26을 현재 제공 버전으로 단정하지 않는다. 광고 API 차단이 native SDK의 모든 자동 통신 차단을 증명하지는 않는다.
 - **개인정보 [#105](https://github.com/ChoiDaeYoung-94/Tamer/issues/105):** 실제 PlayFab 로그인·진행 저장과 Data safety 선언 대조, 보관·삭제·계약·동의 결정. 향후 Private 쓰기는 기존 Public 키와 구버전의 재공개를 자동 해결하지 않는다. [기술 감사](privacy-data-safety-audit.ko.md)
-- **소유자 확인:** 서명키와 Play 인증서 관계·OAuth 필요성([#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)), 구매 에셋의 비공개 보관 운영. Unity `6000.3.24f1`은 공식 다운로드·체크섬 확인 후 Windows UAC `ELEVATION_CANCELLED`로 설치되지 않았다([#86](https://github.com/ChoiDaeYoung-94/Tamer/issues/86), [재개 안내](unity63-handoff.ko.md)).
+- **소유자 확인:** upload key 재설정 결정·잔여 OAuth 필요성([#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)), 구매 에셋의 비공개 보관 운영. Unity `6000.3.24f1`은 공식 다운로드·체크섬 확인 후 Windows UAC `ELEVATION_CANCELLED`로 설치되지 않았다([#86](https://github.com/ChoiDaeYoung-94/Tamer/issues/86), [재개 안내](unity63-handoff.ko.md)).
 
 원본 작업본·기존 서명키·계정·진행도·No Ads 권한을 보존했다. **CI/CD와 기존 App Center 구성은 보존·비활성 상태이며, 운영 서비스 호출·스토어 변경·배포를 수행하지 않았다.**

@@ -75,7 +75,7 @@ SDK를 통한 기기 밖 전송도 포함하며, 별칭·사용자 ID·구매 �
   `MobileAdsInitProvider.onCreate()`가 false를 반환하고, `attachInfo`의 `zzev` 위임은
   메타데이터·App ID 검사 경로이며 직접 initialize/load/network 호출은 보이지 않았다.
   따라서 provider 존재만으로 자동 전송이 발생했다고 단정하지도 않는다.
-  다른 초기화 경로와 실제 통신은 별도이며 상세 산출물 근거는 광고 담당의 후속 기록에 연결한다.
+  다른 초기화 경로와 실제 통신은 별도이며 상세 산출물 근거는 [광고 시작 경로·산출물 기록](families-store-readiness.ko.md)에 연결한다.
 - **IAP:** [5.4+ 개인정보 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)와
   [Data safety 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)는
   D2C 기능도 포함하는 범위를 다룬다. 현재 소스는 플랫폼 상점 흐름이며 앱 스크립트의 D2C·Unity Authentication
