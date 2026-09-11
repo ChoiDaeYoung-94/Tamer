@@ -19,6 +19,7 @@ SERIAL = 'emulator-5580'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--timeout', type=int, default=600)
+    parser.add_argument('--accel', choices=('auto', 'off'), default='auto')
     parser.add_argument('--gles-only', action='store_true', help='Diagnostic fallback: SwiftShader, Vulkan disabled, kernel log')
     args = parser.parse_args()
     if not 1 <= args.timeout <= 3600:
@@ -43,14 +44,14 @@ def main():
         raise ValueError('Reserved emulator port is occupied; existing device preserved')
     acceleration = call([emulator, '-accel-check'])
     command = [str(emulator), '-avd', AVD, '-port', '5580', '-no-window', '-no-audio',
-               '-no-snapshot', '-no-boot-anim', '-gpu', 'software', '-accel', 'off',
+               '-no-snapshot', '-no-boot-anim', '-gpu', 'software', '-accel', args.accel,
                '-memory', '2048', '-cores', '2']
     if args.gles_only:
         command[command.index('software')] = 'swiftshader'
         command.extend(['-feature', '-Vulkan', '-show-kernel'])
     started = time.monotonic()
     result = dict(schema=1, avd=AVD, serial=SERIAL, requestedImage='system-images;android-36;google_apis_ps16k;x86_64',
-                  accelerationCheck=acceleration, accelerationRequested='off', bootCompleted=False,
+                  accelerationCheck=acceleration, accelerationRequested=args.accel, bootCompleted=False,
                   runtime16KBVerified=False, timeoutSeconds=args.timeout)
     result['glesOnlyDiagnostic'] = args.gles_only
     with (logs / 'emulator-16kb.log').open('w', encoding='utf-8') as log:

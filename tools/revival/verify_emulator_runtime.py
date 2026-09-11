@@ -39,12 +39,12 @@ def main():
     def device(*command, timeout=30):
         return run([adb, '-s', SERIAL, *command], timeout)
 
-    name = device('emu', 'avd', 'name')
-    if name.returncode or name.stdout.splitlines()[0] != AVD:
-        raise ValueError('Expected task-owned emulator; no other device may be used')
     result = dict(schema=1, avd=AVD, serial=SERIAL, applicationId=APP_ID, installed=False,
                   appProcessObserved=False, runtime16KBVerified=False, scope='Isolated RevivalSmoke only')
     try:
+        name = device('emu', 'avd', 'name')
+        if name.returncode or not name.stdout.splitlines() or name.stdout.splitlines()[0] != AVD:
+            raise ValueError('Expected task-owned emulator; no other device may be used')
         result['pageSize'] = device('shell', 'getconf', 'PAGE_SIZE').stdout.strip()
         for key in ['ro.product.cpu.abilist', 'ro.dalvik.vm.native.bridge', 'ro.build.version.sdk',
                     'ro.build.fingerprint', 'bionic.linker.16kb.app_compat.enabled', 'pm.16kb.app_compat.disabled']:
