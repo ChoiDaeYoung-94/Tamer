@@ -12,16 +12,16 @@
 | `Assets/Scripts/Advertising/RewardedAdSession.cs` | RewardedAdOutcome / RewardedAdSession |  /  | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
 | `Assets/Scripts/Cameras/CameraManage.cs` | 영속 Cinemachine 타깃 |  / Player | 통합: singleton 종료 처리 후속 | scene 교체 회귀 필요 |
 | `Assets/Scripts/Creatures/BuffingMan.cs` | 광고/No Ads 버프 진입 UI | DataM, GoogleAdMobM / Player, PlayerUICanvas | 통합: 기존 광고 세션 회귀 유지; 소유 singleton 해제 후속 | 광고 회귀/기기 harness; 운영 미검증 |
-| `Assets/Scripts/Creatures/Creature.cs` | Creature / CreatureState | DataM, PoolM, SoundM / Player, PlayerUICanvas | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Creatures/Creature.cs` | 전투 상태/능력치/피해·애니메이션 연결 | DataM, PoolM, SoundM / Player, PlayerUICanvas | 통합: 전투 CTS 교체/종료 확인, animation 이벤트와 serialized 필드 유지. locale별 숫자 파싱은 후속 경계 | 기존 battle restart 회귀; 실전투 시각 검증 필요 |
 | `Assets/Scripts/Creatures/GameMan.cs` | 플레이어 진입 시 portal 표시 |  /  | 통합: 단순 트리거 유지; serialized 참조 보존 | 직접 회귀 없음 |
 | `Assets/Scripts/Creatures/Monster.cs` | AI·탐지·전투·포획·풀 복귀 | DataM, PoolM / MonsterGenerator, Player | 통합: 확정 후속: Update OR 조건, 탐지 중복 시작 검토 | 기존 lifecycle 회귀; 후속 검증 필요 |
 | `Assets/Scripts/Creatures/Player.cs` | 플레이어 전투·이동·보유 데이터 | DataM, EquipmentM, GameM, Instance, PoolM, SoundM, UpdateM / BuffingMan, CameraManage, JoyStick, Managers, PlayerUICanvas | 통합: PR122/254 통과: 캡처 Update publisher 해제; 저장 문자열 후속 점검 | RevivalMonsterLifecycleTests; Unity 대기 |
 | `Assets/Scripts/Creatures/ShopMan.cs` | 상점 구매·장착·목록 | EquipmentM, IAPM, PopupM, SoundM / Player | 통합: 확정 후속: 구매 확인 중복 호출 방지/소유 singleton 해제 | 구매 골드·중복 회귀 필요 |
 | `Assets/Scripts/Editor/BuildScript.cs` | 보존한 legacy build/menu/version 경로 |  /  | 통합: batch guard 유지/CI 비활성; 최신 빌드에는 RevivalBuild 사용. legacy define·버전 파싱 후속 목록 | 기준 batch 회귀; legacy 운영 빌드 미실행 |
-| `Assets/Scripts/Editor/RevivalAdHarnessBuild.cs` | RevivalAdHarnessBuild / CatalogFlags |  /  | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/Editor/RevivalBuild.cs` | RevivalBuild / Summary |  /  | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Editor/RevivalAdHarnessBuild.cs` | sample/control 광고 격리 빌드 |  /  | UI: 유지, allowlist/별도ID/자동IAP금지/설정 byte복원 확인 | 기존 sample/control hash 및 실기기 근거; consent 후속 실행 대기 |
+| `Assets/Scripts/Editor/RevivalBuild.cs` | 격리 APK/AAB build·settings/scene guard |  /  | 통합: 유지, dirty-scene 거절/격리 첫씬/debug서명/finally 복원 확인 | 기준 scene 회귀 및 기존 실제 APK/AAB 근거 |
 | `Assets/Scripts/Editor/RevivalPackageUpgrade.cs` | 명시적 pinned UPM 업그레이드 |  /  | 통합: 유지, CLI 명시 호출에만 reload 재개/timeout·결과처리 확인 | 이전 SDK upgrade 실행 근거 유지 |
-| `Assets/Scripts/Editor/RevivalSdkValidation.cs` | RevivalSdkValidation |  /  | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/Editor/RevivalSdkValidation.cs` | Android 광고 artifact preflight |  /  | 통합: 유지, 명시적 configure와 build-time pinned검사를 분리 | RevivalSdkMigrationTests |
 | `Assets/Scripts/Effects/EffectActiveControl.cs` | 애니메이션 이벤트로 효과 비활성 |  /  | 통합: 유지: 외부 애니메이션 호출 가능하여 dead-code 삭제 금지 | 애니메이션 연결 시각 검증 필요 |
 | `Assets/Scripts/Foundations/DebugLogger.cs` | 조건부 개발 로그 |  /  | 통합: 조건부 Debug와 문서 DEBUG 불일치; 실제 define 사용 확인 | 로그 비밀 값 별도 감사 |
 | `Assets/Scripts/Foundations/Extension.cs` | GetOrAddComponent 확장 API |  /  | 통합: 유지: Utility 단일 구현에 위임 | 기준 회귀 |
@@ -76,7 +76,7 @@
 | `Assets/Scripts/NextScene/NextScene.cs` | 중간 씬 Start→GoScene | SceneM /  | UI: 단일 위임 유지. 중복 방지는 SceneManager의 책임 | 267/267 소스1f648f5; SceneManager gate 회귀 |
 | `Assets/Scripts/Purchasing/NoAdsPurchaseFulfillment.cs` | PurchaseDeliveryState / PurchaseFulfillmentResult / NoAdsPurchaseFulfillment |  /  | SDK: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
 | `Assets/Scripts/RevivalAdHarness.cs` | RevivalAdHarness | Instance / Managers | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
-| `Assets/Scripts/RevivalAdReceiptOwner.cs` | RevivalAdReceiptOwner |  /  | 통합: 검토 대기: 담당 파일별 보고와 독립 검토 필요 | 검증 연결 대기 |
+| `Assets/Scripts/RevivalAdReceiptOwner.cs` | 광고 callback 수명 marker |  /  | UI: 유지, harness/editor 조건부 타입 | 기존 owner파괴 광고 회귀/기기검증 |
 | `Assets/Scripts/SetCharacter/CanvasSelectCharacter.cs` | 선택 이동/저장 확인; Server/Data/Animator | DataM, PopupM, SceneM, ServerM, SoundM /  | UI: 이동 single-flight를 bool로 관리해 pooled UniTask Status 재조회 제거. destroy token으로 이동 취소. 저장/성별/계정 로직 유지 | 267/267 소스1f648f5; 이미 취소된 이동에서 대상 접근 없이 busy 해제 |
 | `Assets/Scripts/UI/JoyStick.cs` | 포인터/키 입력을 Player 이동으로 연결 |  / Player | UI: 초기화 전 camera/player 접근 방지. disable/focus 상실 시 입력 방향/거리/handle 초기화. 자기 singleton 파괴 정리 | 267/267 소스1f648f5; 초기화 전 FixedUpdate, disable/focus held-input 해제 |
 | `Assets/Scripts/UI/Loading.cs` | 빈 MonoBehaviour |  /  | UI: 직렬화된 script 연결을 깨뜨릴 이유 없어 유지. 책임을 새로 만들지 않음 | 267/267 소스1f648f5; 소스 감사 |
