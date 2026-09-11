@@ -254,4 +254,3 @@ public class RevivalAdPopupTests
         return type;
     }
 }
-
