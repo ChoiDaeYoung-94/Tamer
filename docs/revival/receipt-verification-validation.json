@@ -1,0 +1,60 @@
+{
+  "date": "2026-09-11",
+  "checkout": "7b9b/Tamer",
+  "branch": "codex/revival-receipt-validation",
+  "sourceCommit": "4b7b06388c9a8655ccadc77e7a0459e84f309a55",
+  "baseCommit": "f68fb61a92b19e1603338e8ba95bc58b63a5842a",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "iap": "5.4.3",
+  "unityTests": {
+    "passed": 299,
+    "failed": 0,
+    "skipped": 0,
+    "newReceiptTests": 16,
+    "durationSeconds": 3.3773849,
+    "xmlSha256": "d0e4980c39b1620d2babc19717a541b80cfc82fc2a49d53a315db36584e005a5"
+  },
+  "pythonTests": {
+    "passed": 88,
+    "failed": 0,
+    "receiptServerTests": 13,
+    "durationSeconds": 4.94,
+    "sourceCommit": "11c3ac98ab14a8ff8f2626f77cab9fcf25c8dd9c"
+  },
+  "restoredAssetsVerified": 4561,
+  "guidAudit": {
+    "yamlFiles": 132,
+    "unresolved": 0,
+    "sourceCommit": "50ec779373d478e7b263418bef540c86d62e53a1"
+  },
+  "validationCommand": "Run-Baseline.ps1 -TestsOnly",
+  "validationExitCode": 0,
+  "ownEditorProcessesAfterValidation": 0,
+  "projectSettingsRestoredBySnapshot": true,
+  "additionalEditorChangesRestored": [
+    "ProjectSettings/SceneTemplateSettings.json",
+    "Assets/Tests/Scenes/RevivalSmoke.unity"
+  ],
+  "defaultRuntimeVerifierEnabled": false,
+  "serverDeployed": false,
+  "realUpstreamAuthenticationOrPurchaseQueryPerformed": false,
+  "realPurchaseOrRestoreVerified": false,
+  "newApkBuilt": false,
+  "runtime16KBVerified": false,
+  "existingEntitlementsRevoked": false,
+  "productionAccountsOrSettingsChanged": false,
+  "scope": "Opt-in test-only verification implementation, synthetic backend and Unity contract tests; not production fraud prevention or staging deployment",
+  "integratedMainCommit": "f4405c80ac8d1565e2e270421e64c1e2d676a7db",
+  "independentReview": {
+    "ownerBindingIssueFixedCommit": "c5b818d4c759944d22815e3a6332698c20fd4d07",
+    "remainingConfirmedP1P2": 0
+  },
+  "priorIntegratedRun": {
+    "sourceCommit": "11c3ac98ab14a8ff8f2626f77cab9fcf25c8dd9c",
+    "passed": 298,
+    "failed": 1,
+    "cause": "Cancellation test expected exact base exception instead of derived TaskCanceledException; fixture corrected, product cancellation unchanged.",
+    "privateEvidence": "Logs/revival/receipt-integrated-first"
+  }
+}
