@@ -145,6 +145,196 @@ public class RevivalMonsterLifecycleTests
         Assert.That(Get(monster, "_monitorTargetDistanceTokenSource"), Is.Null);
     }
 
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Revival_DeadOrDisabledNavigationDoesNotRunDetectionMovement(bool dead)
+    {
+        Component monster = CreateMonster();
+        Set(monster, "isDie", dead);
+        Set(monster, "_isDetection", true);
+        Set(monster, "_isAlly", true);
+        ((NavMeshAgent)Get(monster, "NavMeshAgent")).enabled = false;
+        var playerInstance = RuntimeType("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var previous = playerInstance.GetValue(null);
+        try
+        {
+            playerInstance.SetValue(null, null);
+            // Entering AfterDetection here would touch the absent Player/invalid agent.
+            Assert.DoesNotThrow(() => Call(monster, "Update"));
+        }
+        finally { playerInstance.SetValue(null, previous); }
+    }
+
+    [Test]
+    public void Revival_DetectionRestartRetiresPreviousLoopOwner()
+    {
+        Component monster = CreateMonster();
+        Set(monster, "isDie", true); // Finish without physics or scene access.
+        var original = new CancellationTokenSource();
+        var previous = original.Token;
+        Set(monster, "_detectionTokenSource", original);
+        for (int i = 0; i < 3; i++)
+        {
+            Call(monster, "StartDetection");
+            Assert.That(previous.IsCancellationRequested, Is.True);
+            previous = ((CancellationTokenSource)Get(monster, "_detectionTokenSource")).Token;
+            Assert.That(previous.IsCancellationRequested, Is.False);
+        }
+        Call(monster, "Clear");
+        Assert.That(previous.IsCancellationRequested, Is.True);
+    }
+
+    [Test]
+    public void Revival_NoOpCollectionChangesPreserveTheStoredPrefix()
+    {
+        Component player = Create("Player");
+        var collection = new List<string> { "Bat", "Crab" };
+        string key = "Revival-no-write-" + Guid.NewGuid().ToString("N");
+        foreach (var operation in new[] { ("SavePrefs", "Bat"), ("RemovePrefs", "Missing") })
+        {
+            object result = player.GetType().GetMethod(operation.Item1, Members)
+                .Invoke(player, new object[] { collection, "Bat,Crab", operation.Item2, key });
+            Assert.That(result, Is.EqualTo("Bat,Crab"));
+            Assert.That(collection, Is.EqualTo(new[] { "Bat", "Crab" }));
+            Assert.That(PlayerPrefs.HasKey(key), Is.False);
+        }
+    }
+
+    [Test]
+    public void Revival_PlayerGoldBelongsToTheQueriedPlayer()
+    {
+        Component old = Create("Player");
+        Component current = Create("Player");
+        Set(old, "_gold", 10);
+        Set(current, "_gold", 20);
+        var singleton = RuntimeType("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var previous = singleton.GetValue(null);
+        try
+        {
+            singleton.SetValue(null, current);
+            Assert.That(old.GetType().GetProperty("Gold").GetValue(old), Is.EqualTo(10));
+            Assert.That(current.GetType().GetProperty("Gold").GetValue(current), Is.EqualTo(20));
+        }
+        finally { singleton.SetValue(null, previous); }
+    }
+
+    [TestCase("ShopMan", "_instance")]
+    [TestCase("BuffingMan", "instance")]
+    [TestCase("Portal", "_instance")]
+    [TestCase("CameraManage", "_instance")]
+    [TestCase("MiniMap", "_instance")]
+    public void Revival_OldSceneObjectDoesNotClearReplacement(string type, string fieldName)
+    {
+        var field = RuntimeType(type).GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic);
+        var previous = field.GetValue(null);
+        try
+        {
+            var old = Create(type);
+            var current = Create(type);
+            field.SetValue(null, current);
+            Call(old, "OnDestroy");
+            Assert.That(field.GetValue(null), Is.SameAs(current));
+            Call(current, "OnDestroy");
+            Assert.That(field.GetValue(null), Is.Null);
+        }
+        finally { field.SetValue(null, previous); }
+    }
+
+    [Test]
+    public void Revival_FogTextureIsReusedUpdatedAndReleasedWithRenderer()
+    {
+        Component renderer = Create("FogOfWarRenderer");
+        var data = ScriptableObject.CreateInstance(RuntimeType("FogOfWarData"));
+        Texture2D texture = null;
+        try
+        {
+            var grid = Activator.CreateInstance(RuntimeType("FogOfWarGrid"));
+            Set(grid, "<Size>k__BackingField", new Vector2(2, 2));
+            Set(data, "<Grid>k__BackingField", grid);
+            Set(renderer, "data", data);
+            var cells = new HashSet<Vector2Int> { new Vector2Int(-1, -1) };
+            var convert = renderer.GetType().GetMethod("CellsToTexture", Members);
+            texture = (Texture2D)convert.Invoke(renderer, new object[] { cells, 2, 2, null });
+            Set(renderer, "_dynamicCells", texture);
+            Assert.That(texture.GetPixel(0, 0), Is.EqualTo(Color.white));
+            cells.Clear();
+            var next = convert.Invoke(renderer, new object[] { cells, 2, 2, texture });
+            Assert.That(next, Is.SameAs(texture));
+            Assert.That(texture.GetPixel(0, 0), Is.EqualTo(Color.black));
+            Call(renderer, "OnDestroy");
+            Assert.That(texture == null, Is.True);
+            Call(renderer, "OnDestroy");
+        }
+        finally
+        {
+            if (texture != null) UnityEngine.Object.DestroyImmediate(texture);
+            UnityEngine.Object.DestroyImmediate(data);
+        }
+    }
+
+    [TestCase(100, true)]
+    [TestCase(9, false)]
+    public void Revival_ShopConfirmationConsumesOnceAndRechecksFunds(int funds, bool expected)
+    {
+        Component shop = Create("ShopMan");
+        Set(shop, "_purchasePending", true);
+        Set(shop, "_currentItemPrice", 10);
+        Set(shop, "_currentItemName", "Bat");
+        var confirm = shop.GetType().GetMethod("TryConsumePurchase", Members);
+        Assert.That(confirm.Invoke(shop, new object[] { funds }), Is.EqualTo(expected));
+        Assert.That(confirm.Invoke(shop, new object[] { 100 }), Is.EqualTo(false));
+    }
+
+    [Test]
+    public void Revival_MiniMapDisableReleasesItsCapturedUpdatePublisher()
+    {
+        Component map = Create("MiniMap");
+        Component first = Create("AD.UpdateManager");
+        Component replacement = Create("AD.UpdateManager");
+        Call(map, "BindUpdates", first);
+        Call(map, "BindUpdates", replacement);
+        Assert.That(Get(first, "OnUpdateEvent"), Is.Null);
+        Assert.That(((Delegate)Get(replacement, "OnUpdateEvent")).GetInvocationList().Length, Is.EqualTo(1));
+        Call(map, "OnDisable");
+        Assert.That(Get(replacement, "OnUpdateEvent"), Is.Null);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_MiniMapDisableReleasesPauseWithoutOverwritingNewScale(bool changed)
+    {
+        Component map = Create("MiniMap");
+        float original = Time.timeScale;
+        try
+        {
+            Time.timeScale = 0.5f;
+            Call(map, "AcquirePause");
+            Call(map, "AcquirePause");
+            Assert.That(Time.timeScale, Is.Zero);
+            if (changed) Time.timeScale = 0.75f;
+            Call(map, "OnDisable");
+            Assert.That(Time.timeScale, Is.EqualTo(changed ? 0.75f : 0.5f));
+            Time.timeScale = 0.25f;
+            Call(map, "OnDisable");
+            Assert.That(Time.timeScale, Is.EqualTo(0.25f));
+        }
+        finally { Time.timeScale = original; }
+    }
+
+    [TestCase("Item", "ItemList")]
+    [TestCase("IAPItem", "IAPitemList")]
+    public void Revival_DestroyedShopItemUnregistersFromItsCapturedShop(string type, string listName)
+    {
+        Component shop = Create("ShopMan");
+        Component item = Create(type);
+        var items = (System.Collections.IList)Get(shop, listName);
+        items.Add(item);
+        Set(item, "_shopOwner", shop);
+        Call(item, "OnDestroy");
+        Call(item, "OnDestroy");
+        Assert.That(items.Count, Is.Zero);
+    }
+
     [TestCase(false, false, 20)]
     [TestCase(true, false, 40)]
     [TestCase(true, true, 5)]

@@ -30,4 +30,9 @@ public class CameraManage : MonoBehaviour
             cm.LookAt = Player.Instance.PlayerObject.transform;
         }
     }
+
+    private void OnDestroy()
+    {
+        if (_instance == this) _instance = null;
+    }
 }

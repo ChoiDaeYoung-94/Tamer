@@ -18,6 +18,9 @@ public class MiniMap : MonoBehaviour
     private Vector3 _offsetPos;
     private Vector3 _targetPos;
     private Vector3 _originalCameraPos;
+    private AD.UpdateManager _updateOwner;
+    private bool _ownsPause;
+    private float _previousTimeScale;
 
     private void Awake()
     {
@@ -26,16 +29,15 @@ public class MiniMap : MonoBehaviour
 
     private void OnDisable()
     {
-        if (AD.Managers.Instance)
-        {
-            AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
-            AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
-        }
+        BindUpdates(null);
+        ReleasePause();
     }
 
     private void OnDestroy()
     {
-        _instance = null;
+        BindUpdates(null);
+        ReleasePause();
+        if (_instance == this) _instance = null;
     }
 
     /// <summary>
@@ -50,8 +52,18 @@ public class MiniMap : MonoBehaviour
     {
         _playerIconRenderer.sprite = AD.Managers.DataM.LocalPlayerData["Sex"] == "Man" ? _playerIcons[0] : _playerIcons[1];
 
-        AD.Managers.UpdateM.OnUpdateEvent -= SetPlayerIcon;
-        AD.Managers.UpdateM.OnUpdateEvent += SetPlayerIcon;
+        BindUpdates(AD.Managers.UpdateM);
+    }
+
+    private void BindUpdates(AD.UpdateManager owner)
+    {
+        if (_updateOwner != null)
+        {
+            _updateOwner.OnUpdateEvent -= SetPlayerIcon;
+            _updateOwner.OnUpdateEvent -= MiniMapDrag;
+        }
+        _updateOwner = owner;
+        if (_updateOwner != null) _updateOwner.OnUpdateEvent += SetPlayerIcon;
     }
 
     private void SetPlayerIcon()
@@ -61,7 +73,7 @@ public class MiniMap : MonoBehaviour
 
     public void OpenMap()
     {
-        Time.timeScale = 0;
+        AcquirePause();
 
         _minimapCamera.transform.localPosition = new Vector3(_playerTransform.localPosition.x, 31f, _playerTransform.localPosition.z);
         _minimapCamera.SetActive(true);
@@ -70,19 +82,38 @@ public class MiniMap : MonoBehaviour
         _minimapCanvas.SetActive(true);
         _mainCamera.SetActive(false);
 
-        AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
-        AD.Managers.UpdateM.OnUpdateEvent += MiniMapDrag;
+        if (_updateOwner != null)
+        {
+            _updateOwner.OnUpdateEvent -= MiniMapDrag;
+            _updateOwner.OnUpdateEvent += MiniMapDrag;
+        }
     }
 
     public void CloseMap()
     {
-        Time.timeScale = 1;
+        ReleasePause();
 
-        AD.Managers.UpdateM.OnUpdateEvent -= MiniMapDrag;
+        if (_updateOwner != null) _updateOwner.OnUpdateEvent -= MiniMapDrag;
 
         ToggleGameUI(true);
         _mainCamera.SetActive(true);
         _minimapCamera.SetActive(false);
+    }
+
+    private void AcquirePause()
+    {
+        if (_ownsPause) return;
+        _previousTimeScale = Time.timeScale;
+        _ownsPause = true;
+        Time.timeScale = 0;
+    }
+
+    private void ReleasePause()
+    {
+        if (!_ownsPause) return;
+        _ownsPause = false;
+        // Preserve a newer nonzero time-scale decision made by another flow.
+        if (Time.timeScale == 0) Time.timeScale = _previousTimeScale;
     }
 
     private void ToggleGameUI(bool isActive)

@@ -194,32 +194,28 @@ public class MonsterGenerator : MonoBehaviour
 
     private void ResetMonsters()
     {
-        for (int i = 0; i < _activeMonsters.Count; i++)
+        // Returning a group removes several entries from the active list.
+        // Visit the original generation once instead of compensating indices.
+        foreach (Monster monster in _activeMonsters.ToArray())
         {
-            Monster monster = _activeMonsters[i];
-
-            if (!monster.IsCommander)
+            if (monster == null || !monster.IsCommander)
                 continue;
 
             if (!CheckViewPort(monster.transform.position))
             {
                 if (!RegionOfMonster(monster))
                 {
-                    foreach (Monster follower in monster.MonsterGroupList)
+                    foreach (Monster follower in monster.MonsterGroupList.ToArray())
                     {
-                        follower.BackPool();
-                        --i;
+                        if (follower != null) follower.BackPool();
                     }
 
                     monster.BackPool();
-                    --i;
                 }
                 else
                     monster.Warp();
             }
 
-            if (i < 0)
-                i = 0;
         }
     }
 

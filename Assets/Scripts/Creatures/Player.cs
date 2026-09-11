@@ -29,7 +29,7 @@ public class Player : Creature
     public float BuffAttackSpeed;
     public float BuffMoveSpeed;
     private int _gold;
-    public int Gold { get { return _instance._gold; } }
+    public int Gold { get { return _gold; } }
     public int MaxCaptureCapacity = 10;
     public List<string> PlayerMonsterCollection = new List<string>();
     public string EquippedItems = string.Empty;
@@ -450,7 +450,7 @@ public class Player : Creature
     public string SavePrefs(List<string> list, string str, string data, string key)
     {
         if (list.Contains(data))
-            return string.Empty;
+            return str;
 
         if (string.IsNullOrEmpty(str))
             str = $"{data}";
@@ -466,7 +466,7 @@ public class Player : Creature
     public string RemovePrefs(List<string> list, string str, string data, string key)
     {
         if (!list.Contains(data))
-            return string.Empty;
+            return str;
 
         list.Remove(data);
         str = string.Empty;

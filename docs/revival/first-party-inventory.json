@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "9044b6fc2027332649f326ce012d253ab831d3ca",
+  "sourceCommit": "300d427e4c557fd3cc4cda347b255a22a9a53bc7",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -52,7 +52,7 @@
     {
       "path": "Assets/Scripts/Cameras/CameraManage.cs",
       "kind": "runtime",
-      "lines": 33,
+      "lines": 38,
       "declaredTypes": [
         "CameraManage"
       ],
@@ -112,7 +112,7 @@
     {
       "path": "Assets/Scripts/Creatures/Monster.cs",
       "kind": "runtime",
-      "lines": 808,
+      "lines": 813,
       "declaredTypes": [
         "Monster"
       ],
@@ -154,7 +154,7 @@
     {
       "path": "Assets/Scripts/Creatures/ShopMan.cs",
       "kind": "runtime",
-      "lines": 162,
+      "lines": 185,
       "declaredTypes": [
         "ShopMan"
       ],
@@ -379,7 +379,7 @@
     {
       "path": "Assets/Scripts/Game/MonsterGenerator.cs",
       "kind": "runtime",
-      "lines": 277,
+      "lines": 273,
       "declaredTypes": [
         "MonsterGenerator"
       ],
@@ -408,9 +408,22 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/IapReceiptHttpVerifier.cs",
+      "kind": "runtime",
+      "lines": 75,
+      "declaredTypes": [
+        "IapReceiptHttpVerifier",
+        "Request",
+        "Response"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/Login/Login.cs",
       "kind": "runtime",
-      "lines": 973,
+      "lines": 977,
       "declaredTypes": [
         "Login",
         "ApiResult",
@@ -420,13 +433,11 @@
       ],
       "managerReferences": [
         "DataM",
-        "Instance",
         "SceneM",
         "ServerM",
         "SoundM"
       ],
       "singletonReferences": [
-        "Managers",
         "PlayGamesPlatform"
       ],
       "metaPresent": true
@@ -434,7 +445,7 @@
     {
       "path": "Assets/Scripts/Main/IAPItem.cs",
       "kind": "runtime",
-      "lines": 22,
+      "lines": 29,
       "declaredTypes": [
         "IAPItem"
       ],
@@ -465,7 +476,7 @@
     {
       "path": "Assets/Scripts/Main/Item.cs",
       "kind": "runtime",
-      "lines": 111,
+      "lines": 118,
       "declaredTypes": [
         "Item"
       ],
@@ -500,7 +511,7 @@
     {
       "path": "Assets/Scripts/Managers/DataManager.cs",
       "kind": "runtime",
-      "lines": 228,
+      "lines": 243,
       "declaredTypes": [
         "DataManager"
       ],
@@ -516,7 +527,7 @@
     {
       "path": "Assets/Scripts/Managers/EquipmentManager.cs",
       "kind": "runtime",
-      "lines": 112,
+      "lines": 118,
       "declaredTypes": [
         "EquipmentManager"
       ],
@@ -531,7 +542,7 @@
     {
       "path": "Assets/Scripts/Managers/GameManager.cs",
       "kind": "runtime",
-      "lines": 100,
+      "lines": 102,
       "declaredTypes": [
         "GameManager"
       ],
@@ -571,7 +582,7 @@
     {
       "path": "Assets/Scripts/Managers/IAPManager.cs",
       "kind": "runtime",
-      "lines": 417,
+      "lines": 500,
       "declaredTypes": [
         "IAPStatus",
         "IAPManager"
@@ -600,7 +611,7 @@
     {
       "path": "Assets/Scripts/Managers/Managers.cs",
       "kind": "runtime",
-      "lines": 95,
+      "lines": 149,
       "declaredTypes": [
         "Managers"
       ],
@@ -640,17 +651,19 @@
     {
       "path": "Assets/Scripts/Managers/PopupManager.cs",
       "kind": "runtime",
-      "lines": 261,
+      "lines": 305,
       "declaredTypes": [
         "PopupManager"
       ],
       "managerReferences": [
         "GameM",
         "GoogleAdMobM",
+        "Instance",
         "SoundM",
         "UpdateM"
       ],
       "singletonReferences": [
+        "Managers",
         "Player"
       ],
       "metaPresent": true
@@ -669,23 +682,27 @@
     {
       "path": "Assets/Scripts/Managers/SceneManager.cs",
       "kind": "runtime",
-      "lines": 87,
+      "lines": 139,
       "declaredTypes": [
-        "SceneManager"
+        "SceneManager",
+        "SceneServices"
       ],
       "managerReferences": [
         "DataM",
+        "Instance",
         "PopupM",
         "ServerM",
         "SoundM"
       ],
-      "singletonReferences": [],
+      "singletonReferences": [
+        "Managers"
+      ],
       "metaPresent": true
     },
     {
       "path": "Assets/Scripts/Managers/ServerManager.cs",
       "kind": "runtime",
-      "lines": 304,
+      "lines": 327,
       "declaredTypes": [
         "ServerManager",
         "Operation"
@@ -721,15 +738,18 @@
     {
       "path": "Assets/Scripts/Managers/Sub/PopupObject.cs",
       "kind": "runtime",
-      "lines": 60,
+      "lines": 62,
       "declaredTypes": [
         "PopupObject",
         "CheckType"
       ],
       "managerReferences": [
+        "Instance",
         "PopupM"
       ],
-      "singletonReferences": [],
+      "singletonReferences": [
+        "Managers"
+      ],
       "metaPresent": true
     },
     {
@@ -829,7 +849,7 @@
     {
       "path": "Assets/Scripts/MiniMap/FogOfWar/FogOfWarRenderer.cs",
       "kind": "runtime",
-      "lines": 142,
+      "lines": 178,
       "declaredTypes": [
         "FogOfWarRenderer"
       ],
@@ -895,18 +915,16 @@
     {
       "path": "Assets/Scripts/MiniMap/MiniMap.cs",
       "kind": "runtime",
-      "lines": 129,
+      "lines": 160,
       "declaredTypes": [
         "MiniMap"
       ],
       "managerReferences": [
         "DataM",
-        "Instance",
         "UpdateM"
       ],
       "singletonReferences": [
         "JoyStick",
-        "Managers",
         "Player",
         "PlayerUICanvas"
       ],
@@ -915,7 +933,7 @@
     {
       "path": "Assets/Scripts/MiniMap/MiniMapCanvas.cs",
       "kind": "runtime",
-      "lines": 9,
+      "lines": 14,
       "declaredTypes": [
         "MiniMapCanvas"
       ],
@@ -952,6 +970,19 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/Purchasing/ReceiptVerification.cs",
+      "kind": "runtime",
+      "lines": 69,
+      "declaredTypes": [
+        "ReceiptSession",
+        "IReceiptVerifier",
+        "ReceiptVerification"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/RevivalAdHarness.cs",
       "kind": "runtime",
       "lines": 131,
@@ -980,7 +1011,7 @@
     {
       "path": "Assets/Scripts/SetCharacter/CanvasSelectCharacter.cs",
       "kind": "runtime",
-      "lines": 97,
+      "lines": 110,
       "declaredTypes": [
         "CanvasSelectCharacter"
       ],
@@ -997,7 +1028,7 @@
     {
       "path": "Assets/Scripts/UI/JoyStick.cs",
       "kind": "runtime",
-      "lines": 166,
+      "lines": 185,
       "declaredTypes": [
         "JoyStick",
         "Mode"
@@ -1022,7 +1053,7 @@
     {
       "path": "Assets/Scripts/UI/PlayerUICanvas.cs",
       "kind": "runtime",
-      "lines": 216,
+      "lines": 224,
       "declaredTypes": [
         "PlayerUICanvas"
       ],
@@ -1043,7 +1074,7 @@
     {
       "path": "Assets/Scripts/UI/TMP_Damage.cs",
       "kind": "runtime",
-      "lines": 65,
+      "lines": 66,
       "declaredTypes": [
         "TMP_Damage"
       ],
@@ -1092,6 +1123,18 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Tests/Editor/IAP/RevivalReceiptVerificationTests.cs",
+      "kind": "tests",
+      "lines": 161,
+      "declaredTypes": [
+        "RevivalReceiptVerificationTests",
+        "FakeVerifier"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Tests/Editor/RevivalAdEntitlementTests.cs",
       "kind": "tests",
       "lines": 35,
@@ -1118,12 +1161,13 @@
     {
       "path": "Assets/Tests/Editor/RevivalAdPopupTests.cs",
       "kind": "tests",
-      "lines": 256,
+      "lines": 439,
       "declaredTypes": [
         "RevivalAdPopupTests"
       ],
       "managerReferences": [
         "Awake",
+        "Init",
         "OnDestroy"
       ],
       "singletonReferences": [
@@ -1156,7 +1200,7 @@
     {
       "path": "Assets/Tests/Editor/RevivalDataSyncTests.cs",
       "kind": "tests",
-      "lines": 460,
+      "lines": 483,
       "declaredTypes": [
         "RevivalDataSyncTests",
         "SaveHarness"
@@ -1165,6 +1209,17 @@
       "singletonReferences": [
         "BindingFlags"
       ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalEquipmentLifecycleTests.cs",
+      "kind": "tests",
+      "lines": 101,
+      "declaredTypes": [
+        "RevivalEquipmentLifecycleTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
       "metaPresent": true
     },
     {
@@ -1181,9 +1236,22 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Tests/Editor/RevivalManagerLifecycleTests.cs",
+      "kind": "tests",
+      "lines": 163,
+      "declaredTypes": [
+        "RevivalManagerLifecycleTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Tests/Editor/RevivalMonsterLifecycleTests.cs",
       "kind": "tests",
-      "lines": 208,
+      "lines": 398,
       "declaredTypes": [
         "RevivalMonsterLifecycleTests"
       ],
@@ -1246,7 +1314,7 @@
     {
       "path": "Assets/Tests/Editor/RevivalServerRequestTests.cs",
       "kind": "tests",
-      "lines": 344,
+      "lines": 378,
       "declaredTypes": [
         "RevivalServerRequestTests",
         "ReadCall",
@@ -1256,6 +1324,19 @@
       ],
       "managerReferences": [],
       "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalUILifecycleTests.cs",
+      "kind": "tests",
+      "lines": 127,
+      "declaredTypes": [
+        "RevivalUILifecycleTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [
+        "BindingFlags"
+      ],
       "metaPresent": true
     }
   ],
