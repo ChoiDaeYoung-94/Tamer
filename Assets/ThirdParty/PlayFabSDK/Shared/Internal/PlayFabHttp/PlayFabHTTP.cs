@@ -55,7 +55,14 @@ namespace PlayFab.Internal
         /// </summary>
         public static void InitializeHttp()
         {
-            if (string.IsNullOrEmpty(PlayFabSettings.TitleId))
+            InitializeHttp(PlayFabSettings.staticSettings);
+        }
+
+        // Local SDK fix: instance requests must validate their own title without
+        // requiring callers to mutate the default/static title.
+        private static void InitializeHttp(PlayFabApiSettings settings)
+        {
+            if (settings == null || string.IsNullOrEmpty(settings.TitleId))
                 throw new PlayFabException(PlayFabExceptionCode.TitleNotSet, "You must set PlayFabSettings.TitleId before making API Calls.");
             var transport = PluginManager.GetPlugin<ITransportPlugin>(PluginContract.PlayFab_Transport);
             if (transport.IsInitialized)
@@ -151,7 +158,7 @@ namespace PlayFab.Internal
             Action<PlayFabError> errorCallback, object customData, Dictionary<string, string> extraHeaders, bool allowQueueing, PlayFabAuthenticationContext authenticationContext, PlayFabApiSettings apiSettings, IPlayFabInstanceApi instanceApi)
             where TResult : PlayFabResultCommon
         {
-            InitializeHttp();
+            InitializeHttp(apiSettings);
             SendEvent(apiEndpoint, request, null, ApiProcessingEventType.Pre);
 
             var serializer = PluginManager.GetPlugin<ISerializerPlugin>(PluginContract.PlayFab_Serializer);

@@ -65,30 +65,38 @@ namespace AD
             {
                 TitleId = _configuration.testTitle, DisableDeviceInfo = true, DisableFocusTimeCollection = true
             }, new PlayFabAuthenticationContext());
-            client.LoginWithCustomID(new LoginWithCustomIDRequest
-            { CustomId = "iap-test-" + _identity, CreateAccount = true }, result =>
+            try
+            {
+                client.LoginWithCustomID(new LoginWithCustomIDRequest
+                { CustomId = "iap-test-" + _identity, CreateAccount = true }, result =>
+                {
+                    _loggingIn = false;
+                    if (owner == null || Managers.DataM != owner) { Status = "Owner changed; restart app"; return; }
+                    try
+                    {
+                        owner.BeginAccountSession(result.PlayFabId);
+                        Session = new ReceiptSession(result.PlayFabId, result.SessionTicket);
+                        Managers.ServerM.GetAllData(update: true);
+                        if (!owner.IsServerDataReady) throw new InvalidOperationException();
+                        Status = "Test login ready; game data stays local";
+                    }
+                    catch (Exception)
+                    {
+                        Session = null;
+                        owner.SuspendAccountSession();
+                        Status = "Test account binding failed; save preserved";
+                    }
+                }, error =>
+                {
+                    _loggingIn = false;
+                    Status = "Test login failed: " + (error == null ? "Unknown" : error.Error.ToString());
+                });
+            }
+            catch (Exception)
             {
                 _loggingIn = false;
-                if (owner == null || Managers.DataM != owner) { Status = "Owner changed; restart app"; return; }
-                try
-                {
-                    owner.BeginAccountSession(result.PlayFabId);
-                    Session = new ReceiptSession(result.PlayFabId, result.SessionTicket);
-                    Managers.ServerM.GetAllData(update: true);
-                    if (!owner.IsServerDataReady) throw new InvalidOperationException();
-                    Status = "Test login ready; game data stays local";
-                }
-                catch (Exception)
-                {
-                    Session = null;
-                    owner.SuspendAccountSession();
-                    Status = "Test account binding failed; save preserved";
-                }
-            }, error =>
-            {
-                _loggingIn = false;
-                Status = "Test login failed: " + (error == null ? "Unknown" : error.Error.ToString());
-            });
+                Status = "Test login could not start; retry available";
+            }
         }
     }
 }
