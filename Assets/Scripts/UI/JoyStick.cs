@@ -39,6 +39,28 @@ public class JoyStick : MonoBehaviour
         DontDestroyOnLoad(transform.parent.gameObject);
     }
 
+    private void OnDisable() => ResetInput();
+
+    private void OnApplicationFocus(bool focused)
+    {
+        if (!focused) ResetInput();
+    }
+
+    private void OnDestroy()
+    {
+        if (_instance == this) _instance = null;
+    }
+
+    private void ResetInput()
+    {
+        _isPointerUp = true;
+        _joystickVector = Vector3.zero;
+        _joystickDistance = 0;
+        if (_handleTransform != null) _handleTransform.anchoredPosition = Vector2.zero;
+        if (_mode == Mode.FreeArea && _handleAreaTransform != null)
+            _handleAreaTransform.gameObject.SetActive(false);
+    }
+
     private void FixedUpdate()
     {
         if (!_isPointerUp)
@@ -71,6 +93,7 @@ public class JoyStick : MonoBehaviour
 
     private void Control()
     {
+        if (_playerObject == null || _cameraArmTransform == null) return;
         Debug.DrawRay(_cameraArmTransform.position, new Vector3(_cameraArmTransform.forward.x, 0f, _cameraArmTransform.forward.z).normalized, Color.red);
 
         Vector3 cameraVerticalVector = new Vector3(_cameraArmTransform.forward.x, 0f, _cameraArmTransform.forward.z).normalized;
@@ -151,12 +174,8 @@ public class JoyStick : MonoBehaviour
 
     public void PointUp(BaseEventData baseEventData)
     {
-        _isPointerUp = true;
-
-        _handleTransform.anchoredPosition = Vector2.zero;
-
-        if (_mode == Mode.FreeArea)
-            _handleAreaTransform.gameObject.SetActive(false);
+        ResetInput();
+        if (Player.Instance == null) return;
 
         // Player Ani 설정 (Idle)
         Player.Instance.State = Creature.CreatureState.Idle;

@@ -26,6 +26,7 @@ namespace AD
         /// </summary>
         public void SwitchMainOrGameScene()
         {
+            if (Managers.SceneM == null || Managers.SceneM.IsTransitioning) return;
             AD.Managers.PopupM.SetException();
 
             // 씬 전환

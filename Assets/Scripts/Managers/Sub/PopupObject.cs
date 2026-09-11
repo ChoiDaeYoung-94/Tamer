@@ -17,19 +17,23 @@ namespace AD
 
         [SerializeField] private CheckType _checkType = CheckType.Normal;
 
+        private PopupManager _manager;
+
         private void OnEnable()
         {
+            _manager = Managers.Instance != null ? Managers.PopupM : null;
+            if (_manager == null) return;
             switch (_checkType)
             {
                 case CheckType.Normal:
-                    AD.Managers.PopupM.EnablePop(gameObject);
+                    _manager.EnablePop(gameObject);
                     break;
                 case CheckType.Exception:
-                    AD.Managers.PopupM.SetException();
+                    _manager.RegisterBlocker(gameObject, false);
                     break;
                 case CheckType.Flow:
-                    AD.Managers.PopupM.EnablePop(gameObject);
-                    AD.Managers.PopupM.SetFlow();
+                    _manager.EnablePop(gameObject);
+                    _manager.RegisterBlocker(gameObject, true);
                     break;
             }
         }
@@ -41,20 +45,18 @@ namespace AD
         {
             if (_checkType == CheckType.Normal)
             {
-                AD.Managers.PopupM.DisablePop();
+                if (_manager != null)
+                {
+                    _manager.RequestClosePopup(gameObject);
+                }
             }
         }
 
         private void OnDisable()
         {
-            if (_checkType == CheckType.Exception)
-            {
-                AD.Managers.PopupM.ReleaseException();
-            }
-            else if (_checkType == CheckType.Flow)
-            {
-                AD.Managers.PopupM.ReleaseFlow();
-            }
+            // Use the manager that accepted this registration, even during teardown.
+            if (_manager != null) _manager.UnregisterPopup(gameObject);
+            _manager = null;
         }
     }
 }
