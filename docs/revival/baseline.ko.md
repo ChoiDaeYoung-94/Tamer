@@ -10,6 +10,7 @@
 - 소유자 원본: `D:\meee\git\Tamer`, `main`. 읽기 전용 복원 소스로 사용했으며 checkout·동기화·삭제하지 않았다.
 - 시작 시 등록 폴더에는 커밋 없는 빈 Git 저장소만 있었다. 원격 main과 원본 HEAD가 모두 `c47c90217d45e8c6538c57a0924fa852abfbd736`임을 확인하고 작업본을 구성했다. 원본 Library는 복사하지 않았다.
 - 별도 검증 clone: `.revival-local/restore-validation`. Git 파일과 공개 복원 스크립트로 원본을 복원하고, 이 clone의 Library 없이 임포트·배치 테스트·개발 빌드를 검증한다.
+- 최종 검증 clone: `.revival-local/final-validation`, 코드 `4c1f2e72c8f14c715ad004ac067cb1c869d7ff20`. 시작 시 Library·`.utmp`·UserSettings가 모두 없는 상태에서 복원과 전체 검증 스크립트가 exit 0으로 완료됐다. 시스템의 공용 다운로드 캐시는 유지했다.
 - 준비 문서 [PR #93](https://github.com/ChoiDaeYoung-94/Tamer/pull/93)은 별도 미병합 draft이며 이 구현에서 병합하지 않았다.
 
 ## 고정 도구
@@ -46,6 +47,9 @@ python tools/revival/install_cli.py
 python tools/revival/audit_guids.py
 ```
 
+새 clone에서 첫 Unity 실행이 패키지를 resolve한 뒤 `python tools/revival/install_cli.py`를 한 번 더 실행하면
+패키지에 포함된 `unity-pipeline` skill도 프로젝트 로컬에 복사된다. CLI 바이너리는 해시가 같으면 다시 받지 않는다.
+
 기본 Editor 설치 경로가 다르면 `-EditorPath '<Unity.exe 절대 경로>'`를 전달한다.
 Android 검사 도구가 별도 위치면 `verify_apk.py --android-player '<AndroidPlayer 경로>'`로 확인한다.
 같은 checkout의 Editor를 닫고 실행한다. 다른 프로젝트 Editor를 종료하지 않는다.
@@ -60,6 +64,9 @@ Android 검사 도구가 별도 위치면 `verify_apk.py --android-player '<Andr
 ```
 
 버전/ABI/SDK가 기준과 다르거나 legacy marker가 있으면 빌드 진입점이 실패한다.
+전체 실행 스크립트는 Editor 실행 전 marker 3종을 검사하며, legacy reload/post-build callback은 batch에서 실행하지 않는다.
+씬 전환 함수와 라이브 테스트는 모든 열린 씬의 dirty/미저장 상태를 먼저 검사하고 거부한다.
+독립 batch 테스트는 실행기 소유의 임시 씬을 저장된 smoke 씬으로 초기화하며, 라이브 테스트에는 이 초기화를 적용하지 않는다.
 기존 BuildScript의 날짜 기반 버전 증가·marker/reload·운영 서명 경로는 호출하지 않는다.
 앱 ID를 `com.AeDeong.MonsterTamer.revival`로 분리하고 debug signing을 사용한다.
 기존 게임 씬 5개를 포함하되, 첫 씬은 게임 MonoBehaviour가 없는 `RevivalSmoke`다.
@@ -83,6 +90,8 @@ Unity/EDM이 별도로 재직렬화하는 설정·캐시 파일이 있을 수 �
 - 캡처: Edit Mode camera 방식 1280×720 PNG 생성·육안 확인. CLI의 `save_path Logs/...`가 실제로는 `Assets/Logs/...`로 해석되어 그 경로에서 읽은 후 로컬 Logs에도 보관했다.
 - 참조 검사: 자체 YAML 132개 검사. 구형 URP XR 참조 1개를 null로 정리한 뒤 미해결 외부 GUID 0개. 로컬 fileID/시각적 외관/모든 구매 에셋의 사용하지 않는 데모 씬까지 보장하는 검사는 아니다.
 - 첫 Android 개발 APK: BuildReport `Succeeded`, errors 0. APK 자체의 min24/target36/ARM64/1.0.5/code26/debug 서명을 aapt2/apksigner로 확인했다.
+- 최종 캐시 없는 clone: EditMode 3/3 통과, Android BuildReport `Succeeded`, errors 0, APK 메타데이터·debug 서명 통과. APK 102,066,128 bytes, SHA-256 `025b5f65857c805becb13dfd76e9f10c0c5e3f8f112bc7ce874a4dc4000e68e7`. 빌드 성공의 재현 검증이며 APK 바이트 일치를 보장하지 않는다.
+- 통합 리뷰 후 보호 수정 `900a2ca6dd13112748a6fbb93084c87e83919575`: EditMode 4/4, Python 4/4 통과. marker 3종이 Editor 실행 전에 파일 변경 없이 거부되고, 비활성 additive dirty 씬의 객체와 상태를 보존함을 검증했다. GUID 정의 수집을 meta 최상위 `guid:`로 한정한 뒤에도 132개 파일/미해결 0개다. 이 Editor/도구 수정 후 APK는 재빌드하지 않았으며 위 cold clone APK와 검증 커밋을 구분한다.
 - 연결된 Android 기기 0대. APK 설치·실행, 실제 로그인/저장/구매/광고, 스토어 검증은 수행하지 않았다.
 
 주요 로컬 파일:

@@ -9,6 +9,14 @@ using UnityEngine.SceneManagement;
 
 public class RevivalBaselineTests
 {
+    [OneTimeSetUp] public void InitializeBatchFixture()
+    {
+        // The standalone test runner creates a transient dirty scene. It owns this
+        // batch process; live Pipeline tests must instead preserve the user's setup.
+        if (Application.isBatchMode)
+            EditorSceneManager.OpenScene("Assets/Tests/Scenes/RevivalSmoke.unity", OpenSceneMode.Single);
+    }
+
     static void RestoreSetup(SceneSetup[] setup)
     {
         if (setup.Any(s => s.isLoaded && s.isActive)) EditorSceneManager.RestoreSceneManagerSetup(setup);
@@ -23,8 +31,30 @@ public class RevivalBaselineTests
 
     [Test] public void Revival_BaselineSettingsAndMarkersAreSafe() => Invoke("ValidateBaseline");
 
+    [Test] public void Revival_DirtyAdditiveSceneIsPreservedWhenOperationsReject()
+    {
+        Invoke("RequireSavedScenes");
+        var active = SceneManager.GetActiveScene();
+        var unsaved = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+        var sentinel = new GameObject("Unsaved user change");
+        SceneManager.MoveGameObjectToScene(sentinel, unsaved);
+        EditorSceneManager.MarkSceneDirty(unsaved);
+        SceneManager.SetActiveScene(active);
+        try
+        {
+            foreach (var method in new[] { "PrepareSmokeScene", "VerifySmokeScene", "RequireSavedScenes" })
+            {
+                Assert.Throws<InvalidOperationException>(() => Invoke(method));
+                Assert.That(unsaved.isLoaded && unsaved.isDirty && sentinel != null, Is.True);
+                Assert.That(SceneManager.GetActiveScene(), Is.EqualTo(active));
+            }
+        }
+        finally { EditorSceneManager.CloseScene(unsaved, true); }
+    }
+
     [Test] public void Revival_SmokeSceneSurvivesSaveAndReopenWithoutGameplay()
     {
+        Invoke("RequireSavedScenes");
         var setup = EditorSceneManager.GetSceneManagerSetup();
         try { Invoke("PrepareSmokeScene"); Invoke("VerifySmokeScene"); }
         finally { RestoreSetup(setup); }
@@ -32,6 +62,7 @@ public class RevivalBaselineTests
 
     [Test] public void Revival_EnabledGameScenesHaveNoMissingScripts()
     {
+        Invoke("RequireSavedScenes");
         var setup = EditorSceneManager.GetSceneManagerSetup();
         try
         {
