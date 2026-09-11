@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "issue": 96,
+  "pullRequest": 100,
+  "validatedAtUtc": "2026-09-11T04:07:29Z",
+  "codeCommit": "0003c1d2d08e3b038f33dbca5284859252f132ca",
+  "branch": "codex/account-save-continuity",
+  "baselineMergeCommit": "83719f2",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "toolchain": {
+    "unityEditor": "6000.0.81f1",
+    "unityCli": "1.0.0-beta.8",
+    "buildTargetDuringTests": "Android",
+    "androidMinSdk": 24,
+    "androidTargetSdk": 36,
+    "androidArchitecture": "ARM64",
+    "playFabSdk": "2.138.220621",
+    "iapPackage": "5.0.1"
+  },
+  "command": ".\\tools\\revival\\Run-Baseline.ps1 -ProjectPath 'C:\\Users\\pc_17\\.codex\\worktrees\\7299\\Tamer' -TestsOnly",
+  "editMode": {
+    "result": "Passed",
+    "total": 119,
+    "passed": 119,
+    "failed": 0,
+    "skipped": 0,
+    "processExitCode": 0,
+    "testDurationSeconds": 3.2300206,
+    "fixtures": {
+      "RevivalBaselineTests": 4,
+      "RevivalDataSyncTests": 42,
+      "RevivalLoginContinuityTests": 56,
+      "RevivalSaveQueueTests": 3,
+      "RevivalServerRequestTests": 14
+    },
+    "localResultPath": "Logs/revival/editmode.xml",
+    "resultSha256": "ad1326b9099c68f9c278f7b34d1d91c974bb80e5f63c43bd11c742b34e370ff4"
+  },
+  "freshLibraryRun": {
+    "codeCommit": "bebbd1254c4902c460346f96c218c9942ad6e18c",
+    "result": "Passed",
+    "passed": 117,
+    "libraryWasAbsentBeforeRun": true,
+    "otherCheckoutLibraryShared": false,
+    "note": "Final two regression cases were added and rerun using this checkout's resulting Library."
+  },
+  "assetVerification": {
+    "restoreManifestFilesVerified": 4537,
+    "serviceSettings": "neutral templates; original service settings excluded",
+    "guidAuditFiles": 132,
+    "unresolvedGuids": 0,
+    "pythonTestsPassed": 4,
+    "trackedImportSideEffectsRestored": true
+  },
+  "apk": {
+    "standaloneBuildRunForFinalCode": false,
+    "reason": "Integration owner requested latest SDK composite and final integration APK evidence instead of a duplicate standalone APK.",
+    "requiredSourceCommit": "0003c1d2d08e3b038f33dbca5284859252f132ca",
+    "statusAtHandoff": "pending SDK/integration build evidence"
+  },
+  "productionOperationsPerformed": false,
+  "ciOrDeploymentRun": false,
+  "unverified": [
+    "Android device GPGS, original account, save and purchase restoration flows",
+    "Final combined SDK Android APK and store validation",
+    "Multi-device server transactions/CAS and versioned offline conflict recovery",
+    "Existing Public user-data migration and old-client Public writes (#105)",
+    "Account migration of separate equipment and collection PlayerPrefs"
+  ]
+}
