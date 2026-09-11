@@ -277,13 +277,19 @@ namespace AD
         private static void WriteToPlayFab(string accountId, Dictionary<string, string> data,
             Action success, Action<int> failure)
         {
-            var request = new UpdateUserDataRequest
-            {
-                Data = data,
-                Permission = UserDataPermission.Public,
-                AuthenticationContext = CopyContext(accountId)
-            };
+            var request = CreateWriteRequest(data, CopyContext(accountId));
             PlayFabClientAPI.UpdateUserData(request, result => success(), error => failure(error?.HttpCode ?? 0));
+        }
+
+        private static UpdateUserDataRequest CreateWriteRequest(Dictionary<string, string> data,
+            PlayFabAuthenticationContext context)
+        {
+            return new UpdateUserDataRequest
+            {
+                Data = new Dictionary<string, string>(data),
+                Permission = UserDataPermission.Private,
+                AuthenticationContext = context
+            };
         }
 
         private static void ApplyServerData(Dictionary<string, string> data, bool update)
