@@ -6,7 +6,8 @@
 
 최신 Editor 검증: 광고 수정 `b4764b4`를 포함한 SDK 11.5.0 통합 커밋
 [`f5b7e404`](https://github.com/ChoiDaeYoung-94/Tamer/commit/f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf)에서
-**248/248 통과, 실패 0, 건너뜀 0**을 확인했다. APK 검증은 이 기록 시점에 진행 중이다.
+**248/248 통과, 실패 0, 건너뜀 0**을 확인했다. 같은 소스의 격리 개발 APK 빌드·메타데이터·
+서명·LOAD/ZIP 검증도 완료했다. 엄격한 RELRO 검사와 실제 16KB 기기 검증의 경계는 아래에 구분한다.
 
 ## 변경된 게임 동작
 
@@ -114,8 +115,31 @@ Unity 6000.0.81f1/GMA Unity 11.5.0 합본에서 **248/248 통과**, 실패 0, �
 광고 측 최종 검사 대상은 순수 58 + manager 20 + popup 6 + baseline 4 = 88개다.
 manager/popup 검사는 실제 컴포넌트의 handler를 명시 호출하며 게임 씬 실행이나 실제 광고·오디오를
 대체하지 않는다. SDK 11.5.0·광고·데이터 합본의 전체 Editor 회귀는 위와 같이 통과했으며,
-최종 APK 검증은 기록 시점에 진행 중이다. 구 SDK 단독 APK 빌드는 생략했으므로 이 광고 작업의 APK SHA-256은 없다.
-최종 통합 결과와 APK 해시는 통합 검증 기록 및 PR #104에서 별도로 확인해야 한다.
+구 SDK 단독 APK 빌드는 생략하고 같은 통합 소스로 만든 아래 APK를 최종 산출물 근거로 사용한다.
+
+## 최종 통합 APK
+
+통합 소스는 `f5b7e404d7bd2c797aed2c9a3c17416a2ef50ccf`다. 통합 담당의
+`Logs/revival/apk-verification.json`, `build-summary.json`, `native-alignment.json`,
+`native-alignment-strict.json`, `relro-protection.json`을 읽기 전용으로 대조했으며,
+APK 파일의 크기와 SHA-256을 별도로 계산해 일치를 확인했다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 빌드 | Succeeded, errors 0, 전체 검증 스크립트 종료 0 |
+| 산출물 | 통합 checkout의 `Build/revival/Tamer-development.apk`, **104,785,252 bytes** |
+| SHA-256 | `0d51f218491d90aa7e963b0e42b3ebf5606fc8e0d91f4b710d246fb8223eeb27` |
+| 앱 ID | 격리된 `com.AeDeong.MonsterTamer.revival` |
+| SDK/ABI | min SDK 24, target SDK 36, ARM64 전용 |
+| 서명·시작 | debug 서명 확인, debuggable, 격리 `RevivalSmoke` 시작 씬 |
+| 네이티브 정렬 | 6개 라이브러리의 LOAD 23개 검사 통과, zipalign 통과 |
+| 엄격한 RELRO 검사 | 종료 주소 정렬 실패 5개를 별도 기록. 통과로 덮어쓰지 않음 |
+| 추가 정적 기하 검사 | RELRO 6개 모두 전체 LOAD 구간과 일치, 반올림 보호 범위의 선언된 writable LOAD 중첩 0 |
+| 실행·배포 경계 | 실제 16KB 페이지 기기 실행, AAB/split 및 스토어 승인은 미검증 |
+
+빌드 요약의 총 처리 바이트와 실제 APK 파일 크기는 다르므로 위 크기는 실제 파일을 기준으로 한다.
+추가 RELRO 정적 검사에서 중첩이 없다는 결과는 전체 16KB 호환성이나 엄격한 검사의 통과를 뜻하지 않는다.
+계정·저장·No Ads 운영 검증과 실제 광고의 5초 닫힘도 이 격리 개발 APK의 정적 검사로 대체하지 않는다.
 
 ## 통합 및 미검증
 
