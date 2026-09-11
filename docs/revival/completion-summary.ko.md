@@ -65,7 +65,7 @@ PR [#114](https://github.com/ChoiDaeYoung-94/Tamer/pull/114)에서 SM-N986N / An
 
 남은 작업은 다음과 같다.
 
-- **기기·결제:** 기존 계정 로그인·저장 실패/재시도·No Ads 구매/복원·광고/음악·전투, 16KB Android 실행과 AAB/split 설치·실행. 서버 영수증 검증은 이번 구현에 포함되지 않았다.
+- **기기·결제:** 기존 계정 로그인·저장 실패/재시도·No Ads 구매/복원·광고/음악·전투, 16KB Android에서의 APK·AAB/split 실행. 서버 영수증 검증은 이번 구현에 포함되지 않았다.
 - **광고·스토어 [#91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91):** Families 5초 닫힘, 공급자·consent 설정과 심사. Console의 거절 연결 번들26을 현재 제공 버전으로 단정하지 않는다. 광고 API 차단이 native SDK의 모든 자동 통신 차단을 증명하지는 않는다.
 - **개인정보 [#105](https://github.com/ChoiDaeYoung-94/Tamer/issues/105):** 실제 PlayFab 로그인·진행 저장과 Data safety 선언 대조, 보관·삭제·계약·동의 결정. 향후 Private 쓰기는 기존 Public 키와 구버전의 재공개를 자동 해결하지 않는다. [기술 감사](privacy-data-safety-audit.ko.md)
 - **소유자 확인:** upload key 재설정 결정·잔여 OAuth 필요성([#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)), 구매 에셋의 비공개 보관 운영. 각 결정은 해당 작업에 진입할 때 구체적인 안과 함께 확인한다.
