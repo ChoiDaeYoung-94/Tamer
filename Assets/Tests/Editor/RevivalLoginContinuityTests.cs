@@ -8,6 +8,15 @@ using NUnit.Framework;
 /// <summary>Account selection and callback tests without PlayFab, GPGS, PlayerPrefs or scenes.</summary>
 public class RevivalLoginContinuityTests
 {
+    [Test]
+    public void Revival_UnreadableLocalSaveCannotAuthorizeNewAccountCreation()
+    {
+        bool existingOrUnknown = (bool)Policy("HasLocalProgress", (object)null);
+        Assert.That(existingOrUnknown, Is.True);
+        Assert.That(Policy("CanCreateAccount", "", existingOrUnknown), Is.False);
+        Assert.That(Policy("CanCreateGoogleAccount", "", existingOrUnknown, ""), Is.False);
+    }
+
     private static Type RuntimeType(string name) => AppDomain.CurrentDomain.GetAssemblies()
         .Select(a => a.GetType("AD." + name)).First(t => t != null);
 
