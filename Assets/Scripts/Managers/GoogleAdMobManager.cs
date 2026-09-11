@@ -15,11 +15,13 @@ namespace AD
         public bool IsInProgress = false;
         public bool IsReceived = false;
 
-#if UNITY_ANDROID && Debug
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || TAMER_TEST_ADS
         // GoogleAdMob에서 제공하는 TestID
         private string _adUnitId = "ca-app-pub-3940256099942544/5224354917";
-#elif UNITY_ANDROID && !Debug
+#elif UNITY_ANDROID
         private string _adUnitId = "ca-app-pub-4045654268115042/5756715712";
+#else
+        private string _adUnitId = "unused";
 #endif
 
         private RewardedAd _rewardedAd;

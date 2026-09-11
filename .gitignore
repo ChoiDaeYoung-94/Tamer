@@ -36,6 +36,8 @@
 /UserSettings/
 /Assets/Logs/
 /Assets/Logs.meta
+/Assets/Resources/PerformanceTestRun*.json
+/Assets/Resources/PerformanceTestRun*.json.meta
 /.claude/
 /.agents/skills/
 
