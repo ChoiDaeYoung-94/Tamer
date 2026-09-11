@@ -1,5 +1,6 @@
 # Tamer 작업 규칙
 
+- Git 커밋 제목과 본문은 한국어로 작성한다. Conventional Commits 접두사(feat/fix/refactor/docs 등), 코드 식별자·경로·제품명은 필요시 원문을 유지하되 변경 목적과 설명은 한국어로 쓴다. squash/merge 커밋 메시지도 직접 지정할 수 있으면 한국어로 작성한다. 이미 공유된 기존 커밋은 이 규칙 적용만을 위해 amend/rebase/force-push로 재작성하지 않는다.
 - Unity는 `6000.0.81f1`로 고정한다. 도구/SDK 기준은 `tools/revival/toolchain.json`과 `Packages/packages-lock.json`을 따른다.
 - 현재 구현 checkout은 이 폴더이며 `D:\meee\git\Tamer`는 소유자의 별도 원본이다. 원본의 브랜치 변경·동기화·삭제·이동을 하지 않는다.
 - `.meta`와 GUID를 보존한다. 에셋 복원은 Editor를 열기 전에 `python tools/revival/restore_assets.py --source <권한 있는 원본>`으로 수행한다. 해시 충돌을 임의 덮어쓰기/manifest 재생성으로 숨기지 않는다.
