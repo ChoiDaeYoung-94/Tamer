@@ -28,6 +28,7 @@
 /Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset
 **/PlayFabEditorPrefsSO.asset
 **/PlayFabEditorPrefsSO.asset.meta
+!/Assets/ThirdParty/PlayFabEditorExtensions/Editor/Resources/PlayFabEditorPrefsSO.asset.meta
 /Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Fonts/
 **/__pycache__/
 /.revival-local/
