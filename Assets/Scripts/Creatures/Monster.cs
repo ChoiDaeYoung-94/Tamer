@@ -567,7 +567,7 @@ public class Monster : Creature
 
     public void DelegateCommander(List<Monster> monsters)
     {
-        IsCommander = true;
+        SetEnemyRole(true);
         StartDetection();
         foreach (Monster monster in monsters)
         {
@@ -599,7 +599,7 @@ public class Monster : Creature
         if (_isBoss)
         {
             IsCommander = false;
-            MonsterGenerator.Instance.BossMonster = null;
+            UnregisterBoss();
         }
         else if (IsCommander)
         {
@@ -648,8 +648,7 @@ public class Monster : Creature
         gameObject.layer = dieLayer;
         _capsuleCollider.enabled = false;
 
-        if (_isBoss)
-            MonsterGenerator.Instance.BossMonster = null;
+        UnregisterBoss();
 
         IsCommander = false;
         MonsterGroupList.Clear();
@@ -675,8 +674,35 @@ public class Monster : Creature
     private void BaseSetting()
     {
         _detectionLayer = allyLayer;
-        int probability = IsCommander ? 40 : 20;
-        _isAbleAlly = _isBoss ? Random.Range(0, 100) < 5 : Random.Range(0, 100) < probability;
+        int probability = _isBoss ? 5 : IsCommander ? 40 : 20;
+        _isAbleAlly = Random.Range(0, 100) < probability;
+    }
+
+    // Pool activation precedes the generator assigning a role. Recalculate the
+    // capture roll only after that role is known.
+    public void SetEnemyRole(bool isCommander, bool isBoss = false)
+    {
+        _isBoss = isBoss;
+        IsCommander = isCommander || isBoss;
+        BaseSetting();
+    }
+
+    private void UnregisterBoss()
+    {
+        MonsterGenerator generator = MonsterGenerator.Instance;
+        if (generator != null && generator.BossMonster == gameObject)
+            generator.BossMonster = null;
+    }
+
+    private void ResetRole()
+    {
+        UnregisterBoss();
+        _isBoss = false;
+        IsCommander = false;
+        CommanderMonster = null;
+        MonsterGroupList.Clear();
+        _isAbleAlly = false;
+        _isTarget = false;
     }
 
     private void GoldSetting()
@@ -727,6 +753,7 @@ public class Monster : Creature
 
     private void ResetMonster()
     {
+        ResetRole();
         _isAlly = false;
         gameObject.tag = "Monster";
         gameObject.layer = enemyLayer;
@@ -736,8 +763,6 @@ public class Monster : Creature
 
         _updateTimer = 0f;
         _isCommanderArrived = false;
-
-        MonsterGroupList.Clear();
 
         _captureEffect.SetActive(false);
 
