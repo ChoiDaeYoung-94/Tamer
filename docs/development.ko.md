@@ -91,7 +91,7 @@ APK 메타데이터 검사는 기기 설치/실행, 모든 native 라이브러�
 
 반환된 작업 상태와 최종 pass/fail 및 테스트 개수를 확인한다. 배치 검증은 같은 checkout의 Editor를 정상 종료한 뒤 실행한다. 열린 씬·프리팹·직렬화 에셋은 Editor/Pipeline을 통해 수정하고 저장한다. C# 코드는 파일에서 수정한 뒤 컴파일 완료와 Console 오류를 확인한다.
 
-CLI는 설치 시 프로젝트 로컬 `unity-cli` 스킬을 제공한다. Pipeline import 후 `unity skill install codex --local --yes --non-interactive`를 다시 호출하면 가용 스킬을 반영할 수 있다. 실제 설치된 `.agents/skills`의 명령 문서를 사용한다. 별도 MCP 등록은 현재 절차의 필수 조건이 아니다.
+CLI는 설치 시 프로젝트 로컬 `unity-cli` 스킬을 제공한다. Pipeline import 후 `& $unityCli skill install codex --local --yes --non-interactive`를 다시 호출하면 가용 스킬을 반영할 수 있다. 실제 설치된 `.agents/skills`의 명령 문서를 사용한다. 별도 MCP 등록은 현재 절차의 필수 조건이 아니다.
 
 ## 4. 일상적인 코드 변경과 PR
 
