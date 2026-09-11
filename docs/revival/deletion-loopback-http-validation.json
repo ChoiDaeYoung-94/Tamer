@@ -1,0 +1,48 @@
+{
+  "sourceCommit": "e4dcbc8b636702f31e8324c08d24da7fb48ce5bb",
+  "inventoryCommit": "37128bd2517afcaa8d263e6b499515ed9d68101c",
+  "checkout": "C:\\Users\\pc_17\\.codex\\worktrees\\7299\\Tamer",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "dotnetSdk": "9.0.301",
+  "python": "3.14.0",
+  "socketContract": {
+    "command": "python -m server.privacy.contract_check",
+    "passed": 13,
+    "failed": 0,
+    "runtime": ".NET9 links actual C# source; real Python WSGI loopback sockets"
+  },
+  "pythonRegression": {
+    "passed": 122,
+    "failed": 0,
+    "seconds": 8.123
+  },
+  "unityRegression": {
+    "id": "2",
+    "testcasecount": "355",
+    "result": "Passed",
+    "total": "355",
+    "passed": "355",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-11 08:38:13Z",
+    "end-time": "2026-09-11 08:38:18Z",
+    "duration": "4.6522198"
+  },
+  "xmlSha256": "2ed54242a865e798f512d71c62ed15dad5116ba2c82218046d019c73514a9474",
+  "unitySourceNote": "Run started at 3b7a2a0; e4dcbc8 only adds tracked csproj, C# identical. No Unity HTTP execution claimed.",
+  "assetsVerified": 4561,
+  "ownEditorAfter": 0,
+  "settingsSnapshotRestored": true,
+  "editorGeneratedChangesRestored": true,
+  "notExecuted": [
+    "Unity UI HTTP click",
+    "Android/IL2CPP HTTP",
+    "Production authentication or deletion",
+    "Publishing or deployment"
+  ]
+}
