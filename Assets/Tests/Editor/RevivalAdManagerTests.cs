@@ -441,6 +441,35 @@ public class RevivalAdManagerTests
         Assert.That(completions, Is.Zero);
     }
 
+    [Test]
+    public void Revival_HarnessTraceCapturesWorkerTimeButDeliversOnUpdate()
+    {
+        string delivered = null;
+        double timestamp = 0;
+        int deliveredThread = 0;
+        var mainThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        Action<string, double> handler = (name, time) =>
+        {
+            delivered = name;
+            timestamp = time;
+            deliveredThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        };
+        managerType.GetEvent("HarnessEvent").AddEventHandler(manager, handler);
+        var trace = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), manager,
+            managerType.GetMethod("TraceHarness", InstanceMembers));
+        double before = (double)System.Diagnostics.Stopwatch.GetTimestamp() / System.Diagnostics.Stopwatch.Frequency;
+        var worker = new System.Threading.Thread(() => trace("worker_event"));
+        worker.Start();
+        Assert.That(worker.Join(5000), Is.True);
+        double after = (double)System.Diagnostics.Stopwatch.GetTimestamp() / System.Diagnostics.Stopwatch.Frequency;
+        Assert.That(delivered, Is.Null);
+        Invoke("Update");
+        Assert.That(delivered, Is.EqualTo("worker_event"));
+        Assert.That(timestamp, Is.InRange(before, after));
+        Assert.That(deliveredThread, Is.EqualTo(mainThread));
+        AssertNoSdkActivity();
+    }
+
     private void Install(RewardedAdSession session, Action resume)
     {
         managerType.GetField("_session", InstanceMembers).SetValue(manager, session);

@@ -17,6 +17,8 @@ public class RuntimeInitialize : MonoBehaviour
 #if UNITY_EDITOR
         if (SceneManager.GetActiveScene().path == "Assets/Tests/Scenes/RevivalSmoke.unity")
             return;
+        if (SceneManager.GetActiveScene().path == "Assets/Tests/Scenes/RevivalAdHarness.unity")
+            return;
         if (SceneManager.GetActiveScene().name.CompareTo("Test") == 0)
             return;
 

@@ -2,6 +2,8 @@
 
 공식 출처 확인일: 2026-09-11. #91 광고 형식 위반 수정에 사용하는 근거이며,
 Play Console 선언 변경, 운영 광고 요청 또는 스토어 승인 완료를 의미하지 않는다.
+통합 이후 Console 재확인·SDK 시작 경로·격리 샘플 APK 결과는
+[스토어 준비 검증](families-store-readiness.ko.md)에 기록한다.
 
 ## 5초 종료 요건
 
@@ -21,16 +23,16 @@ Play Console 선언 변경, 운영 광고 요청 또는 스토어 승인 완료�
 
 | 항목 | 저장소에서 확인한 선언 | 공식 근거와 판정 |
 | --- | --- | --- |
-| Google Mobile Ads Unity | 9.1.1 manifest | [공식 9.1.1 릴리스](https://github.com/googleads/googleads-mobile-unity/releases/tag/v9.1.1) |
-| Android GMA | `com.google.android.gms:play-services-ads:23.2.0` | XML, Gradle, resolver 선언과 공식 릴리스가 일치 |
-| Android UMP | `com.google.android.ump:user-messaging-platform:2.2.0` | XML과 공식 릴리스가 일치 |
-| iOS GMA | `Google-Mobile-Ads-SDK ~> 11.6.0` | iOS 빌드의 최종 해석 버전은 미검증 |
-| Families 자기 인증 | AdMob Android 19.0.0 이상 | 현재 23.2.0은 [공식 목록](https://support.google.com/googleplay/android-developer/answer/12955712?hl=en)의 범위에 포함 |
-| Android GMA 지원 상태 | 23.x Deprecated | [공식 일정](https://developers.google.com/admob/android/deprecation): 2026-02-17 Deprecated, 2027-06-30 Sunset 예정. 24.x와 25.x는 Supported |
+| Google Mobile Ads Unity | 11.5.0, main `4e8c039` 기준 | [공식 11.5.0 릴리스](https://github.com/googleads/googleads-mobile-unity/releases/tag/v11.5.0) |
+| Android GMA | `com.google.android.gms:play-services-ads:25.4.0` | 현재 dependency XML 선언 |
+| Android UMP | `com.google.android.ump:user-messaging-platform:4.0.0` | 현재 dependency XML 선언; 앱의 UMP 동의 UI 호출은 없음 |
+| iOS GMA | `Google-Mobile-Ads-SDK ~> 13.9` | iOS 빌드의 최종 해석 버전은 미검증 |
+| Families 자기 인증 | AdMob Android 19.0.0 이상 | 현재 25.4.0은 [공식 목록](https://support.google.com/googleplay/android-developer/answer/12955712?hl=en)의 범위에 포함 |
+| Android GMA 지원 상태 | 25.x Supported | [공식 일정](https://developers.google.com/admob/android/deprecation); 인증 범위와 실제 광고 형식 준수는 별도 |
 
-로컬 `Assets/GoogleMobileAds/CHANGELOG.md`의 23.1.0 표기는 실제 의존성 선언 및 공식 릴리스와 다르다.
-이 문서는 XML 및 Gradle에 선언된 23.2.0을 기준으로 한다. 최종 산출물의 의존성은 빌드 시 별도로 확인한다.
-SDK 업데이트는 의존성 담당 변경과 통합하며 이 광고 흐름 변경에서 vendor, Packages, Gradle을 수정하지 않는다.
+1차 작업 시작 시 9.1.1/23.2.0/UMP 2.2.0이었으며 SDK 담당 변경이 main에 통합되었다.
+현재 표는 통합 후 선언이다. 최종 산출물의 의존성은 빌드 시 별도로 확인한다.
+광고 흐름 변경에서 vendor, Packages, Gradle을 수정하지 않는다.
 
 현재 조사한 의존성 파일에서는 별도 mediation adapter 선언을 발견하지 못했다.
 AdMob Console의 mediation 그룹, custom event, 실제 응답 네트워크는 확인하지 않았으므로
@@ -50,7 +52,7 @@ batch 실행에서는 모든 광고 요청을 막는다.
 차단 대상은 앱 코드의 `MobileAds.Initialize`, `RewardedAd.Load`, `Show` 호출이다.
 SDK가 Android manifest의 provider 등을 통해 수행하는 native 시작 동작·측정까지
 이 런타임 변경만으로 중단했다고 주장하지 않는다. SDK/manifest 담당 변경과 최종 병합 APK의
-native 시작 동작을 별도로 검증한다. 통합 예정 SDK 11.5.0에서는 구형 측정 지연 옵션이 제거되어
+native 시작 동작을 별도로 검증한다. 통합된 SDK 11.5.0에서는 구형 측정 지연 옵션이 제거되어
 과거 플래그를 다시 추가하지 않는다.
 
 [Unity 9.1.1 공식 샘플](https://raw.githubusercontent.com/googleads/googleads-mobile-unity/v9.1.1/samples/HelloWorld/Assets/Scripts/RewardedAdController.cs)의
