@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "9623e648a20816d3c47663bc3833b99a63d8c20d",
+  "sourceCommit": "37128bd2517afcaa8d263e6b499515ed9d68101c",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -1021,6 +1021,22 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/Privacy/SyntheticLoopbackDeletionGateway.cs",
+      "kind": "runtime",
+      "lines": 140,
+      "declaredTypes": [
+        "SyntheticLoopbackDeletionGateway",
+        "Config",
+        "RequestBody",
+        "IdBody",
+        "ConfirmBody",
+        "SnapshotBody"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/Purchasing/NoAdsPurchaseFulfillment.cs",
       "kind": "runtime",
       "lines": 79,
@@ -1529,6 +1545,6 @@
     "Assets/GooglePlayGames": 61,
     "Assets/Plugins": 421,
     "Assets/ThirdParty": 127,
-    "tools/revival": 1
+    "tools/revival": 2
   }
 }
