@@ -35,6 +35,7 @@ namespace AD
 
             // 풀 오브젝트를 저장하는 스택
             private Stack<PoolObject> _poolStack = new Stack<PoolObject>();
+            private HashSet<PoolObject> _storedObjects = new HashSet<PoolObject>();
 
             /// <summary>
             /// Pool 생성 시 Init
@@ -77,6 +78,10 @@ namespace AD
             /// </summary>
             public void PushToPool(PoolObject poolObj)
             {
+                // Register before parenting/deactivation, which can re-enter through OnDisable.
+                if (!_storedObjects.Add(poolObj))
+                    return;
+
                 poolObj.transform.SetParent(Root);
                 poolObj.gameObject.SetActive(false);
 
@@ -90,6 +95,7 @@ namespace AD
             public GameObject PopFromPool(Transform parent)
             {
                 PoolObject poolObj = _poolStack.Count > 0 ? _poolStack.Pop() : CreatePoolObject();
+                _storedObjects.Remove(poolObj);
                 poolObj.gameObject.SetActive(true);
 
                 if (parent == null)
@@ -165,6 +171,12 @@ namespace AD
                 return;
             }
 
+            if (PoolDictionary.ContainsKey(prefab.name))
+            {
+                AD.DebugLogger.LogError("PoolManager", $"Pool for {prefab.name} already exists.");
+                return;
+            }
+
             Pool pool = new Pool
             {
                 IsGameObjectPool = isGameObjectPool
@@ -175,14 +187,7 @@ namespace AD
             Transform rootParent = isGameObjectPool ? RootGameObjects : RootUI;
             pool.Root.SetParent(rootParent);
 
-            if (!PoolDictionary.ContainsKey(prefab.name))
-            {
-                PoolDictionary.Add(prefab.name, pool);
-            }
-            else
-            {
-                AD.DebugLogger.LogError("PoolManager", $"Pool for {prefab.name} already exists.");
-            }
+            PoolDictionary.Add(prefab.name, pool);
         }
 
         /// <summary>
