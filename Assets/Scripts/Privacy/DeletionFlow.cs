@@ -31,9 +31,10 @@ namespace AD.Privacy
         public string PolicyRevision { get; }
         public string Scope { get; }
         public string Challenge { get; }
+        public string CompletionEvidence { get; }
         public DeletionState State { get; }
-        public DeletionSnapshot(string requestId, string revision, string scope, DeletionState state, string challenge = null)
-        { RequestId = requestId; PolicyRevision = revision; Scope = scope; State = state; Challenge = challenge; }
+        public DeletionSnapshot(string requestId, string revision, string scope, DeletionState state, string challenge = null, string completionEvidence = null)
+        { RequestId = requestId; PolicyRevision = revision; Scope = scope; State = state; Challenge = challenge; CompletionEvidence = completionEvidence; }
     }
 
     public interface IDeletionGateway
@@ -84,7 +85,9 @@ namespace AD.Privacy
             if (!Current() || authorization == null || authorization.AccountId != _session.AccountId ||
                 string.IsNullOrEmpty(authorization.Proof)) throw new InvalidOperationException();
             _authorization = authorization;
-            return await _gateway.StatusAsync(authorization, Request.RequestId, token);
+            return Request.State == DeletionState.AwaitingConfirmation
+                ? await _gateway.RequestAsync(authorization, _clientKey, token)
+                : await _gateway.StatusAsync(authorization, Request.RequestId, token);
         });
 
         public Task<bool> RequestAsync() => Run(async token =>
@@ -126,7 +129,8 @@ namespace AD.Privacy
                     (Request != null && (result.RequestId != Request.RequestId || result.PolicyRevision != Request.PolicyRevision || result.Scope != Request.Scope)) ||
                     (result.State != DeletionState.AwaitingConfirmation && result.State != DeletionState.Queued &&
                      result.State != DeletionState.Processing && result.State != DeletionState.Completed && result.State != DeletionState.Cancelled) ||
-                    (result.State == DeletionState.AwaitingConfirmation && string.IsNullOrEmpty(result.Challenge)))
+                    (result.State == DeletionState.AwaitingConfirmation && string.IsNullOrEmpty(result.Challenge)) ||
+                    (result.State == DeletionState.Completed && string.IsNullOrEmpty(result.CompletionEvidence)))
                     throw new InvalidOperationException();
                 Request = result;
                 State = result.State;
