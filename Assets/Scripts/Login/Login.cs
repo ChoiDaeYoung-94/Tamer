@@ -72,7 +72,7 @@ namespace AD
 
         private void Awake()
         {
-#if TAMER_GAMEPLAY_HARNESS
+#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
             return;
 #endif
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -91,7 +91,7 @@ namespace AD
 
         private void Start()
         {
-#if TAMER_GAMEPLAY_HARNESS
+#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
             RevivalGameplayIsolation.BlockLogin();
             return;
 #endif
@@ -115,6 +115,9 @@ namespace AD
 
         private void StartLogin()
         {
+#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
+            return;
+#endif
             if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginLogin())
             {
                 LogStep("이미 로그인 진행 중 -> 중복 요청 무시");
