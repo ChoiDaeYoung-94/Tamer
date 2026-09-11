@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "issue": 105,
+  "checkedAt": "2026-09-11",
+  "baseMain": "4e8c039",
+  "sourceCommit": "1f9a47b4d89d18ac242b43341d0b2c4e78cda9ae",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "python": "3.14.0",
+  "command": "python -m unittest discover -s tools/revival -p \"test_*.py\"",
+  "exitCode": 0,
+  "pythonTests": {"total": 49, "privacy": 18, "existing": 31, "failed": 0},
+  "dataUsed": "Synthetic fixtures in temporary directories only",
+  "coverage": [
+    "Aggregate-only output without title, player, key, value or hashes",
+    "Unknown public keys require separate review",
+    "Exact value preservation including No Ads CSV and reward timestamp",
+    "Key set, title, player set and permission comparison",
+    "Preflight detects DataVersion drift including ABA values; no CAS guarantee",
+    "Postflight expects only known Public-to-Private permission changes",
+    "Duplicate JSON/player, invalid schema/value/version, malformed/oversized/missing input",
+    "Sanitized parse errors including oversized integers",
+    "CLI exit codes and unchanged input files"
+  ],
+  "runtimeFilesChanged": false,
+  "unityRunPerformed": false,
+  "productionReadOrWritePerformed": false,
+  "consoleDeclarationChanged": false,
+  "ciOrDeploymentPerformed": false,
+  "remaining": [
+    "Actual served artifacts, all active SDK traffic and processing contracts",
+    "Operational Data Safety answers and privacy policy publication",
+    "Functional in-app/web deletion request service, ownership verification, scope and retention",
+    "Server receipt verification with legacy No Ads compatibility",
+    "Authorized full UserData export, complete population accounting and concurrency controls",
+    "Production Public-key migration and old-client republication prevention"
+  ]
+}
