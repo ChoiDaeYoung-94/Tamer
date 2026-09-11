@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "84aab475862fa5e773e0f2a2cbec17845363a47c",
+  "baseCommit": "1e9f99c",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7b9b/Tamer",
+  "runtimeTests": {"passed": 7, "failed": 0, "skipped": 0, "seconds": 0.758},
+  "existingPythonTests": {"passed": 88, "failed": 0, "skipped": 0, "seconds": 4.664},
+  "runtime": {"python": "3.14", "waitress": "3.0.2", "googleAuth": "2.58.0", "requests": "2.34.2"},
+  "realLocalListener": true,
+  "providers": "synthetic",
+  "externalApiCalls": false,
+  "unityChanges": false,
+  "unverified": ["nginx execution and external HTTPS certificate", "cloud deployment", "Google and PlayFab credentials and permissions", "real license-test purchase", "isolated client harness connection"]
+}

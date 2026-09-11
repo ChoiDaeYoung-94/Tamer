@@ -1,0 +1,42 @@
+# Linux nginx http{} include. Replace the example domain and certificate paths.
+# Review nginx -t and HTTPS externally before enabling any test client.
+limit_req_zone $binary_remote_addr zone=receipt_ip:10m rate=2r/s;
+server {
+    listen 80;
+    server_name receipt.example.test;
+    access_log off;
+    error_log /dev/null crit;
+    return 403;
+}
+server {
+    listen 443 ssl;
+    server_name receipt.example.test;
+    ssl_certificate /etc/tamer/tls/fullchain.pem;
+    ssl_certificate_key /etc/tamer/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    access_log off;
+    # Error logs can contain request URLs. Use only separate numeric monitoring.
+    error_log /dev/null crit;
+    client_max_body_size 64k;
+    client_body_buffer_size 128k;
+    client_body_timeout 20s;
+    location = /v1/no-ads/verify {
+        limit_except POST { deny all; }
+        limit_req zone=receipt_ip burst=4 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:8088;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Forwarded "";
+        proxy_set_header X-Forwarded-For "";
+        proxy_set_header X-Forwarded-Host "";
+        proxy_set_header X-Forwarded-Port "";
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 20s;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_next_upstream off;
+    }
+    location / { return 404; }
+}
