@@ -1,0 +1,73 @@
+{
+  "date": "2026-09-11",
+  "sourceCommit": "fff397e1eae26266c415212e4a80011c180d5cbf",
+  "coreSourceCommit": "73f868a1af9b65b463d170b36d05859fe0d8d824",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "editmode": {
+    "id": "2",
+    "testcasecount": "355",
+    "result": "Passed",
+    "total": "355",
+    "passed": "355",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-11 08:25:18Z",
+    "end-time": "2026-09-11 08:25:22Z",
+    "duration": "3.7098929"
+  },
+  "editmodeXmlSha256": "bfd962d93b2eaa2925e839d36d5af622479f7cd607f9b7a3889bef6e1186b6b0",
+  "newCases": {
+    "core": 12,
+    "ui": 8
+  },
+  "verification": {
+    "realPrefabSettingsRendered": true,
+    "portraitResolution": [
+      1080,
+      1920
+    ],
+    "buttonActions": "programmatic synthetic test callbacks; not physical device input",
+    "productionGateway": "UnavailableDeletionGateway",
+    "productionAccountCalls": 0,
+    "productionCompletionClaim": false,
+    "syntheticInjection": "Editor or Development build; IsSynthetic required",
+    "scenePrefabSerializedEdits": false,
+    "newApkBuilt": false,
+    "deviceTested": false,
+    "ownEditorCountAfterCleanup": 0,
+    "incidentalSettingsRestored": true
+  },
+  "evidenceSha256": {
+    "settings.png": "4dc083e8b013e1771add7042c80f0537e790a633157cdc748d61d225b5f9cc01",
+    "unavailable-live.png": "5359c66baffdbc0b9cc958fb158002ca0fa62873e9d64bfe2885798ea8ab7eb4",
+    "confirmation-live.png": "b2d30694a3b6532b5b5cb9518d2329b00e3815533f81193eaf125b3dbdc774d9",
+    "unavailable.png": "8dd3fe81e3aa292f3dffe02eac6cac25b0cc0ec57aa8bc5495223283e32f6508",
+    "confirmation.png": "8b72cfb7bf5b094d2b6bd3ec2a0b59905927d02e3c1338a1c6e7804205e45ca1"
+  },
+  "supersededRuns": [
+    {
+      "source": "285fc33",
+      "result": "compile failure before tests; merged core 04b94e3 to supply CompletionEvidence"
+    },
+    {
+      "source": "8426f2d",
+      "result": "355 passed, but original camera images were black and not accepted as visual evidence"
+    },
+    {
+      "source": "45648aa",
+      "mode": "live",
+      "result": "350 passed,4 failed,1 skipped; camera fixture failure fixed, three baseline tests required clean saved-scene environment and one batch-only guard skipped"
+    }
+  ],
+  "unverified": [
+    "physical device input",
+    "production reauthentication and deletion service",
+    "published deletion policy or support URL",
+    "real server completion"
+  ]
+}
