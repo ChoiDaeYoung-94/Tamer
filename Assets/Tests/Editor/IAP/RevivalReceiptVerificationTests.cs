@@ -143,7 +143,7 @@ public class RevivalReceiptVerificationTests
         using (var source = new CancellationTokenSource())
         {
             source.Cancel();
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await verifier.VerifyAsync(
+            Assert.ThrowsAsync(Is.InstanceOf<OperationCanceledException>(), async () => await verifier.VerifyAsync(
                 "receipt", new ReceiptSession("test-a", "ticket"), source.Token));
         }
     }
