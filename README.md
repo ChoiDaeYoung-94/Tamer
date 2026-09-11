@@ -1,6 +1,8 @@
 # About
 
-unity(2022.3.52f1 LTS) 3d game project
+Unity 6000.0.81f1 기반 Android 3D 게임 프로젝트입니다.
+
+로컬 에셋 복원, 격리 개발 APK 빌드와 검증 명령은 [기준 빌드 문서](docs/revival/baseline.ko.md)를 참고하세요. CI/CD는 보류 중이며 아래 App Center 구성은 기존 기록으로 보존합니다.
 
 [WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko) 를 3d로 재구성한 게임입니다.
 
