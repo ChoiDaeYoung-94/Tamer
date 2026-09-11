@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "e0f87800b4d7c94b7c28dc884b9b2f98431a24a9",
+  "sourceCommit": "db32fcb25342ec07c40bf5c1b13426fe6cfaf0ef",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -231,6 +231,18 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Scripts/Editor/RevivalIapBuild.cs",
+      "kind": "editor",
+      "lines": 122,
+      "declaredTypes": [
+        "RevivalIapBuild",
+        "CatalogFlags"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Scripts/Editor/RevivalPackageUpgrade.cs",
       "kind": "editor",
       "lines": 61,
@@ -448,7 +460,7 @@
     {
       "path": "Assets/Scripts/Login/Login.cs",
       "kind": "runtime",
-      "lines": 984,
+      "lines": 987,
       "declaredTypes": [
         "Login",
         "ApiResult",
@@ -536,7 +548,7 @@
     {
       "path": "Assets/Scripts/Managers/DataManager.cs",
       "kind": "runtime",
-      "lines": 247,
+      "lines": 249,
       "declaredTypes": [
         "DataManager"
       ],
@@ -647,7 +659,7 @@
     {
       "path": "Assets/Scripts/Managers/Managers.cs",
       "kind": "runtime",
-      "lines": 153,
+      "lines": 158,
       "declaredTypes": [
         "Managers"
       ],
@@ -1143,11 +1155,40 @@
     {
       "path": "Assets/Scripts/RevivalGameplayIsolation.cs",
       "kind": "runtime",
-      "lines": 73,
+      "lines": 75,
       "declaredTypes": [
         "RevivalGameplayIsolation"
       ],
       "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/RevivalIapHarness.cs",
+      "kind": "runtime",
+      "lines": 37,
+      "declaredTypes": [
+        "RevivalIapHarness"
+      ],
+      "managerReferences": [
+        "DataM",
+        "IAPM"
+      ],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Scripts/RevivalIapIsolation.cs",
+      "kind": "runtime",
+      "lines": 103,
+      "declaredTypes": [
+        "RevivalIapIsolation",
+        "Configuration"
+      ],
+      "managerReferences": [
+        "DataM",
+        "ServerM"
+      ],
       "singletonReferences": [],
       "metaPresent": true
     },
@@ -1460,6 +1501,17 @@
       "metaPresent": true
     },
     {
+      "path": "Assets/Tests/Editor/RevivalIapIsolationTests.cs",
+      "kind": "tests",
+      "lines": 42,
+      "declaredTypes": [
+        "RevivalIapIsolationTests"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
+      "metaPresent": true
+    },
+    {
       "path": "Assets/Tests/Editor/RevivalLoginContinuityTests.cs",
       "kind": "tests",
       "lines": 176,
@@ -1496,6 +1548,18 @@
       "singletonReferences": [
         "BindingFlags"
       ],
+      "metaPresent": true
+    },
+    {
+      "path": "Assets/Tests/Editor/RevivalPlayFabHttpTests.cs",
+      "kind": "tests",
+      "lines": 77,
+      "declaredTypes": [
+        "RevivalPlayFabHttpTests",
+        "Transport"
+      ],
+      "managerReferences": [],
+      "singletonReferences": [],
       "metaPresent": true
     },
     {
