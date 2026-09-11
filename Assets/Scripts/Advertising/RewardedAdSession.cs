@@ -13,8 +13,8 @@ namespace AD.Advertising
 
     /// <summary>
     /// Settles one reward request. Call from the Unity main thread after ad cleanup.
-    /// The direct Google rewarded-ad flow reports earned rewards before close;
-    /// callbacks arriving after completion cannot revive or reward this session.
+    /// The manager collects SDK callbacks (including the Editor's close-before-reward
+    /// batch) before completion. Later callbacks cannot revive a terminal receipt.
     /// </summary>
     public sealed class RewardedAdSession
     {

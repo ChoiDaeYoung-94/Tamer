@@ -41,9 +41,15 @@ mediation 및 custom event에서 사용하는 네트워크의 인증과 아동 �
 ## 코드에서 보장하는 범위
 
 `AdRequestPolicy`는 운영 광고를 기본 차단한다. 재활성화하려면 Families 검증 근거를 갖춘 별도 코드 리뷰 PR이 필요하다.
-테스트 광고 요청은 Editor, development player 또는 명시적으로 테스트 광고를 켠 빌드에서만 허용하며,
-지원 플랫폼은 Editor, Android, iOS로 제한한다. batch 실행에서는 모든 광고 요청을 막는다.
+테스트 광고 요청은 Editor, development player 또는 명시적으로 `TAMER_TEST_ADS`를 켠 빌드에서만 허용한다.
+실제 관리자는 Editor와 Android로 제한한다. iOS 공식 테스트 ID도 정책 유틸리티에 보관하지만,
+프로젝트의 iOS AdMob 앱 ID가 비어 있고 native 설정이 미검증이므로 iOS 광고 실행은 허용하지 않는다.
+batch 실행에서는 모든 광고 요청을 막는다.
 명시적 테스트 광고 옵션도 운영 광고를 허용하는 옵션이 아니다.
+
+차단 대상은 앱 코드의 `MobileAds.Initialize`, `RewardedAd.Load`, `Show` 호출이다.
+SDK가 Android manifest의 provider 등을 통해 수행하는 native 시작 동작·측정까지
+이 런타임 변경만으로 중단했다고 주장하지 않는다. SDK/manifest 담당의 측정 지연 설정과 최종 병합 APK를 별도로 검증한다.
 
 [Unity 9.1.1 공식 샘플](https://raw.githubusercontent.com/googleads/googleads-mobile-unity/v9.1.1/samples/HelloWorld/Assets/Scripts/RewardedAdController.cs)의
 보상형 테스트 광고 ID만 사용한다.
@@ -66,9 +72,12 @@ mediation 및 custom event에서 사용하는 네트워크의 인증과 아동 �
 실제 타깃 연령과 기존 Play Console 선언은 미확인이다. 정책 회피를 위해 이를 추정하거나 변경하지 않는다.
 혼합 연령으로 확정되어 광고를 제공한다면 중립적인 연령 확인과 미확인 사용자 처리까지 함께 검토해야 한다.
 
-현재 9.1.1 SDK에서는 적용 대상 아동 광고 요청에 `TagForChildDirectedTreatment.True`와
-`MaxAdContentRating.G`를 설정할 수 있다. 설정은 SDK 초기화 및 광고 로드 전에 적용한다.
+현재 테스트 요청에는 9.1.1 SDK의 `TagForChildDirectedTreatment.True`,
+`TagForUnderAgeOfConsent.True`, `MaxAdContentRating.G`를 초기화·로드 전에 적용한다.
+이는 연령 미확인 개발 테스트에 대한 보수적 처리이며 운영 사용자 연령을 분류한 결과가 아니다.
 이는 광고 요청 처리 설정이며 실제 사용자의 나이나 Console 선언을 대신하지 않는다.
+운영 광고는 차단하므로 UMP 폼 표시나 운영 consent 획득을 구현 완료로 취급하지 않는다.
+재활성화 시에는 실제 연령·지역별 consent 선행 조건과 mediation 전파를 별도 검증해야 한다.
 [최신 targeting 안내](https://developers.google.com/admob/unity/targeting?hl=en)는
 새 `AgeRestrictedTreatment` API도 설명하므로 최신 예제를 9.1.1에 그대로 복사하지 않는다.
 
