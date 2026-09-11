@@ -1,0 +1,80 @@
+# 출시 후보 사전 검사와 16KB 호스트 준비
+
+이 도구는 설정·산출물을 읽고 결과를 기록한다. 빌드, 서명, 키 생성, 업로드, 정책 게시 또는 Windows 설정 변경은 수행하지 않는다.
+
+## 구현한 검사
+
+`python tools/revival/verify_release_candidate.py source`는 고정 Unity, 운영 앱 ID 보존, min24/target36,
+ARM64/IL2CPP, 전역 하네스 심볼 부재, 명시적인 IAP/UGS 자동 초기화 해제, 활성 첫 씬 Login,
+legacy 빌드 marker 부재를 검사한다. 현재 10개 모두 통과했고 versionCode는 26으로 보존했다.
+소스 설정과 최종 산출물을 구분하여 `releaseReady=false`를 출력한다.
+
+`aab` 모드는 다음 검토 입력이 모두 있어야 실행할 수 있다.
+
+- 실제 후보 AAB 경로와 선택한 versionCode
+- Play Console에서 확인한 모든 트랙의 최대 사용 versionCode
+- 현재 승인된 업로드 인증서의 공개 SHA-256 지문
+
+실행 예시는 값을 결정한 뒤 사용하는 형식이며 현재 출시 번호나 인증서를 제안한 것이 아니다.
+
+```powershell
+python tools/revival/verify_release_candidate.py aab --aab <후보.aab> --version-code <후보번호> --published-max-code <확인한최대번호> --upload-cert-sha256 <공개인증서SHA256>
+```
+
+고정 bundletool 해시와 bundle validate, 실제 base manifest의 운영 ID·번호·API·debug/testOnly,
+JarFile 전체 payload 서명 및 공개 인증서 일치, ARM64 ELF/LOAD/RELRO를 검사한다.
+기존 `VerifyAabSignature.java`의 기본 debug 검사는 보존하고 명시적인 release 지문 모드만 추가했다.
+release 모드는 지문이 일치해도 Android Debug 인증서를 거부한다. 임시 합성 인증서로 정상/변조/
+unsigned 추가/지문 불일치/모드 불일치를 시험했다. 독립 검토에서 찾은 출력 경로의 입력 덮어쓰기와
+big-endian ARM64 오인 문제도 수정했다. 같은 경로·hardlink는 검사 전에 거부하고 ELF는 little-endian을 요구한다.
+관련 회귀를 포함한 Python 101개가 통과했다. 기존 debug AAB도 실제 bundletool manifest 단계에서 거부했다.
+
+검사에 제공한 지문과 최대 번호가 실제 Console 상태인지는 이 로컬 도구가 인증하지 않는다.
+split ZIP 정렬·실제 ARM64 16KB·정책·운영 인증/진행도 쓰기/구매 복원·트랙 승인도 별도다.
+현재는 운영 release 인증서나 신규 후보 AAB를 사용하지 않았다. 정적 RELRO 실패는 실행 중 crash 증명이 아니다.
+
+## 현재 PC의 16KB 장애와 변경 제안
+
+2026-09-11 읽기 점검: Windows 11 Pro build26200, BIOS virtualization/SLAT/VM monitor 모두 true,
+HypervisorPresent=false. CIM `HypervisorPlatform`, `VirtualMachinePlatform`, `Microsoft-Hyper-V-All`은
+모두 InstallState=2(Disabled)이고 AEHD/GVM 서비스가 없다.
+기존 Emulator의 accel-check는 6과 가속 드라이버 미설치를 보고했다.
+BCD 조회는 권한 부족으로 exit1이어서 hypervisorlaunchtype을 확인하지 못했다.
+미조회 값을 off로 추정하지 않는다. [Microsoft InstallState 정의](https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-optionalfeature)
+
+재현용 읽기 도구:
+
+```powershell
+./tools/revival/Get-16KbHostReadiness.ps1 -EmulatorPath <기존SDK/emulator/emulator.exe>
+```
+
+호스트 결과 파일은 기존 파일을 덮어쓰지 않는다. 재실행할 때는 `-OutputPath`로 새 JSON 경로를 지정한다.
+
+검토 가능한 변경안은 **Windows Hypervisor Platform 기능 활성화 후 사용자가 정한 시점의 재부팅**이다.
+관리자 PowerShell에서 실행할 명령 형식은 다음과 같다. 현재 실행하지 않았다.
+
+```powershell
+Enable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -All -NoRestart
+```
+
+`-All`은 필요한 부모 기능을 포함하고 `-NoRestart`는 자동 재시작/재시작 요청을 억제한다.
+설치 결과의 RestartNeeded를 확인하고 모든 작업을 저장한 뒤 별도로 재부팅해야 한다.
+현재 BIOS가 이미 켜져 있으므로 BIOS 변경, Hyper-V 전체 역할/WSL 설치, BCD 쓰기를 추가 제안하지 않는다.
+재부팅 후에도 가속이 실패하면 관리자 권한의 BCD 읽기부터 다시 확인하고 별도 변경을 결정한다.
+[Google WHPX 절차](https://developer.android.com/studio/run/emulator-acceleration),
+[Microsoft 기능 활성화와 NoRestart](https://learn.microsoft.com/en-us/powershell/module/dism/enable-windowsoptionalfeature)
+
+이는 기존 x86_64 16KB AVD의 가속 준비다. 성공해도 PAGE_SIZE=16384·프로세스 ABI·번역/호환 모드·앱 실행을
+다시 관찰해야 하며 ARM64 직접 실행과 같다고 보지 않는다. 기존 software 부팅 timeout/crash를 반복하지 않았다.
+현재 기기 연결 요청, Windows 기능 변경, 재부팅은 없었다.
+
+## 사용자가 결정해야 하는 최소 항목
+
+1. 이 PC의 WHPX 활성화 여부와 재부팅 가능한 시점. 승인이 없으면 설정을 유지한다.
+2. 업로드 키의 암호화 보관 위치·비밀번호 보관소·별도 기기 백업 위치 및 키 reset 신청 승인.
+3. 정책에 표시할 운영자/연락처/삭제 접수 URL, 보관 기간·삭제 범위와 기존 No Ads 복원 방침.
+4. 비운영 PlayFab/receipt 환경과 사용할 테스트 계정·배포 위치. 실제 서비스 생성·운영 변경은 별도 승인한다.
+
+공개 설정값이나 보관 기간을 임의 생성하지 않는다. 삭제 UI/합성 처리 서버와 receipt 배포 패키지 구현은
+위 결정을 기다리는 동안 각 담당자가 계속 진행한다. 최종 릴리스 번호·인증서·트랙 제출 승인은
+해당 단계의 실제 Console 상태와 후보가 준비된 뒤 묶어 확인한다.
