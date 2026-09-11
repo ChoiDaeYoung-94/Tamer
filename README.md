@@ -12,6 +12,8 @@ Unity로 만든 Android 3D 게임입니다. 플레이어가 몬스터를 동료�
 
 **CI/CD는 보류 중입니다.** 기존 App Center 설정은 보존하며 자동 빌드·배포를 실행하지 않습니다. 과거 다운로드 링크를 현재 검증된 빌드로 안내하지 않습니다.
 
+[실제 4KB ARM64 기기](docs/revival/device-smoke-validation.ko.md)에서 기존 격리 APK와 기기 사양에 맞춘 AAB split의 설치·Unity 화면·정리를 확인했습니다. 16KB 기기나 전체 게임 플레이 검증은 아니며, 추가 도구를 포함한 Python 회귀는 75개가 통과했습니다.
+
 ## 시작하기 — Windows PowerShell
 
 필요한 환경은 Git, Python 3.11 이상, Unity **6000.0.81f1**과 Android Build Support(SDK/NDK/OpenJDK), 활성 Unity 라이선스입니다. 구매 에셋은 공개 저장소에 들어 있지 않으므로 권한 있는 원본 또는 비공개 아카이브도 필요합니다.

@@ -57,6 +57,12 @@ PR [#108](https://github.com/ChoiDaeYoung-94/Tamer/pull/108)·[#109](https://git
 
 16KB 에뮬레이터는 두 번 모두 부팅하지 못해 PAGE_SIZE·ABI·설치·실행을 관찰하지 못했다. Windows 가상화 기능·드라이버·재부팅은 변경하지 않았다. 비공개 백업은 같은 PC의 별도 디스크에 있으며 암호화·오프사이트 재해 백업을 뜻하지 않는다.
 
+## 실제 4KB 기기 실행
+
+PR [#114](https://github.com/ChoiDaeYoung-94/Tamer/pull/114)에서 SM-N986N / Android 13(API 33) / ARM64 / 실제 `PAGE_SIZE=4096`의 격리 APK와 기기 사양에 맞춘 AAB split 실행을 확인했다. APK는 5초, split은 10초 동안 관측했으며, 설치·Unity 네이티브 로딩·전경 화면·이번에 설치한 앱 제거가 성공했다. 두 화면은 SDK 담당과 통합 담당이 각각 확인했다. 첫 APK의 전경 확인 실패는 원인 미확정으로 별도 보존했다.
+
+새 기기 관측 도구를 통합한 Python 회귀는 **75/75** 통과했다. 기존 APK·AAB의 빌드 소스는 유지하며 최신 main 재빌드나 전체 게임 검증으로 표현하지 않는다. [기기 실행 범위와 근거](device-smoke-validation.ko.md), [각 실행 데이터](device-smoke-validation.json). 실제 16KB 실행은 아직 미검증이다.
+
 남은 작업은 다음과 같다.
 
 - **기기·결제:** 기존 계정 로그인·저장 실패/재시도·No Ads 구매/복원·광고/음악·전투, 16KB Android 실행과 AAB/split 설치·실행. 서버 영수증 검증은 이번 구현에 포함되지 않았다.
