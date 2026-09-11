@@ -50,6 +50,15 @@ namespace AD
             }
             return string.Join(",", values);
         }
+
+        public static void ValidateAllyMonsters(Dictionary<string, string> values, IEnumerable<string> knownNames)
+        {
+            if (!values.TryGetValue("AllyMonsters", out var allies) || string.IsNullOrEmpty(allies) || allies == "null") return;
+            var known = new HashSet<string>(knownNames ?? Array.Empty<string>(), StringComparer.Ordinal);
+            // Match Player.SettingAllyMonster's empty-entry handling without changing saved tokens.
+            foreach (var name in allies.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                if (!known.Contains(name)) throw new InvalidDataException("Unknown saved ally; recovery is required.");
+        }
     }
 
     public sealed class PlayerDataChanges

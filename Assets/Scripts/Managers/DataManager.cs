@@ -98,7 +98,9 @@ namespace AD
                 if (Player.Instance) TryUpdateLocalData("Gold", Player.Instance.Gold.ToString());
                 return;
             }
-            TryUpdateLocalData(key, value);
+            // Keep the legacy void API's failure visible to callers (notably old IAP callbacks).
+            if (!IsServerDataReady) throw new InvalidOperationException("Account data is not ready for local writes.");
+            if (!TryUpdateLocalData(key, value)) throw new IOException("Player data could not be persisted.");
         }
 
         /// <summary>Durable local mutation, including purchase restoration before Player exists.</summary>
@@ -204,6 +206,7 @@ namespace AD
                 _sessionBackupCreated = true;
             }
             var merged = PlayerDataSyncPolicy.Merge(_defaults, LocalPlayerData, server, _changes.Snapshot());
+            PlayerDataSyncPolicy.ValidateAllyMonsters(merged, MonsterData?.Keys);
             // A legacy file is bound on the first successful read; it is never used as a cloud patch.
             // Ownership and values are committed together in one atomic JSON replacement.
             WritePlayerData(merged, PlayFabId);

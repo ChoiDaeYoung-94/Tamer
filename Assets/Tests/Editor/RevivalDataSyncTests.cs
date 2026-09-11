@@ -90,6 +90,7 @@ public class RevivalDataSyncTests
         }
         public void Sync() => Invoke(_manager, "UpdateData");
         public bool Update(string key, string value) => (bool)Invoke(_manager, "TryUpdateLocalData", key, value);
+        public void UpdateLegacy(string key, string value) => Invoke(_manager, "UpdateLocalData", key, value, false);
         public Dictionary<string, string> Pending() => (Dictionary<string, string>)Invoke(Changes, "Snapshot");
         public Dictionary<string, string> Stored() => (Dictionary<string, string>)Invoke(_type, "ParseData", File.ReadAllText(SavePath));
         public string[] Backups() => Directory.Exists(Path.Combine(DirectoryPath, "PlayerDataBackups"))
@@ -270,6 +271,35 @@ public class RevivalDataSyncTests
         }
     }
 
+    [TestCase("UnknownMonster")]
+    [TestCase("Bat,UnknownMonster")]
+    [TestCase("null,Bat")]
+    public void Revival_Data_UnknownAlliesCannotReplaceLocalSave(string allies)
+    {
+        using (var h = new SaveHarness())
+        {
+            h.SetField("MonsterData", new Dictionary<string, object> { { "Bat", new object() } });
+            h.Server(new Dictionary<string, string> { { "AllyMonsters", allies } });
+            Assert.Throws<InvalidDataException>(() => h.Sync());
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(SaveHarness.Original));
+            Assert.That(h.Ready, Is.False);
+        }
+    }
+
+    [TestCase("null")]
+    [TestCase("")]
+    [TestCase(",Bat,,Bat,")]
+    public void Revival_Data_ValidAllyTokensAndDuplicatesKeepTheirExistingRepresentation(string allies)
+    {
+        using (var h = new SaveHarness())
+        {
+            h.SetField("MonsterData", new Dictionary<string, object> { { "Bat", new object() } });
+            h.Server(new Dictionary<string, string> { { "AllyMonsters", allies } });
+            h.Sync();
+            Assert.That(h.Local["AllyMonsters"], Is.EqualTo(allies));
+        }
+    }
+
     [Test]
     public void Revival_Data_DurableMutationWorksBeforePlayerExistsAndTracksOnlyChangedKeys()
     {
@@ -284,6 +314,21 @@ public class RevivalDataSyncTests
             CollectionAssert.AreEquivalent(new Dictionary<string, string>
                 { { "Gold", "75" }, { "GooglePlay", "ProductNoAds,FutureProduct" } }, h.Pending());
             Assert.That(h.Backups(), Is.Empty, "This test does not hydrate or call any server.");
+        }
+    }
+
+    [Test]
+    public void Revival_Data_LegacyVoidMutationCannotReportSuccessWhenPersistenceFails()
+    {
+        using (var h = new SaveHarness())
+        {
+            Assert.Throws<InvalidOperationException>(() => h.UpdateLegacy("GooglePlay", "FutureProduct"));
+            h.SetProperty("IsServerDataReady", true);
+            h.SetField("_playerDataPath", Path.Combine(h.DirectoryPath, "missing-parent", "PlayerData.json"));
+            Assert.Throws<IOException>(() => h.UpdateLegacy("GooglePlay", "FutureProduct"));
+            Assert.That(h.Local["GooglePlay"], Is.EqualTo("ProductNoAds"));
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(SaveHarness.Original));
+            Assert.That(h.Pending(), Is.Empty);
         }
     }
 
