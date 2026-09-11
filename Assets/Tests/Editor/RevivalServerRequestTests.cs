@@ -7,6 +7,23 @@ using NUnit.Framework;
 // Reflection keeps this asmdef independent of Assembly-CSharp. Every transport and clock is fake.
 public class RevivalServerRequestTests
 {
+    [Test]
+    public void Revival_Server_ProductionWriteRequestKeepsPlayerDataPrivate()
+    {
+        var managerType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.ServerManager")).First(t => t != null);
+        var contextType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("PlayFab.PlayFabAuthenticationContext")).First(t => t != null);
+        var context = Activator.CreateInstance(contextType);
+        var data = new Dictionary<string, string> { { "Gold", "10" }, { "GooglePlay", "ProductNoAds" } };
+        var request = managerType.GetMethod("CreateWriteRequest", BindingFlags.Static | BindingFlags.NonPublic)
+            .Invoke(null, new object[] { data, context });
+        Assert.That(request.GetType().GetField("Permission").GetValue(request).ToString(), Is.EqualTo("Private"));
+        Assert.That(request.GetType().GetField("AuthenticationContext").GetValue(request), Is.SameAs(context));
+        data["Gold"] = "mutated-after-creation";
+        var sent = (Dictionary<string, string>)request.GetType().GetField("Data").GetValue(request);
+        Assert.That(sent["Gold"], Is.EqualTo("10"));
+        Assert.That(sent["GooglePlay"], Is.EqualTo("ProductNoAds"));
+    }
+
     private sealed class ReadCall
     {
         public string Account;

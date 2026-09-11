@@ -14,7 +14,7 @@ public class RevivalLoginContinuityTests
         bool existingOrUnknown = (bool)Policy("HasLocalProgress", (object)null);
         Assert.That(existingOrUnknown, Is.True);
         Assert.That(Policy("CanCreateAccount", "", existingOrUnknown), Is.False);
-        Assert.That(Policy("CanCreateGoogleAccount", "", existingOrUnknown, ""), Is.False);
+        Assert.That(Policy("CanCreateGoogleAccount", "", existingOrUnknown, false), Is.False);
     }
 
     private static Type RuntimeType(string name) => AppDomain.CurrentDomain.GetAssemblies()
