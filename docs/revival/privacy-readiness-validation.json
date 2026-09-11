@@ -1,0 +1,29 @@
+{
+  "sourceCommit": "e53309a54b732def82881ea48f9c7bfa717b3738",
+  "baseCommit": "f4405c80ac8d1565e2e270421e64c1e2d676a7db",
+  "date": "2026-09-11",
+  "python": "3.14.0",
+  "command": "python -m unittest discover -s tools/revival -p test_audit_userdata_privacy.py -v",
+  "result": {
+    "tests": 18,
+    "passed": 18,
+    "failed": 0
+  },
+  "toolSha256": {
+    "tools/revival/audit_userdata_privacy.py": "70bef3b92c929a2c5c3eb027141d4fddce6a8266aa92954ef83aa845ab2ec858",
+    "tools/revival/test_audit_userdata_privacy.py": "14f9604a6ffa3644ddb0812d97d7970b3524316de3c9a00f5c21452affa0117b"
+  },
+  "scope": "Documentation readiness; existing offline tool with synthetic data only",
+  "unity": "Not run; documentation-only change",
+  "androidApkSha256": null,
+  "productionDataAccess": false,
+  "productionWrites": 0,
+  "policyPublished": false,
+  "notVerified": [
+    "Production snapshot completeness or writer exclusion",
+    "Deletion service implementation or provider completion",
+    "Retention periods or operational legal basis",
+    "Final Data Safety declaration",
+    "SDK receipt verification follow-up after this base"
+  ]
+}
