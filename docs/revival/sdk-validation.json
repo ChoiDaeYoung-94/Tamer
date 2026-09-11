@@ -1,0 +1,246 @@
+{
+  "schema": 1,
+  "issue": 97,
+  "pullRequest": 106,
+  "validatedAtUtc": "2026-09-11T04:20:48.756472+00:00",
+  "branch": "codex/revival-sdk-iap",
+  "sourceCodeCommit": "521e8b719058129681fa7e810d593f74e76c2480",
+  "dataCodeCommit": "0003c1d2d08e3b038f33dbca5284859252f132ca",
+  "mergedMainCommit": "6015edfaa08f7a0ff804a6e755d75badf8de6d9f",
+  "scope": "SDK/IAP plus merged account-save #100; ads #104 is not included. This checkout already had a Library cache.",
+  "toolchain": {
+    "unity": "6000.0.81f1",
+    "unityCli": "1.0.0-beta.8",
+    "pipeline": "0.6.0-exp.1",
+    "ndk": "27.2.12479018",
+    "buildTools": "36.0.0",
+    "testTarget": "Android"
+  },
+  "sdkVersions": {
+    "uniTask": "2.5.11",
+    "googlePlayGames": "2.2.1",
+    "externalDependencyManager": "1.2.189",
+    "googleMobileAdsUnity": "11.5.0",
+    "playFab": "2.242.260805",
+    "unityIap": "5.4.3",
+    "servicesCore": "1.18.0"
+  },
+  "generatedGradleCoordinates": [
+    "androidx.constraintlayout:constraintlayout:2.1.4",
+    "androidx.fragment:fragment:1.7.1",
+    "androidx.lifecycle:lifecycle-process:2.6.2",
+    "com.google.android.gms:play-services-ads:25.4.0",
+    "com.google.android.gms:play-services-games-v2:22.0.0",
+    "com.google.android.gms:play-services-nearby:18.5.0",
+    "com.google.android.ump:user-messaging-platform:4.0.0",
+    "androidx.games:games-frame-pacing:1.10.0",
+    "com.android.billingclient:billing:9.0.0",
+    "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22",
+    "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
+  ],
+  "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/revival/Run-SdkValidation.ps1",
+  "fullScriptExitCode": 0,
+  "assetRestore": {
+    "verifiedFiles": 4561,
+    "copiedFiles": 0,
+    "originalSourceModified": false
+  },
+  "pythonTests": {
+    "passed": 31,
+    "failed": 0
+  },
+  "editMode": {
+    "result": "Passed",
+    "total": 153,
+    "passed": 153,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 4.3266204,
+    "fixtures": {
+      "RevivalBaselineTests": 4,
+      "RevivalDataSyncTests": 42,
+      "RevivalLoginContinuityTests": 56,
+      "RevivalSaveQueueTests": 3,
+      "RevivalSdkMigrationTests": 4,
+      "RevivalServerRequestTests": 14,
+      "RevivalIAPConfigurationTests": 3,
+      "RevivalIAPFulfillmentTests": 13,
+      "RevivalIAPOrderTests": 14
+    }
+  },
+  "build": {
+    "result": "Succeeded",
+    "errors": 0,
+    "scenes": [
+      "Assets/Tests/Scenes/RevivalSmoke.unity",
+      "Assets/Scenes/Login.unity",
+      "Assets/Scenes/Main.unity",
+      "Assets/Scenes/Game.unity",
+      "Assets/Scenes/SetCharacter.unity",
+      "Assets/Scenes/NextScene.unity"
+    ],
+    "buildReportTotalSizeBytes": 1717410313,
+    "totalSizeIsApkFileSize": false
+  },
+  "apk": {
+    "apk": "Build/revival/Tamer-development.apk",
+    "bytes": 143217843,
+    "sha256": "b8f18c4bd1696dfac466661feb93726bc99c881ebba65d35a644e5cacc694e70",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "applicationId": "com.AeDeong.MonsterTamer.revival",
+    "version": "1.0.5",
+    "versionCode": 26,
+    "debuggable": true,
+    "debugSignatureVerified": true
+  },
+  "guidAudit": {
+    "checkedYamlFiles": 132,
+    "unresolvedGuids": 0,
+    "duplicateAssetMetaGuids": 0
+  },
+  "native": {
+    "loadZipChecksPassed": true,
+    "relroChecksPassed": false,
+    "defaultExitCode": 0,
+    "strictRelroExitCode": 1,
+    "sdkZipalignExitCode": 0,
+    "manifestExtractNativeLibs": true,
+    "libraryCount": 6,
+    "loadSegmentCount": 23,
+    "compressedLibraryCount": 6,
+    "relroEndAlignmentFailureCount": 4,
+    "libraries": [
+      {
+        "path": "lib/arm64-v8a/lib_burst_generated.so",
+        "sha256": "575eae1dbb4389d92b2cc17e3859556e6f027ae0dc391e083e6d42c35da3939d",
+        "loadSegments": 4,
+        "compressed": true,
+        "zipAlignmentRequired": false,
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 538192,
+            "memorySize": 18864,
+            "endAddress": 557056,
+            "endAligned16KB": true,
+            "endRemainder16KB": 0,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libc++_shared.so",
+        "sha256": "4397241b4bd20a8e579bfb41d21107857e12985f6a01ca0c2a5f83380d1270b4",
+        "loadSegments": 4,
+        "compressed": true,
+        "zipAlignmentRequired": false,
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 1282800,
+            "memorySize": 40208,
+            "endAddress": 1323008,
+            "endAligned16KB": false,
+            "endRemainder16KB": 12288,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libil2cpp.so",
+        "sha256": "901a4d2fad340f2367c064b7fbbad76b0dd8516c53c069ce000381c75b346161",
+        "loadSegments": 4,
+        "compressed": true,
+        "zipAlignmentRequired": false,
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 133533664,
+            "memorySize": 6729760,
+            "endAddress": 140263424,
+            "endAligned16KB": true,
+            "endRemainder16KB": 0,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libmain.so",
+        "sha256": "046e865bbd5a73ee5b4469d6ad65a4ac3add761a82b031eac1597280f068ea2d",
+        "loadSegments": 4,
+        "compressed": true,
+        "zipAlignmentRequired": false,
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 36640,
+            "memorySize": 4320,
+            "endAddress": 40960,
+            "endAligned16KB": false,
+            "endRemainder16KB": 8192,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libswappywrapper.so",
+        "sha256": "a4f8ab9f0663de83a71b73f5a43f7ee28a3b0848a4e0b89a41d12680b7120843",
+        "loadSegments": 3,
+        "compressed": true,
+        "zipAlignmentRequired": false,
+        "relro": [
+          {
+            "index": 5,
+            "virtualAddress": 222832,
+            "memorySize": 10640,
+            "endAddress": 233472,
+            "endAligned16KB": false,
+            "endRemainder16KB": 4096,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libunity.so",
+        "sha256": "fdc738736ff72358e6c03418a31702aa14425193b62febdebbb49eb8535dc535",
+        "loadSegments": 4,
+        "compressed": true,
+        "zipAlignmentRequired": false,
+        "relro": [
+          {
+            "index": 6,
+            "virtualAddress": 32975872,
+            "memorySize": 492544,
+            "endAddress": 33468416,
+            "endAligned16KB": false,
+            "endRemainder16KB": 12288,
+            "matchesWholeLoadSegment": true
+          }
+        ]
+      }
+    ],
+    "runtime16KBVerified": false
+  },
+  "runtime": {
+    "deviceVerified": false,
+    "realStorePurchaseVerified": false,
+    "existingAccountRestoreVerified": false,
+    "productionLoginPerformed": false,
+    "productionPurchasePerformed": false,
+    "adRequestPerformed": false,
+    "aabSplitPackagingVerified": false,
+    "storeApprovalVerified": false,
+    "ciOrDeploymentPerformed": false
+  },
+  "postRun": "Only documentation/evidence changed after this validation. Incidental Editor serialization and cleared signing alias were restored to tracked values after the own Editor exited.",
+  "pending": [
+    "16KB device runtime and AAB split validation",
+    "Real test-store purchase, restore, deferred approval and account-switch checks",
+    "Separate ads #104 integration and Data safety #105 review",
+    "Unity 6000.3.24f1 installation awaits Windows administrator approval; see unity63-handoff.ko.md"
+  ]
+}

@@ -12,7 +12,7 @@
 | EDM4U | 1.2.182 | **1.2.189** | Unity 6 package 경로(1.2.183), AGP packaging 문법(1.2.184–185), Editor DLL 활성화와 중첩 m2repository(1.2.187) 수정이 포함된다. 1.2.188–189는 iOS resolver 수정이다. |
 | Google Mobile Ads | Unity 9.1.1 / Android XML 23.2.0 / UMP 2.2.0 | 최신 Unity **11.5.0**, 선택 가능한 legacy Android **25.4.0**, UMP **4.0.0** | 플러그인 11.1부터 legacy/NextGen 선택이 가능하다. 11.5 소스의 기본값은 Standard다. 광고 담당과 API 변경을 조율한다. |
 | PlayFab UnitySDK | 2.138.220621 | **2.242.260805** | 공식 태그의 Packages/UnitySDK.unitypackage를 기존 경로에 반영했다. 게임이 사용하는 8개 Client API의 요청/성공/오류 callback 서명과 기존 GUID를 유지한다. |
-| Unity IAP | 5.0.1 / v4 호환 API | **5.4.3 / v5 API** | UPM Client.AddAndRemove로 고정 설치. services.core 1.18.0, Billing 8.x 계열. pending 저장 성공 후 확인 및 비소모품 복원 경로를 구현한다. |
+| Unity IAP | 5.0.1 / v4 호환 API | **5.4.3 / v5 API** | UPM Client.AddAndRemove로 고정 설치. services.core 1.18.0, Google Play Billing **9.0.0**(설치 패키지 changelog와 생성 Gradle 확인). pending 저장 성공 후 확인 및 비소모품 복원 경로를 구현한다. |
 
 UniTask, GPGS, EDM, GMA, PlayFab은 기존 `Assets` 배치를 유지한다. UPM 이동과 중복 설치를 섞지 않는다. IAP은 기존 UPM 관리 방식을 유지한다.
 

@@ -35,7 +35,7 @@ if ($taskInstallExit -ne 0) { throw '설치 미완료: CLI 결과의 실패 항�
 & $taskCli install-path --get --format json
 ```
 
-명령 근거는 고정 CLI `1.0.0-beta.8`의 `install --help`와 [프로젝트 CLI 설치 지침](../../.agents/skills/unity-cli/references/editors-install.md)이다. `--resume`은 캐시 다운로드를 재사용하고, `--cm`은 Android 하위 모듈을 포함한다. `--yes --accept-eula`는 CLI 선택 및 라이선스 수락용이며 Windows 관리자 승인을 대신하지 않는다. `--no-elevate`는 사용하지 않는다. 기존 Editor 삭제·교체나 기본 Editor 변경 명령은 포함하지 않았다.
+명령 근거는 고정 CLI `1.0.0-beta.8`의 `install --help`다. 저장소에 고정된 CLI를 준비한 뒤 `& $taskCli install --help`로 같은 설명을 확인할 수 있다. `--resume`은 캐시 다운로드를 재사용하고, `--cm`은 Android 하위 모듈을 포함한다. `--yes --accept-eula`는 CLI 선택 및 라이선스 수락용이며 Windows 관리자 승인을 대신하지 않는다. `--no-elevate`는 사용하지 않는다. 기존 Editor 삭제·교체나 기본 Editor 변경 명령은 포함하지 않았다.
 
 이 호스트의 원래 설치 루트는 `Join-Path $env:ProgramFiles 'Unity\Hub\Editor'`였다. 세션 강제 종료로 `finally`가 실행되지 않았다면, 보관한 기존 경로를 `& $taskCli install-path --set $taskOriginalPath --format json`으로 복원한다. 세션 변수가 사라졌다면 이 호스트에서 확인한 원래 경로를 사용한다.
 
