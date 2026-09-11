@@ -8,6 +8,8 @@ GooglePlay receipt의 원문 `Payload.json`과 `Payload.signature`를 `Client.Va
 
 No Ads SKU는 `com.aedeong.monstertamer.no_ads`, 상품은 `NonConsumable`을 유지한다. 원격 지급 확인 → 내구성 있는 로컬 저장 → Unity `ConfirmPurchase` 순서를 유지하며 Google consume 호출을 추가하지 않는다. SDK 요청 자체는 취소되지 않으므로 취소 후 원격 검증이 완료될 수 있다. 늦은 결과를 로컬 지급에 쓰지 않고 다음 재시도에서 원격 inventory로 복구한다.
 
+PlayFab 테스트 catalog 역시 소비 횟수나 만료 시간을 두지 않는 영구 No Ads 권한으로 설정해야 한다. 현재 Google add-on과 테스트 catalog는 미설정이며, 생성한 타이틀만으로 구매 연결이 완료된 것은 아니다.
+
 이 경로는 Legacy Economy의 검증/지급/중복 방지를 사용한다. Python staging의 Google productsv2 `TEST` 조건·서버 allowlist·obfuscated account binding 검사와 동일하다고 주장하지 않는다. 서명 전 JSON 필드 비교는 입력 필터이며 신뢰 근거는 PlayFab 검증 응답이다. 실제 타이틀의 Google add-on, catalog, 별도 앱/라이선스 테스터와 실기기 검증이 필요하다.
 
 전용 PlayFab 타이틀은 새 플레이어 네임스페이스로 생성했으며 개발 모드/초기 플레이어 0명과 무료 시작 안내를 확인했다. 운영 타이틀의 설정·계정을 재사용하지 않는다. 실제 ID/Console 링크는 공개 코드 대신 작업 인계에서 관리한다. Google Play 미공개 무료 테스트 앱 생성에 필요한 정책/수출법 선언은 사용자가 승인했다. 앱·상품 준비 및 실제 검증 상태는 후속 검증 기록으로 확정한다.
