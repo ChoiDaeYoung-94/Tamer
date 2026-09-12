@@ -16,14 +16,20 @@ $marker = Join-Path $private 'test-only.json'
 if (Test-Path $private) {
     if ((Get-Item -LiteralPath $private).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Signing directory must not be a link.' }
 } else { New-Item -ItemType Directory -Path $private | Out-Null }
-$acl = Get-Acl -LiteralPath $private
+$acl = [Security.AccessControl.DirectorySecurity]::new()
 $acl.SetAccessRuleProtection($true, $false)
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
 $rule = [Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
 $acl.SetAccessRule($rule)
-Set-Acl -LiteralPath $private -AclObject $acl
-foreach ($path in @($key, $passwordFile, $certificate, $marker)) {
+[IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($private), $acl)
+foreach ($path in @($key, $passwordFile, $certificate, $marker, (Join-Path $private "keytool.log"), (Join-Path $private "certificate.log"))) {
     if ((Test-Path $path) -and ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Signing files must not be links.' }
+    if (Test-Path $path) {
+        $fileAcl = [Security.AccessControl.FileSecurity]::new()
+        $fileAcl.SetAccessRuleProtection($true, $false)
+        $fileAcl.SetAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'Allow'))
+        [IO.FileSystemAclExtensions]::SetAccessControl([IO.FileInfo]::new($path), $fileAcl)
+    }
 }
 $ready = (Test-Path $key) -and (Test-Path $passwordFile) -and (Test-Path $certificate) -and (Test-Path $marker)
 if (!$ready -and ((Test-Path $key) -or (Test-Path $passwordFile) -or (Test-Path $certificate) -or (Test-Path $marker))) {
@@ -43,7 +49,8 @@ try {
         $metadata = Get-Content -LiteralPath $marker -Raw | ConvertFrom-Json
         if ($metadata.applicationId -ne 'com.AeDeong.MonsterTamer.iaptest' -or $metadata.alias -ne 'tamer-iap-test-upload') { throw 'Not the dedicated IAP test key.' }
         if ((Get-FileHash $key -Algorithm SHA256).Hash -ne $metadata.keySha256) { throw 'Test key changed; preserve and inspect.' }
-        $secure = Get-Content -LiteralPath $passwordFile -Raw | ConvertTo-SecureString
+        if ((Get-FileHash $certificate -Algorithm SHA256).Hash -ne $metadata.certificateSha256) { throw 'Test certificate changed; preserve and inspect.' }
+        $secure = (Get-Content -LiteralPath $passwordFile -Raw).Trim() | ConvertTo-SecureString
         $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
         $secret = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
     }

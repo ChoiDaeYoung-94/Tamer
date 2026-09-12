@@ -19,7 +19,7 @@ def validate_manifest(xml):
     app, sdk = root.find("application"), root.find("uses-sdk")
     if root.get("package") != "com.AeDeong.MonsterTamer.iaptest" or app is None or sdk is None:
         raise ValueError("Dedicated IAP test application required")
-    if app.get(ANDROID + "debuggable", "false") != "false" or sdk.get(ANDROID + "targetSdkVersion") != "36":
+    if app.get(ANDROID + "testOnly", "false") != "false" or app.get(ANDROID + "debuggable", "false") != "false" or sdk.get(ANDROID + "targetSdkVersion") != "36":
         raise ValueError("Non-debug target36 test bundle required")
     permissions = {p.get(ANDROID + "name") for p in root.findall("uses-permission")}
     if not {"android.permission.INTERNET", "com.android.vending.BILLING"} <= permissions:
