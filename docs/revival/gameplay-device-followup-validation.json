@@ -1,0 +1,73 @@
+{
+  "date": "2026-09-12",
+  "sourceCommit": "060863de6f98b715af79002ce381cb140cb5b475",
+  "baseMain": "40b23cc954a2ea9a9a36eca9a58c5ad79ca246da",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "editmode": {
+    "id": "2",
+    "testcasecount": "370",
+    "result": "Passed",
+    "total": "370",
+    "passed": "370",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-12 09:54:59Z",
+    "end-time": "2026-09-12 09:55:03Z",
+    "duration": "4.6170147"
+  },
+  "editmodeXmlSha256": "74472b6b88c12b61693c75be49b737462c583ebe8e3013c24c666685218a0416",
+  "apk": {
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gameplay",
+    "bytes": 105422768,
+    "sha256": "d9bfe7e5286c958239045e3b2f77f6d7764ad5123fe5051a4b18b1d48f218ed8",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false,
+    "adIdPermissionName": "com.google.android.gms.permission.AD_ID",
+    "remainingAdServicesPermissions": [
+      "android.permission.ACCESS_ADSERVICES_AD_ID",
+      "android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
+      "android.permission.ACCESS_ADSERVICES_TOPICS"
+    ]
+  },
+  "scope": "Existing harness manual scene transition and read-only gameplay observations; no forced HP, spawn, reward or capture",
+  "device": {
+    "newApkInstalled": false,
+    "newApkExecuted": false,
+    "state": "deferred by user",
+    "resumeCondition": "Explicit user notice; owner availability is 2026-09-14. No automatic retry, lock-state query or unlock request.",
+    "combatVerified": false,
+    "captureVerified": false,
+    "deathRecoveryVerified": false,
+    "changedProgressMemoryWriteVerified": false
+  },
+  "independentSourceReview": "integration owner reviewed 060863d; no blocking issue reported",
+  "cleanup": {
+    "ownEditorCount": 0,
+    "wrapperSettingsRestored": true,
+    "incidentalUrpLineEndingChangesRestored": true,
+    "deviceOperationsAfterDeferral": 0
+  },
+  "unverified": [
+    "actual combat, capture and death recovery on the new APK",
+    "changed-progress memory-server write and file comparison on device",
+    "production accounts, save transport, ads and purchases",
+    "16KB physical device and release AAB"
+  ],
+  "independentArtifactReview": "integration owner matched SHA/package/debug signature/ARM64 and absent uses-permissions/provider; AdServices permissions and billing query strings remain"
+}
