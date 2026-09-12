@@ -16,6 +16,24 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private bool _busy;
     private Player _originalPlayer;
     private Managers _originalManagers;
+    private string _lastObservation;
+    private float _nextObservation;
+
+    // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
+    private void Update()
+    {
+        if (Time.realtimeSinceStartup < _nextObservation) return;
+        _nextObservation = Time.realtimeSinceStartup + .25f;
+        var player = Player.Instance;
+        if (player == null || Managers.Instance != _originalManagers) return;
+        string observation = "scene=" + UnitySceneManager.GetActiveScene().name +
+            " hp=" + player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " gold=" + player.Gold + " allies=" + player.GetCurMonsterCount() +
+            " reads=" + RevivalGameplayIsolation.Reads + " writes=" + RevivalGameplayIsolation.Writes;
+        if (observation == _lastObservation) return;
+        _lastObservation = observation;
+        Debug.Log("GAMEPLAY_OBSERVATION " + observation);
+    }
 
 #if TAMER_GAMEPLAY_HARNESS
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -103,13 +121,31 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     {
         GUI.depth = -1000;
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));
-        GUILayout.BeginArea(new Rect(15, 15, 970, 145), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(15, 15, 970, 225), GUI.skin.box);
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
         GUILayout.Label(_status + " | errors=" + _errors);
+        GUILayout.Label(_lastObservation ?? "Waiting for player");
         GUI.enabled = !_busy && Ready("Main");
         if (GUILayout.Button("Repeat Main / Game / Main", GUILayout.Height(55))) StartCoroutine(RoundTrip());
+        GUI.enabled = !_busy && Time.timeScale == 1 && Player.Instance != null && Player.Instance.Hp > 0 &&
+            (Ready("Main") || Ready("Game"));
+        if (GUILayout.Button(Ready("Game") ? "Return to Main (manual)" : "Enter Game (manual play)", GUILayout.Height(55)))
+            StartCoroutine(ManualTransition());
         GUI.enabled = true;
         GUILayout.EndArea();
+    }
+
+    private IEnumerator ManualTransition()
+    {
+        if (_busy || (!Ready("Main") && !Ready("Game"))) yield break;
+        _busy = true;
+        string destination = Ready("Main") ? "Game" : "Main";
+        Managers.GameM.SwitchMainOrGameScene();
+        yield return WaitForScene(destination);
+        Mark(Ready(destination) && Player.Instance == _originalPlayer
+            ? "MANUAL_READY " + destination + " use original gameplay controls"
+            : "FAIL manual transition " + destination);
+        _busy = false;
     }
 }
 #endif
