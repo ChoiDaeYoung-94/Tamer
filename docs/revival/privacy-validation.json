@@ -8,7 +8,12 @@
   "python": "3.14.0",
   "command": "python -m unittest discover -s tools/revival -p \"test_*.py\"",
   "exitCode": 0,
-  "pythonTests": {"total": 49, "privacy": 18, "existing": 31, "failed": 0},
+  "pythonTests": {
+    "total": 49,
+    "privacy": 18,
+    "existing": 31,
+    "failed": 0
+  },
   "dataUsed": "Synthetic fixtures in temporary directories only",
   "coverage": [
     "Aggregate-only output without title, player, key, value or hashes",
@@ -33,5 +38,42 @@
     "Server receipt verification with legacy No Ads compatibility",
     "Authorized full UserData export, complete population accounting and concurrency controls",
     "Production Public-key migration and old-client republication prevention"
-  ]
+  ],
+  "historicalRecordNote": "Original test results, production access flags and remaining/notVerified lists describe the recorded source commit only; current status is in currentStatusReview.",
+  "currentStatusReview": {
+    "reviewedAt": "2026-09-12 KST",
+    "baseMain": "40b23cc954a2ea9a9a36eca9a58c5ad79ca246da",
+    "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+    "method": "Documentation and recorded evidence comparison only; no new tests or external account queries",
+    "completed": {
+      "syntheticDeletionCoreAndUi": "account-deletion-validation.json and deletion-ui-validation.json",
+      "actualCSharpToPythonLoopback": "deletion-loopback-http-validation.json; 13 passed, 0 failed; not Unity UI HTTP or Android execution",
+      "authorizedExistingTitlePlayerDeletion": {
+        "submitted": 76,
+        "finalUnfilteredList": 0,
+        "finalAllPlayersSegment": 0,
+        "observedAtUtc": "2026-09-11T10:14:55Z",
+        "evidence": "title-player-deletion-execution.ko.md",
+        "allBackendErasureIndependentlyVerified": false
+      },
+      "existingReadmePolicyAndConsoleUrlPreserved": "privacy-policy-continuity.ko.md"
+    },
+    "conditionalOnly": [
+      "Public-to-Private migration: no remaining work against deleted 76 accounts; reassess only if actual targets reappear, without creating accounts or repeating queries to manufacture targets"
+    ],
+    "remainingOperational": [
+      "Actual deletion intake route and responsibility",
+      "Production reauthentication, provider adapter and deployment",
+      "Retention periods, exceptions and processor evidence",
+      "Device cleanup, rejoin, purchase restoration and multi-device/old-client controls",
+      "Final Data Safety answers"
+    ],
+    "verificationThisReview": {
+      "testsRerun": false,
+      "unityRun": false,
+      "androidApkSha256": null,
+      "productionReadOrWrite": false,
+      "policyOrConsoleChanged": false
+    }
+  }
 }
