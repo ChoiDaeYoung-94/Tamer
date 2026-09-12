@@ -157,3 +157,8 @@ inventory 기준 `e0f87800b4d7c94b7c28dc884b9b2f98431a24a9`에서 신규 3개를
 | 파일 | 책임 | 검토 결과 | 검증 |
 | --- | --- | --- | --- |
 | `Assets/Tests/Editor/RevivalPlayFabHttpTests.cs` | PlayFab HTTP 초기화 회귀 | SDK·통합: 실제 instance API→fake transport settings/context 보존, 빈 타이틀 거부, 기존 초기화 호환, 임시 SO/transport 복구 | 신규3/3·전체370/370 |
+
+
+## 테스트 서명 AAB 경로
+
+기존 `Assets/Scripts/Editor/RevivalIapBuild.cs`의 전용 키/비디버그 AAB 분기와 서명 설정 복원, `Assets/Scripts/RevivalIapIsolation.cs`의 빌드 한정 STORE_TEST 예외를 SDK·통합에서 검토했다. 정확한 `.iaptest`/타이틀 검사는 유지한다. 신규 C# 없음, inventory121/meta0, Editor370/370/0skip. AAB서명 payload601개와 ELF LOAD6개 통과, RELRO3개 실패를 구분한다. [AAB 검증](iap-test-bundle-validation.json)을 따른다.

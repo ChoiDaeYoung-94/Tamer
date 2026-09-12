@@ -1,0 +1,51 @@
+{
+  "sha256": "aef2ec2212b09415294d6b88d5de21c78e7730bf59ecabbc23514a36354aa37a",
+  "bytes": 71272522,
+  "applicationId": "com.AeDeong.MonsterTamer.iaptest",
+  "debuggable": false,
+  "minSdk": 24,
+  "targetSdk": 36,
+  "abi": [
+    "arm64-v8a"
+  ],
+  "bundletool": "1.18.3",
+  "dedicatedTestSignatureVerified": true,
+  "verifiedPayloadEntries": 601,
+  "internetPermission": true,
+  "billingPermission": true,
+  "gmsAdIdPermission": false,
+  "mobileAdsInitProvider": false,
+  "adServicesPermissionsRemain": true,
+  "uploaded": false,
+  "nativeElfCount": 6,
+  "elfLoadChecksPassed": true,
+  "elfRelroChecksPassed": false,
+  "deliveredApkZipAlignmentVerified": false,
+  "sourceCommit": "39c2b253e3d6d57e1c3b2e4fc8f2dafe1adac6ef",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7b9b/Tamer",
+  "unity": "6000.0.81f1",
+  "unityCli": "1.0.0-beta.8",
+  "editorTests": {
+    "passed": 370,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 4.8386584
+  },
+  "xmlSha256": "1848d339c2812f665cc62fbb0c7f92bd1ff8d4b475d8a238f62e5e4ff1cd3105",
+  "manifestRegressionTests": 7,
+  "signatureRegressionTests": 9,
+  "privateAclPathsChecked": 7,
+  "privateAclCurrentUserOnly": true,
+  "dpapiReuseVerified": true,
+  "settingsRestored": true,
+  "ownEditorsAfterBuild": 0,
+  "deviceInstalled": false,
+  "firstPartyFiles": 121,
+  "missingMeta": 0,
+  "relroFailures": [
+    "libc++_shared.so",
+    "libil2cpp.so",
+    "libmain.so"
+  ],
+  "sourceCommitScope": "Unity C# used for Editor tests and AAB; wrapper ACL/DPAPI compatibility fixes and static verifier completed afterward"
+}
