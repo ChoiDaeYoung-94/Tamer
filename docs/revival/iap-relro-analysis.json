@@ -1,0 +1,129 @@
+{
+  "analysisDate": "2026-09-12",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7b9b/Tamer",
+  "analysisBase": "7db56dc7647b5ce21b20968db031ca48e6297a5f",
+  "aabSha256": "aef2ec2212b09415294d6b88d5de21c78e7730bf59ecabbc23514a36354aa37a",
+  "unity": "6000.0.81f1",
+  "ndk": "27.2.12479018 (r27c)",
+  "readelf": "pinned NDK llvm-readelf -Wl",
+  "geometry": [
+    {
+      "library": "lib_burst_generated.so",
+      "start": "0x74be0",
+      "memSize": "0x3420",
+      "end": "0x78000",
+      "remainder": "0x0",
+      "protectedStart": "0x74000",
+      "protectedEnd": "0x78000",
+      "wholeLoad": true,
+      "extraWritableOverlap": []
+    },
+    {
+      "library": "libc++_shared.so",
+      "start": "0x1392f0",
+      "memSize": "0x9d10",
+      "end": "0x143000",
+      "remainder": "0x3000",
+      "protectedStart": "0x138000",
+      "protectedEnd": "0x144000",
+      "wholeLoad": true,
+      "extraWritableOverlap": []
+    },
+    {
+      "library": "libil2cpp.so",
+      "start": "0x6139bd0",
+      "memSize": "0x51d430",
+      "end": "0x6657000",
+      "remainder": "0x3000",
+      "protectedStart": "0x6138000",
+      "protectedEnd": "0x6658000",
+      "wholeLoad": true,
+      "extraWritableOverlap": []
+    },
+    {
+      "library": "libmain.so",
+      "start": "0x8f20",
+      "memSize": "0x10e0",
+      "end": "0xa000",
+      "remainder": "0x2000",
+      "protectedStart": "0x8000",
+      "protectedEnd": "0xc000",
+      "wholeLoad": true,
+      "extraWritableOverlap": []
+    },
+    {
+      "library": "libswappywrapper.so",
+      "start": "0x36480",
+      "memSize": "0x1b80",
+      "end": "0x38000",
+      "remainder": "0x0",
+      "protectedStart": "0x34000",
+      "protectedEnd": "0x38000",
+      "wholeLoad": true,
+      "extraWritableOverlap": []
+    },
+    {
+      "library": "libunity.so",
+      "start": "0x15757a0",
+      "memSize": "0x52860",
+      "end": "0x15c8000",
+      "remainder": "0x0",
+      "protectedStart": "0x1574000",
+      "protectedEnd": "0x15c8000",
+      "wholeLoad": true,
+      "extraWritableOverlap": []
+    }
+  ],
+  "debugReleaseComparison": [
+    {
+      "library": "lib_burst_generated.so",
+      "debugRemainder": "0x0",
+      "releaseRemainder": "0x0",
+      "bytesIdentical": false
+    },
+    {
+      "library": "libc++_shared.so",
+      "debugRemainder": "0x3000",
+      "releaseRemainder": "0x3000",
+      "bytesIdentical": true
+    },
+    {
+      "library": "libil2cpp.so",
+      "debugRemainder": "0x2000",
+      "releaseRemainder": "0x3000",
+      "bytesIdentical": false
+    },
+    {
+      "library": "libmain.so",
+      "debugRemainder": "0x2000",
+      "releaseRemainder": "0x2000",
+      "bytesIdentical": false
+    },
+    {
+      "library": "libswappywrapper.so",
+      "debugRemainder": "0x1000",
+      "releaseRemainder": "0x0",
+      "bytesIdentical": false
+    },
+    {
+      "library": "libunity.so",
+      "debugRemainder": "0x3000",
+      "releaseRemainder": "0x0",
+      "bytesIdentical": false
+    }
+  ],
+  "libmainMatchesInstalledReleasePrebuilt": true,
+  "libcxxMatchesNdkBuildId": true,
+  "libcxxBytesEqualNdkUnstripped": false,
+  "il2cppLinkFlags": {
+    "relro": true,
+    "maxPageSize16384": true,
+    "commonPageSizeExplicit": false
+  },
+  "runtimeVerified": false,
+  "checkerChanged": false,
+  "binaryPatched": false,
+  "relinked": false,
+  "editorStarted": false,
+  "deviceTouched": false
+}

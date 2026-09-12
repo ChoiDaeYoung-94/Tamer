@@ -30,3 +30,6 @@ Unity6000.0.81f1/CLI1.0.0-beta.8에서 Editor370/370/0skip(4.8386584초), manife
 AAB는71,272,522바이트이며 SHA-256은 `aef2ec2212b09415294d6b88d5de21c78e7730bf59ecabbc23514a36354aa37a`이다. bundletool1.18.3 구조 검사와 전용 인증서에 대한 payload601개 서명 검증을 통과했다. 비디버그/min24/target36/ARM64, 네트워크·결제 권한과 광고 요청 차단 구성을 확인했다.
 
 ELF6개의 LOAD 검사는 통과했다. `libc++_shared.so`, `libil2cpp.so`, `libmain.so`의 RELRO 끝 주소는 16384 정렬 조건을 충족하지 않았다. Play가 전달할 APK의 ZIP 정렬, 실기기16KB 동작, Play 수락, 로그인 및 결제는 이 결과로 검증되지 않았다. 세부 근거는 [검증 기록](iap-test-bundle-validation.json)에 있다.
+
+
+RELRO 3건의 정확한 구간, debug와의 차이, prebuilt/IL2CPP 생성 경로 및 고정 Unity에서의 재링크 실험 범위는 [후속 분석](iap-relro-analysis.ko.md)에 정리했다. 검사 실패와 실제16KB 실행 미검증은 유지한다.
