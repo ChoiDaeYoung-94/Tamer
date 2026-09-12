@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceCommit": "db32fcb25342ec07c40bf5c1b13426fe6cfaf0ef",
+  "sourceCommit": "beb65e2857dd3e6380e12548023074c01d8b4f0f",
   "scope": "Tracked Assets/Scripts, Assets/Tests, and generated Assets/GPGSIds.cs; vendor SDK/assets excluded",
   "lexicalReferencesOnly": true,
   "files": [
@@ -233,7 +233,7 @@
     {
       "path": "Assets/Scripts/Editor/RevivalIapBuild.cs",
       "kind": "editor",
-      "lines": 122,
+      "lines": 145,
       "declaredTypes": [
         "RevivalIapBuild",
         "CatalogFlags"
@@ -1180,7 +1180,7 @@
     {
       "path": "Assets/Scripts/RevivalIapIsolation.cs",
       "kind": "runtime",
-      "lines": 103,
+      "lines": 107,
       "declaredTypes": [
         "RevivalIapIsolation",
         "Configuration"

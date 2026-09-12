@@ -35,7 +35,11 @@ namespace AD
             if (asset == null) throw new InvalidOperationException("Missing local IAP test configuration.");
             var config = JsonUtility.FromJson<Configuration>(asset.text);
             Validate(config, Application.identifier);
-            if (Application.isEditor || !Debug.isDebugBuild)
+            bool storeTestBuild = false;
+#if TAMER_IAP_STORE_TEST
+            storeTestBuild = true;
+#endif
+            if (Application.isEditor || (!Debug.isDebugBuild && !storeTestBuild))
                 throw new InvalidOperationException("Dedicated development player required.");
             _configuration = config;
         }

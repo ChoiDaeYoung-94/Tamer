@@ -87,5 +87,12 @@
     "result": "PlayerCreationDisabled",
     "storeInitialized": false,
     "purchaseAttempted": false
+  },
+  "testAccount": {
+    "adminCreated": true,
+    "countCreated": 1,
+    "clientCreationPolicyChanged": false,
+    "harnessCustomIdLinked": false,
+    "loginRetested": false
   }
 }
