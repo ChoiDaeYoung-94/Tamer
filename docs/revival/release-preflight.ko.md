@@ -33,7 +33,7 @@ big-endian ARM64 오인 문제도 수정했다. 같은 경로·hardlink는 검�
 split ZIP 정렬·실제 ARM64 16KB·정책·운영 인증/진행도 쓰기/구매 복원·트랙 승인도 별도다.
 현재는 운영 release 인증서나 신규 후보 AAB를 사용하지 않았다. 정적 RELRO 실패는 실행 중 crash 증명이 아니다.
 
-## 현재 PC의 16KB 장애와 변경 제안
+## 16KB 호스트 점검 이력과 재부팅 대기
 
 2026-09-11 읽기 점검: Windows 11 Pro build26200, BIOS virtualization/SLAT/VM monitor 모두 true,
 HypervisorPresent=false. CIM `HypervisorPlatform`, `VirtualMachinePlatform`, `Microsoft-Hyper-V-All`은
@@ -50,15 +50,14 @@ BCD 조회는 권한 부족으로 exit1이어서 hypervisorlaunchtype을 확인�
 
 호스트 결과 파일은 기존 파일을 덮어쓰지 않는다. 재실행할 때는 `-OutputPath`로 새 JSON 경로를 지정한다.
 
-검토 가능한 변경안은 **Windows Hypervisor Platform 기능 활성화 후 사용자가 정한 시점의 재부팅**이다.
-관리자 PowerShell에서 실행할 명령 형식은 다음과 같다. 현재 실행하지 않았다.
+위 값은 활성화 전 읽기 점검 이력이다. 사용자 승인 후 2026-09-11 09:14:03–09:14:06 UTC에 관리자 PowerShell에서 다음 명령을 실행했다.
 
 ```powershell
 Enable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -All -NoRestart
 ```
 
 `-All`은 필요한 부모 기능을 포함하고 `-NoRestart`는 자동 재시작/재시작 요청을 억제한다.
-설치 결과의 RestartNeeded를 확인하고 모든 작업을 저장한 뒤 별도로 재부팅해야 한다.
+실행 결과 Success=true, FeatureState=Enabled, RestartNeeded=true, RebootExecuted=false를 확인했다. 후속 CIM에서도 HypervisorPlatform은 InstallState=1, VirtualMachinePlatform과 Hyper-V 전체는2, HypervisorPresent=false였다. 원시 실행 결과는 Git 제외 로컬 기록에 보관한다. 이 결과는 재부팅 후 가속 성공을 뜻하지 않는다. 모든 작업을 저장하고 사용자와 재부팅 시점을 정한 뒤 별도로 재부팅해야 한다.
 현재 BIOS가 이미 켜져 있으므로 BIOS 변경, Hyper-V 전체 역할/WSL 설치, BCD 쓰기를 추가 제안하지 않는다.
 재부팅 후에도 가속이 실패하면 관리자 권한의 BCD 읽기부터 다시 확인하고 별도 변경을 결정한다.
 [Google WHPX 절차](https://developer.android.com/studio/run/emulator-acceleration),
@@ -66,15 +65,15 @@ Enable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -All -NoRe
 
 이는 기존 x86_64 16KB AVD의 가속 준비다. 성공해도 PAGE_SIZE=16384·프로세스 ABI·번역/호환 모드·앱 실행을
 다시 관찰해야 하며 ARM64 직접 실행과 같다고 보지 않는다. 기존 software 부팅 timeout/crash를 반복하지 않았다.
-현재 기기 연결 요청, Windows 기능 변경, 재부팅은 없었다.
+WHPX 활성화만 실행했고 재부팅·BCD 변경·다른 Windows 기능 활성화는 수행하지 않았다. 2026-09-12 작업 재개를 재부팅 승인으로 해석하지 않는다.
 
 ## 사용자가 결정해야 하는 최소 항목
 
 기존 [공개 개인정보처리방침](../../README.md#개인정보처리방침)에 운영자 **AeDeong**, 일반 문의 **doeud1410@gmail.com**, 시행일 **2024년 9월 30일**이 명시되어 있다. 이 값은 이미 게시된 사실로 재사용하며 같은 정보를 다시 묻지 않는다. README와 기존 GitHub 정책 URL은 출시 때 사용한 공개 정책 페이지로 보존한다. 기존 정책 URL을 개발 문서로 대체하거나 링크를 깨뜨리지 않는다. 일반 문의 주소가 있다는 사실을 실제 삭제 접수 서비스가 구현됐다는 뜻으로 확대하지 않는다.
 
-1. 이 PC의 WHPX 활성화 여부와 재부팅 가능한 시점. 승인이 없으면 설정을 유지한다.
+1. WHPX 활성화는 완료됐으므로 재부팅 가능한 시점만 결정한다. 별도 승인 전에는 재부팅하지 않는다.
 2. 업로드 키의 암호화 보관 위치·비밀번호 보관소·별도 기기 백업 위치 및 키 reset 신청 승인.
 3. 기존 정책에 없는 실제 삭제 접수 경로, 보관 기간·삭제 범위와 기존 No Ads 복원·재가입 방침.
-4. 비운영 PlayFab/receipt 환경과 사용할 테스트 계정·배포 위치. 실제 서비스 생성·운영 변경은 별도 승인한다.
+4. 전용 PlayFab 타이틀·미공개 Google 테스트 앱·영구 catalog·Google add-on은 생성 완료다. 테스트 로그인은 PlayerCreationDisabled 응답 상태이며 승인된 계정과 실제 Google 라이선스 테스터 확정, 상품·업로드 조건이 남아 있다. 거절된 CustomID 전달을 우회하지 않는다. PlayFab 내장 영수증 검증에는 별도 VPS/HTTPS 호스트가 필수가 아니며, 기존 staging 서버 배포는 선택한 경로에 필요할 때만 검토한다.
 
 공개 설정값이나 보관 기간을 임의 생성하지 않는다. 삭제 UI·합성 처리 서버·C# loopback HTTP 연결과 receipt staging 패키지는 PR131–135로 통합했다. 이는 운영 인증·삭제·실제 구매 검증을 대체하지 않는다. 독립 구현 공백이 없으면 합성 하네스를 추가하지 않고, 위 결정을 받아 실제 환경 연결을 진행한다. 최종 릴리스 번호·인증서·트랙 제출 승인은 해당 단계의 실제 Console 상태와 후보가 준비된 뒤 묶어 확인한다. 일반적인 작업 재개 지시는 미답 운영 결정의 승인으로 간주하지 않는다.
