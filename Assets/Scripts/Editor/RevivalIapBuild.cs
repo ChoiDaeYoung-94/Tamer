@@ -34,7 +34,10 @@ public static class RevivalIapBuild
         return document.ToString();
     }
 
-    public static void BuildAndroid()
+    public static void BuildAndroid() => Build(false);
+    public static void BuildStoreTestBundle() => Build(true);
+
+    private static void Build(bool storeBundle)
     {
         int code = 1;
         const string configPath = "Assets/Resources/RevivalIapLocal.json";
@@ -52,6 +55,9 @@ public static class RevivalIapBuild
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
         string oldAlias = PlayerSettings.Android.keyaliasName;
+        string oldKeystore = PlayerSettings.Android.keystoreName;
+        string oldStorePass = PlayerSettings.Android.keystorePass;
+        string oldAliasPass = PlayerSettings.Android.keyaliasPass;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         try
@@ -63,7 +69,7 @@ public static class RevivalIapBuild
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with Android build target.");
             string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
-            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_IAP_HARNESS"))
+            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_IAP_HARNESS" || d == "TAMER_IAP_STORE_TEST"))
                 throw new BuildFailedException("Harness symbols must not be global.");
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
@@ -79,18 +85,32 @@ public static class RevivalIapBuild
             AssetDatabase.SaveAssets();
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, RevivalIapIsolation.ApplicationId);
             PlayerSettings.Android.useCustomKeystore = false;
+            if (storeBundle)
+            {
+                string testKey = Path.GetFullPath(".revival-local/iap-signing/test-upload.jks");
+                string password = Environment.GetEnvironmentVariable("TAMER_IAP_TEST_KEY_PASSWORD");
+                if (!File.Exists(testKey) || string.IsNullOrEmpty(password))
+                    throw new BuildFailedException("Dedicated local test signing key/password required.");
+                PlayerSettings.Android.useCustomKeystore = true;
+                PlayerSettings.Android.keystoreName = testKey;
+                PlayerSettings.Android.keyaliasName = "tamer-iap-test-upload";
+                PlayerSettings.Android.keystorePass = password;
+                PlayerSettings.Android.keyaliasPass = password;
+            }
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
-            EditorUserBuildSettings.buildAppBundle = false;
+            EditorUserBuildSettings.buildAppBundle = storeBundle;
             Directory.CreateDirectory("Build/revival");
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
-                locationPathName = "Build/revival/Tamer-iap-test.apk",
-                options = BuildOptions.Development | BuildOptions.CompressWithLz4,
-                extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_IAP_HARNESS" }
+                locationPathName = "Build/revival/Tamer-iap-test." + (storeBundle ? "aab" : "apk"),
+                options = storeBundle ? BuildOptions.CompressWithLz4 : BuildOptions.Development | BuildOptions.CompressWithLz4,
+                extraScriptingDefines = storeBundle
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_IAP_HARNESS", "TAMER_IAP_STORE_TEST" }
+                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_IAP_HARNESS" }
             });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("IAP test build failed.");
-            Debug.Log("IAP_BUILD_OK isolated=true development=true");
+            Debug.Log("IAP_BUILD_OK isolated=true storeTestBundle=" + storeBundle);
             code = 0;
         }
         catch (Exception error) { Debug.LogException(error); }
@@ -100,6 +120,9 @@ public static class RevivalIapBuild
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.Android.useCustomKeystore = oldKey;
             PlayerSettings.Android.keyaliasName = oldAlias;
+            PlayerSettings.Android.keystoreName = oldKeystore;
+            PlayerSettings.Android.keystorePass = oldStorePass;
+            PlayerSettings.Android.keyaliasPass = oldAliasPass;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
             EditorUserBuildSettings.buildAppBundle = oldBundle;
             AssetDatabase.SaveAssets();
