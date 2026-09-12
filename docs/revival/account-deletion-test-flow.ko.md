@@ -3,7 +3,7 @@
 기준 main `1e9f99cd837ca03e902b73dbcd228b27e1c57041`, 2026-09-11.
 이 구현은 문서의 요청 흐름을 코드로 시험한다. **운영 삭제 서비스는 비활성이고 실제 계정·진행도·No Ads를 변경하지 않는다.**
 운영 endpoint, 보관기간, 재가입 정책을 임의로 정하지 않았다.
-[운영 결정 D1–D8](privacy-execution-readiness.ko.md)은 계속 미확정이며 그 결정을 대신하는 구현이 아니다.
+[운영 결정 D1–D8의 현재 상태](privacy-execution-readiness.ko.md)를 따른다. 기존 정책 기재와 별도 승인된 76개 타이틀 계정 정리는 확인 완료이며, 향후 운영 삭제 서비스의 미정 사항을 대신하는 구현은 아니다.
 
 ## 구성과 책임
 
@@ -15,7 +15,7 @@
 | server/privacy/http_app.py | 요청·확인·조회·취소 WSGI 경로, bounded JSON/중복 필드 거부, 오류 정보 제한 | listener/배포 없음. worker 실행은 기본 HTTP API에서 노출하지 않음 |
 | server/privacy/local_demo.py, demo.html | 127.0.0.1 전용 합성 웹과 명시적 대역 진행 버튼 | 임시 DB, 고정 synthetic 계정·proof, 합성 정책만 사용. 실제 재인증의 증거가 아님 |
 
-앱 설정의 진입/view/presenter와 그 버튼 회귀는 UI 담당의 별도 변경에서 이 core에 연결한다.
+앱 설정의 진입/view/presenter와 버튼 회귀는 후속 [UI 구현](deletion-ui.ko.md)에서 이 core에 연결됐다.
 UI는 기본 미지원 설명과 비활성 실행 상태를 표시한다. 테스트 주입 시에도 완료를 **합성 완료**라고 표시해야 한다.
 클라이언트의 Completed는 동일 요청/정책/범위와 비어 있지 않은 CompletionEvidence 응답이 있어야 수락한다.
 이는 신뢰할 서버 adapter의 확인 결과를 표시하는 계약이며, 문자열 자체의 서명이나 PlayFab 삭제 완료를 검증하는 기능이 아니다.
@@ -76,7 +76,7 @@ python -m server.privacy.local_demo
 
 서버 회귀는 WSGI→SQLite→SyntheticProvider를 소켓 없이 검증하고, 별도 실제 localhost 브라우저에서
 같은 버튼/HTTP 흐름을 확인했다. C# core/UI는 합성 gateway로 검증한다. Unity 앱과 Python 서버를
-HTTP로 연결한 검증은 아니며, 운영 HTTPS adapter는 endpoint/인증/삭제 정책 결정 후 별도 구현한다.
+HTTP로 연결한 검증은 아니다. 후속 [loopback 계약](deletion-loopback-http.ko.md)에서는 실제 C# 소스를 .NET에서 실행해 Python 서버와 HTTP로 연결한 13건을 검증했다. Unity UI HTTP 및 Android 실행은 미검증이며, 운영 HTTPS adapter는 endpoint/인증/삭제 정책 결정 후 별도 구현한다.
 Unity 회귀와 정확한 소스는 [검증 기록](account-deletion-validation.json)에 기록한다.
 
 ## 공개 운영 정보 후보
