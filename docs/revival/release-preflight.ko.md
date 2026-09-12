@@ -35,6 +35,12 @@ split ZIP 정렬·실제 ARM64 16KB·정책·운영 인증/진행도 쓰기/구�
 
 ## 16KB 호스트 점검 이력과 재부팅 대기
 
+### 일반 안내 기한과 개별 앱 요건
+
+2026-09-12에 [Android 공식 16KB 안내의 Google Play compatibility requirement](https://developer.android.com/guide/practices/page-sizes#google-play-compatibility-requirement)를 직접 확인했다. API35 이상을 대상으로 하는 Google Play 앱은 64비트 기기에서 16KB 페이지를 지원해야 하며, 안내는 미지원 **업데이트**를 2027-02-01부터 출시할 수 없다고 명시한다. 해당 문단은 신규 앱에 같은 유예가 적용된다고 별도로 명시하지 않으며 앱별 예외나 연장 승인을 제시하지 않는다. 이를 신규 테스트 앱의 업로드 가능 판정이나 Tamer의 개별 Console 경고 해제로 확대하지 않는다. 실제 제출 전에는 대상 앱·트랙·후보의 Console 요구사항을 별도로 확인해야 한다.
+
+저장소 Markdown/JSON과 README에서 기존 2025-11-01 또는 2027-02-01 기한 문구는 발견되지 않아 날짜 일괄 치환은 하지 않았다. 최신 일반 안내는 현재 RELRO 실패, 실제16KB 실행 및 전달 APK ZIP 정렬 미검증을 해소하지 않는다. [AAB RELRO 분석](iap-relro-analysis.ko.md)을 함께 따른다.
+
 2026-09-11 읽기 점검: Windows 11 Pro build26200, BIOS virtualization/SLAT/VM monitor 모두 true,
 HypervisorPresent=false. CIM `HypervisorPlatform`, `VirtualMachinePlatform`, `Microsoft-Hyper-V-All`은
 모두 InstallState=2(Disabled)이고 AEHD/GVM 서비스가 없다.
