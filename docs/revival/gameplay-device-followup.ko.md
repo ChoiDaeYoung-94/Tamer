@@ -27,6 +27,8 @@
 
 ## APK 정적 검증과 정리
 
-APK는 **105,422,768 bytes**, SHA-256 `d9bfe7e5286c958239045e3b2f77f6d7764ad5123fe5051a4b18b1d48f218ed8`다. `com.AeDeong.MonsterTamer.revival.gameplay`, debug 서명, debuggable=true, ARM64, min24/target36, 1.0.5/code26을 확인했다. 최종 manifest에서 INTERNET/ACCESS_NETWORK_STATE/BILLING/AD_ID와 MobileAdsInitProvider가 없는지 기존 verifier를 실행해 통과했다.
+APK는 **105,422,768 bytes**, SHA-256 `d9bfe7e5286c958239045e3b2f77f6d7764ad5123fe5051a4b18b1d48f218ed8`다. `com.AeDeong.MonsterTamer.revival.gameplay`, debug 서명, debuggable=true, ARM64, min24/target36, 1.0.5/code26을 확인했다. 최종 manifest에서 INTERNET/ACCESS_NETWORK_STATE/BILLING/`com.google.android.gms.permission.AD_ID`와 MobileAdsInitProvider가 없는지 기존 verifier를 실행해 통과했다.
 
 통합 담당자가 소스 `060863d`를 독립 검토했고 차단 결함은 없었다. 빌드 후 자체 Editor 0, wrapper 설정 복원, URP/Graphics의 줄바꿈만 변경된 5개 파일 복원을 확인했다. 기기 검증 보류 지시 이후 ADB·휴대폰 조회나 조작은 하지 않았다. 새 APK의 실제 화면·전투·포획·사망 결과는 없다.
+
+통합 담당자가 APK 해시·패키지·서명·ABI·권한 부재를 독립 확인했다. `android.permission.ACCESS_ADSERVICES_AD_ID`, `ACCESS_ADSERVICES_ATTRIBUTION`, `ACCESS_ADSERVICES_TOPICS` 3개 권한은 남아 있다. 따라서 광고 관련 모든 권한이 없다고 표현하지 않는다. billing 서비스 query 문자열이 남는 것과 BILLING uses-permission 부재도 구분한다.

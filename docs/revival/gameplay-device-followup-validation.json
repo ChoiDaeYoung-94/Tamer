@@ -37,7 +37,13 @@
     "internetPermission": false,
     "billingPermission": false,
     "adIdPermission": false,
-    "mobileAdsInitProvider": false
+    "mobileAdsInitProvider": false,
+    "adIdPermissionName": "com.google.android.gms.permission.AD_ID",
+    "remainingAdServicesPermissions": [
+      "android.permission.ACCESS_ADSERVICES_AD_ID",
+      "android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
+      "android.permission.ACCESS_ADSERVICES_TOPICS"
+    ]
   },
   "scope": "Existing harness manual scene transition and read-only gameplay observations; no forced HP, spawn, reward or capture",
   "device": {
@@ -62,5 +68,6 @@
     "changed-progress memory-server write and file comparison on device",
     "production accounts, save transport, ads and purchases",
     "16KB physical device and release AAB"
-  ]
+  ],
+  "independentArtifactReview": "integration owner matched SHA/package/debug signature/ARM64 and absent uses-permissions/provider; AdServices permissions and billing query strings remain"
 }
