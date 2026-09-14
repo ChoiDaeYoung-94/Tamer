@@ -47,7 +47,12 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
         var selected = typeof(Player).GetField("_ableCaptureMonster", flags).GetValue(player) as Monster;
         var playerCollider = typeof(Creature).GetField("_capsuleCollider", flags).GetValue(player) as Collider;
-        var text = new System.Text.StringBuilder("playerHp=" + player.Hp + " selected=" + (selected != null));
+        var selectedTrigger = typeof(Player).GetField("_captureTrigger", flags).GetValue(player) as Collider;
+        var text = new System.Text.StringBuilder("playerHp=" + player.Hp + " selected=" + (selected != null) +
+            " selectedTrigger=" + (selectedTrigger != null && selectedTrigger.enabled && selectedTrigger.gameObject.activeInHierarchy) +
+            " playerCollider=" + (playerCollider != null && playerCollider.enabled && playerCollider.gameObject.activeInHierarchy) +
+            " capacity=" + player.GetCurMonsterCount() + "/" + player.MaxCaptureCapacity +
+            " isGame=" + Managers.GameM.IsGame + " transitioning=" + Managers.SceneM.IsTransitioning);
         foreach (Monster monster in FindObjectsByType<Monster>(FindObjectsSortMode.None))
         {
             if (monster.Hp > 0) continue;
@@ -61,6 +66,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             text.Append(" | type=").Append(monster.CreatureType).Append(" available=").Append(monster.IsCaptureAvailable)
                 .Append(" dead=").Append(typeof(Creature).GetField("isDie", flags).GetValue(monster))
                 .Append(" rolled=").Append(typeof(Monster).GetField("_isAbleAlly", flags).GetValue(monster))
+                .Append(" ally=").Append(typeof(Monster).GetField("_isAlly", flags).GetValue(monster))
+                .Append(" component=").Append(monster.isActiveAndEnabled)
                 .Append(" effect=").Append(effect != null && effect.activeInHierarchy)
                 .Append(" overlap=").Append(overlap).Append(" distance=")
                 .Append(Vector3.Distance(player.transform.position, monster.transform.position).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
