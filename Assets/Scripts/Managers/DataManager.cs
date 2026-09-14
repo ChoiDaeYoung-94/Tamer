@@ -9,7 +9,7 @@ using Cysharp.Threading.Tasks;
 namespace AD
 {
     /// <summary>Login restores the server snapshot; gameplay uploads only explicitly changed keys.</summary>
-    public class DataManager : MonoBehaviour
+    public partial class DataManager : MonoBehaviour
     {
         public Dictionary<string, UserDataRecord> PlayFabPlayerData;
         public Dictionary<string, string> LocalPlayerData;
