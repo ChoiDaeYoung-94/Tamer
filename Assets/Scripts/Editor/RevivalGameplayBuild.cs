@@ -35,7 +35,10 @@ public static class RevivalGameplayBuild
         return document.ToString();
     }
 
-    public static void BuildAndroid()
+    public static void BuildAndroid() => Build(false);
+    public static void BuildPhotoAndroid() => Build(true);
+
+    private static void Build(bool photo)
     {
         int code = 1;
         var files = new[] { Manifest, AdsSettings, AdsManifest };
@@ -52,7 +55,7 @@ public static class RevivalGameplayBuild
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with Android build target.");
             string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
-            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS"))
+            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_GAMEPLAY_PHOTO"))
                 throw new BuildFailedException("Harness symbols must not be global.");
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
@@ -74,9 +77,11 @@ public static class RevivalGameplayBuild
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
-                locationPathName = "Build/revival/Tamer-gameplay.apk",
-                options = BuildOptions.Development | BuildOptions.CompressWithLz4,
-                extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS" }
+                locationPathName = photo ? "Build/revival/Tamer-gameplay-photo.apk" : "Build/revival/Tamer-gameplay.apk",
+                options = BuildOptions.CompressWithLz4 | (photo ? BuildOptions.None : BuildOptions.Development),
+                extraScriptingDefines = photo
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_GAMEPLAY_PHOTO" }
+                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS" }
             });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Gameplay build failed.");
             Debug.Log("GAMEPLAY_BUILD_OK originalScenes=4 offline=true");

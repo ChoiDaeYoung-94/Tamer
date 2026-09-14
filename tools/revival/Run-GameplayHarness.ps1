@@ -1,5 +1,6 @@
 param(
-    [string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path
+    [string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path,
+    [ValidateSet('development', 'photo')][string]$Variant = 'development'
 )
 $ErrorActionPreference = 'Stop'
 $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path
@@ -26,13 +27,13 @@ foreach ($gameplayHarnessRelative in @(
 }
 Push-Location $ProjectPath
 try {
-    $gameplayHarnessMethod = 'RevivalGameplayBuild.BuildAndroid'
+    $gameplayHarnessMethod = if ($Variant -eq 'photo') { 'RevivalGameplayBuild.BuildPhotoAndroid' } else { 'RevivalGameplayBuild.BuildAndroid' }
     $gameplayHarnessCli = Join-Path $ProjectPath 'tools/.local/unity-cli/1.0.0-beta.8/unity.exe'
-    $gameplayHarnessLog = Join-Path $ProjectPath "Logs/revival/gameplay-build.log"
+    $gameplayHarnessLog = Join-Path $ProjectPath $(if ($Variant -eq 'photo') { 'Logs/revival/gameplay-photo-build.log' } else { 'Logs/revival/gameplay-build.log' })
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $gameplayHarnessLog) | Out-Null
     & $gameplayHarnessCli build $ProjectPath --editor-version 6000.0.81f1 --target Android --execute-method $gameplayHarnessMethod --log-file $gameplayHarnessLog --no-tail --non-interactive
     if ($LASTEXITCODE -ne 0) { throw "Harness build failed (exit $LASTEXITCODE)." }
-    python tools/revival/verify_gameplay_harness.py
+    python tools/revival/verify_gameplay_harness.py --variant $Variant
     if ($LASTEXITCODE -ne 0) { throw 'Harness APK identity/signature verification failed.' }
 }
 finally {

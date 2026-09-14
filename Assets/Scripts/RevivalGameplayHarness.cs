@@ -23,10 +23,54 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private int _previousGameSceneHandle;
     private Monster[] _previousMonsters = Array.Empty<Monster>();
     private string _lastCaptureObservation;
+#if TAMER_GAMEPLAY_PHOTO
+    private bool _photoMode;
+    private int _photoRestoreTaps;
+    private float _photoRestoreDeadline;
+    private readonly System.Collections.Generic.Dictionary<Canvas, bool> _diagnosticCanvases =
+        new System.Collections.Generic.Dictionary<Canvas, bool>();
+
+    private void SetPhotoMode(bool enabled)
+    {
+        if (enabled && !RevivalGameplayIsolation.AllowsCaptureAssist) return;
+        _photoMode = enabled;
+        _photoRestoreTaps = 0;
+        if (!enabled)
+        {
+            foreach (var entry in _diagnosticCanvases)
+                if (entry.Key != null) entry.Key.enabled = entry.Value;
+            _diagnosticCanvases.Clear();
+        }
+        Mark("PHOTO_MODE " + enabled + " diagnostics-render-only; restore: triple-tap top-left corner");
+    }
+
+    private void UpdatePhotoMode()
+    {
+        if (!_photoMode) return;
+        // Keep the logger and its callbacks alive; suppress only its Canvas rendering.
+        var console = IngameDebugConsole.DebugLogManager.Instance;
+        if (console != null)
+            foreach (Canvas canvas in console.GetComponentsInChildren<Canvas>(true))
+            {
+                if (!_diagnosticCanvases.ContainsKey(canvas)) _diagnosticCanvases.Add(canvas, canvas.enabled);
+                canvas.enabled = false;
+            }
+        if (Input.touchCount != 1) return;
+        Touch touch = Input.GetTouch(0);
+        if (touch.phase != TouchPhase.Began || touch.position.x > Screen.width * .08f ||
+            touch.position.y < Screen.height * .95f) return;
+        if (Time.realtimeSinceStartup > _photoRestoreDeadline) _photoRestoreTaps = 0;
+        _photoRestoreDeadline = Time.realtimeSinceStartup + 1;
+        if (++_photoRestoreTaps >= 3) SetPhotoMode(false);
+    }
+#endif
 
     // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
     private void Update()
     {
+#if TAMER_GAMEPLAY_PHOTO
+        UpdatePhotoMode();
+#endif
         if (Time.realtimeSinceStartup < _nextObservation) return;
         _nextObservation = Time.realtimeSinceStartup + .25f;
         var player = Player.Instance;
@@ -145,7 +189,13 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 #endif
 
     private void Awake() => Application.logMessageReceived += OnLog;
-    private void OnDestroy() => Application.logMessageReceived -= OnLog;
+    private void OnDestroy()
+    {
+#if TAMER_GAMEPLAY_PHOTO
+        if (_photoMode) SetPhotoMode(false);
+#endif
+        Application.logMessageReceived -= OnLog;
+    }
     private void OnLog(string message, string trace, LogType type)
     {
         if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) _errors++;
@@ -229,9 +279,18 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 
     private void OnGUI()
     {
+#if TAMER_GAMEPLAY_PHOTO
+        if (_photoMode) return;
+#endif
         GUI.depth = -1000;
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));
-        GUILayout.BeginArea(new Rect(15, 15, 970, 350), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(15, 15, 970,
+#if TAMER_GAMEPLAY_PHOTO
+            420
+#else
+            350
+#endif
+        ), GUI.skin.box);
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
         GUILayout.Label(_status + " | errors=" + _errors);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
@@ -248,6 +307,12 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUI.enabled = _captureAssist;
         if (GUILayout.Button("Disable capture-test invincibility (original combat)", GUILayout.Height(45)))
         { _captureAssist = false; Mark("CAPTURE_ASSIST_DISABLED original damage restored"); }
+        GUI.enabled = true;
+#endif
+#if TAMER_GAMEPLAY_PHOTO
+        GUI.enabled = !_busy && (Ready("Main") || Ready("Game")) && RevivalGameplayIsolation.AllowsCaptureAssist;
+        if (GUILayout.Button("Hide diagnostics for photo (restore: triple-tap top-left corner)", GUILayout.Height(55)))
+            SetPhotoMode(true);
         GUI.enabled = true;
 #endif
         GUILayout.EndArea();
