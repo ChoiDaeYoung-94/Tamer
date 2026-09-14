@@ -36,7 +36,19 @@ namespace AD
             ["GooglePlay"] = ""
         };
 
-        public static ServerManager CreateServer(DataManager owner) => CreateTestServer(owner, () => AccountId);
+        private static ServerManager _gameplayServer;
+        public static ServerManager CreateServer(DataManager owner)
+        {
+            _gameplayServer = CreateTestServer(owner, () => AccountId);
+            return _gameplayServer;
+        }
+
+#if TAMER_GAMEPLAY_HARNESS
+        public static bool AllowsCaptureAssist => !UnityEngine.Application.isEditor &&
+            UnityEngine.Application.identifier == ApplicationId && Managers.Instance != null &&
+            Managers.DataM.PlayFabId == AccountId && Managers.DataM.IsServerDataReady &&
+            _gameplayServer != null && ReferenceEquals(Managers.ServerM, _gameplayServer);
+#endif
 
         public static ServerManager CreateTestServer(DataManager owner, Func<string> expectedAccount)
         {

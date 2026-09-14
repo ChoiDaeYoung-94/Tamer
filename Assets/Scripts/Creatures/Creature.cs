@@ -160,6 +160,9 @@ public abstract class Creature : MonoBehaviour
 
     public void GetDamage(float damage)
     {
+#if TAMER_GAMEPLAY_HARNESS
+        if (this == Player.Instance && RevivalGameplayHarness.CaptureAssistInvincible) return;
+#endif
         if (Hp <= 0f)
             return;
 

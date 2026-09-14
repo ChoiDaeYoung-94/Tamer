@@ -112,6 +112,27 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     }
 
 #if TAMER_GAMEPLAY_HARNESS
+    private static bool _captureAssist;
+    public static bool CaptureAssistInvincible => _captureAssist && RevivalGameplayIsolation.AllowsCaptureAssist;
+
+    private void SpawnCaptureTestTarget()
+    {
+        if (!RevivalGameplayIsolation.AllowsCaptureAssist || _busy || !Ready("Game") ||
+            MonsterGenerator.Instance == null || Player.Instance.GetCurMonsterCount() >= Player.Instance.MaxCaptureCapacity) return;
+        Vector3 desired = Player.Instance.transform.position + Player.Instance.transform.forward;
+        if (!UnityEngine.AI.NavMesh.SamplePosition(desired, out var hit, 2f, UnityEngine.AI.NavMesh.AllAreas))
+        { Mark("CAPTURE_ASSIST_FAIL no nearby NavMesh"); return; }
+        _captureAssist = true;
+        Monster target = Managers.PoolM.PopFromPool("Bat").GetComponent<Monster>();
+        target.transform.SetParent(MonsterGenerator.Instance.transform, true);
+        target.NavMeshAgent.Warp(hit.position);
+        target.SetEnemyRole(true);
+        typeof(Monster).GetField("_isAbleAlly", System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic).SetValue(target, true);
+        target.StartDetection();
+        Mark("CAPTURE_ASSIST target=Bat invincible=true captureRoll=true; use original combat and Capture button");
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
@@ -210,7 +231,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     {
         GUI.depth = -1000;
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));
-        GUILayout.BeginArea(new Rect(15, 15, 970, 225), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(15, 15, 970, 350), GUI.skin.box);
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
         GUILayout.Label(_status + " | errors=" + _errors);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
@@ -221,6 +242,14 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (GUILayout.Button(Ready("Game") ? "Return to Main (manual)" : "Enter Game (manual play)", GUILayout.Height(55)))
             StartCoroutine(ManualTransition());
         GUI.enabled = true;
+#if TAMER_GAMEPLAY_HARNESS
+        GUI.enabled = !_busy && Ready("Game") && RevivalGameplayIsolation.AllowsCaptureAssist;
+        if (GUILayout.Button("Capture test: spawn Bat / invincible / fixed roll", GUILayout.Height(55))) SpawnCaptureTestTarget();
+        GUI.enabled = _captureAssist;
+        if (GUILayout.Button("Disable capture-test invincibility (original combat)", GUILayout.Height(45)))
+        { _captureAssist = false; Mark("CAPTURE_ASSIST_DISABLED original damage restored"); }
+        GUI.enabled = true;
+#endif
         GUILayout.EndArea();
     }
 
