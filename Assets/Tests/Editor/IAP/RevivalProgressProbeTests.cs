@@ -9,6 +9,37 @@ using PlayFab.Internal;
 
 public class RevivalProgressProbeTests
 {
+    private static Type HarnessType => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.RevivalProgressHarness")).First(t => t != null);
+    [TestCase("iap-test-01234567890123456789012345678901")]
+    [TestCase("old-identity")]
+    [TestCase("")]
+    public void Revival_ProgressOnly_RejectsOtherIdentityNamespaces(string id)
+    {
+        Assert.Throws<System.Reflection.TargetInvocationException>(() => HarnessType.GetMethod("CreateLoginRequest").Invoke(null, new object[] { id }));
+    }
+    [Test]
+    public void Revival_ProgressOnly_AuthenticationNeverCreatesAccounts()
+    {
+        var request = (LoginWithCustomIDRequest)HarnessType.GetMethod("CreateLoginRequest").Invoke(null,
+            new object[] { "progress-probe-01234567890123456789012345678901" });
+        Assert.That(request.CreateAccount, Is.False);
+        Assert.Throws<System.Reflection.TargetInvocationException>(() => HarnessType.GetMethod("ValidatePackage").Invoke(null,
+            new object[] { "com.AeDeong.MonsterTamer.iaptest" }));
+        Assert.DoesNotThrow(() => HarnessType.GetMethod("ValidatePackage").Invoke(null,
+            new object[] { "com.AeDeong.MonsterTamer.revival.progress" }));
+    }
+    [Test]
+    public void Revival_ProgressOnly_ManifestRemovesBillingAndAdsButKeepsExplicitNetwork()
+    {
+        var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalProgressBuild")).First(t => t != null);
+        var text = (string)type.GetMethod("ProgressManifest").Invoke(null, new object[] {
+            "<manifest xmlns:android='http://schemas.android.com/apk/res/android'><uses-permission android:name='android.permission.INTERNET'/><uses-permission android:name='com.android.vending.BILLING'/><application/></manifest>" });
+        var doc = System.Xml.Linq.XDocument.Parse(text);
+        System.Xml.Linq.XNamespace android = "http://schemas.android.com/apk/res/android";
+        System.Xml.Linq.XNamespace tools = "http://schemas.android.com/tools";
+        Assert.That((string)doc.Root.Elements("uses-permission").Single(x => (string)x.Attribute(android + "name") == "com.android.vending.BILLING").Attribute(tools + "node"), Is.EqualTo("remove"));
+        Assert.That(doc.Root.Elements("uses-permission").Single(x => (string)x.Attribute(android + "name") == "android.permission.INTERNET").Attribute(tools + "node"), Is.Null);
+    }
     private sealed class Transport : ITransportPlugin
     {
         public bool IsInitialized => true;
