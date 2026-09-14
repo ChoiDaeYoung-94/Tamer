@@ -8,6 +8,7 @@ namespace AD
     // Absent from normal players. The production initialization and save path remain unchanged.
     public partial class DataManager
     {
+        internal static Action<string, string, string> JournalWriteCheckpoint;
         internal void InitializeJournalHarness(string path, ServerManager server)
         {
             if (_initialized || _shutdown) throw new InvalidOperationException("Fresh harness manager required.");

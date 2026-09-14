@@ -8,7 +8,7 @@ using UnityEngine;
 namespace AD
 {
     /// <summary>Real DataManager file writes, synthetic request delegates, no SDK or Managers initialization.</summary>
-    public sealed class RevivalJournalHarness : MonoBehaviour
+    public sealed partial class RevivalJournalHarness : MonoBehaviour
     {
         public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.journal";
         private const string Owner = "synthetic-journal-owner-v1";
@@ -130,7 +130,7 @@ namespace AD
         private void OnGUI()
         {
             GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 900f, Screen.width / 900f, 1));
-            GUILayout.BeginArea(new Rect(15, 25, 870, 1000), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(15, 25, 870, 1800), GUI.skin.box);
             GUILayout.Label("OFFLINE JOURNAL — real DataManager / synthetic server");
             GUILayout.Label(Status);
             GUILayout.Label("Gold=" + Gold + " pending=" + PendingCount + " synthetic writes=" + SyntheticWrites);
@@ -140,6 +140,9 @@ namespace AD
             if (GUILayout.Button("2 Verify pending after process restart (old server 10)", GUILayout.Height(95))) Run(VerifyPendingRestart);
             if (GUILayout.Button("3 Acknowledge synthetic upload", GUILayout.Height(95))) Run(Acknowledge);
             if (GUILayout.Button("4 Verify acknowledged process restart", GUILayout.Height(95))) Run(VerifyAcknowledgedRestart);
+            foreach (var boundary in BoundaryCases)
+                if (GUILayout.Button("Interrupt " + boundary, GUILayout.Height(95))) Run(() => RunBoundaryCase(boundary));
+            if (GUILayout.Button("Verify all four boundary restarts", GUILayout.Height(95))) Run(VerifyBoundaryCases);
             GUI.enabled = true;
             GUILayout.EndArea();
         }
