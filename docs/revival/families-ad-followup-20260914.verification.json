@@ -1,0 +1,120 @@
+{
+  "date": "2026-09-14",
+  "sourceCommit": "731d9cfa3fe66960b2d8096b04295e4b220a16b6",
+  "checkout": "e5e5/Tamer",
+  "unity": "6000.0.81f1",
+  "unityCli": "1.0.0-beta.8",
+  "gmaUnity": "11.5.0",
+  "gmaAndroidStandard": "25.4.0",
+  "ump": "4.0.0",
+  "device": {
+    "androidApi": 36,
+    "abi": "arm64-v8a",
+    "pageBytes": 4096
+  },
+  "apks": [
+    {
+      "variant": "sample",
+      "bytes": 93327744,
+      "sha256": "dee64dee54daf616956bfccfb706f959e03e3074572d9df8fe52ca6e7673e79b",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.ads",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": true,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    },
+    {
+      "variant": "control",
+      "bytes": 63665261,
+      "sha256": "cbfc11cbe1dfee41eed6cad606caca8571139a83714ab057c481e94e750984bb",
+      "applicationId": "com.AeDeong.MonsterTamer.revival.adscontrol",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "versionCode": 26,
+      "version": "1.0.5",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "debuggable": false,
+      "debugSignatureVerified": true,
+      "sampleAppIdVerified": true,
+      "mobileAdsInitProviderPresent": true,
+      "adIdPermissionPresent": true
+    }
+  ],
+  "earnedHomeResume": {
+    "clock": "Stopwatch monotonic seconds",
+    "owner": 1,
+    "request": 1,
+    "openedCallback": 48508.499,
+    "earnedCallback": 48516.04,
+    "pauseObserved": 48517.161,
+    "resumeObserved": 48603.337,
+    "backgroundSeconds": 86.176,
+    "closedCallback": 48620.411,
+    "rewardObserved": 48620.42,
+    "finishedObserved": 48620.422,
+    "returnedThroughOriginalRecentTask": true,
+    "nativeAdRetainedAfterResume": true,
+    "closedUsingNativeX": true,
+    "rewards": 1,
+    "finishes": 1,
+    "outcome": "Rewarded",
+    "bgmPlayingAfterClose": true,
+    "audibleListeningVerified": false,
+    "unityErrorLinesObserved": 0
+  },
+  "control": {
+    "bootCanRequest": false,
+    "explicitLoadAndShow": true,
+    "outcome": "PolicyBlocked",
+    "rewards": 0,
+    "finishes": 1,
+    "consentUpdateTraceCount": 0,
+    "initializeTraceCount": 0,
+    "loadTraceCount": 0,
+    "nativeNetworkAbsenceProven": false
+  },
+  "admobReadOnly": {
+    "highEngagementEnabled": true,
+    "mediationRows": [
+      "AdMob(default)"
+    ],
+    "publishedEuropeanMessageObserved": false,
+    "maximizeMessageCoverageEnabled": true,
+    "fallbackMessageActuallyObserved": false,
+    "commonPartnerCount": 198,
+    "autoAddAdSourcesToPartners": false,
+    "rtbPartnerAdditionalConsentCheck": false,
+    "adPurposeConsentMode": false,
+    "legitimateInterestIncluded": true,
+    "legitimateInterestDefaultEnabled": true,
+    "settingsChanged": false
+  },
+  "nativeFirstPixelToCloseUiMeasuredThisRun": false,
+  "previousCloseTimingUncertaintySeconds": [
+    4.980722,
+    5.029033
+  ],
+  "familiesFiveSecondComplianceProven": false,
+  "productionAdsRequested": false,
+  "callbacksInjected": false,
+  "newEditorTestRun": false,
+  "runtimeCodeChanged": false,
+  "deviceAppsAndDataPreserved": true,
+  "notValidated": [
+    "native failed callback",
+    "adult/EEA consent and privacy options",
+    "production creative and mediation",
+    "16KB physical device",
+    "Families store resolution"
+  ]
+}
