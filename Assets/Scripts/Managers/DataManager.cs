@@ -195,8 +195,14 @@ namespace AD
             try
             {
                 File.WriteAllText(temporary, contents);
+#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS
+                JournalWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
+#endif
                 if (File.Exists(path)) File.Replace(temporary, path, null);
                 else File.Move(temporary, path);
+#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS
+                JournalWriteCheckpoint?.Invoke(path, temporary, "replaced");
+#endif
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }

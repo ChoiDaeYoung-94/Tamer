@@ -1,0 +1,214 @@
+{
+  "date": "2026-09-14",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "sourceCommit": "e1d08a42839d7be63036bfc843a23296c72ee9bf",
+  "baseMain": "4dc801f403412181e9bdf352bcfd821edff8f7a6",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "editorFilter": "Revival_Journal;Revival_Data;Revival_SaveQueue",
+  "editor": {
+    "id": "2",
+    "testcasecount": "69",
+    "result": "Passed",
+    "total": "69",
+    "passed": "69",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-14 06:54:50Z",
+    "end-time": "2026-09-14 06:54:50Z",
+    "duration": "0.5084796"
+  },
+  "editorXmlSha256": "6db491f7f74dd174f966cb6556369593371c316af93b01ee6f27b215be3e8b27",
+  "apk": {
+    "apk": "Build/revival/Tamer-journal.apk",
+    "sha256": "3963cd8ebc270f62cec7f6dcf58223b6d28d76edb0b885cdc8a9d2cf2c1a5a6f",
+    "bytes": 132598288,
+    "applicationId": "com.AeDeong.MonsterTamer.revival.journal",
+    "versionCode": 26,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "adsInitProvider": false,
+    "internet": false,
+    "deviceExecutionVerified": true
+  },
+  "device": {
+    "model": "SM-N986N",
+    "android": "13",
+    "abi": "arm64-v8a",
+    "pageSize": 4096
+  },
+  "cases": [
+    {
+      "case": "mutation-before",
+      "Gold": "20",
+      "pending": {
+        "Gold": {
+          "value": "20",
+          "revision": "1"
+        }
+      },
+      "revision": "1",
+      "elapsedMonotonicSeconds": 0.5715824999497272,
+      "newPidDifferent": true,
+      "pidAbsentAfterForceStop": true,
+      "timeoutAbsent": true,
+      "temporaryRemains": true,
+      "realReloadVerified": true,
+      "evidence": [
+        {
+          "file": "mutation-before/checkpoint.json",
+          "sha256": "946e49e2a7ef08ac1e6dc332135ef06b71cb31cf8f4d2495c0a8a36b68920763"
+        },
+        {
+          "file": "mutation-before/reloaded-save.json",
+          "sha256": "92260f8fa54c5b55754e9a6f8feec74424ea599578405c4f617f9eac8cc27835"
+        },
+        {
+          "file": "mutation-before/save.json",
+          "sha256": "92260f8fa54c5b55754e9a6f8feec74424ea599578405c4f617f9eac8cc27835"
+        },
+        {
+          "file": "mutation-before/temporary.json",
+          "sha256": "2921a98878ec8044fc5b46ada9dc19653a5b98063b5748846b7ba5394ac7e9cc"
+        },
+        {
+          "file": "mutation-before/termination.json",
+          "sha256": "cd7247a7a4b91c2b8d999ab8369193004f8b4e2e3ddc4bc63b348315e1e5191d"
+        }
+      ]
+    },
+    {
+      "case": "mutation-after",
+      "Gold": "30",
+      "pending": {
+        "Gold": {
+          "value": "30",
+          "revision": "2"
+        }
+      },
+      "revision": "2",
+      "elapsedMonotonicSeconds": 0.4054171000025235,
+      "newPidDifferent": true,
+      "pidAbsentAfterForceStop": true,
+      "timeoutAbsent": true,
+      "temporaryRemains": false,
+      "realReloadVerified": true,
+      "evidence": [
+        {
+          "file": "mutation-after/checkpoint.json",
+          "sha256": "ec9ffa039302e400e1e3a5e658afeeac3bbf21e23c5cacaf0e568fcb960b7fa1"
+        },
+        {
+          "file": "mutation-after/reloaded-save.json",
+          "sha256": "2921a98878ec8044fc5b46ada9dc19653a5b98063b5748846b7ba5394ac7e9cc"
+        },
+        {
+          "file": "mutation-after/save.json",
+          "sha256": "2921a98878ec8044fc5b46ada9dc19653a5b98063b5748846b7ba5394ac7e9cc"
+        },
+        {
+          "file": "mutation-after/termination.json",
+          "sha256": "bae64f8b97da28aa7d0af3dbad45f72e581e4e023daad028cffd2a547ddc2c91"
+        }
+      ]
+    },
+    {
+      "case": "ack-before",
+      "Gold": "20",
+      "pending": {
+        "Gold": {
+          "value": "20",
+          "revision": "1"
+        }
+      },
+      "revision": "1",
+      "elapsedMonotonicSeconds": 0.3993447000393644,
+      "newPidDifferent": true,
+      "pidAbsentAfterForceStop": true,
+      "timeoutAbsent": true,
+      "temporaryRemains": true,
+      "realReloadVerified": true,
+      "evidence": [
+        {
+          "file": "ack-before/checkpoint.json",
+          "sha256": "b7cd3c4eb44a3f77c71c0abb45fccb4146ff11b8e78fc07af803928a4e3337e0"
+        },
+        {
+          "file": "ack-before/reloaded-save.json",
+          "sha256": "92260f8fa54c5b55754e9a6f8feec74424ea599578405c4f617f9eac8cc27835"
+        },
+        {
+          "file": "ack-before/save.json",
+          "sha256": "92260f8fa54c5b55754e9a6f8feec74424ea599578405c4f617f9eac8cc27835"
+        },
+        {
+          "file": "ack-before/temporary.json",
+          "sha256": "662bf0b7c1e38d8c18edf0b73b4217d8087a1d741572827922617636e39c1c24"
+        },
+        {
+          "file": "ack-before/termination.json",
+          "sha256": "d5c373a0fa2996499438f91b5ae792c4f4f32e002df663649e11bdc7885312dd"
+        }
+      ]
+    },
+    {
+      "case": "ack-after",
+      "Gold": "20",
+      "pending": {},
+      "revision": "1",
+      "elapsedMonotonicSeconds": 0.41624359996058047,
+      "newPidDifferent": true,
+      "pidAbsentAfterForceStop": true,
+      "timeoutAbsent": true,
+      "temporaryRemains": false,
+      "realReloadVerified": true,
+      "evidence": [
+        {
+          "file": "ack-after/checkpoint.json",
+          "sha256": "2f17a48c8d5cfdd47a8a10ffb37dd7edf47be13d9089eb2fbc8be746560e1990"
+        },
+        {
+          "file": "ack-after/reloaded-save.json",
+          "sha256": "662bf0b7c1e38d8c18edf0b73b4217d8087a1d741572827922617636e39c1c24"
+        },
+        {
+          "file": "ack-after/save.json",
+          "sha256": "662bf0b7c1e38d8c18edf0b73b4217d8087a1d741572827922617636e39c1c24"
+        },
+        {
+          "file": "ack-after/termination.json",
+          "sha256": "e44152b5cbc2d84d7813eaead826324c35b99fc05c2155713a7ffd916a1efd22"
+        }
+      ]
+    }
+  ],
+  "existingSavePreserved": true,
+  "existingSaveSha256": "662bf0b7c1e38d8c18edf0b73b4217d8087a1d741572827922617636e39c1c24",
+  "watcherSha256": "c5f8d686568a12ed742eb539b9ab858abc4b03810cd2c738f3d944d0976eac02",
+  "finalScreenshotSha256": "4f6c8e5a2820d42eea223571a57012b06a0a9d1c14a224321f9848b8480e6c89",
+  "native": {
+    "loadZipChecksPassed": true,
+    "strictRelroChecksPassed": false,
+    "relroEndAlignmentFailureCount": 4
+  },
+  "guidUnresolved": 0,
+  "evidencePrivate": true,
+  "limits": [
+    "Closed-temp replacement boundaries only; no mid-byte interruption",
+    "No physical power loss or device reboot",
+    "Malformed-original preservation tested separately in Editor fixture; Android interruptions did not produce corruption",
+    "No external network/accounts/full-game/store/16KB test",
+    "Normal-player hook exclusion checked by source guards; no new normal production APK build"
+  ]
+}
