@@ -12,6 +12,7 @@ namespace AD
     public static class RevivalGameSaveSchema
     {
         public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.gamesave";
+        public const string CloudApplicationId = "com.AeDeong.MonsterTamer.revival.gamesavecloud";
         public const string TestTitle = "12B656";
         private static readonly string[] Fields = { "NickName", "Sex", "Tutorial", "Gold", "Power", "AttackSpeed", "MoveSpeed", "AllyMonsters" };
         public static List<string> ReadKeys() => new List<string>(Fields);
@@ -59,11 +60,17 @@ namespace AD
         }
         public static string SavePath(string root, string package, string mode, string slot)
         {
-            ValidatePackage(package);
+            if (mode == "cloud") ValidateCloudTarget(package, TestTitle);
+            else ValidatePackage(package);
             if (!Path.IsPathRooted(root) || (mode != "offline" && mode != "cloud") ||
                 (slot != "primary" && slot != "restore1" && slot != "restore2"))
                 throw new InvalidOperationException("Isolated root, mode and slot required.");
             return Path.Combine(Path.GetFullPath(root), "GameSaveHarnessV1", mode, slot, "GameSavePlayerData.json");
+        }
+        public static void ValidateCloudTarget(string package, string title)
+        {
+            if (package != CloudApplicationId || title != TestTitle)
+                throw new InvalidOperationException("Exact cloud test package and title required.");
         }
     }
 }

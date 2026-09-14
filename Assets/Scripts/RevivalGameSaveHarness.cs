@@ -8,7 +8,7 @@ namespace AD
     {
         private RevivalGameSaveSession _session;
         private string _status = "Offline only. Existing server fields; PlayerPrefs progress excluded.";
-#if TAMER_GAMESAVE_HARNESS
+#if TAMER_GAMESAVE_HARNESS && !TAMER_GAMESAVE_CLOUD
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Boot()
         {
