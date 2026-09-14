@@ -58,6 +58,17 @@ namespace AD
             new PlayFabIapReceiptVerifier(_configuration.testTitle, _configuration.productionTitle,
                 ApplicationId, _configuration.catalog), () => Session);
 
+        public static RevivalProgressProbe CreateProgressProbe()
+        {
+            ValidateRuntime();
+            var owner = Managers.DataM;
+            if (owner == null || Session == null || !owner.IsServerDataReady)
+                throw new InvalidOperationException("Test login required.");
+            return RevivalProgressProbe.Connect(_configuration.testTitle, Application.identifier,
+                () => owner != null && Managers.DataM == owner && owner.IsServerDataReady &&
+                    owner.PlayFabId == Session?.AccountId ? Session : null);
+        }
+
         public static void Login()
         {
             if (_loggingIn || Session != null || _configuration == null || string.IsNullOrEmpty(_identity)) return;

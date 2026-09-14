@@ -1,6 +1,6 @@
 {
   "name": "Revival.IAP.EditorTests",
-  "references": ["Tamer.Purchasing", "Unity.Purchasing"],
+  "references": ["Tamer.Purchasing", "Unity.Purchasing", "PlayFab"],
   "includePlatforms": ["Editor"],
   "optionalUnityReferences": ["TestAssemblies"]
 }
