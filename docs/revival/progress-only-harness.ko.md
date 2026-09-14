@@ -33,3 +33,7 @@
 `RevivalProgressBuild.BuildAndroid`가 별도 패키지, debug 서명, ARM64 IL2CPP 개발 APK를 만든다. 기존 ProjectSettings와 임시 manifest/광고 설정은 빌드 후 복원한다. 빌드는 글로벌 harness define이 있으면 거부하고 `extraScriptingDefines`만 사용한다.
 
 Editor 회귀와 APK 정적 확인은 [검증 기록](progress-only-validation.json)에 기록한다. 기기 실행·실제 서버 지속 저장·실제 인증 성공은 코드 시험이나 APK 생성만으로 완료 처리하지 않는다.
+
+소스 `e712627`에서 Editor 400/400 통과, 자산 4561개 확인, GUID 132개 파일 미해결 0개다. APK는 93,329,500 bytes이며 SHA-256은 `8a09b37cd5cedba53a3b42eda54d1e02d37531b65dda0844f6831bd2abe91ebd`다. min SDK 24 / target SDK 36 / ARM64 / debug 서명을 확인했다. 최종 manifest의 BILLING·광고 ID 권한과 광고 초기화 provider는 없다. 기본 LOAD/ZIP 검사는 통과했지만 strict RELRO의 종료 정렬 조건은 5개 라이브러리에서 실패했다. 이를 16 KB 기기 실행 성공 또는 스토어 승인으로 확대하지 않는다.
+
+생성된 IL2CPP 코드에서 ProgressHarness/Probe 포함과 IapHarness/Isolation 제외를 확인했다. 빌드가 끝난 뒤 Editor 0개, ProjectSettings 스냅샷과 생성 에셋 변경 복원을 확인했다. 로컬 합성 파일의 실제 프로세스 재시작 보존도 아직 기기에서 실행하지 않았다.
