@@ -1,0 +1,162 @@
+{
+  "date": "2026-09-14",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "sourceCommit": "d7bd6be42693ca7e2d4cc40d4d2f035522e7a2fd",
+  "baseMain": "1112964918cc8382a96e392e9a83ade2b3d12ce0",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "editor": {
+    "id": "2",
+    "testcasecount": "420",
+    "result": "Passed",
+    "total": "420",
+    "passed": "420",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-14 06:38:19Z",
+    "end-time": "2026-09-14 06:38:23Z",
+    "duration": "4.1206026"
+  },
+  "editorXmlSha256": "90ba03e3f6d0f2b3864c1e6787ed257e1375c2b47e694ed10455276c6143bdec",
+  "apk": {
+    "apk": "Build/revival/Tamer-journal.apk",
+    "sha256": "c0ebc7bb4a6dd7f3cb09effaf868ce5573e297053f4d0491b6f6fc064be5880d",
+    "bytes": 93342300,
+    "applicationId": "com.AeDeong.MonsterTamer.revival.journal",
+    "versionCode": 26,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "adsInitProvider": false,
+    "internet": false,
+    "deviceExecutionVerified": true
+  },
+  "device": {
+    "model": "SM-N986N",
+    "android": "13",
+    "abi": "arm64-v8a",
+    "pageSize": 4096,
+    "user": 0
+  },
+  "deviceSavePath": "/storage/emulated/0/Android/data/com.AeDeong.MonsterTamer.revival.journal/files/JournalHarnessV1/JournalPlayerData.json",
+  "checks": {
+    "realDataManager": true,
+    "realServerManagerAck": true,
+    "syntheticDelegatesOnly": true,
+    "preparedGold20Pending1Revision1": true,
+    "newProcessOldSnapshot10Preserves20Pending1": true,
+    "ackPersistsPending0": true,
+    "secondNewProcessGold20Pending0Writes0": true,
+    "twoProcessRestartsConfirmed": true,
+    "finalAppStopped": true,
+    "existingAppsAndFilesPreserved": true
+  },
+  "native": {
+    "loadZipChecksPassed": true,
+    "strictRelroChecksPassed": false,
+    "relroEndAlignmentFailureCount": 5,
+    "runtime16KBVerified": false
+  },
+  "guidAudit": {
+    "checkedFiles": 132,
+    "unresolvedGuids": 0
+  },
+  "productionIsolation": "Guarded source boundary and dedicated build define verified; no new normal-production APK built. Existing LoadPlayerData production path preserved.",
+  "evidencePrivate": true,
+  "evidence": [
+    {
+      "file": "01-initial.png",
+      "sha256": "33d7fdc3f65470fe4bb85729c6c2a2ff13276d2a9a4892170369e5e2872fadb3",
+      "capturedUtc": "2026-09-14T06:42:10.412397+00:00"
+    },
+    {
+      "file": "02-prepared.png",
+      "sha256": "0c964729ee74f44b9bcf56281c79d0d3e0e54582a4e9e1351416915be718eac7",
+      "capturedUtc": "2026-09-14T06:42:23.295960+00:00"
+    },
+    {
+      "file": "02-prepared.json",
+      "sha256": "92260f8fa54c5b55754e9a6f8feec74424ea599578405c4f617f9eac8cc27835",
+      "capturedUtc": "2026-09-14T06:42:23.364760+00:00"
+    },
+    {
+      "file": "04-loaded-pending.png",
+      "sha256": "a1e2080e4a75322b649e919f12cd34d4e997eed2bdb8fbe93452d6ede7f756e9",
+      "capturedUtc": "2026-09-14T06:42:52.623538+00:00"
+    },
+    {
+      "file": "04-loaded-pending.json",
+      "sha256": "92260f8fa54c5b55754e9a6f8feec74424ea599578405c4f617f9eac8cc27835",
+      "capturedUtc": "2026-09-14T06:42:52.699360+00:00"
+    },
+    {
+      "file": "05-old-server-preserved.png",
+      "sha256": "7ed1289b083a67067d44c7d6ccbce65df3a82fba09f3f8f9280cf5bfff36d507",
+      "capturedUtc": "2026-09-14T06:43:01.375713+00:00"
+    },
+    {
+      "file": "05-old-server-preserved.json",
+      "sha256": "92260f8fa54c5b55754e9a6f8feec74424ea599578405c4f617f9eac8cc27835",
+      "capturedUtc": "2026-09-14T06:43:01.451504+00:00"
+    },
+    {
+      "file": "06-acknowledged.png",
+      "sha256": "37bf24b57a1ba66ea6e9ac4c4f6b0ed211d4eb329c2540974ac0d9b97386d786",
+      "capturedUtc": "2026-09-14T06:43:10.411368+00:00"
+    },
+    {
+      "file": "06-acknowledged.json",
+      "sha256": "662bf0b7c1e38d8c18edf0b73b4217d8087a1d741572827922617636e39c1c24",
+      "capturedUtc": "2026-09-14T06:43:10.475300+00:00"
+    },
+    {
+      "file": "07-loaded-ack.png",
+      "sha256": "b0f0cdba950d24ac1e8b2d6d81515c722482a6e0e1aaf1ca5b320a3d2e7627c3",
+      "capturedUtc": "2026-09-14T06:43:32.853059+00:00"
+    },
+    {
+      "file": "07-loaded-ack.json",
+      "sha256": "662bf0b7c1e38d8c18edf0b73b4217d8087a1d741572827922617636e39c1c24",
+      "capturedUtc": "2026-09-14T06:43:32.921607+00:00"
+    },
+    {
+      "file": "08-ack-restart-verified.png",
+      "sha256": "58ae5239a0bac56a45ab829868c0f2448a079edcb0e2f357096429681c84ede8",
+      "capturedUtc": "2026-09-14T06:43:42.747938+00:00"
+    },
+    {
+      "file": "08-ack-restart-verified.json",
+      "sha256": "662bf0b7c1e38d8c18edf0b73b4217d8087a1d741572827922617636e39c1c24",
+      "capturedUtc": "2026-09-14T06:43:42.813228+00:00"
+    },
+    {
+      "file": "restart1.json",
+      "sha256": "a8397eb2de0e26075fab6c3b9b3351bba541cc926b289dcd3686af6a48f1aaf3",
+      "capturedUtc": "2026-09-14T06:42:44.470525+00:00"
+    },
+    {
+      "file": "restart2.json",
+      "sha256": "29eea5296b7c19b90f889dc6eb49eb3430f13c4beaa52c44e3ace1eb6e3c79ca",
+      "capturedUtc": "2026-09-14T06:43:32.451939+00:00"
+    }
+  ],
+  "notValidated": [
+    "external server",
+    "production accounts or full gameplay",
+    "IAP/No Ads",
+    "termination during a write",
+    "physical power loss",
+    "16 KB page runtime",
+    "store release"
+  ]
+}
