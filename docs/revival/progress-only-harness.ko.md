@@ -1,5 +1,7 @@
 # 결제 없는 별도 진행도 검증 앱
 
+후속 상태: [회사폰 로컬 합성 검증](progress-local-device.ko.md)에서 단계 1·2 저장과 force-stop/재실행 후 단계 2 복원을 확인했다. 아래 PR162 빌드 당시의 미실행 기록과 구분하며, 외부 인증·실제 PlayFab 저장은 계속 미검증이다.
+
 2026-09-14. PR161의 전용 키 probe를 회사폰 일반 검증과 IAP 세션에서 분리했다. 패키지는 `com.AeDeong.MonsterTamer.revival.progress`, 진입은 게임 동작이 없는 기존 smoke 씬과 `TAMER_PROGRESS_HARNESS` bootstrap이다. 일반 플레이어에는 harness/probe가 포함되지 않는다. 기존 IAP 앱과 설치·저장 경로를 공유하지 않는다.
 
 ## 실행 모드

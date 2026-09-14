@@ -1,0 +1,62 @@
+{
+  "date": "2026-09-14",
+  "apkSource": "e712627e47163760c22a1d32251d455c4e914344",
+  "apkSha256": "8a09b37cd5cedba53a3b42eda54d1e02d37531b65dda0844f6831bd2abe91ebd",
+  "package": "com.AeDeong.MonsterTamer.revival.progress",
+  "deviceModel": "SM_N986N",
+  "serialPublished": false,
+  "mode": "Local synthetic file only",
+  "precondition": "Target package absent in pm path and exact package list; new install without replacement flag",
+  "results": {
+    "install": true,
+    "initialReadMissing": true,
+    "step1ReadBack": 1,
+    "step2ReadBack": 2,
+    "forceStopProcessAbsent": true,
+    "relaunchNoSession": true,
+    "localReconnectRestoredStep": 2,
+    "finalForceStopProcessAbsent": true,
+    "appAndSyntheticFilePreserved": true
+  },
+  "cloudAuthenticationActions": 0,
+  "customIdInputActions": 0,
+  "accountCreationActions": 0,
+  "purchaseOrRestoreActions": 0,
+  "otherAppsModified": false,
+  "networkCapturePerformed": false,
+  "claimBoundary": "No cloud action was initiated; no packet capture or SDK-wide zero-traffic claim",
+  "screenshots": {
+    "01-launch.png": {
+      "sha256": "2a332518ad10da396405a65ceb579bc23aa4c36b64bd7ea369b66bd5a761a2e6",
+      "capturedAtUtc": "2026-09-14T05:40:49.502444+00:00"
+    },
+    "02-local.png": {
+      "sha256": "ba437671de4c2f1fc0b46def0dde6819283350ed2c2beb7b73aed8a9989cf515",
+      "capturedAtUtc": "2026-09-14T05:41:01.101413+00:00"
+    },
+    "03-step1.png": {
+      "sha256": "61d947d72cbdf8b31dc76aa2217d1dcf8384eaceef526629d7c08ff3a3626d53",
+      "capturedAtUtc": "2026-09-14T05:41:12.025540+00:00"
+    },
+    "04-step2.png": {
+      "sha256": "088d236daa40bdc689a9682b259f81ce3ee04ceaa6e546aafa14ea4fbdfcd379",
+      "capturedAtUtc": "2026-09-14T05:41:22.328225+00:00"
+    },
+    "05-relaunch.png": {
+      "sha256": "2a332518ad10da396405a65ceb579bc23aa4c36b64bd7ea369b66bd5a761a2e6",
+      "capturedAtUtc": "2026-09-14T05:41:51.017464+00:00"
+    },
+    "06-restored.png": {
+      "sha256": "088d236daa40bdc689a9682b259f81ce3ee04ceaa6e546aafa14ea4fbdfcd379",
+      "capturedAtUtc": "2026-09-14T05:42:04.855157+00:00"
+    }
+  },
+  "notVerified": [
+    "Actual PlayFab authentication or persistent storage",
+    "Cross-account server isolation",
+    "Full game DataManager save and restore",
+    "16KB device execution"
+  ],
+  "runtimeSourceChanged": false,
+  "newBuildPerformed": false
+}
