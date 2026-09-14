@@ -42,6 +42,9 @@ public class Monster : Creature
     private CancellationTokenSource _detectionTokenSource;
     private CancellationTokenSource _afterDieTokenSource;
 
+    public bool IsCaptureAvailable => isActiveAndEnabled && isDie && Hp <= 0 &&
+        _isAbleAlly && !_isAlly && _captureEffect != null && _captureEffect.activeInHierarchy;
+
     protected override void Awake()
     {
         base.Awake();
@@ -94,6 +97,7 @@ public class Monster : Creature
 
     public override void Clear()
     {
+        if (Player.Instance != null) Player.Instance.ReleaseCaptureTarget(this);
         StopBattle();
 
         _detectionTokenSource?.Cancel();

@@ -186,12 +186,15 @@ public abstract class Creature : MonoBehaviour
             _dieEffect.SetActive(true);
 
             isDie = true;
+            OnDeath();
             gameObject.layer = dieLayer;
             _capsuleCollider.enabled = false;
 
             State = CreatureState.Die;
         }
     }
+
+    protected virtual void OnDeath() { }
 
     private void Attack()
     {

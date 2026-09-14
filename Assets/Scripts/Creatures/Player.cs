@@ -41,6 +41,7 @@ public class Player : Creature
     private GameObject _curTargetMonsterObject;
     private Monster _curTargetMonster;
     private Monster _ableCaptureMonster;
+    private Collider _captureTrigger;
     private string _monsterCollection = string.Empty;
     private AD.UpdateManager _updateSource;
 
@@ -75,6 +76,7 @@ public class Player : Creature
 
     private void OnDisable()
     {
+        ClearCaptureTarget();
         BindUpdates(null);
         StopBattle();
     }
@@ -125,6 +127,7 @@ public class Player : Creature
 
     public void ReSetPlayer()
     {
+        ClearCaptureTarget();
         isDie = false;
         gameObject.layer = allyLayer;
         _capsuleCollider.enabled = true;
@@ -348,9 +351,44 @@ public class Player : Creature
 
     public void Capture()
     {
-        _ableCaptureMonster.AllySetting(playerPosition: transform.position);
-        AddAllyMonster(_ableCaptureMonster);
+        Monster target = _ableCaptureMonster;
+        bool allowed = !isDie && Hp > 0 && _allyMonsters.Count < MaxCaptureCapacity &&
+            target != null && target.IsCaptureAvailable &&
+            _captureTrigger != null && _captureTrigger.enabled && _captureTrigger.gameObject.activeInHierarchy &&
+            AD.Managers.Instance != null && AD.Managers.GameM.IsGame &&
+            AD.Managers.SceneM != null && !AD.Managers.SceneM.IsTransitioning;
+        // Consume before role changes disable the capture effect and fire trigger callbacks.
+        ClearCaptureTarget();
+        if (!allowed) return;
+        target.AllySetting(playerPosition: transform.position);
+        AddAllyMonster(target);
         PlayerUICanvas.Instance.UpdatePlayerInfo();
+    }
+
+    public void ClearCaptureTarget()
+    {
+        _ableCaptureMonster = null;
+        _captureTrigger = null;
+        if (PlayerUICanvas.Instance != null) PlayerUICanvas.Instance.DisableCapture();
+    }
+
+    public void ReleaseCaptureTarget(Monster target)
+    {
+        if (_ableCaptureMonster == target) ClearCaptureTarget();
+    }
+
+    protected override void OnDeath() => ClearCaptureTarget();
+
+    private void ObserveCaptureTrigger(Collider col)
+    {
+        if (isDie || Hp <= 0 || _allyMonsters.Count >= MaxCaptureCapacity || !col.CompareTag("Capture")) return;
+        Monster target = col.GetComponentInParent<Monster>();
+        if (target == null || !target.IsCaptureAvailable) return;
+        // Another overlapping corpse must not replace a valid current selection.
+        if (_ableCaptureMonster != null && _ableCaptureMonster.IsCaptureAvailable) return;
+        _ableCaptureMonster = target;
+        _captureTrigger = col;
+        PlayerUICanvas.Instance.EnableCapture();
     }
 
     private void SettingAllyMonster()
@@ -521,14 +559,7 @@ public class Player : Creature
 
     private void OnTriggerEnter(Collider col)
     {
-        if (isDie)
-            return;
-
-        if (col.CompareTag("Capture") && _allyMonsters.Count < MaxCaptureCapacity)
-        {
-            PlayerUICanvas.Instance.EnableCapture();
-            _ableCaptureMonster = col.gameObject.GetComponentInParent<Monster>();
-        }
+        ObserveCaptureTrigger(col);
     }
 
     private void OnTriggerStay(Collider col)
@@ -536,6 +567,7 @@ public class Player : Creature
         if (isDie)
             return;
 
+        ObserveCaptureTrigger(col);
         if (col.CompareTag("Monster") && col.gameObject.layer == enemyLayer)
         {
             if (_curTargetMonsterObject == null)
@@ -548,13 +580,7 @@ public class Player : Creature
 
     private void OnTriggerExit(Collider col)
     {
-        if (isDie)
-            return;
-
-        if (col.CompareTag("Capture"))
-        {
-            PlayerUICanvas.Instance.DisableCapture();
-        }
+        if (col == _captureTrigger) ClearCaptureTarget();
     }
 
     #endregion

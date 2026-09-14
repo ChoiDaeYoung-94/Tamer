@@ -18,6 +18,9 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private Managers _originalManagers;
     private string _lastObservation;
     private float _nextObservation;
+    private string _observedScene;
+    private MonsterGenerator _previousGenerator;
+    private Monster[] _previousMonsters = Array.Empty<Monster>();
 
     // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
     private void Update()
@@ -26,6 +29,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         _nextObservation = Time.realtimeSinceStartup + .25f;
         var player = Player.Instance;
         if (player == null || Managers.Instance != _originalManagers) return;
+        ObserveSceneLifetime();
         string observation = "scene=" + UnitySceneManager.GetActiveScene().name +
             " hp=" + player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " gold=" + player.Gold + " allies=" + player.GetCurMonsterCount() +
@@ -33,6 +37,34 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (observation == _lastObservation) return;
         _lastObservation = observation;
         Debug.Log("GAMEPLAY_OBSERVATION " + observation);
+    }
+
+    private void ObserveSceneLifetime()
+    {
+        string scene = UnitySceneManager.GetActiveScene().name;
+        if (scene == _observedScene || (scene != "Main" && scene != "Game") || !Ready(scene)) return;
+        _observedScene = scene;
+        int previousActive = 0;
+        foreach (Monster monster in _previousMonsters)
+            if (monster != null && monster.gameObject.activeInHierarchy && monster.CompareTag("Monster")) previousActive++;
+        MonsterGenerator generator = MonsterGenerator.Instance;
+        Monster[] monsters = FindObjectsByType<Monster>(FindObjectsSortMode.None);
+        int enemies = 0, outsideGenerator = 0;
+        foreach (Monster monster in monsters)
+        {
+            if (!monster.CompareTag("Monster")) continue;
+            enemies++;
+            if (generator == null || !monster.transform.IsChildOf(generator.transform)) outsideGenerator++;
+        }
+        Debug.Log("GAMEPLAY_SCENE_LIFETIME scene=" + scene +
+            " previousGeneratorAlive=" + (_previousGenerator != null) +
+            " previousEnemiesActive=" + previousActive + " enemies=" + enemies +
+            " outsideGenerator=" + outsideGenerator);
+        if (scene == "Game")
+        {
+            _previousGenerator = generator;
+            _previousMonsters = monsters;
+        }
     }
 
 #if TAMER_GAMEPLAY_HARNESS
