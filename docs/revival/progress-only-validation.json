@@ -1,0 +1,76 @@
+{
+  "date": "2026-09-14",
+  "sourceCommit": "e712627e47163760c22a1d32251d455c4e914344",
+  "baseMain": "6089056378c14648b4d9802a12536b637732ce1b",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "editor": {
+    "id": "2",
+    "testcasecount": "400",
+    "result": "Passed",
+    "total": "400",
+    "passed": "400",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-14 05:25:00Z",
+    "end-time": "2026-09-14 05:25:04Z",
+    "duration": "3.9312579"
+  },
+  "editorXmlSha256": "c18411caff68cc4f80eafafcb6787c5cc4e62cbbd447f3ec3ddd66ff8f69d2af",
+  "apk": {
+    "apk": "Build/revival/Tamer-progress.apk",
+    "sha256": "8a09b37cd5cedba53a3b42eda54d1e02d37531b65dda0844f6831bd2abe91ebd",
+    "bytes": 93329500,
+    "applicationId": "com.AeDeong.MonsterTamer.revival.progress",
+    "versionCode": 26,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "adsInitProvider": false,
+    "internet": true,
+    "deviceExecutionVerified": false
+  },
+  "native": {
+    "loadZipChecksPassed": true,
+    "strictRelroPassed": false,
+    "relroEndAlignmentFailureCount": 5,
+    "runtime16KBVerified": false
+  },
+  "generatedCppInspection": {
+    "RevivalProgressHarness": true,
+    "RevivalProgressProbe": true,
+    "RevivalIapHarness": false,
+    "RevivalIapIsolation": false,
+    "scope": "Generated Assembly-CSharp*.cpp symbol presence; not device execution"
+  },
+  "assetsVerified": 4561,
+  "guidAudit": {
+    "checkedFiles": 132,
+    "unresolvedGuids": 0
+  },
+  "ownEditorAfter": 0,
+  "settingsSnapshotRestored": true,
+  "generatedAssetChangesRestored": true,
+  "externalAccountActions": 0,
+  "phoneActions": 0,
+  "productionTitleActions": 0,
+  "notVerified": [
+    "Device launch or file persistence across process restart",
+    "Real test authentication, cloud writes, reconnect persistence",
+    "Actual account-to-account server isolation",
+    "Full production DataManager save/restore",
+    "16KB device execution or store acceptance"
+  ],
+  "nextApproval": "Separately provisioned progress-only test account and manual identity entry before external authentication; no existing IAP identity reuse or policy expansion"
+}

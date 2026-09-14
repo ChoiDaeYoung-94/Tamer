@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_IAP_HARNESS
+#if UNITY_EDITOR || TAMER_IAP_HARNESS || TAMER_PROGRESS_HARNESS
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -25,9 +25,20 @@ namespace AD
             _server.HasFailed ? "Request failed; no restore confirmed" : _server.IsInProgress ? "Test cloud request pending" : _status;
         private string _status = "Read test progress first";
 
+        public static bool AllowsPackage(string package)
+        {
+#if UNITY_EDITOR
+            return package == "com.AeDeong.MonsterTamer.iaptest" || package == "com.AeDeong.MonsterTamer.revival.progress";
+#elif TAMER_PROGRESS_HARNESS
+            return package == "com.AeDeong.MonsterTamer.revival.progress";
+#else
+            return package == "com.AeDeong.MonsterTamer.iaptest";
+#endif
+        }
+
         public static RevivalProgressProbe Connect(string title, string package, Func<ReceiptSession> session)
         {
-            if (!string.Equals(title, "12B656", StringComparison.OrdinalIgnoreCase) || package != RevivalIapIsolation.ApplicationId)
+            if (!string.Equals(title, "12B656", StringComparison.OrdinalIgnoreCase) || !AllowsPackage(package))
                 throw new InvalidOperationException("Approved isolated title and package required.");
             var bound = session?.Invoke();
             if (bound == null || string.IsNullOrWhiteSpace(bound.AccountId) || string.IsNullOrWhiteSpace(bound.SessionTicket))
