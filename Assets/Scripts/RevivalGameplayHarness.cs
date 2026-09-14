@@ -162,7 +162,18 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private bool Ready(string scene) => UnitySceneManager.GetActiveScene().name == scene &&
         Managers.Instance == _originalManagers && Managers.SceneM != null && !Managers.SceneM.IsTransitioning &&
         Player.Instance != null && Player.Instance.gameObject.activeInHierarchy &&
-        CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null;
+        CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
+        CanTransitionPlayer();
+
+    private static bool CanTransitionPlayer()
+    {
+        Player player = Player.Instance;
+        if (player == null || player.Hp <= 0 || !player.isActiveAndEnabled || Time.timeScale != 1) return false;
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var collider = typeof(Creature).GetField("_capsuleCollider", flags).GetValue(player) as Collider;
+        return !(bool)typeof(Creature).GetField("isDie", flags).GetValue(player) &&
+            collider != null && collider.enabled && collider.gameObject.activeInHierarchy;
+    }
 
     private IEnumerator WaitForScene(string scene)
     {
@@ -182,6 +193,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         { Mark("FAIL Game entry/owner"); _busy = false; yield break; }
         Mark("GAME_READY generator=present player=preserved");
         yield return new WaitForSecondsRealtime(10);
+        if (!Ready("Game"))
+        { Mark("ROUNDTRIP_INTERRUPTED death/pause/transition; use original game UI"); _busy = false; yield break; }
         Managers.GameM.SwitchMainOrGameScene();
         yield return WaitForScene("Main");
         if (!Ready("Main") || Player.Instance != _originalPlayer || Time.timeScale != 1 ||

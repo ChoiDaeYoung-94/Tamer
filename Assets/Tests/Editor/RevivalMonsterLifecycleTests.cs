@@ -408,6 +408,29 @@ public class RevivalMonsterLifecycleTests
         }
     }
 
+    [Test]
+    public void Revival_GameplayHarnessRejectsHealedDeadPlayerAndPausedState()
+    {
+        Component player = CreateCaptureSelection(out _, out _, out _);
+        player.gameObject.SetActive(true);
+        var guard = RuntimeType("RevivalGameplayHarness").GetMethod("CanTransitionPlayer", BindingFlags.Static | BindingFlags.NonPublic);
+        float originalTimeScale = Time.timeScale;
+        try
+        {
+            Time.timeScale = 1;
+            Assert.That(guard.Invoke(null, null), Is.True);
+            Set(player, "isDie", true);
+            ((Collider)Get(player, "_capsuleCollider")).enabled = false;
+            Assert.That(Get(player, "_hp"), Is.EqualTo(100f));
+            Assert.That(guard.Invoke(null, null), Is.False, "Main healing does not complete the death lifecycle");
+            Call(player, "ReSetPlayer");
+            Assert.That(guard.Invoke(null, null), Is.True);
+            Time.timeScale = 0;
+            Assert.That(guard.Invoke(null, null), Is.False);
+        }
+        finally { Time.timeScale = originalTimeScale; }
+    }
+
     private Component CreateCaptureSelection(out Component monster, out GameObject button, out Collider trigger)
     {
         Component player = Create("Player");
