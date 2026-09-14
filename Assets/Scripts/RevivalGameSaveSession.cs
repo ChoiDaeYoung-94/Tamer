@@ -3,8 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using AD.Purchasing;
-using PlayFab;
 using PlayFab.ClientModels;
 using UnityEngine;
 
@@ -131,28 +129,6 @@ namespace AD
                 });
         }
 
-        // Prepared adapter only. No cloud login is exposed in the offline player.
-        public static RevivalGameSaveSession Connect(string root, string package, string title, string slot,
-            Func<ReceiptSession> session)
-        {
-            if (title != RevivalGameSaveSchema.TestTitle) throw new InvalidOperationException("Test title required.");
-            string path = RevivalGameSaveSchema.SavePath(root, package, "cloud", slot);
-            var bound = session?.Invoke();
-            if (bound == null || string.IsNullOrWhiteSpace(bound.AccountId) || string.IsNullOrWhiteSpace(bound.SessionTicket))
-                throw new InvalidOperationException("Separately authenticated gameplay test session required.");
-            var context = new PlayFabAuthenticationContext { PlayFabId = bound.AccountId, ClientSessionTicket = bound.SessionTicket };
-            var client = new PlayFabClientInstanceAPI(new PlayFabApiSettings
-                { TitleId = title, DisableDeviceInfo = true, DisableFocusTimeCollection = true }, context);
-            return new RevivalGameSaveSession(path, bound.AccountId, () => ReferenceEquals(session(), bound), slot != "primary",
-                (account, ok, fail) => client.GetUserData(new GetUserDataRequest
-                { PlayFabId = account, Keys = RevivalGameSaveSchema.ReadKeys(), AuthenticationContext = context }, result =>
-                {
-                    if (result?.Data == null) { fail(400); return; }
-                    ok(result.Data.ToDictionary(e => e.Key, e => e.Value?.Value));
-                }, error => fail(error?.HttpCode ?? 0)),
-                (account, patch, ok, fail) => client.UpdateUserData(ServerManager.CreateWriteRequest(patch, context),
-                    result => ok(), error => fail(error?.HttpCode ?? 0)));
-        }
         public void Dispose()
         {
             if (_disposed) return;

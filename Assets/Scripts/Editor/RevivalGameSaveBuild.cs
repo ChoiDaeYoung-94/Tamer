@@ -34,7 +34,19 @@ public static class RevivalGameSaveBuild
         return document.ToString();
     }
 
-    public static void BuildAndroid()
+    public static string CloudManifest(string original)
+    {
+        var document = XDocument.Parse(GameSaveManifest(original));
+        XNamespace android = "http://schemas.android.com/apk/res/android";
+        foreach (var permission in document.Root.Elements("uses-permission")
+            .Where(e => (string)e.Attribute(android + "name") == "android.permission.INTERNET").ToArray()) permission.Remove();
+        document.Root.Add(new XElement("uses-permission", new XAttribute(android + "name", "android.permission.INTERNET")));
+        return document.ToString();
+    }
+
+    public static void BuildAndroid() => Build(false);
+    public static void BuildCloudAndroid() => Build(true);
+    private static void Build(bool cloud)
     {
         int code = 1;
         var files = new[] { Manifest, AdsSettings, AdsManifest };
@@ -59,13 +71,13 @@ public static class RevivalGameSaveBuild
             RevivalBuild.PrepareSmokeScene();
             var scenes = new[] { RevivalBuild.SmokeScene };
             if (scenes.Any(path => !File.Exists(path))) throw new BuildFailedException("Original scene missing.");
-            File.WriteAllText(Manifest, GameSaveManifest(File.ReadAllText(Manifest)));
+            File.WriteAllText(Manifest, cloud ? CloudManifest(File.ReadAllText(Manifest)) : GameSaveManifest(File.ReadAllText(Manifest)));
             AssetDatabase.ImportAsset(Manifest, ImportAssetOptions.ForceUpdate);
             var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(AdsSettings));
             settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
             settings.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, RevivalGameSaveSchema.ApplicationId);
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, cloud ? RevivalGameSaveSchema.CloudApplicationId : RevivalGameSaveSchema.ApplicationId);
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
@@ -73,9 +85,10 @@ public static class RevivalGameSaveBuild
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
-                locationPathName = "Build/revival/Tamer-gamesave-offline.apk",
+                locationPathName = cloud ? "Build/revival/Tamer-gamesave-cloud.apk" : "Build/revival/Tamer-gamesave-offline.apk",
                 options = BuildOptions.Development | BuildOptions.CompressWithLz4,
-                extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMESAVE_HARNESS" }
+                extraScriptingDefines = cloud ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMESAVE_HARNESS", "TAMER_GAMESAVE_CLOUD" }
+                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMESAVE_HARNESS" }
             });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Game-save offline build failed.");
             Debug.Log("GAMESAVE_BUILD_OK dedicated=true noPurchasing=true");

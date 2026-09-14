@@ -1,0 +1,82 @@
+{
+  "date": "2026-09-14",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "baseMain": "8fc8d91d9a0e74c71b59c084a852bb98ca212701",
+  "sourceCommit": "3f155a3f37867e2c97be602336fe5ee04e11bd9d",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "liveCloudTests": {
+    "total": 19,
+    "passed": 19
+  },
+  "editor": {
+    "id": "2",
+    "testcasecount": "104",
+    "result": "Passed",
+    "total": "104",
+    "passed": "104",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-14 07:53:01Z",
+    "end-time": "2026-09-14 07:53:02Z",
+    "duration": "0.5608026"
+  },
+  "editorXmlSha256": "980112b8624d328ac1f1ef8d22327a99266ee44e46be7bb72319660f649d3f27",
+  "apk": {
+    "apk": "Build/revival/Tamer-gamesave-cloud.apk",
+    "sha256": "5d8431d55b78c579ebc140c2258ad09b740c774f42bc07fa387c5caeccc17aef",
+    "bytes": 93366772,
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gamesavecloud",
+    "versionCode": 26,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "adsInitProvider": false,
+    "internet": true,
+    "deviceExecutionVerified": false
+  },
+  "offlineApkPreservedSha256": "cf571770348a312dd84b57dbed94dc8e5bd12ccf82531c8fd282e28d693c721c",
+  "native": {
+    "loadZipChecksPassed": true,
+    "strictRelroChecksPassed": false,
+    "relroEndAlignmentFailureCount": 5
+  },
+  "guidUnresolved": 0,
+  "externalAuthenticationExecuted": false,
+  "accountCreationExecuted": false,
+  "companyPhoneConnectedToCloudAccount": false,
+  "privateEvidence": [
+    {
+      "file": "Logs/revival/gamesave-cloud-live-tests.json",
+      "sha256": "036636400d46012933e7f943fceecd71ec65a90e66de1a3b22411e19b5d116cd"
+    },
+    {
+      "file": "Logs/revival/gamesave-cloud-build.provenance.json",
+      "sha256": "f013e12fe75d5bd1f9c03c7d9374371922fb0e853f8113973d0014dfa2a11a5d"
+    },
+    {
+      "file": "Logs/revival/gamesave-cloud-native.json",
+      "sha256": "8cdcf27c2237bd09a88c878c8e878fabda166cce8cfc8fec50e4c3bcdc8c4a23"
+    },
+    {
+      "file": "Logs/revival/gamesave-cloud-relro.json",
+      "sha256": "d3eeec39d9601f447ea1090d536f2449dbd3b8f98c43593e2a811ea3637b0d17"
+    }
+  ],
+  "limits": [
+    "No Cloud APK device installation/UI execution or real server authentication/read/write yet",
+    "Expected account provenance still requires administrator-confirmed new dedicated gameplay account",
+    "PlayerPrefs inventory design is unapproved and not implemented",
+    "No Player scene restore, purchases, Google, ads, 16 KB runtime or store verification"
+  ]
+}
