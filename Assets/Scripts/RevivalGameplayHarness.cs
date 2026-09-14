@@ -22,6 +22,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private MonsterGenerator _previousGenerator;
     private int _previousGameSceneHandle;
     private Monster[] _previousMonsters = Array.Empty<Monster>();
+    private string _lastCaptureObservation;
 
     // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
     private void Update()
@@ -31,6 +32,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         var player = Player.Instance;
         if (player == null || Managers.Instance != _originalManagers) return;
         ObserveSceneLifetime();
+        ObserveCaptures(player);
         string observation = "scene=" + UnitySceneManager.GetActiveScene().name +
             " hp=" + player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " gold=" + player.Gold + " allies=" + player.GetCurMonsterCount() +
@@ -38,6 +40,35 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (observation == _lastObservation) return;
         _lastObservation = observation;
         Debug.Log("GAMEPLAY_OBSERVATION " + observation);
+    }
+
+    private void ObserveCaptures(Player player)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var selected = typeof(Player).GetField("_ableCaptureMonster", flags).GetValue(player) as Monster;
+        var playerCollider = typeof(Creature).GetField("_capsuleCollider", flags).GetValue(player) as Collider;
+        var text = new System.Text.StringBuilder("playerHp=" + player.Hp + " selected=" + (selected != null));
+        foreach (Monster monster in FindObjectsByType<Monster>(FindObjectsSortMode.None))
+        {
+            if (monster.Hp > 0) continue;
+            var effect = typeof(Monster).GetField("_captureEffect", flags).GetValue(monster) as GameObject;
+            bool overlap = false;
+            if (effect != null && playerCollider != null && playerCollider.enabled)
+                foreach (Collider trigger in effect.GetComponentsInChildren<Collider>())
+                    if (trigger.enabled && Physics.ComputePenetration(playerCollider, playerCollider.transform.position,
+                        playerCollider.transform.rotation, trigger, trigger.transform.position, trigger.transform.rotation,
+                        out _, out _)) overlap = true;
+            text.Append(" | type=").Append(monster.CreatureType).Append(" available=").Append(monster.IsCaptureAvailable)
+                .Append(" dead=").Append(typeof(Creature).GetField("isDie", flags).GetValue(monster))
+                .Append(" rolled=").Append(typeof(Monster).GetField("_isAbleAlly", flags).GetValue(monster))
+                .Append(" effect=").Append(effect != null && effect.activeInHierarchy)
+                .Append(" overlap=").Append(overlap).Append(" distance=")
+                .Append(Vector3.Distance(player.transform.position, monster.transform.position).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        string observation = text.ToString();
+        if (observation == _lastCaptureObservation) return;
+        _lastCaptureObservation = observation;
+        Debug.Log("GAMEPLAY_CAPTURE_OBSERVATION " + observation);
     }
 
     private void ObserveSceneLifetime()
