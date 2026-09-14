@@ -18,6 +18,11 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private Managers _originalManagers;
     private string _lastObservation;
     private float _nextObservation;
+    private string _observedScene;
+    private MonsterGenerator _previousGenerator;
+    private int _previousGameSceneHandle;
+    private Monster[] _previousMonsters = Array.Empty<Monster>();
+    private string _lastCaptureObservation;
 
     // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
     private void Update()
@@ -26,6 +31,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         _nextObservation = Time.realtimeSinceStartup + .25f;
         var player = Player.Instance;
         if (player == null || Managers.Instance != _originalManagers) return;
+        ObserveSceneLifetime();
+        ObserveCaptures(player);
         string observation = "scene=" + UnitySceneManager.GetActiveScene().name +
             " hp=" + player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " gold=" + player.Gold + " allies=" + player.GetCurMonsterCount() +
@@ -35,7 +42,97 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         Debug.Log("GAMEPLAY_OBSERVATION " + observation);
     }
 
+    private void ObserveCaptures(Player player)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var selected = typeof(Player).GetField("_ableCaptureMonster", flags).GetValue(player) as Monster;
+        var playerCollider = typeof(Creature).GetField("_capsuleCollider", flags).GetValue(player) as Collider;
+        var selectedTrigger = typeof(Player).GetField("_captureTrigger", flags).GetValue(player) as Collider;
+        var text = new System.Text.StringBuilder("playerHp=" + player.Hp + " selected=" + (selected != null) +
+            " selectedTrigger=" + (selectedTrigger != null && selectedTrigger.enabled && selectedTrigger.gameObject.activeInHierarchy) +
+            " playerCollider=" + (playerCollider != null && playerCollider.enabled && playerCollider.gameObject.activeInHierarchy) +
+            " capacity=" + player.GetCurMonsterCount() + "/" + player.MaxCaptureCapacity +
+            " isGame=" + Managers.GameM.IsGame + " transitioning=" + Managers.SceneM.IsTransitioning);
+        foreach (Monster monster in FindObjectsByType<Monster>(FindObjectsSortMode.None))
+        {
+            if (monster.Hp > 0) continue;
+            var effect = typeof(Monster).GetField("_captureEffect", flags).GetValue(monster) as GameObject;
+            bool overlap = false;
+            if (effect != null && playerCollider != null && playerCollider.enabled)
+                foreach (Collider trigger in effect.GetComponentsInChildren<Collider>())
+                    if (trigger.enabled && Physics.ComputePenetration(playerCollider, playerCollider.transform.position,
+                        playerCollider.transform.rotation, trigger, trigger.transform.position, trigger.transform.rotation,
+                        out _, out _)) overlap = true;
+            text.Append(" | type=").Append(monster.CreatureType).Append(" available=").Append(monster.IsCaptureAvailable)
+                .Append(" dead=").Append(typeof(Creature).GetField("isDie", flags).GetValue(monster))
+                .Append(" rolled=").Append(typeof(Monster).GetField("_isAbleAlly", flags).GetValue(monster))
+                .Append(" ally=").Append(typeof(Monster).GetField("_isAlly", flags).GetValue(monster))
+                .Append(" component=").Append(monster.isActiveAndEnabled)
+                .Append(" effect=").Append(effect != null && effect.activeInHierarchy)
+                .Append(" overlap=").Append(overlap).Append(" distance=")
+                .Append(Vector3.Distance(player.transform.position, monster.transform.position).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        string observation = text.ToString();
+        if (observation == _lastCaptureObservation) return;
+        _lastCaptureObservation = observation;
+        Debug.Log("GAMEPLAY_CAPTURE_OBSERVATION " + observation);
+    }
+
+    private void ObserveSceneLifetime()
+    {
+        string scene = UnitySceneManager.GetActiveScene().name;
+        if (scene == _observedScene || (scene != "Main" && scene != "Game") || !Ready(scene)) return;
+        _observedScene = scene;
+        int previousInOldScene = 0, reusedActive = 0;
+        foreach (Monster monster in _previousMonsters)
+        {
+            if (monster == null || !monster.gameObject.activeInHierarchy || !monster.CompareTag("Monster")) continue;
+            if (monster.gameObject.scene.handle == _previousGameSceneHandle) previousInOldScene++;
+            else reusedActive++; // A pooled object may legitimately be reused in the new scene.
+        }
+        MonsterGenerator generator = MonsterGenerator.Instance;
+        Monster[] monsters = FindObjectsByType<Monster>(FindObjectsSortMode.None);
+        int enemies = 0, outsideGenerator = 0;
+        foreach (Monster monster in monsters)
+        {
+            if (!monster.CompareTag("Monster")) continue;
+            enemies++;
+            if (generator == null || !monster.transform.IsChildOf(generator.transform)) outsideGenerator++;
+        }
+        Debug.Log("GAMEPLAY_SCENE_LIFETIME scene=" + scene +
+            " previousGeneratorAlive=" + (_previousGenerator != null) +
+            " previousEnemiesInOldScene=" + previousInOldScene + " reusedEnemiesActive=" + reusedActive + " enemies=" + enemies +
+            " outsideGenerator=" + outsideGenerator);
+        if (scene == "Game")
+        {
+            _previousGenerator = generator;
+            _previousGameSceneHandle = UnitySceneManager.GetActiveScene().handle;
+            _previousMonsters = monsters;
+        }
+    }
+
 #if TAMER_GAMEPLAY_HARNESS
+    private static bool _captureAssist;
+    public static bool CaptureAssistInvincible => _captureAssist && RevivalGameplayIsolation.AllowsCaptureAssist;
+
+    private void SpawnCaptureTestTarget()
+    {
+        if (!RevivalGameplayIsolation.AllowsCaptureAssist || _busy || !Ready("Game") ||
+            MonsterGenerator.Instance == null || Player.Instance.GetCurMonsterCount() >= Player.Instance.MaxCaptureCapacity) return;
+        Vector3 desired = Player.Instance.transform.position + Player.Instance.transform.forward;
+        if (!UnityEngine.AI.NavMesh.SamplePosition(desired, out var hit, 2f, UnityEngine.AI.NavMesh.AllAreas))
+        { Mark("CAPTURE_ASSIST_FAIL no nearby NavMesh"); return; }
+        _captureAssist = true;
+        Monster target = Managers.PoolM.PopFromPool("Bat").GetComponent<Monster>();
+        target.transform.SetParent(MonsterGenerator.Instance.transform, true);
+        target.NavMeshAgent.Warp(hit.position);
+        target.SetEnemyRole(true);
+        typeof(Monster).GetField("_isAbleAlly", System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic).SetValue(target, true);
+        target.StartDetection();
+        Mark("CAPTURE_ASSIST target=Bat invincible=true captureRoll=true; use original combat and Capture button");
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
@@ -86,7 +183,18 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private bool Ready(string scene) => UnitySceneManager.GetActiveScene().name == scene &&
         Managers.Instance == _originalManagers && Managers.SceneM != null && !Managers.SceneM.IsTransitioning &&
         Player.Instance != null && Player.Instance.gameObject.activeInHierarchy &&
-        CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null;
+        CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
+        CanTransitionPlayer();
+
+    private static bool CanTransitionPlayer()
+    {
+        Player player = Player.Instance;
+        if (player == null || player.Hp <= 0 || !player.isActiveAndEnabled || Time.timeScale != 1) return false;
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var collider = typeof(Creature).GetField("_capsuleCollider", flags).GetValue(player) as Collider;
+        return !(bool)typeof(Creature).GetField("isDie", flags).GetValue(player) &&
+            collider != null && collider.enabled && collider.gameObject.activeInHierarchy;
+    }
 
     private IEnumerator WaitForScene(string scene)
     {
@@ -106,6 +214,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         { Mark("FAIL Game entry/owner"); _busy = false; yield break; }
         Mark("GAME_READY generator=present player=preserved");
         yield return new WaitForSecondsRealtime(10);
+        if (!Ready("Game"))
+        { Mark("ROUNDTRIP_INTERRUPTED death/pause/transition; use original game UI"); _busy = false; yield break; }
         Managers.GameM.SwitchMainOrGameScene();
         yield return WaitForScene("Main");
         if (!Ready("Main") || Player.Instance != _originalPlayer || Time.timeScale != 1 ||
@@ -121,7 +231,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     {
         GUI.depth = -1000;
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));
-        GUILayout.BeginArea(new Rect(15, 15, 970, 225), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(15, 15, 970, 350), GUI.skin.box);
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
         GUILayout.Label(_status + " | errors=" + _errors);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
@@ -132,6 +242,14 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (GUILayout.Button(Ready("Game") ? "Return to Main (manual)" : "Enter Game (manual play)", GUILayout.Height(55)))
             StartCoroutine(ManualTransition());
         GUI.enabled = true;
+#if TAMER_GAMEPLAY_HARNESS
+        GUI.enabled = !_busy && Ready("Game") && RevivalGameplayIsolation.AllowsCaptureAssist;
+        if (GUILayout.Button("Capture test: spawn Bat / invincible / fixed roll", GUILayout.Height(55))) SpawnCaptureTestTarget();
+        GUI.enabled = _captureAssist;
+        if (GUILayout.Button("Disable capture-test invincibility (original combat)", GUILayout.Height(45)))
+        { _captureAssist = false; Mark("CAPTURE_ASSIST_DISABLED original damage restored"); }
+        GUI.enabled = true;
+#endif
         GUILayout.EndArea();
     }
 

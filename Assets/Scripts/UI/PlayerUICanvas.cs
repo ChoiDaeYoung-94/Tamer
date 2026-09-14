@@ -74,6 +74,8 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     public void ViewSettings()
     {
+        if (Player.Instance != null) Player.Instance.ClearCaptureTarget();
+        DisableCapture();
         _popupPlayerInfoPanel.SetActive(false);
         _gameSceneUIPanel.SetActive(AD.Managers.GameM.IsGame);
     }
@@ -210,7 +212,10 @@ public class PlayerUICanvas : MonoBehaviour
 
     public void EnableCapture() => _captureButton.SetActive(true);
 
-    public void DisableCapture() => _captureButton.SetActive(false);
+    public void DisableCapture()
+    {
+        if (_captureButton != null) _captureButton.SetActive(false);
+    }
 
     public void OnClickCapture()
     {

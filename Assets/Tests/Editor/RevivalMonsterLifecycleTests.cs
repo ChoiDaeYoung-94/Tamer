@@ -14,6 +14,10 @@ public class RevivalMonsterLifecycleTests
     private UnityEngine.Random.State _randomState;
     private FieldInfo _generatorInstance;
     private object _previousGenerator;
+    private FieldInfo _playerInstance;
+    private object _previousPlayer;
+    private FieldInfo _canvasInstance;
+    private object _previousCanvas;
 
     private static Type RuntimeType(string name) => AppDomain.CurrentDomain.GetAssemblies()
         .Select(a => a.GetType(name)).First(t => t != null);
@@ -63,6 +67,12 @@ public class RevivalMonsterLifecycleTests
         _generatorInstance = RuntimeType("MonsterGenerator").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
         _previousGenerator = _generatorInstance.GetValue(null);
         _generatorInstance.SetValue(null, null);
+        _playerInstance = RuntimeType("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        _previousPlayer = _playerInstance.GetValue(null);
+        _playerInstance.SetValue(null, null);
+        _canvasInstance = RuntimeType("PlayerUICanvas").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        _previousCanvas = _canvasInstance.GetValue(null);
+        _canvasInstance.SetValue(null, null);
     }
 
     [TearDown]
@@ -71,6 +81,8 @@ public class RevivalMonsterLifecycleTests
         foreach (GameObject go in _objects) UnityEngine.Object.DestroyImmediate(go);
         _objects.Clear();
         _generatorInstance.SetValue(null, _previousGenerator);
+        _playerInstance.SetValue(null, _previousPlayer);
+        _canvasInstance.SetValue(null, _previousCanvas);
         UnityEngine.Random.state = _randomState;
     }
 
@@ -394,5 +406,142 @@ public class RevivalMonsterLifecycleTests
                 Assert.That(count, Is.LessThanOrEqualTo(15));
             }
         }
+    }
+
+    [Test]
+    public void Revival_GameplayHarnessRejectsHealedDeadPlayerAndPausedState()
+    {
+        Component player = CreateCaptureSelection(out _, out _, out _);
+        player.gameObject.SetActive(true);
+        var guard = RuntimeType("RevivalGameplayHarness").GetMethod("CanTransitionPlayer", BindingFlags.Static | BindingFlags.NonPublic);
+        float originalTimeScale = Time.timeScale;
+        try
+        {
+            Time.timeScale = 1;
+            Assert.That(guard.Invoke(null, null), Is.True);
+            Set(player, "isDie", true);
+            ((Collider)Get(player, "_capsuleCollider")).enabled = false;
+            Assert.That(Get(player, "_hp"), Is.EqualTo(100f));
+            Assert.That(guard.Invoke(null, null), Is.False, "Main healing does not complete the death lifecycle");
+            Call(player, "ReSetPlayer");
+            Assert.That(guard.Invoke(null, null), Is.True);
+            Time.timeScale = 0;
+            Assert.That(guard.Invoke(null, null), Is.False);
+        }
+        finally { Time.timeScale = originalTimeScale; }
+    }
+
+    private Component CreateCaptureSelection(out Component monster, out GameObject button, out Collider trigger)
+    {
+        Component player = Create("Player");
+        _playerInstance.SetValue(null, player);
+        Set(player, "_hp", 100f);
+        Set(player, "_originalHp", 100f);
+        Set(player, "_capsuleCollider", player.gameObject.AddComponent<CapsuleCollider>());
+        Component canvas = Create("PlayerUICanvas");
+        _canvasInstance.SetValue(null, canvas);
+        button = new GameObject("Revival capture button");
+        _objects.Add(button);
+        Set(canvas, "_captureButton", button);
+        monster = CreateMonster();
+        var effect = (GameObject)Get(monster, "_captureEffect");
+        effect.transform.SetParent(monster.transform);
+        effect.tag = "Capture";
+        trigger = effect.AddComponent<SphereCollider>();
+        Set(player, "_ableCaptureMonster", monster);
+        Set(player, "_captureTrigger", trigger);
+        return player;
+    }
+
+    [TestCase("OnDeath")]
+    [TestCase("OnDisable")]
+    [TestCase("ReSetPlayer")]
+    public void Revival_DeathSceneExitAndRespawnClearCaptureSelection(string lifecycle)
+    {
+        Component player = CreateCaptureSelection(out _, out GameObject button, out _);
+        Call(player, lifecycle);
+        Assert.That(Get(player, "_ableCaptureMonster"), Is.Null);
+        Assert.That(Get(player, "_captureTrigger"), Is.Null);
+        Assert.That(button.activeSelf, Is.False);
+        // A stale queued click cannot alter allies or reach account/save services.
+        Assert.DoesNotThrow(() => Call(player, "Capture"));
+        Assert.That(((System.Collections.IList)Get(player, "_allyMonsters")).Count, Is.Zero);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_TriggerExitClearsSelectedCorpseEvenAfterDeath(bool dead)
+    {
+        Component player = CreateCaptureSelection(out _, out GameObject button, out Collider trigger);
+        Set(player, "isDie", dead);
+        var other = new GameObject("Revival unrelated trigger");
+        _objects.Add(other);
+        Call(player, "OnTriggerExit", other.AddComponent<SphereCollider>());
+        Assert.That(button.activeSelf, Is.True);
+        Assert.That(Get(player, "_captureTrigger"), Is.SameAs(trigger));
+        Call(player, "OnTriggerExit", trigger);
+        Assert.That(button.activeSelf, Is.False);
+        Assert.That(Get(player, "_ableCaptureMonster"), Is.Null);
+    }
+
+    [Test]
+    public void Revival_OldPlayerDisableDoesNotHideCurrentCaptureButton()
+    {
+        Component current = CreateCaptureSelection(out Component selected, out GameObject button, out _);
+        Component old = Create("Player");
+        Set(old, "_ableCaptureMonster", selected);
+        Call(old, "OnDisable");
+        Assert.That(Get(old, "_ableCaptureMonster"), Is.Null);
+        Assert.That(Get(current, "_ableCaptureMonster"), Is.SameAs(selected));
+        Assert.That(button.activeSelf, Is.True);
+    }
+
+    [Test]
+    public void Revival_PooledCorpseReleasesOnlyItsOwnCaptureSelection()
+    {
+        Component player = CreateCaptureSelection(out Component selected, out GameObject button, out _);
+        Component other = CreateMonster();
+        Call(other, "Clear");
+        Assert.That(Get(player, "_ableCaptureMonster"), Is.SameAs(selected));
+        Assert.That(button.activeSelf, Is.True);
+        Call(selected, "Clear");
+        Assert.That(Get(player, "_ableCaptureMonster"), Is.Null);
+        Assert.That(button.activeSelf, Is.False);
+        Assert.DoesNotThrow(() => Call(player, "Capture"));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_InactiveOrDestroyedCorpseRejectsCaptureWithoutSaveAccess(bool destroyed)
+    {
+        Component player = CreateCaptureSelection(out Component monster, out GameObject button, out _);
+        if (destroyed) UnityEngine.Object.DestroyImmediate(monster.gameObject);
+        Assert.DoesNotThrow(() => Call(player, "Capture"));
+        Assert.That(button.activeSelf, Is.False);
+        Assert.That(Get(player, "_ableCaptureMonster"), Is.Null);
+        Assert.That(((System.Collections.IList)Get(player, "_allyMonsters")).Count, Is.Zero);
+    }
+
+    [Test]
+    public void Revival_RemainingOverlappingCorpseCanBeSelectedOnStay()
+    {
+        Component player = CreateCaptureSelection(out Component monster, out GameObject button, out Collider trigger);
+        // EditMode-only objects: no player loop, production managers, or save transport.
+        Set(monster, "isDie", true);
+        Set(monster, "_hp", 0f);
+        Set(monster, "_isAbleAlly", true);
+        monster.gameObject.SetActive(true);
+        trigger.gameObject.SetActive(true);
+        Assert.That(monster.GetType().GetProperty("IsCaptureAvailable").GetValue(monster), Is.True);
+        Call(player, "ClearCaptureTarget");
+        Call(player, "OnTriggerStay", trigger);
+        Assert.That(Get(player, "_ableCaptureMonster"), Is.SameAs(monster));
+        Assert.That(button.activeSelf, Is.True);
+        Call(player, "OnTriggerExit", trigger);
+        Assert.That(button.activeSelf, Is.False);
+        Set(monster, "_isAlly", true);
+        Call(player, "OnTriggerStay", trigger);
+        Assert.That(Get(player, "_ableCaptureMonster"), Is.Null);
+        Assert.That(button.activeSelf, Is.False);
     }
 }

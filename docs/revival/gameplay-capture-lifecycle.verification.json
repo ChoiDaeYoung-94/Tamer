@@ -1,0 +1,47 @@
+{
+  "date": "2026-09-14",
+  "checkout": "e5e5/Tamer",
+  "sourceCommit": "76c4b8ada7c24c91ae50e1f661ae37c45bdc0c6a",
+  "unity": "6000.0.81f1",
+  "unityCli": "1.0.0-beta.8",
+  "androidBuildTools": "36.0.0",
+  "device": {"android": 16, "api": 36, "abi": "arm64-v8a", "pageBytes": 4096},
+  "apk": {
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gameplay",
+    "sha256": "28641bfa918061477646ea08e4dbb45c8b2f37268d2ca181fda8268b94a969ab",
+    "bytes": 144680301,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "debugSignatureVerified": true,
+    "forbiddenManifestEntriesAbsent": ["android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE", "com.android.vending.BILLING", "com.google.android.gms.permission.AD_ID", "com.google.android.gms.ads.MobileAdsInitProvider"],
+    "remainingAdServicesPermissions": ["android.permission.ACCESS_ADSERVICES_AD_ID", "android.permission.ACCESS_ADSERVICES_ATTRIBUTION", "android.permission.ACCESS_ADSERVICES_TOPICS"]
+  },
+  "editorTests": {
+    "passed": 381, "failed": 0, "skipped": 0,
+    "startUtc": "2026-09-14T02:13:59Z", "endUtc": "2026-09-14T02:14:03Z",
+    "xmlSha256": "5e4000f08ab5ad5e32c38e8c975f3a5d23a204be30584b2759ac51c839efad8f",
+    "androidOnlyAssistExecutedInEditor": false
+  },
+  "capture": {
+    "helper": {"spawnedBat": true, "playerInvincible": true, "targetRollFixed": true},
+    "originalCaptureButtonClicked": true,
+    "before": {"allies": 0, "localAllyMonsters": "null", "gold": 1026, "reads": 5, "writes": 0},
+    "afterClick": {"allies": 1, "localAllyMonsters": "Bat", "gold": 1026, "reads": 5, "writes": 0},
+    "afterMain": {"allies": 1, "localAllyMonsters": "Bat", "hp": 100, "reads": 6, "writes": 1, "captureButtonVisible": false},
+    "naturalProbabilityValidated": false
+  },
+  "death": {
+    "invincibilityDisabled": true,
+    "originalCombatHpReachedZero": true,
+    "originalGameOverOkClicked": true,
+    "afterMain": {"hp": 100, "allies": 0, "gold": 1026, "reads": 8, "writes": 2, "playerColliderEnabled": true, "captureButtonVisible": false, "previousEnemiesInOldScene": 0}
+  },
+  "errors": {"harnessObserved": 0, "startupPlayerConnectionBeforeSubscription": 3, "gameCSharpExceptionsObserved": 0},
+  "invalidatedPriorEvidence": {"sourceCommit": "3246a87630c019b1b1dcc99f84807e297dfdcae2", "automaticRoundtripSuccess": false, "reason": "HP0 이후 하네스가 Main 전환을 강행하여 사망 상태와 비활성 collider가 남음"},
+  "guardedAutomaticDeathAbortReproducedOnDevice": false,
+  "deviceReturnedToSdk": true,
+  "existingAppsAndDataPreserved": true,
+  "notValidated": ["natural capture probability and balance", "production login/save/ads/purchase", "16KB physical device", "release AAB", "full SDK validation rerun", "strict RELRO rerun"]
+}
