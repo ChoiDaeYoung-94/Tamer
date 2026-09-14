@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 
 namespace AD
 {
@@ -66,8 +67,67 @@ namespace AD
         private readonly Dictionary<string, string> _pending = new Dictionary<string, string>();
         private readonly Dictionary<string, long> _revisions = new Dictionary<string, long>();
         private long _revision;
+        public PlayerDataChanges Clone()
+        {
+            var copy = new PlayerDataChanges { _revision = _revision };
+            foreach (var entry in _pending) copy._pending.Add(entry.Key, entry.Value);
+            foreach (var entry in _revisions) copy._revisions.Add(entry.Key, entry.Value);
+            return copy;
+        }
+
+        public string Serialize(string owner)
+        {
+            if (string.IsNullOrEmpty(owner)) throw new InvalidDataException("Pending journal requires an account owner.");
+            var entries = new Dictionary<string, object>();
+            foreach (var entry in _pending)
+                entries.Add(entry.Key, new Dictionary<string, object>
+                {
+                    { "value", entry.Value },
+                    { "revision", _revisions[entry.Key].ToString(CultureInfo.InvariantCulture) }
+                });
+            return Utility.SerializeToJson(new Dictionary<string, object>
+            {
+                { "version", "1" }, { "owner", owner },
+                { "revision", _revision.ToString(CultureInfo.InvariantCulture) }, { "pending", entries }
+            });
+        }
+
+        public static PlayerDataChanges Deserialize(string json, string owner, Dictionary<string, string> local)
+        {
+            var root = Utility.DeserializeFromJson(json) as Dictionary<string, object>;
+            if (root == null || root.Count != 4 || !root.TryGetValue("version", out var version) || !(version is string v) || v != "1"
+                || string.IsNullOrEmpty(owner) || !root.TryGetValue("owner", out var storedOwner) || !(storedOwner is string o) || o != owner
+                || !root.TryGetValue("revision", out var revision) || !TryRevision(revision, out var counter)
+                || !root.TryGetValue("pending", out var pending) || !(pending is Dictionary<string, object> entries))
+                throw new InvalidDataException("Invalid pending journal; original file preserved.");
+            var result = new PlayerDataChanges { _revision = counter };
+            var used = new HashSet<long>();
+            foreach (var entry in entries)
+            {
+                if (string.IsNullOrEmpty(entry.Key) || entry.Key == "__TamerAccountOwner" || entry.Key == "__TamerPendingJournal"
+                    || !(entry.Value is Dictionary<string, object> record) || record.Count != 2
+                    || !record.TryGetValue("value", out var value) || !(value is string text)
+                    || !record.TryGetValue("revision", out var entryRevision) || !TryRevision(entryRevision, out var number)
+                    || number == 0 || number > counter || !used.Add(number)
+                    || !local.TryGetValue(entry.Key, out var saved)
+                    || (entry.Key == "GooglePlay" ? PlayerDataSyncPolicy.UnionEntitlements(saved, text) != saved : saved != text))
+                    throw new InvalidDataException("Invalid pending journal entry; original file preserved.");
+                result._pending.Add(entry.Key, text);
+                result._revisions.Add(entry.Key, number);
+            }
+            return result;
+        }
+
+        private static bool TryRevision(object value, out long revision)
+        {
+            revision = 0;
+            return value is string text && long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out revision)
+                && revision >= 0 && revision < long.MaxValue;
+        }
+
         public void Track(string key, string value)
         {
+            if (_revision >= long.MaxValue - 1) throw new InvalidDataException("Pending journal revision exhausted.");
             _pending[key] = value;
             _revisions[key] = ++_revision;
         }

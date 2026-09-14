@@ -23,11 +23,13 @@ namespace AD
 
         private string _playerDataPath = string.Empty;
         private const string OwnerKey = "__TamerAccountOwner";
+        private const string JournalKey = "__TamerPendingJournal";
         private string _localOwner = string.Empty;
         private bool _sessionBackupCreated;
         private Dictionary<string, string> _defaults;
         private ServerManager _server;
-        private readonly PlayerDataChanges _changes = new PlayerDataChanges();
+        private PlayerDataChanges _changes = new PlayerDataChanges();
+        private int _accountGeneration;
         private CancellationTokenSource _ctsLocalDataUpdate;
         private bool _initialized;
         private bool _shutdown;
@@ -57,14 +59,25 @@ namespace AD
             _playerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");
 #endif
             _defaults = ParseData(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString());
+            LoadStoredData();
+        }
+
+        private void LoadStoredData()
+        {
             // Never rewrite a legacy or malformed save during initialization.
-            LocalPlayerData = File.Exists(_playerDataPath)
+            var local = File.Exists(_playerDataPath)
                 ? ParseData(File.ReadAllText(_playerDataPath))
                 : new Dictionary<string, string>(_defaults);
+            var owner = local.TryGetValue(OwnerKey, out var storedOwner) ? storedOwner : string.Empty;
+            var changes = local.TryGetValue(JournalKey, out var journal)
+                ? PlayerDataChanges.Deserialize(journal, owner, local) : new PlayerDataChanges();
+            local.Remove(OwnerKey);
+            local.Remove(JournalKey);
             foreach (var entry in _defaults)
-                if (!LocalPlayerData.ContainsKey(entry.Key)) LocalPlayerData.Add(entry.Key, entry.Value);
-            _localOwner = LocalPlayerData.TryGetValue(OwnerKey, out var owner) ? owner : string.Empty;
-            LocalPlayerData.Remove(OwnerKey);
+                if (!local.ContainsKey(entry.Key)) local.Add(entry.Key, entry.Value);
+            LocalPlayerData = local;
+            _localOwner = owner;
+            _changes = changes;
         }
 
         private static Dictionary<string, string> ParseData(string json)
@@ -87,11 +100,11 @@ namespace AD
             PlayFabPlayerData = null;
             IsConflict = false;
             _sessionBackupCreated = false;
-            _changes.Clear();
         }
 
         public void SuspendAccountSession()
         {
+            _accountGeneration++;
             IsServerDataReady = false;
             _server?.CancelPendingRequests();
         }
@@ -120,7 +133,8 @@ namespace AD
         /// <summary>Durable local mutation, including purchase restoration before Player exists.</summary>
         public bool TryUpdateLocalData(string key, string value)
         {
-            if (_shutdown || !IsServerDataReady || LocalPlayerData == null || string.IsNullOrEmpty(key) || key == OwnerKey || value == null)
+            if (_shutdown || !IsServerDataReady || string.IsNullOrEmpty(_localOwner) || _localOwner != PlayFabId
+                || LocalPlayerData == null || string.IsNullOrEmpty(key) || key == OwnerKey || key == JournalKey || value == null)
                 return false;
             if (key == "GooglePlay")
             {
@@ -128,16 +142,21 @@ namespace AD
                 value = PlayerDataSyncPolicy.UnionEntitlements(entitlement, value);
             }
             bool existed = LocalPlayerData.TryGetValue(key, out var previous);
-            LocalPlayerData[key] = value;
-            try { SaveLocalData(); }
-            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            var candidate = _changes.Clone();
+            var local = new Dictionary<string, string>(LocalPlayerData) { [key] = value };
+            try
             {
-                if (existed) LocalPlayerData[key] = previous;
-                else LocalPlayerData.Remove(key);
+                // Repeated entitlement grants must also remain uploadable after a restart.
+                if (!existed || previous != value || key == "GooglePlay") candidate.Track(key, value);
+                WritePlayerData(local, _localOwner, candidate);
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is InvalidDataException)
+            {
                 Debug.LogWarning("[Tamer/Data] Local save failed; pending purchase or data must be retried.");
                 return false;
             }
-            if (!existed || previous != value) _changes.Track(key, value);
+            LocalPlayerData[key] = value;
+            _changes = candidate;
             return true;
         }
 
@@ -145,7 +164,6 @@ namespace AD
         public bool TryGrantNoAds()
         {
             if (!TryUpdateLocalData("GooglePlay", "ProductNoAds")) return false;
-            _changes.Track("GooglePlay", LocalPlayerData["GooglePlay"]);
             UpdatePlayerData();
             return true;
         }
@@ -158,10 +176,16 @@ namespace AD
             WritePlayerData(LocalPlayerData, _localOwner);
         }
 
-        private void WritePlayerData(Dictionary<string, string> data, string owner)
+        private void WritePlayerData(Dictionary<string, string> data, string owner, PlayerDataChanges changes = null)
         {
             var stored = new Dictionary<string, string>(data);
-            if (!string.IsNullOrEmpty(owner)) stored[OwnerKey] = owner;
+            if (string.IsNullOrEmpty(owner) && (changes ?? _changes).Snapshot().Count != 0)
+                throw new InvalidDataException("Pending changes require an account owner.");
+            if (!string.IsNullOrEmpty(owner))
+            {
+                stored[OwnerKey] = owner;
+                stored[JournalKey] = (changes ?? _changes).Serialize(owner);
+            }
             WriteAtomically(_playerDataPath, Utility.SerializeToJson(stored));
         }
 
@@ -193,8 +217,20 @@ namespace AD
                 return;
             }
             // Match mutation revisions as well as values, including an A -> B -> A change in flight.
+            var generation = _accountGeneration;
             _server.SetData(patch, getAllData: true, update: true,
-                onWritten: () => _changes.Acknowledge(patch, revisions));
+                onWritten: () =>
+                {
+                    if (!_shutdown && generation == _accountGeneration) AcknowledgeChanges(patch, revisions);
+                });
+        }
+
+        private void AcknowledgeChanges(Dictionary<string, string> patch, Dictionary<string, long> revisions)
+        {
+            var candidate = _changes.Clone();
+            candidate.Acknowledge(patch, revisions);
+            WritePlayerData(LocalPlayerData, _localOwner, candidate);
+            _changes = candidate;
         }
 
         /// <summary>Called only for a successful server read. No write requests originate here.</summary>
@@ -206,7 +242,7 @@ namespace AD
             var server = new Dictionary<string, string>();
             foreach (var entry in PlayFabPlayerData)
             {
-                if (entry.Key == OwnerKey) throw new InvalidDataException("Reserved local metadata appeared in the server snapshot.");
+                if (entry.Key == OwnerKey || entry.Key == JournalKey) throw new InvalidDataException("Reserved local metadata appeared in the server snapshot.");
                 if (entry.Value == null || entry.Value.Value == null)
                     throw new InvalidDataException("Incomplete server record; local save preserved.");
                 server.Add(entry.Key, entry.Value.Value);

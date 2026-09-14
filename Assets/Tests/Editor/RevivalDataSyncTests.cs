@@ -93,6 +93,9 @@ public class RevivalDataSyncTests
         public void Shutdown() => Invoke(_manager, "Shutdown");
         public void Begin(string account) => Invoke(_manager, "BeginAccountSession", account);
         public void Flush() => Invoke(_manager, "UpdatePlayerData");
+        public void Reload() => Invoke(_manager, "LoadStoredData");
+        public Dictionary<string, long> Revisions() => (Dictionary<string, long>)Invoke(Changes, "SnapshotRevisions");
+        public void Ack(Dictionary<string, string> patch, Dictionary<string, long> revisions) => Invoke(_manager, "AcknowledgeChanges", patch, revisions);
         public void UpdateLegacy(string key, string value) => Invoke(_manager, "UpdateLocalData", key, value, false);
         public Dictionary<string, string> Pending() => (Dictionary<string, string>)Invoke(Changes, "Snapshot");
         public Dictionary<string, string> Stored() => (Dictionary<string, string>)Invoke(_type, "ParseData", File.ReadAllText(SavePath));
@@ -103,6 +106,29 @@ public class RevivalDataSyncTests
             UnityEngine.Object.DestroyImmediate(_object);
             // The directory is uniquely created by this harness under the OS temporary directory.
             if (Directory.Exists(DirectoryPath)) Directory.Delete(DirectoryPath, true);
+        }
+    }
+
+    [Test]
+    public void Revival_Data_RestartRetainsExplicitUnsentChange()
+    {
+        string saved;
+        using (var first = new SaveHarness())
+        {
+            first.Server(new Dictionary<string, string> { { "Gold", "10" } });
+            first.Sync();
+            Assert.That(first.Update("Gold", "20"), Is.True);
+            saved = File.ReadAllText(first.SavePath);
+        }
+        using (var restarted = new SaveHarness())
+        {
+            File.WriteAllText(restarted.SavePath, saved);
+            restarted.Reload();
+            restarted.Begin("test-account-a");
+            restarted.Server(new Dictionary<string, string> { { "Gold", "10" } });
+            restarted.Sync();
+            Assert.That(restarted.Local["Gold"], Is.EqualTo("20"));
+            Assert.That(restarted.Pending()["Gold"], Is.EqualTo("20"));
         }
     }
 
@@ -276,6 +302,141 @@ public class RevivalDataSyncTests
     }
 
     [Test]
+    public void Revival_Data_JournalSurvivesReconnectAndRejectsAnotherAccount()
+    {
+        using (var h = new SaveHarness())
+        {
+            h.Server(new Dictionary<string, string> { { "Gold", "10" } });
+            h.Sync();
+            h.Update("Gold", "20");
+            var saved = File.ReadAllText(h.SavePath);
+            Assert.Throws<InvalidOperationException>(() => h.Begin("test-account-b"));
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(saved));
+            Assert.That(h.Pending()["Gold"], Is.EqualTo("20"));
+            h.Begin("test-account-a");
+            h.Server(new Dictionary<string, string> { { "Gold", "10" } });
+            h.Sync();
+            h.Reload();
+            Assert.That(h.Pending()["Gold"], Is.EqualTo("20"));
+            Assert.That(h.Local.ContainsKey("__TamerPendingJournal"), Is.False);
+        }
+    }
+
+    [Test]
+    public void Revival_Data_AcknowledgementIsDurableAndOldRevisionCannotClearNewEqualValue()
+    {
+        using (var h = new SaveHarness())
+        {
+            h.Server(new Dictionary<string, string> { { "Gold", "10" } });
+            h.Sync();
+            h.Update("Gold", "20");
+            var patch = h.Pending();
+            var revisions = h.Revisions();
+            h.Reload();
+            h.Update("Gold", "30");
+            h.Update("Gold", "20");
+            h.Ack(patch, revisions);
+            h.Reload();
+            Assert.That(h.Pending()["Gold"], Is.EqualTo("20"));
+            Assert.That(h.Revisions()["Gold"], Is.GreaterThan(revisions["Gold"]));
+            var latest = h.Revisions();
+            h.Ack(h.Pending(), latest);
+            h.Reload();
+            Assert.That(h.Pending(), Is.Empty);
+            h.Update("Gold", "40");
+            Assert.That(h.Revisions()["Gold"], Is.GreaterThan(latest["Gold"]));
+        }
+    }
+
+    [Test]
+    public void Revival_Data_FailedJournalCommitPreservesValuesAndRevisionsForRetry()
+    {
+        using (var h = new SaveHarness())
+        {
+            h.Server(new Dictionary<string, string> { { "Gold", "10" } });
+            h.Sync();
+            h.Update("Gold", "20");
+            var saved = File.ReadAllText(h.SavePath);
+            var patch = h.Pending();
+            var revisions = h.Revisions();
+            h.SetField("_playerDataPath", Path.Combine(h.DirectoryPath, "missing-parent", "PlayerData.json"));
+            Assert.That(h.Update("Gold", "30"), Is.False);
+            Assert.Throws<DirectoryNotFoundException>(() => h.Ack(patch, revisions));
+            Assert.That(h.Local["Gold"], Is.EqualTo("20"));
+            CollectionAssert.AreEquivalent(revisions, h.Revisions());
+            CollectionAssert.AreEquivalent(patch, h.Pending());
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(saved));
+            h.SetField("_playerDataPath", h.SavePath);
+            h.Reload();
+            CollectionAssert.AreEquivalent(patch, h.Pending());
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_Data_LegacySaveMigrationDoesNotInventPendingChanges(bool owned)
+    {
+        using (var h = new SaveHarness())
+        {
+            var legacy = new Dictionary<string, string> { { "Gold", "900" }, { "GooglePlay", "ProductNoAds" } };
+            if (owned) legacy["__TamerAccountOwner"] = "test-account-a";
+            var original = (string)Invoke(RuntimeType("AD.Utility"), "SerializeToJson", legacy);
+            File.WriteAllText(h.SavePath, original);
+            h.Reload();
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(original));
+            h.Begin("test-account-a");
+            h.Server(new Dictionary<string, string> { { "Gold", "10" } });
+            h.Sync();
+            h.Reload();
+            Assert.That(h.Local["Gold"], Is.EqualTo("10"));
+            Assert.That(h.Local["GooglePlay"], Is.EqualTo("ProductNoAds"));
+            Assert.That(h.Pending(), Is.Empty);
+        }
+    }
+
+    [TestCase("null")]
+    [TestCase("{}")]
+    [TestCase("{\"version\":\"2\",\"owner\":\"test-account-a\",\"revision\":\"0\",\"pending\":{}}")]
+    [TestCase("{\"version\":\"1\",\"owner\":\"test-account-b\",\"revision\":\"0\",\"pending\":{}}")]
+    [TestCase("{\"version\":\"1\",\"owner\":\"test-account-a\",\"revision\":\"-1\",\"pending\":{}}")]
+    [TestCase("{\"version\":\"1\",\"owner\":\"test-account-a\",\"revision\":\"1\",\"pending\":{\"Gold\":{\"value\":\"21\",\"revision\":\"1\"}}}")]
+    [TestCase("{\"version\":\"1\",\"owner\":\"test-account-a\",\"revision\":\"1\",\"pending\":{\"Gold\":{\"value\":\"20\",\"revision\":\"2\"}}}")]
+    public void Revival_Data_InvalidJournalPreservesFileAndExistingMemory(string journal)
+    {
+        using (var h = new SaveHarness())
+        {
+            var data = new Dictionary<string, string>
+            {
+                { "Gold", "20" }, { "__TamerAccountOwner", "test-account-a" }, { "__TamerPendingJournal", journal }
+            };
+            var original = (string)Invoke(RuntimeType("AD.Utility"), "SerializeToJson", data);
+            File.WriteAllText(h.SavePath, original);
+            var local = h.Local;
+            Assert.Throws<InvalidDataException>(() => h.Reload());
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(original));
+            Assert.That(h.Local, Is.SameAs(local));
+            Assert.That(h.Pending(), Is.Empty);
+            Assert.That(h.Backups(), Is.Empty);
+        }
+    }
+
+    [Test]
+    public void Revival_Data_EntitlementJournalSurvivesCloudUnionAndRepeatedGrant()
+    {
+        using (var h = new SaveHarness())
+        {
+            h.Server(new Dictionary<string, string> { { "GooglePlay", "CloudProduct" } });
+            h.Sync();
+            h.Update("GooglePlay", "ProductNoAds");
+            h.Server(new Dictionary<string, string> { { "GooglePlay", "NewCloudProduct" } });
+            h.Sync();
+            h.Reload();
+            Assert.That(h.Local["GooglePlay"], Does.Contain("ProductNoAds").And.Contain("NewCloudProduct"));
+            Assert.That(h.Pending()["GooglePlay"], Does.Contain("ProductNoAds"));
+        }
+    }
+
+    [Test]
     public void Revival_Data_ShutdownPreservesSaveAndRejectsLateMutations()
     {
         using (var h = new SaveHarness())
@@ -330,6 +491,7 @@ public class RevivalDataSyncTests
         using (var h = new SaveHarness())
         {
             h.SetProperty("IsServerDataReady", true);
+            h.SetField("_localOwner", "test-account-a");
             Assert.That(h.Update("Gold", "75"), Is.True);
             Assert.That(h.Update("GooglePlay", "FutureProduct,ProductNoAds"), Is.True);
             Assert.That(h.Update("GooglePlay", ""), Is.True, "An empty restore must not revoke a durable grant.");
@@ -348,6 +510,7 @@ public class RevivalDataSyncTests
         {
             Assert.Throws<InvalidOperationException>(() => h.UpdateLegacy("GooglePlay", "FutureProduct"));
             h.SetProperty("IsServerDataReady", true);
+            h.SetField("_localOwner", "test-account-a");
             h.SetField("_playerDataPath", Path.Combine(h.DirectoryPath, "missing-parent", "PlayerData.json"));
             Assert.Throws<IOException>(() => h.UpdateLegacy("GooglePlay", "FutureProduct"));
             Assert.That(h.Local["GooglePlay"], Is.EqualTo("ProductNoAds"));
@@ -376,6 +539,7 @@ public class RevivalDataSyncTests
         using (var h = new SaveHarness())
         {
             h.SetProperty("IsServerDataReady", true);
+            h.SetField("_localOwner", "test-account-a");
             h.SetField("_playerDataPath", Path.Combine(h.DirectoryPath, "missing-parent", "PlayerData.json"));
             Assert.That(h.Update(key, "uncommitted"), Is.False);
             Assert.That(h.Local["Gold"], Is.EqualTo("900"));
