@@ -1,0 +1,80 @@
+{
+  "date": "2026-09-14",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "documentationBase": "355640104b5c0fd0f1b1aacbdc8e8972f789a3b6",
+  "apkSourceCommit": "e712627e47163760c22a1d32251d455c4e914344",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "apkSha256": "8a09b37cd5cedba53a3b42eda54d1e02d37531b65dda0844f6831bd2abe91ebd",
+  "package": "com.AeDeong.MonsterTamer.revival.progress",
+  "device": {
+    "model": "SM-S938N",
+    "android": "16",
+    "pageSize": 4096,
+    "user": 0
+  },
+  "androidMinSdk": 24,
+  "androidTargetSdk": 36,
+  "mode": "real PlayFab dedicated synthetic key",
+  "key": "RevivalProgressProbeV1",
+  "finalValue": "v1:2",
+  "permissionObservedInDashboard": "Private",
+  "checks": {
+    "dedicatedAccountCreatedByUser": true,
+    "existingIdentityLogin": true,
+    "initialKeyAbsent": true,
+    "step1WriteRead": true,
+    "step2WriteRead": true,
+    "reconnectStep2": true,
+    "forceStopPidAbsent": true,
+    "restartSessionAbsent": true,
+    "reauthenticationRestoredStep2": true,
+    "finalDedicatedAppStopped": true
+  },
+  "evidencePrivate": true,
+  "evidence": [
+    {
+      "file": "07-cloud-login.png",
+      "sha256": "4bb00b0044ee34129ca3b4d6876b629197eb80bc9563e10f2ff36a16c026d923",
+      "capturedUtc": "2026-09-14T06:17:04.127423+00:00"
+    },
+    {
+      "file": "08-step1.png",
+      "sha256": "9c49bbc95a9bb33281f89a27a8e7b43145be47f3876321220ec562efba80b469",
+      "capturedUtc": "2026-09-14T06:17:19.994400+00:00"
+    },
+    {
+      "file": "09-step2.png",
+      "sha256": "da6ea9592699057d0924f956dd6820917de7c7e3370b4bc27a496c84ff81d3b8",
+      "capturedUtc": "2026-09-14T06:17:31.956567+00:00"
+    },
+    {
+      "file": "10-reconnect.png",
+      "sha256": "da6ea9592699057d0924f956dd6820917de7c7e3370b4bc27a496c84ff81d3b8",
+      "capturedUtc": "2026-09-14T06:18:00.049420+00:00"
+    },
+    {
+      "file": "12-restarted-login.png",
+      "sha256": "0152af82b2d26256b8fc8048ac2c63fc4ff1eb7312d6c5b32bf40ac89bfdaa09",
+      "capturedUtc": "2026-09-14T06:18:27.853931+00:00"
+    },
+    {
+      "file": "14-reauth-restored.png",
+      "sha256": "da6ea9592699057d0924f956dd6820917de7c7e3370b4bc27a496c84ff81d3b8",
+      "capturedUtc": "2026-09-14T06:18:56.478400+00:00"
+    },
+    {
+      "file": "process-restart.json",
+      "sha256": "0a28e47c1e4ff45dc2353069f460a789196de1d53eb9f8e4d8e4ada1217fef93",
+      "capturedUtc": "2026-09-14T06:18:15.515894+00:00"
+    }
+  ],
+  "notValidated": [
+    "PR166 DataManager Android pending journal",
+    "full gameplay progress restore",
+    "production account or No Ads",
+    "16 KB page runtime",
+    "offline writes or process termination during an in-flight write"
+  ],
+  "newEditorTests": "not run; unchanged APK used; source baseline 400/400 is recorded in progress-only-validation.json"
+}
