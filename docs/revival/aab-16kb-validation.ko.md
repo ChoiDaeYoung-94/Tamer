@@ -51,6 +51,17 @@ python -m unittest discover -s tools/revival -p 'test_*.py'
 
 `verify_bundle.py`는 기존 출력 폴더를 덮어쓰지 않는다. 결과 폴더에는 새 debug keystore와 구매 자산이 포함된 split이 있으므로 비공개로 보관한다.
 
+### 2026-09-14 사용자 재부팅 후 읽기 점검
+
+checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, 기준 커밋 `4fad13a922697a552cc1a01d8a31121bc83e895f`에서 `Get-16KbHostReadiness.ps1`로 다시 확인했다. Unity `6000.0.81f1`, Android NDK `27.2.12479018`, CLI `1.0.0-beta.8` 기준은 유지했다. 이번 점검에서는 Editor나 빌드·테스트를 실행하지 않았으며 새 APK 및 SHA-256은 없다.
+
+- Windows 11 Pro build 26200에서 `HypervisorPlatform.InstallState=1`을 관측했으나 `HypervisorPresent=false`였다. 기능 활성화 전의 기존 결과와 구분한다.
+- 펌웨어 가상화·SLAT·VM Monitor는 true였고 AEHD/GVM 서비스는 없었다. 로컬 Emulator의 `-accel-check`는 exit 6과 hypervisor driver 미설치를 반환했다.
+- BCD 읽기는 exit 1로 실패하여 `hypervisorlaunchtype`은 미확인이다. 이를 `Off`의 증거로 해석하지 않는다.
+- 추가 OS 기능·BCD 변경이나 재부팅, AVD 부팅을 수행하지 않았다. 가속 실패 상태에서 이전 소프트웨어 부팅 실패를 반복하지 않았다. 실제 16KB PAGE_SIZE·설치·실행은 여전히 미검증이다.
+
+원시 결과는 비공개 `Logs/revival/host-16kb-readiness-20260914-sdk.json`에 보존했다. 개인폰의 계정 정보와 식별자는 이 기록에 포함하지 않는다.
+
 AVD 재개는 해당 로컬 SDK와 AVD가 준비된 호스트에서만 실행한다. 기본 가속 설정은 auto이며 가속 없이 진단할 때만 `--accel off`를 명시한다.
 
 ```powershell
