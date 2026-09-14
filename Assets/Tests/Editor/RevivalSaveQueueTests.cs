@@ -113,6 +113,13 @@ public class RevivalSaveQueueTests
         public bool Failed => (bool)_server.GetType().GetProperty("HasFailed").GetValue(_server);
         public void ChangeGold(string value) => Assert.That(Invoke(_data, "TryUpdateLocalData", "Gold", value), Is.EqualTo(true));
         public void Submit() => Invoke(_data, "UpdatePlayerData");
+        public void ReloadSession()
+        {
+            Invoke(_data, "SuspendAccountSession");
+            Invoke(_data, "LoadStoredData");
+            Invoke(_data, "BeginAccountSession", Account);
+            Submit();
+        }
 
         private void ApplyRead(Dictionary<string, string> values)
         {
@@ -196,6 +203,32 @@ public class RevivalSaveQueueTests
             Assert.That(h.Reads.Count, Is.EqualTo(2));
             Assert.That(h.Busy, Is.False);
             Assert.That(h.Failed, Is.False);
+        }
+    }
+
+    [Test]
+    public void Revival_SaveQueue_ReloadedJournalIgnoresEarlierSessionCallbacksAndUploadsOnlyPendingKey()
+    {
+        using (var h = new SaveQueueHarness())
+        {
+            h.ChangeGold("20");
+            h.Submit();
+            h.ReloadSession();
+            h.SucceedRead(0);
+            h.ChangeGold("30");
+            h.Submit();
+            h.Writes[0].Success(); // Old session callback arrives after the new read and mutation.
+            Assert.That(h.Pending["Gold"], Is.EqualTo("30"));
+            Assert.That(h.Stored["Gold"], Is.EqualTo("30"));
+            CollectionAssert.AreEquivalent(new Dictionary<string, string> { { "Gold", "30" } }, h.Writes[1].Values);
+            h.SucceedWrite(1);
+            Assert.That(h.Pending, Is.Empty);
+            h.ReloadSession(); // Reload before the acknowledged write's follow-up read returns.
+            h.Reads[1].Success(new Dictionary<string, string> { { "Gold", "10" } });
+            h.SucceedRead(2);
+            Assert.That(h.Local["Gold"], Is.EqualTo("30"));
+            Assert.That(h.Pending, Is.Empty);
+            Assert.That(h.Writes.Count, Is.EqualTo(2));
         }
     }
 
