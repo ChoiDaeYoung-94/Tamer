@@ -369,7 +369,7 @@ public class Player : Creature
     {
         _ableCaptureMonster = null;
         _captureTrigger = null;
-        if (PlayerUICanvas.Instance != null) PlayerUICanvas.Instance.DisableCapture();
+        if (_instance == this && PlayerUICanvas.Instance != null) PlayerUICanvas.Instance.DisableCapture();
     }
 
     public void ReleaseCaptureTarget(Monster target)

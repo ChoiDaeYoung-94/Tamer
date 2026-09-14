@@ -20,6 +20,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private float _nextObservation;
     private string _observedScene;
     private MonsterGenerator _previousGenerator;
+    private int _previousGameSceneHandle;
     private Monster[] _previousMonsters = Array.Empty<Monster>();
 
     // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
@@ -44,9 +45,13 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         string scene = UnitySceneManager.GetActiveScene().name;
         if (scene == _observedScene || (scene != "Main" && scene != "Game") || !Ready(scene)) return;
         _observedScene = scene;
-        int previousActive = 0;
+        int previousInOldScene = 0, reusedActive = 0;
         foreach (Monster monster in _previousMonsters)
-            if (monster != null && monster.gameObject.activeInHierarchy && monster.CompareTag("Monster")) previousActive++;
+        {
+            if (monster == null || !monster.gameObject.activeInHierarchy || !monster.CompareTag("Monster")) continue;
+            if (monster.gameObject.scene.handle == _previousGameSceneHandle) previousInOldScene++;
+            else reusedActive++; // A pooled object may legitimately be reused in the new scene.
+        }
         MonsterGenerator generator = MonsterGenerator.Instance;
         Monster[] monsters = FindObjectsByType<Monster>(FindObjectsSortMode.None);
         int enemies = 0, outsideGenerator = 0;
@@ -58,11 +63,12 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         }
         Debug.Log("GAMEPLAY_SCENE_LIFETIME scene=" + scene +
             " previousGeneratorAlive=" + (_previousGenerator != null) +
-            " previousEnemiesActive=" + previousActive + " enemies=" + enemies +
+            " previousEnemiesInOldScene=" + previousInOldScene + " reusedEnemiesActive=" + reusedActive + " enemies=" + enemies +
             " outsideGenerator=" + outsideGenerator);
         if (scene == "Game")
         {
             _previousGenerator = generator;
+            _previousGameSceneHandle = UnitySceneManager.GetActiveScene().handle;
             _previousMonsters = monsters;
         }
     }

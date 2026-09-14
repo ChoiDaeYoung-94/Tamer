@@ -462,6 +462,18 @@ public class RevivalMonsterLifecycleTests
     }
 
     [Test]
+    public void Revival_OldPlayerDisableDoesNotHideCurrentCaptureButton()
+    {
+        Component current = CreateCaptureSelection(out Component selected, out GameObject button, out _);
+        Component old = Create("Player");
+        Set(old, "_ableCaptureMonster", selected);
+        Call(old, "OnDisable");
+        Assert.That(Get(old, "_ableCaptureMonster"), Is.Null);
+        Assert.That(Get(current, "_ableCaptureMonster"), Is.SameAs(selected));
+        Assert.That(button.activeSelf, Is.True);
+    }
+
+    [Test]
     public void Revival_PooledCorpseReleasesOnlyItsOwnCaptureSelection()
     {
         Component player = CreateCaptureSelection(out Component selected, out GameObject button, out _);
