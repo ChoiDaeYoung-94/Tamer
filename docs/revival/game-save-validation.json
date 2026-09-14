@@ -1,0 +1,258 @@
+{
+  "date": "2026-09-14",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "sourceCommit": "c6cd91ac8b5da2acfa155f586c54244d0e4bee7d",
+  "baseMain": "ca6272c6b8953198b397f1b084684ae70fc23fb6",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "editor": {
+    "id": "2",
+    "testcasecount": "85",
+    "result": "Passed",
+    "total": "85",
+    "passed": "85",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-14 07:22:54Z",
+    "end-time": "2026-09-14 07:22:55Z",
+    "duration": "0.4510828"
+  },
+  "editorXmlSha256": "f4a8c835b447dc807a3f135b00fd54ba37ee4669b3c2d38c1dfb4813ff49e070",
+  "liveNewTests": {
+    "passed": 16,
+    "total": 16
+  },
+  "apk": {
+    "apk": "Build/revival/Tamer-gamesave-offline.apk",
+    "sha256": "cf571770348a312dd84b57dbed94dc8e5bd12ccf82531c8fd282e28d693c721c",
+    "bytes": 93363068,
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gamesave",
+    "versionCode": 26,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "adsInitProvider": false,
+    "internet": false,
+    "deviceExecutionVerified": true
+  },
+  "device": {
+    "model": "SM-N986N",
+    "android": "13",
+    "abi": "arm64-v8a",
+    "pageSize": 4096
+  },
+  "cases": [
+    {
+      "case": "05-step1-restored-pending",
+      "step": 1,
+      "eightFieldsMatch": true,
+      "pendingCount": 8,
+      "revision": "8",
+      "freshReadOnlyRestore": false
+    },
+    {
+      "case": "07-step1-ack-restart",
+      "step": 1,
+      "eightFieldsMatch": true,
+      "pendingCount": 0,
+      "revision": "8",
+      "freshReadOnlyRestore": false
+    },
+    {
+      "case": "08-step1-fresh-restore",
+      "step": 1,
+      "eightFieldsMatch": true,
+      "pendingCount": 0,
+      "revision": "0",
+      "freshReadOnlyRestore": true
+    },
+    {
+      "case": "10-step2-pending-restored",
+      "step": 2,
+      "eightFieldsMatch": true,
+      "pendingCount": 7,
+      "revision": "15",
+      "freshReadOnlyRestore": false
+    },
+    {
+      "case": "12-step2-ack-restart",
+      "step": 2,
+      "eightFieldsMatch": true,
+      "pendingCount": 0,
+      "revision": "15",
+      "freshReadOnlyRestore": false
+    },
+    {
+      "case": "13-step2-fresh-restore",
+      "step": 2,
+      "eightFieldsMatch": true,
+      "pendingCount": 0,
+      "revision": "0",
+      "freshReadOnlyRestore": true
+    }
+  ],
+  "recordedProcessRestarts": 4,
+  "preservedPendingAndAckBytes": true,
+  "freshRestoreDirectoriesAbsentBeforeRead": true,
+  "freshRestoreWrites": 0,
+  "primaryPreservedAfterRestore": true,
+  "priorRestorePreservedAfterStep2": true,
+  "finalAppStopped": true,
+  "native": {
+    "loadZipChecksPassed": true,
+    "strictRelroChecksPassed": false,
+    "relroEndAlignmentFailureCount": 4
+  },
+  "guidUnresolved": 0,
+  "evidencePrivate": true,
+  "evidence": [
+    {
+      "file": "01-launch.png",
+      "sha256": "a34b4a43f623ae49f073e3b5e09d98f6f6fc027857556300e4f73271255d015c"
+    },
+    {
+      "file": "02-open.png",
+      "sha256": "b0a372e5c623d8790eb2e4cef45463297e91cb67030f2a42f5e49543b00f1516"
+    },
+    {
+      "file": "03-step1-pending.json",
+      "sha256": "e6a7215f75241df290af47a503d1302077f25fe0e022b0b245b00dd6cc2400d2"
+    },
+    {
+      "file": "03-step1-pending.png",
+      "sha256": "494578e79c59329932b1c07b1944c12facb958baee712e8f623cfa4918598f73"
+    },
+    {
+      "file": "04-restart1-launch.png",
+      "sha256": "a34b4a43f623ae49f073e3b5e09d98f6f6fc027857556300e4f73271255d015c"
+    },
+    {
+      "file": "05-step1-restored-pending.json",
+      "sha256": "e6a7215f75241df290af47a503d1302077f25fe0e022b0b245b00dd6cc2400d2"
+    },
+    {
+      "file": "05-step1-restored-pending.png",
+      "sha256": "4df8296b391d9bf035845c90b22f5497e976bbda414bb2d532e5c7a5a802b984"
+    },
+    {
+      "file": "06-step1-ack.json",
+      "sha256": "0d8f6a6139d3d8921ec69ed458f13a0569d2ebcca39717a19ab9f9ee22c9531a"
+    },
+    {
+      "file": "06-step1-ack.png",
+      "sha256": "0b4dd72755938fc6f2a627ec56a77df82969e6e05c1eab44d5693fd81833d74a"
+    },
+    {
+      "file": "07-step1-ack-restart.json",
+      "sha256": "0d8f6a6139d3d8921ec69ed458f13a0569d2ebcca39717a19ab9f9ee22c9531a"
+    },
+    {
+      "file": "07-step1-ack-restart.png",
+      "sha256": "929a778cc421fa0cf910c4e4be264ef3a7c32a21b6be367ae8574e17681eafe9"
+    },
+    {
+      "file": "08-step1-fresh-restore.json",
+      "sha256": "4672ddf4ed88aeead485c100e305eefdd61e142885a6e569290b10f66abe35a0"
+    },
+    {
+      "file": "08-step1-fresh-restore.png",
+      "sha256": "7632c0190076fd25574d45ecdd91ce51e54b4d6749f8a31fda2bfef32e93ff58"
+    },
+    {
+      "file": "09-step2-pending.json",
+      "sha256": "53cd08a5033522bc95dcd5b3f4bdcd8ddde5ff1d7574fec45ae60fd55d16d0bb"
+    },
+    {
+      "file": "09-step2-pending.png",
+      "sha256": "09a60b3c39da8410fb62b70ce718ac9c6128b45830a4662052ea5818f6a63061"
+    },
+    {
+      "file": "10-step2-pending-restored.json",
+      "sha256": "53cd08a5033522bc95dcd5b3f4bdcd8ddde5ff1d7574fec45ae60fd55d16d0bb"
+    },
+    {
+      "file": "10-step2-pending-restored.png",
+      "sha256": "f0191b534433812435220828d919563656a0a5bf46bd2d23b455e6c9509dd27c"
+    },
+    {
+      "file": "11-step2-ack.json",
+      "sha256": "1d1289fd0e930aa392dd3157d2f0bcab94e6e3eb46b649f6e19d27e49bd2d440"
+    },
+    {
+      "file": "11-step2-ack.png",
+      "sha256": "16c9bd05f8f30985402af53bdfc1b6a643169203a9403a130f37fad422e76d8a"
+    },
+    {
+      "file": "12-step2-ack-restart.json",
+      "sha256": "1d1289fd0e930aa392dd3157d2f0bcab94e6e3eb46b649f6e19d27e49bd2d440"
+    },
+    {
+      "file": "12-step2-ack-restart.png",
+      "sha256": "e4bceb6aaa7b474b72a7bb557bc28e5f5d40d86b64d4e923aacceaa8bf34eea1"
+    },
+    {
+      "file": "13-step2-fresh-restore.json",
+      "sha256": "989d083069c24fbb85e8cf88168418b0e0c9b92ea1830819be96a3a348521672"
+    },
+    {
+      "file": "13-step2-fresh-restore.png",
+      "sha256": "472e595d28bad7d1e06abfe12769dca5488d8134e2441ba705a0bc96c146318d"
+    },
+    {
+      "file": "capture.py",
+      "sha256": "a4db8c672b4eac0e7fda655ab1d153cdb70cebbed7913f9e0992114fe8f2d06a"
+    },
+    {
+      "file": "device.py",
+      "sha256": "46bdd42345fbdbe4ea2c4c4c4ccb839181675ea13105ca5f95232bfaa74032e3"
+    },
+    {
+      "file": "final-stopped.json",
+      "sha256": "13f7e2d52a72534170f979bf53a73c41f2b3e089d0b68f827b05790d2dca248e"
+    },
+    {
+      "file": "final-synthetic-server.json",
+      "sha256": "0746f2f7d7ee53e587765f3e2ed9e6cb8e9465677c4d8a8fdc96d268b8adefdf"
+    },
+    {
+      "file": "restart1-recorded.json",
+      "sha256": "a227266c9208adacb578eda4be00b5fd7b85f2b27b98eeeb1542c5d6f8c12d9d"
+    },
+    {
+      "file": "restart2-step1-ack.json",
+      "sha256": "cb451955d955c9faaaf0247fb35e22a157f2cc64d4456dac70f3bdf6cbeeefb8"
+    },
+    {
+      "file": "restart3-step2-pending.json",
+      "sha256": "fdf578db6378c627a3666f12ca2508c53bd0748470f15fa21faf37f3ce27ec52"
+    },
+    {
+      "file": "restart4-step2-ack.json",
+      "sha256": "b70f8cbf5a042b3e9ba2d4e5576dbf64236b4c0e1127ba6f50b82902397d3fb5"
+    },
+    {
+      "file": "restore1-before.json",
+      "sha256": "62c59543ff3f4fbe3386ac00981cf16e86594702fde04cd3acd72e2964578a47"
+    },
+    {
+      "file": "restore2-before.json",
+      "sha256": "62c59543ff3f4fbe3386ac00981cf16e86594702fde04cd3acd72e2964578a47"
+    }
+  ],
+  "limits": [
+    "Offline synthetic transport only; no PlayFab execution or account creation/authentication",
+    "Existing server eight fields only; no Player scene application or PlayerPrefs collection/inventory/equipment restoration",
+    "No production migration, purchases, Google, ads, 16 KB execution or store verification",
+    "First immediate new-PID lookup occurred before process startup; not counted. Repeated same pending state with bounded PID polling and verified preserved bytes."
+  ]
+}
