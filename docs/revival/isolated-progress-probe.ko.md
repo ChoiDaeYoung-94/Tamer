@@ -27,6 +27,6 @@
 5. 앱을 정상 종료·재실행하고 기존 계정 로그인 후 다시 읽어 단계 2를 확인한다. 이 시점이 프로세스 간 실제 서버 복원 근거다.
 6. 기존 No Ads와 게임 저장이 유지되는지 별도 집계로 확인한다. 다른 계정 준비가 없으면 계정 전환의 서버 실측은 미검증으로 남긴다. 새 계정을 임의 생성하지 않는다.
 
-현재 테스트는 합성 delegate 및 실제 SDK의 전송 직전 가로채기다. 서버 응답도 대역이므로 실제 PlayFab 지속 저장의 증거가 아니다. 실제 네트워크·기기 조작·Store 업데이트·계정 전환 실측은 이번 PR에서 수행하지 않았다. 결과와 버전은 별도 검증 JSON에 기록한다.
+현재 테스트는 합성 delegate 및 실제 SDK의 전송 직전 가로채기다. 서버 응답도 대역이므로 실제 PlayFab 지속 저장의 증거가 아니다. 실제 네트워크·기기 조작·Store 업데이트·계정 전환 실측은 이번 PR에서 수행하지 않았다. [검증 JSON](isolated-progress-validation.json)에 정확한 소스·버전을 기록했다. Editor 회귀 395건(새 probe 14건 포함)이 통과했고 GUID 감사 132개 파일의 미해결 참조는 0개다. Unity 6000.0.81f1 / CLI 1.0.0-beta.8을 사용했으며 새 Android 빌드는 없다.
 
 [PlayFab GetUserData](https://learn.microsoft.com/en-us/rest/api/playfab/client/player-data-management/get-user-data?view=playfab-rest)와 [UpdateUserData](https://learn.microsoft.com/en-us/rest/api/playfab/client/player-data-management/update-user-data?view=playfab-rest)를 2026-09-14 확인했다. 키 제한 읽기와 지정 데이터 patch를 사용하며 권한은 명시적으로 Private다.

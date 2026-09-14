@@ -1,0 +1,53 @@
+{
+  "date": "2026-09-14",
+  "baseMain": "188e98d",
+  "sourceCommit": "e7c8dcd554fcf139af7af99890f4b6ec23c4d62a",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "command": "./tools/revival/Run-Baseline.ps1 -TestsOnly -ProjectPath C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "editorRegression": {
+    "id": "2",
+    "testcasecount": "395",
+    "result": "Passed",
+    "total": "395",
+    "passed": "395",
+    "failed": "0",
+    "inconclusive": "0",
+    "skipped": "0",
+    "asserts": "0",
+    "engine-version": "3.5.0.0",
+    "clr-version": "4.0.30319.42000",
+    "start-time": "2026-09-14 03:27:20Z",
+    "end-time": "2026-09-14 03:27:24Z",
+    "duration": "3.7251512"
+  },
+  "probeCases": 14,
+  "xmlSha256": "9b3c06011dafba7e6dbc35af094cd68d95769f43e70034e29a54bb93907551ec",
+  "assetsVerified": 4561,
+  "ownEditorAfter": 0,
+  "settingsSnapshotRestored": true,
+  "editorGeneratedChangesRestored": true,
+  "testTransport": "Synthetic delegate and actual PlayFab SDK request capture; no external network",
+  "scope": [
+    "Same production ServerManager queue, retries, account boundary and Private request factory",
+    "Dedicated allowlisted synthetic key; game DataManager merge/save and No Ads are not modified",
+    "Session replacement invalidates callbacks, even same account and ticket in a new session object",
+    "First successful read required; malformed data cannot enable overwrite"
+  ],
+  "notVerified": [
+    "Actual PlayFab persistent storage and process restart recovery",
+    "Full game DataManager cloud save and restore",
+    "Live cross-account isolation",
+    "Phone or Store update; personal phone requires separate reconnection approval",
+    "Company phone not eligible for this IAP-session probe"
+  ],
+  "productionCalls": 0,
+  "phoneActions": 0,
+  "androidApkSha256": null,
+  "deletionPolicyPublished": false,
+  "guidAudit": {
+    "checkedFiles": 132,
+    "unresolvedGuids": 0
+  }
+}
