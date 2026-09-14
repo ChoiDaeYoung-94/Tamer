@@ -63,6 +63,15 @@ namespace AD
         public ServerManager(Func<string> accountId, Func<bool> canWrite,
             Action<string, Action<Dictionary<string, string>>, Action<int>> read,
             Action<string, Dictionary<string, string>, Action, Action<int>> write,
+            Action<Dictionary<string, string>, bool> applyRead)
+            : this(accountId, canWrite, read, write, (delay, action) => { }, applyRead)
+        {
+            _schedule = Schedule;
+        }
+
+        public ServerManager(Func<string> accountId, Func<bool> canWrite,
+            Action<string, Action<Dictionary<string, string>>, Action<int>> read,
+            Action<string, Dictionary<string, string>, Action, Action<int>> write,
             Action<TimeSpan, Action> schedule, Action<Dictionary<string, string>, bool> applyRead)
         {
             _accountId = accountId ?? throw new ArgumentNullException(nameof(accountId));
@@ -303,7 +312,7 @@ namespace AD
             PlayFabClientAPI.UpdateUserData(request, result => success(), error => failure(error?.HttpCode ?? 0));
         }
 
-        private static UpdateUserDataRequest CreateWriteRequest(Dictionary<string, string> data,
+        internal static UpdateUserDataRequest CreateWriteRequest(Dictionary<string, string> data,
             PlayFabAuthenticationContext context)
         {
             return new UpdateUserDataRequest
