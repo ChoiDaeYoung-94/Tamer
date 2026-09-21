@@ -163,11 +163,14 @@ class SessionConfirmation:
         return Principal(row['account'], None, row['entity_id'], 'session_confirmation', row['confirmed'], row['intent_key'])
 
 
-def compose(database, title_id, secret_key, policy=None, clock=time.time, request=None):
+def compose(database, title_id, secret_key, policy=None, clock=time.time, request=None, recovery_origin=None, recovery_ttl_seconds=30 * 86400):
     """Explicit composition only. The caller supplies private credentials and enabled policy."""
     upstream = PlayFabSession(title_id, secret_key, **({} if request is None else {'request': request}))
     effective_policy = policy if policy is not None and policy.session_confirmation_enabled else Policy()
     confirmation = SessionConfirmation(database, upstream, effective_policy, clock)
     service = IntakeService(database, title_id, confirmation.authenticate, upstream.resolve_target,
         ServerDeletePlayerSubmission(title_id, upstream.invoke), upstream.verify_target, confirmation.policy, clock)
+    if recovery_origin is not None:
+        from .receipt_recovery import ReceiptRecovery
+        service.receipt_recovery = ReceiptRecovery(service, recovery_origin, recovery_ttl_seconds)
     return service, confirmation

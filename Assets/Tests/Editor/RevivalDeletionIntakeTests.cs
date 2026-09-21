@@ -18,6 +18,50 @@ public class RevivalDeletionIntakeTests
     private static object PrivateCall(object target, string name, params object[] args) =>
         target.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, args);
 
+    [TestCase("synthetic-owner", false, true)]
+    [TestCase("foreign-owner", false, false)]
+    [TestCase("", false, false)]
+    [TestCase("synthetic-owner", true, false)]
+    public void Revival_DeletionReceiptOfflineCleanupRequiresOwnerHashAndNeverTouchesAnotherActiveAccount(string diskOwner, bool otherActive, bool removed)
+    {
+        var root = new GameObject("Offline receipt owner fixture"); root.SetActive(false);
+        string directory = Path.Combine(Path.GetTempPath(), "receipt-owner-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "PlayerData.json");
+        string original = "{\"Gold\":\"123\",\"GooglePlay\":\"ProductNoAds\",\"__TamerAccountOwner\":\"" + diskOwner + "\"}";
+        File.WriteAllText(path, original);
+        var credentials = new PlayFabAuthenticationContext(); credentials.CopyFrom(PlayFabSettings.staticPlayer);
+        string title = PlayFabSettings.TitleId;
+        const string pauseKey = "AD_DeletionAcceptedNeedsLogin"; bool hadPause = PlayerPrefs.HasKey(pauseKey); int pause = PlayerPrefs.GetInt(pauseKey);
+        try
+        {
+            PlayFabSettings.TitleId = "TEST1"; PlayFabSettings.staticPlayer.ForgetAllCredentials();
+            if (otherActive) PlayFabSettings.staticPlayer.PlayFabId = "active-other";
+            var data = root.AddComponent(DataType); Set(data, "_playerDataPath", path);
+            var recordType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.Privacy.DeletionRecovery")).First(t => t != null);
+            var record = Activator.CreateInstance(recordType);
+            recordType.GetField("Origin").SetValue(record, "https://example.invalid/"); recordType.GetField("Title").SetValue(record, "TEST1");
+            var hash = recordType.GetMethod("Hash");
+            recordType.GetField("OwnerHash").SetValue(record, hash.Invoke(null, new object[] { new[] { "https://example.invalid/", "TEST1", "synthetic-owner" } }));
+            recordType.GetField("Binding").SetValue(record, hash.Invoke(null, new object[] { new[] { "https://example.invalid/", "TEST1", "synthetic-owner", "entity" } }));
+            if (otherActive)
+            {
+                Assert.That(Call(data, "CanApplyDeletionReceipt", record), Is.False);
+                Assert.Throws<TargetInvocationException>(() => Call(data, "ApplyDeletionReceipt", record, true));
+                Assert.That(PlayFabSettings.staticPlayer.PlayFabId, Is.EqualTo("active-other"));
+            }
+            else Call(data, "ApplyDeletionReceipt", record, true);
+            Assert.That(File.Exists(path), Is.EqualTo(!removed));
+            if (!removed) Assert.That(File.ReadAllText(path), Is.EqualTo(original));
+            else Assert.That(File.ReadAllText(Directory.GetFiles(directory, "*.deletion-entitlement-*").Single()), Does.Contain("ProductNoAds").And.Not.Contain("Gold"));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root); Directory.Delete(directory, true);
+            PlayFabSettings.TitleId = title; PlayFabSettings.staticPlayer.CopyFrom(credentials);
+            if (hadPause) PlayerPrefs.SetInt(pauseKey, pause); else PlayerPrefs.DeleteKey(pauseKey); PlayerPrefs.Save();
+        }
+    }
+
     [Test] public void Revival_DeletionRuntimeCompositionRejectsReplacedManagerBeforeAnyHttp()
     {
         var root = new GameObject("Deletion runtime composition fixture");

@@ -19,6 +19,7 @@ public class RevivalDeletionSessionTests
     private FileDeletionRecoveryStore _store;
     private DeletionSession _current;
     private string _ticket;
+    private readonly ReceiptTestKeys _keys = new ReceiptTestKeys();
 
     private sealed class Server : HttpMessageHandler
     {
@@ -27,17 +28,28 @@ public class RevivalDeletionSessionTests
         public string Status = "submission_unknown";
         public bool LoseSubmit, Unsupported, WrongEvidence;
         public TaskCompletionSource<HttpResponseMessage> PendingSubmit;
+        public Func<DeletionRecovery> Record;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
             string path = request.RequestUri.AbsolutePath;
             Paths.Add(path);
             Bodies.Add(request.Content == null ? "" : await request.Content.ReadAsStringAsync());
-            if (path.EndsWith("config")) return Json("{\"available\":true,\"synthetic\":false,\"evidenceKind\":\"" +
+            if (path.EndsWith("config")) return Json("{\"available\":true,\"synthetic\":false,\"receiptRecovery\":true,\"evidenceKind\":\"" +
                 (WrongEvidence ? "provider_reauthentication" : "session_confirmation") + "\"}");
             if (path.EndsWith("session-challenge")) return Unsupported
                 ? Json("{\"code\":\"account_type_unsupported\"}", HttpStatusCode.Conflict)
                 : Json("{\"nonce\":\"" + new string('n', 43) + "\",\"purpose\":\"delete_title_account\",\"evidenceKind\":\"session_confirmation\"}");
             if (path.EndsWith("session-confirm")) return Json("{\"accountId\":\"" + Account + "\",\"proof\":\"" + Proof + "\",\"evidenceKind\":\"session_confirmation\"}");
+            if (path.EndsWith("receipt-ack")) return Json("{\"acknowledged\":true}");
+            if (path.EndsWith("receipt-register") || path.EndsWith("receipt-status"))
+            {
+                var r = Record();
+                bool registration = path.EndsWith("receipt-register");
+                return Json("{\"requestId\":\"" + r.RequestId + "\",\"policyRevision\":\"" + r.Revision + "\",\"scope\":\"title\",\"state\":\"" +
+                    (registration ? "awaiting_confirmation" : "processing") + "\",\"submissionState\":\"" +
+                    (registration ? "not_submitted" : Status) + "\",\"clientKey\":\"" + r.ClientKey + "\",\"ownerHash\":\"" + r.OwnerHash +
+                    "\",\"binding\":\"" + r.Binding + "\",\"expiresAt\":9999999999}");
+            }
             if (path.EndsWith("/request")) return Snapshot("awaiting_confirmation", "not_submitted", true);
             if (path.EndsWith("/confirm"))
             {
@@ -69,7 +81,10 @@ public class RevivalDeletionSessionTests
         var client = typeof(HttpDeletionGateway).GetField("_client", BindingFlags.Instance | BindingFlags.NonPublic);
         ((HttpClient)client.GetValue(gateway)).Dispose();
         client.SetValue(gateway, new HttpClient(server) { BaseAddress = new Uri("https://example.invalid/") });
-        return new DeletionFlow(gateway, () => _current, accepted: accepted, recovery: store ?? _store, binding: binding ?? _binding);
+        var journal = store ?? _store;
+        server.Record = journal.Load;
+        return new DeletionFlow(gateway, () => _current, accepted: accepted, recovery: journal, binding: binding ?? _binding,
+            receipts: new DeletionReceiptClient(gateway, _keys, journal), origin: "https://example.invalid/");
     }
     private static int Count(Server server, string operation) => server.Paths.FindAll(p => p == "/v1/deletion/" + operation).Count;
 

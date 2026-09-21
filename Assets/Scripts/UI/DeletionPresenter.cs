@@ -23,6 +23,7 @@ namespace AD
             // Validate the origin now, before installing the login guard.
             using (HttpDeletionGateway.ForSessionConfirmation(httpsOrigin, s => null)) { }
             var directory = recoveryDirectory ?? Path.Combine(Application.persistentDataPath, "DeletionRecovery");
+            DeletionReceiptBootstrap.Configure(httpsOrigin, titleId, directory);
             Func<string, FileDeletionRecoveryStore> store = account => new FileDeletionRecoveryStore(Path.Combine(directory,
                 DeletionRecovery.Hash(httpsOrigin.AbsoluteUri, titleId, account) + ".json"));
             DeletionRecoveryGuard.HasPendingSubmission = account => store(account).Load()?.SubmissionStarted == true;
@@ -41,9 +42,11 @@ namespace AD
                         throw new InvalidOperationException();
                     return player.ClientSessionTicket;
                 });
+                var journal = store(session.AccountId);
                 return new DeletionFlow(gateway, () => ReferenceEquals(owner, Managers.DataM) ? owner.DeletionSession() : null, owner.BeginDeletionSubmission,
-                    owner.FinishAcceptedDeletion, owner.FinishCancelledDeletion, store(session.AccountId),
-                    DeletionRecovery.Hash(httpsOrigin.AbsoluteUri, titleId, session.AccountId, session.EntityId));
+                    owner.FinishAcceptedDeletion, owner.FinishCancelledDeletion, journal,
+                    DeletionRecovery.Hash(httpsOrigin.AbsoluteUri, titleId, session.AccountId, session.EntityId),
+                    new DeletionReceiptClient(gateway, new AndroidDeletionReceiptKeys(), journal), httpsOrigin.AbsoluteUri);
             };
         }
 
@@ -135,7 +138,9 @@ namespace AD
                 case DeletionState.AwaitingSessionConfirmation:
                     text = "Confirm that you want to use this signed-in game account for this deletion request. This confirms your current session; it is not a new Google sign-in. No deletion is submitted by this step."; break;
                 case DeletionState.RecoveryRequired:
-                    text = "A previous deletion request was found. Confirm your current session to recover the same request. An uncertain submission will only be checked, not sent again."; break;
+                    text = "A previous deletion request was found. Check its receipt without signing in again. An uncertain submission will only be checked, not sent again."; break;
+                case DeletionState.RecoveryUnavailable:
+                    text = "The receipt could not be checked. Its access may have expired or its protected device key may be unavailable. Acceptance is unknown. Your data is preserved; no request was resent. You can close this screen, retry a temporary connection failure, or use a valid existing account session to check this request."; break;
                 case DeletionState.UnsupportedAccount:
                     text = "This account type is not supported by the configured deletion service. No deletion was submitted by this check. Existing pending requests and local data are preserved."; break;
                 case DeletionState.AwaitingConfirmation:
@@ -171,11 +176,12 @@ namespace AD
             Set(_view.ConfirmButton, state == DeletionState.AwaitingConfirmation && _flow.CanConfirmDeletion, ready);
             Set(_view.SessionConfirmButton, state == DeletionState.AwaitingSessionConfirmation, ready);
             Set(_view.RefreshButton, state == DeletionState.Queued || state == DeletionState.Processing || state == DeletionState.SubmissionUnknown ||
-                state == DeletionState.RetryableFailure && _flow.Request != null, ready && !_flow.NeedsAuthorization);
+                state == DeletionState.RecoveryRequired || state == DeletionState.RecoveryUnavailable ||
+                state == DeletionState.RetryableFailure && _flow.Request != null, ready && (!_flow.NeedsAuthorization || _flow.CanRecoverReceipt));
             Set(_view.CancelButton, state == DeletionState.AwaitingConfirmation || state == DeletionState.Queued, ready && !_flow.NeedsAuthorization);
             Set(_view.RetryButton, state == DeletionState.RetryableFailure && _retry != null, ready);
             Set(_view.ReauthenticateButton, state == DeletionState.RetryableFailure || state == DeletionState.RecoveryRequired ||
-                state == DeletionState.SubmissionUnknown || state == DeletionState.AwaitingSessionConfirmation, ready);
+                state == DeletionState.RecoveryUnavailable || state == DeletionState.SubmissionUnknown || state == DeletionState.AwaitingSessionConfirmation, ready);
         }
 
         private static void Set(UnityEngine.UI.Button button, bool visible, bool enabled)

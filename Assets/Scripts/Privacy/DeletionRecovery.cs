@@ -17,6 +17,16 @@ namespace AD.Privacy
         [DataMember] public string RequestId;
         [DataMember] public string Revision;
         [DataMember(IsRequired = true)] public bool SubmissionStarted;
+        [DataMember] public string Origin;
+        [DataMember] public string Title;
+        [DataMember] public string OwnerHash;
+        [DataMember] public string KeyAlias;
+        [DataMember] public bool KeyCreated;
+        [DataMember] public bool ReceiptRegistered;
+        [DataMember] public double ReceiptExpires;
+        [DataMember] public string TerminalState;
+        [DataMember] public string TerminalSeal;
+        [DataMember] public bool CleanupApplied;
 
         public void Validate()
         {
@@ -25,6 +35,14 @@ namespace AD.Privacy
                 RequestId != null && (RequestId.Length == 0 || RequestId.Length > 128 || Revision.Length == 0 || Revision.Length > 128) ||
                 SubmissionStarted && RequestId == null)
                 throw new InvalidDataException("Deletion recovery is unavailable; original record preserved.");
+            if (KeyCreated || ReceiptRegistered || TerminalState != null)
+            {
+                if (string.IsNullOrEmpty(Origin) || string.IsNullOrEmpty(Title) || !Hex(OwnerHash, 64) ||
+                    KeyAlias != "tamer.deletion.receipt." + ClientKey || RequestId == null ||
+                    ReceiptRegistered && (!KeyCreated || double.IsNaN(ReceiptExpires) || double.IsInfinity(ReceiptExpires) || ReceiptExpires <= 0) ||
+                    TerminalState != null && (!ReceiptRegistered || (TerminalState != "accepted" && TerminalState != "cancelled") || !Hex(TerminalSeal, 64)))
+                    throw new InvalidDataException("Deletion receipt binding is unavailable.");
+            }
         }
 
         private static bool Hex(string value, int length)
@@ -41,7 +59,7 @@ namespace AD.Privacy
             foreach (var value in values)
             {
                 if (string.IsNullOrEmpty(value)) throw new InvalidOperationException("Account binding is required.");
-                text.Append(value.Length).Append(':').Append(value);
+                text.Append(Encoding.UTF8.GetByteCount(value)).Append(':').Append(value);
             }
             using (var sha = SHA256.Create())
                 return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-", "").ToLowerInvariant();

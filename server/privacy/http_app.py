@@ -6,7 +6,7 @@ from .deletion import Rejected, SyntheticProvider
 PUBLIC_CODES = frozenset(('reauthentication_required', 'invalid_request', 'policy_unavailable', 'policy_changed',
                           'request_already_exists', 'request_not_found', 'confirmation_expired', 'invalid_confirmation',
                           'already_submitted', 'provider_unconfirmed', 'unavailable', 'synthetic_account_required', 'operation_conflict',
-                          'session_confirmation_required', 'account_type_unsupported'))
+                          'session_confirmation_required', 'account_type_unsupported', 'receipt_unavailable', 'receipt_rate_limited'))
 
 
 def unique(pairs):
@@ -37,9 +37,11 @@ def create_app(service, synthetic_demo=False, session_confirmation=None):
                 status = '200 OK'
             elif method == 'GET' and path == '/v1/deletion/config':
                 payload, status = {'available': service.policy.ready, 'synthetic': synthetic_demo,
+                    'receiptRecovery': getattr(service, 'receipt_recovery', None) is not None,
                     'evidenceKind': 'session_confirmation' if session_confirmation else 'provider_reauthentication'}, '200 OK'
             elif method == 'POST' and path in ('/v1/deletion/request', '/v1/deletion/confirm', '/v1/deletion/status', '/v1/deletion/cancel', '/demo/advance',
-                                              '/v1/deletion/session-challenge', '/v1/deletion/session-confirm'):
+                                              '/v1/deletion/session-challenge', '/v1/deletion/session-confirm',
+                                              '/v1/deletion/receipt-register', '/v1/deletion/receipt-status', '/v1/deletion/receipt-ack'):
                 length = int(environ.get('CONTENT_LENGTH') or 0)
                 if not 0 < length <= 16384 or environ.get('CONTENT_TYPE', '').split(';')[0] != 'application/json':
                     raise ValueError()
@@ -56,9 +58,19 @@ def create_app(service, synthetic_demo=False, session_confirmation=None):
                     required = {'sessionTicket', 'clientKey'}
                 if path.endswith('/session-confirm'):
                     required = {'sessionTicket', 'nonce', 'confirmed'}
+                if path.endswith('/receipt-register'):
+                    required = {'proof', 'requestId', 'verifier'}
+                if path.endswith('/receipt-status') or path.endswith('/receipt-ack'):
+                    required = {'requestId', 'capability'}
                 if not isinstance(body, dict) or set(body) != required:
                     raise ValueError()
-                if path.endswith('/session-challenge') or path.endswith('/session-confirm'):
+                if '/receipt-' in path:
+                    recovery = getattr(service, 'receipt_recovery', None)
+                    if recovery is None:
+                        raise Rejected('receipt_unavailable')
+                    payload = (recovery.register(body['proof'], body['requestId'], body['verifier']) if path.endswith('/receipt-register')
+                        else recovery.read(body['requestId'], body['capability'], acknowledge=path.endswith('/receipt-ack')))
+                elif path.endswith('/session-challenge') or path.endswith('/session-confirm'):
                     if session_confirmation is None:
                         raise Rejected('unavailable')
                     payload = (session_confirmation.begin(body['sessionTicket'], body['clientKey'])

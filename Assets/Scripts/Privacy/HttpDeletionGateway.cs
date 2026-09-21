@@ -28,7 +28,7 @@ namespace AD.Privacy
     public sealed class UnsupportedDeletionAccountException : Exception { }
 
     /// <summary>Explicit HTTPS intake adapter. Requires an independently configured fresh-auth exchange.</summary>
-    public sealed class HttpDeletionGateway : IDeletionGateway, ISessionConfirmationGateway, IDisposable
+    public sealed class HttpDeletionGateway : IDeletionGateway, ISessionConfirmationGateway, IDeletionReceiptGateway, IDisposable
     {
         private readonly Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> _reauthenticate;
         private readonly HttpClient _client;
@@ -49,7 +49,7 @@ namespace AD.Privacy
         {
             if (!UsesSessionConfirmation || session == null || !session.HasEntityBinding) throw new InvalidOperationException();
             var config = await Send<Config>("v1/deletion/config", null, token);
-            if (!config.available || config.synthetic || config.evidenceKind != "session_confirmation")
+            if (!config.available || config.synthetic || config.evidenceKind != "session_confirmation" || !config.receiptRecovery)
                 throw new InvalidOperationException("Session confirmation is unavailable.");
             var ticket = _sessionTicket(session);
             if (string.IsNullOrEmpty(ticket) || ticket.Length > 4096) throw new InvalidOperationException();
@@ -117,6 +117,16 @@ namespace AD.Privacy
         { Validate(auth); return Snapshot("status", new IdBody { proof = auth.Proof, requestId = id }, token); }
         public Task<DeletionSnapshot> CancelAsync(DeletionAuthorization auth, string id, CancellationToken token)
         { Validate(auth); return Snapshot("cancel", new IdBody { proof = auth.Proof, requestId = id }, token); }
+
+        public Task<DeletionReceipt> RegisterReceiptAsync(DeletionAuthorization auth, string id, string verifier, CancellationToken token)
+        { Validate(auth); return Send<DeletionReceipt>("v1/deletion/receipt-register", new ReceiptRegisterBody { proof = auth.Proof, requestId = id, verifier = verifier }, token); }
+        public Task<DeletionReceipt> ReadReceiptAsync(string id, string capability, CancellationToken token) =>
+            Send<DeletionReceipt>("v1/deletion/receipt-status", new ReceiptAccessBody { requestId = id, capability = capability }, token);
+        public async Task AcknowledgeReceiptAsync(string id, string capability, CancellationToken token)
+        {
+            var response = await Send<ReceiptAckBody>("v1/deletion/receipt-ack", new ReceiptAccessBody { requestId = id, capability = capability }, token);
+            if (!response.acknowledged) throw new InvalidOperationException();
+        }
 
         private async Task<DeletionSnapshot> Snapshot(string operation, object body, CancellationToken token)
         {
@@ -188,7 +198,12 @@ namespace AD.Privacy
 
         [DataContract] private sealed class Config
         { [DataMember(IsRequired = true)] public bool available { get; set; } [DataMember(IsRequired = true)] public bool synthetic { get; set; }
-          [DataMember] public string evidenceKind { get; set; } }
+          [DataMember] public string evidenceKind { get; set; } [DataMember] public bool receiptRecovery { get; set; } }
+        [DataContract] private sealed class ReceiptRegisterBody
+        { [DataMember] public string proof; [DataMember] public string requestId; [DataMember] public string verifier; }
+        [DataContract] private sealed class ReceiptAccessBody
+        { [DataMember] public string requestId; [DataMember] public string capability; }
+        [DataContract] private sealed class ReceiptAckBody { [DataMember(IsRequired = true)] public bool acknowledged; }
         [DataContract] private sealed class ErrorBody { [DataMember] public string code { get; set; } }
         [DataContract] private sealed class SessionBeginBody
         { [DataMember] public string sessionTicket { get; set; } [DataMember] public string clientKey { get; set; } }

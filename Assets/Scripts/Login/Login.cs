@@ -69,6 +69,7 @@ namespace AD
         private int _loginDeletionEpoch;
         private bool _loginCaptured;
         private GameObject _deletionRecoveryPanel;
+        private bool _receiptRecoverySignIn;
 
         private bool LoginCurrent() => _loginCaptured && _dataOwner != null
             && ReferenceEquals(_dataOwner, AD.Managers.DataM) && !_dataOwner.DeletionInProgress
@@ -113,6 +114,19 @@ namespace AD
 #endif
             _dataOwner = AD.Managers.DataM;
             _cts = new CancellationTokenSource();
+            if (DeletionReceiptBootstrap.TryOpen(transform, _loadingText != null ? _loadingText.font : null, () =>
+            {
+                _receiptRecoverySignIn = true;
+                if (_loading != null) _loading.SetActive(false);
+                if (_retry != null) _retry.SetActive(true);
+                if (_retryText != null) _retryText.text = "Receipt checking has stopped. Sign in explicitly to an existing account to check its request. No new account will be created.";
+            }))
+            {
+                _receiptRecoverySignIn = true;
+                if (_loading != null) _loading.SetActive(false);
+                if (_retry != null) _retry.SetActive(false);
+                return;
+            }
             if (PlayerPrefs.GetInt(AD.DataManager.DeletionLoginPauseKey, 0) != 0)
             {
                 ShowRetry("Deletion request accepted. Sign in explicitly to continue.");
@@ -397,7 +411,7 @@ namespace AD
                         AndroidDeviceId = deviceId,
                         OS = SystemInfo.operatingSystem,
                         AndroidDevice = SystemInfo.deviceModel,
-                        CreateAccount = allowCreate
+                        CreateAccount = allowCreate && !_receiptRecoverySignIn
                     }, onOk, onError), "LoginWithAndroidDeviceID", token);
                 if (!device.IsSuccess || LoginCancelled(token)) return false;
                 OnLoggedIn(device.Result.PlayFabId, device.Result.NewlyCreated,
@@ -411,7 +425,7 @@ namespace AD
                 {
                     AuthenticationContext = new PlayFabAuthenticationContext(),
                     CustomId = customId,
-                    CreateAccount = allowCreate
+                    CreateAccount = allowCreate && !_receiptRecoverySignIn
                 }, onOk, onError), "LoginWithCustomID", token);
             if (!custom.IsSuccess || LoginCancelled(token)) return false;
             OnLoggedIn(custom.Result.PlayFabId, custom.Result.NewlyCreated,

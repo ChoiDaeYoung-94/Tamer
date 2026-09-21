@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace AD.Privacy
 {
-    public enum DeletionState { Unavailable, Idle, Authenticating, AwaitingConfirmation, Queued, Processing, Completed, Cancelled, RetryableFailure, SessionChanged, Accepted, SubmissionUnknown, AwaitingSessionConfirmation, RecoveryRequired, UnsupportedAccount }
+    public enum DeletionState { Unavailable, Idle, Authenticating, AwaitingConfirmation, Queued, Processing, Completed, Cancelled, RetryableFailure, SessionChanged, Accepted, SubmissionUnknown, AwaitingSessionConfirmation, RecoveryRequired, UnsupportedAccount, RecoveryUnavailable }
 
     public sealed class DeletionSession
     {
@@ -61,12 +61,16 @@ namespace AD.Privacy
         private string _clientKey = Guid.NewGuid().ToString("N");
         private readonly IDeletionRecoveryStore _recovery;
         private readonly string _binding;
+        private readonly DeletionReceiptClient _receipts;
+        private readonly string _origin;
+        private DeletionRecovery _record;
         private DeletionSessionChallenge _sessionChallenge;
         private bool _submissionStarted;
         private bool _recoveryBlocked;
         private ISessionConfirmationGateway SessionGateway => _gateway as ISessionConfirmationGateway;
         public bool UsesSessionConfirmation => SessionGateway?.UsesSessionConfirmation == true;
         public bool NeedsAuthorization => _authorization == null;
+        public bool CanRecoverReceipt => _record?.ReceiptRegistered == true && _receipts != null;
         public bool CanConfirmDeletion => Request?.State == DeletionState.AwaitingConfirmation &&
             !string.IsNullOrEmpty(Request.Challenge) && (!UsesSessionConfirmation || !_submissionStarted && _authorization != null);
         private DeletionSession _session;
@@ -85,7 +89,8 @@ namespace AD.Privacy
 
         public DeletionFlow(IDeletionGateway gateway, Func<DeletionSession> currentSession,
             Action<DeletionSession> beforeSubmit = null, Action<DeletionSession> accepted = null,
-            Action<DeletionSession> cancelled = null, IDeletionRecoveryStore recovery = null, string binding = null)
+            Action<DeletionSession> cancelled = null, IDeletionRecoveryStore recovery = null, string binding = null,
+            DeletionReceiptClient receipts = null, string origin = null)
         {
             _gateway = gateway ?? throw new ArgumentNullException(nameof(gateway));
             _current = currentSession ?? throw new ArgumentNullException(nameof(currentSession));
@@ -94,6 +99,8 @@ namespace AD.Privacy
             _cancelled = cancelled;
             _recovery = recovery;
             _binding = binding;
+            _receipts = receipts;
+            _origin = origin;
             if (UsesSessionConfirmation && (recovery == null || string.IsNullOrEmpty(binding)))
                 throw new ArgumentException("Session confirmation requires durable account-bound recovery.");
             State = gateway.IsAvailable ? DeletionState.Idle : DeletionState.Unavailable;
@@ -103,6 +110,7 @@ namespace AD.Privacy
                 {
                     _session = _current(); // Bind the journal to this live owner before any delayed user action.
                     var record = recovery.Load();
+                    _record = record;
                     if (record != null)
                     {
                         record.Validate();
@@ -188,18 +196,21 @@ namespace AD.Privacy
             });
 
         public Task<bool> ConfirmAsync() => !CanConfirmDeletion
-            ? Task.FromResult(false) : Run(token =>
+            ? Task.FromResult(false) : Run(async token =>
             {
                 if (UsesSessionConfirmation)
                 {
+                    if (_receipts != null) await _receipts.RegisterAsync(_authorization, _record, token);
+                    else if (!IsSynthetic) throw new InvalidOperationException("Protected receipt recovery is required.");
+                    if (!Current()) throw new InvalidOperationException();
                     _submissionStarted = true;
                     try { Persist(); } // A failed journal write must prevent the external submit.
                     catch { _submissionStarted = false; throw; }
                 }
                 _beforeSubmit?.Invoke(_session);
-                return _gateway.ConfirmAsync(_authorization, Request, token);
+                return await _gateway.ConfirmAsync(_authorization, Request, token);
             });
-        public Task<bool> RefreshAsync() => Request == null ? Task.FromResult(false)
+        public Task<bool> RefreshAsync() => CanRecoverReceipt ? RecoverReceiptAsync() : Request == null ? Task.FromResult(false)
             : Run(token => _gateway.StatusAsync(_authorization, Request.RequestId, token));
         public Task<bool> CancelAsync() => Request == null ||
             (Request.State != DeletionState.AwaitingConfirmation && Request.State != DeletionState.Queued)
@@ -210,8 +221,41 @@ namespace AD.Privacy
 
         private void Persist()
         {
-            _recovery?.Save(new DeletionRecovery { Binding = _binding, ClientKey = _clientKey,
-                RequestId = Request?.RequestId, Revision = Request?.PolicyRevision, SubmissionStarted = _submissionStarted });
+            if (_recovery == null) return;
+            if (_record == null) _record = new DeletionRecovery { Binding = _binding, ClientKey = _clientKey,
+                Origin = _origin, Title = _session?.TitleId,
+                OwnerHash = _origin == null ? null : DeletionRecovery.Hash(_origin, _session.TitleId, _session.AccountId) };
+            _record.RequestId = Request?.RequestId;
+            _record.Revision = Request?.PolicyRevision;
+            _record.SubmissionStarted = _submissionStarted;
+            _recovery.Save(_record);
+        }
+
+        private async Task<bool> RecoverReceiptAsync()
+        {
+            if (!CanRun()) return false;
+            IsBusy = true;
+            try
+            {
+                if (!Current()) { State = DeletionState.SessionChanged; return false; }
+                var snapshot = await _receipts.ReadAsync(_record, _lifetime.Token);
+                if (!Current()) { if (!_disposed) State = DeletionState.SessionChanged; return false; }
+                Request = snapshot;
+                State = snapshot.State;
+                if (State == DeletionState.Accepted || State == DeletionState.Cancelled)
+                {
+                    try { await _receipts.FinishAsync(_record, () =>
+                    {
+                        if (!Current()) throw new InvalidOperationException();
+                        if (snapshot.State == DeletionState.Accepted) _accepted?.Invoke(_session);
+                        else _cancelled?.Invoke(_session);
+                    }, _lifetime.Token); }
+                    catch (Exception) { AcceptedCleanupFailed = true; }
+                }
+                return true;
+            }
+            catch (Exception) { if (!_disposed) State = DeletionState.RecoveryUnavailable; return false; }
+            finally { IsBusy = false; if (!_disposed) Notify(); }
         }
 
         private async Task<bool> Run(Func<CancellationToken, Task<DeletionSnapshot>> action, bool authenticate = false)
@@ -241,10 +285,26 @@ namespace AD.Privacy
                     throw new InvalidOperationException();
                 Request = result;
                 State = result.State;
-                if (State == DeletionState.Cancelled) { _recovery?.Clear(); _cancelled?.Invoke(_session); }
+                if (State == DeletionState.Cancelled)
+                {
+                    if (CanRecoverReceipt)
+                    {
+                        _receipts.RememberTerminal(_record, State);
+                        await _receipts.FinishAsync(_record, () => _cancelled?.Invoke(_session), _lifetime.Token);
+                    }
+                    else { _recovery?.Clear(); _cancelled?.Invoke(_session); }
+                }
                 if (State == DeletionState.Accepted)
                 {
-                    try { _accepted?.Invoke(_session); _recovery?.Clear(); }
+                    try
+                    {
+                        if (CanRecoverReceipt)
+                        {
+                            _receipts.RememberTerminal(_record, State);
+                            await _receipts.FinishAsync(_record, () => _accepted?.Invoke(_session), _lifetime.Token);
+                        }
+                        else { _accepted?.Invoke(_session); _recovery?.Clear(); }
+                    }
                     catch (Exception) { AcceptedCleanupFailed = true; } // Never resubmit an accepted deletion to retry a local cleanup.
                 }
                 else if (State != DeletionState.Cancelled) Persist();
