@@ -24,11 +24,21 @@
       "xml": "Logs/revival/age-consent-contract-config-retry.xml",
       "sha256": "c92400b90b5a9752fed7edb5c9c4803173e10cf1d7795d988cf2a5ad61643101",
       "failure": "Test GetField(G) returned null: G is a property, not a field."
+    },
+    {
+      "source": "aada6804dd39ee865d3853e93a5482816ace570e",
+      "utc": "2026-09-21T06:20:19Z",
+      "filter": "Revival_PinnedSdkConfigurationUsesNewAgeTreatmentAndSeparateRating",
+      "authorization": "User approved resuming the failed four cases; relayed by root.",
+      "total": 4, "passed": 4, "failed": 0, "skipped": 0,
+      "xml": "Logs/revival/age-consent-contract-config-approved.xml",
+      "sha256": "0b9fc691ec028fa14bf44759fdd9b2b77811be3f257adc48e738406acf07cdea",
+      "change": "Test reads the installed SDK public Value property and requires G; product code unchanged."
     }
   ],
-  "status": "stopped_after_two_failures_requires_user_approval",
+  "status": "approved_resumption_four_cases_passed_prior_89_not_repeated",
   "readOnlyFinding": "G getter creates a new MaxAdContentRating instance; public Value property provides its string value.",
-  "remainingUnverified": ["SDK configuration assertion", "Android native propagation", "regional consent and withdrawal UI", "published regional messages", "Families native five-second close"],
+  "remainingUnverified": ["Android native propagation", "regional consent and withdrawal UI", "published regional messages", "Families native five-second close"],
   "regionalConsentReviewed": false,
   "productionAdsEnabled": false,
   "networkTestsRun": false,

@@ -33,8 +33,10 @@ Required 개인정보 옵션은 광고 허용값과 독립적으로 접근할 �
 
 기존 Editor 테스트에 구간 매핑, 명시적 TFUA true/false, 새 실행의 캐시 우회 방지, SDK 설정 객체의 새 태그/G/구 태그 미지정, 모든 연령의 manager 무호출, 광고 차단 중 Required 옵션 접근과 늦은 보상 차단을 추가했다. 새 네트워크 harness는 만들지 않았다.
 
-**검증 중단 — 동일 테스트 2회 실패.** 1차 소스 `bd64a23ad61a3ec94810e33bd0b65623e32cde5d`, UTC05:50:12, 4개 fixture 93건 중 89 PASS/4 FAIL. 실패는 `Revival_PinnedSdkConfigurationUsesNewAgeTreatmentAndSeparateRating`의 네 구간이며 `MaxAdContentRating.ToString()`을 문자열 G로 가정한 assertion 오류다. 2차 소스 `1d3ac08a7cb9c6e0eb4e54849a453fdf10287722`, UTC05:51:03, 실패한 4건만 실행해 0 PASS/4 FAIL. 테스트의 G 비교만 변경했고 제품 코드는 동일했다. `GetField("G")`가 null이라 테스트에서 NullReferenceException이 발생했다.
+**이전 중단 기록 — 동일 테스트 2회 실패.** 1차 소스 `bd64a23ad61a3ec94810e33bd0b65623e32cde5d`, UTC05:50:12, 4개 fixture 93건 중 89 PASS/4 FAIL. 실패는 `Revival_PinnedSdkConfigurationUsesNewAgeTreatmentAndSeparateRating`의 네 구간이며 `MaxAdContentRating.ToString()`을 문자열 G로 가정한 assertion 오류다. 2차 소스 `1d3ac08a7cb9c6e0eb4e54849a453fdf10287722`, UTC05:51:03, 실패한 4건만 실행해 0 PASS/4 FAIL. 테스트의 G 비교만 변경했고 제품 코드는 동일했다. `GetField("G")`가 null이라 테스트에서 NullReferenceException이 발생했다.
 
 2차 후 DLL 읽기 전용 조사로 `G`가 필드가 아닌 속성이며 매번 새 객체를 반환하고, 문자열 값은 공개 `Value` 속성임을 확인했다. 이는 에이전트의 테스트 작성 오류다. 추가 수정·3차 실행·검증 완료 PR 진행을 중단했다. 공개 Value를 검사하도록 수정 후 동일 4건만 재검증할지는 사용자 승인 대상이다. 기존 89건은 재실행하지 않는다. 두 XML의 경로/해시는 [검증 기록](age-consent-contract-validation.json)에 보존했다. Editor는 종료됐고 ProjectSettings snapshot 복원을 마쳤다. CLI의 라이선스 validation 경고와 별개로 실제 XML의 테스트 실패가 존재하므로 라이선스 오류로 돌리지 않는다.
+
+**재개 승인 후 결과:** 사용자의 계속 진행 요청을 전달받아 공개 Value 속성 기준 수정·동일 4건 재검증을 재개했다. 설치 DLL의 G getter → 생성자 → Value 저장 및 public Value getter를 읽어 확인한 뒤 실제 설정 객체의 Value를 `G`와 비교하도록 테스트만 수정했다. 소스 `aada6804dd39ee865d3853e93a5482816ace570e`, UTC06:20:19, **4/4 PASS**, 실패0·skip0. 과거 두 실패를 지우지 않으며 이번 승인 이후 첫 실행에서 통과했다. 1차 이후 제품 코드 변경은 없고 앞서 통과한 89건은 재실행하지 않았다. 단일 최종 실행의 93/93 통과로 표기하지 않는다. Editor0·설정 복원·슬롯 반환을 확인했다.
 
 Unity6000.0.81f1 / CLI1.0.0-beta.8 / Android min24·target36·ARM64 pin 유지. APK를 생성하지 않아 새 APK SHA-256은 없다. 실제 Android 새 태그 전달, 지역별 폼·철회 UI, 운영 소재·5초 종료는 미검증이다. 공식 sample 네트워크 검증도 통합 담당자의 조건 검토 전에는 실행하지 않는다. [공식 지원 문의 초안](families-ads-policy.ko.md#공식-지원-문의-초안--미발송)은 제출 경로와 질문을 준비했으며 미발송이다.
