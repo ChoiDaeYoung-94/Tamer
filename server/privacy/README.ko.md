@@ -39,7 +39,7 @@ python -m server.privacy check
 python -m server.privacy serve
 ```
 
-`init-db`는 최초 한 번만 실행합니다. 기존 파일은 비어 있거나 손상되어 있어도 덮어쓰지 않습니다. 실패한 생성의 부분 파일도 자동 삭제하지 않습니다. `check`/`serve`는 기존 DB가 없거나 손상되거나 기대하는 테이블/열이 없으면 중단합니다. 자동 migration·repair·파일 교체는 하지 않습니다. 기존 행과 추가 테이블은 보존합니다. 정상 CLI 시작 시 기존 테이블 정의는 그대로 유지됩니다.
+`init-db`는 최초 한 번만 실행합니다. 기존 파일은 비어 있거나 손상되어 있어도 덮어쓰지 않습니다. 실패한 생성의 부분 파일도 자동 삭제하지 않습니다. `check`/`serve`는 기존 DB가 없거나 SQLite quick_check가 실패하거나 기대하는 테이블·열 이름/순서가 다르면 중단합니다. 타입·제약조건까지 스키마 전체를 비교하는 검사는 아닙니다. 자동 migration·repair·파일 교체는 하지 않습니다. 기존 행과 추가 테이블은 보존합니다. 정상 CLI 시작 시 기존 테이블 정의는 그대로 유지됩니다.
 
 같은 디렉터리의 `deletion.lock`에 OS 잠금을 잡아 중복 실행을 거부합니다. 잠금 파일은 종료 후에도 남고 정상 종료/프로세스 종료 시 잠금만 해제됩니다. 실행 중 DB·lock 파일·디렉터리 교체나 삭제를 하지 않습니다. 수평 확장, 네트워크 공유 파일시스템, 여러 title의 같은 DB 공유는 지원하지 않습니다. [SQLite 네트워크 파일 주의사항](https://www.sqlite.org/useovernet.html).
 
@@ -47,13 +47,13 @@ nonce/proof/삭제 요청/접수 상태/영수증 verifier를 같은 영속 DB�
 
 ## 검증과 한계
 
-구현 기준 main: `27b3209927940635878bd0f4bd803f3caf5e5ad0`. checkout: `C:\Users\pc_17\.codex\worktrees\7299\Tamer`, branch: `codex/privacy-wsgi-bootstrap`. Windows x64의 독립 CPython 3.14.7 + Waitress 3.0.2에서 다음을 실행했습니다.
+구현 기준 main: `27b3209927940635878bd0f4bd803f3caf5e5ad0`. 검증 소스: `3c9c2201caa48103f485b1027e0561b617dde1f9`에 들어간 코드·테스트와 동일한 커밋 직전 작업 내용입니다. checkout: `C:\Users\pc_17\.codex\worktrees\7299\Tamer`, branch: `codex/privacy-wsgi-bootstrap`. Windows x64의 독립 CPython 3.14.7 + Waitress 3.0.2에서 다음을 실행했습니다.
 
 ```text
 python -m unittest tools.revival.test_deletion_runtime -v
 ```
 
-추가 테스트 6/6 통과: 기본 비활성, 활성 fake 접수 흐름, 설정 오류, DB 부재/손상/스키마 불일치 시 원본 보존, 앱 재구성 후 기존 DB/영수증 유지와 중복 submit 없음, HTTPS/Host·중복 프로세스 잠금, CLI/로그 secret 비노출. 첫 실행은 테스트에서 환경 변수를 비우면서 Windows 임시 경로 캐시가 cwd를 가리킨 fixture 문제로 5개 실패했고 fixture 수정 후 두 번째 실행에서 통과했습니다. 실제 upstream은 차단하고 fake transport만 사용했습니다.
+추가 테스트 6/6 통과(0.472초): 기본 비활성, 활성 fake 접수 흐름, 설정 오류, DB 부재/손상/기대 테이블 누락 시 원본 보존, 앱 재구성 후 기존 DB/영수증 유지와 중복 submit 없음, HTTPS/Host·중복 프로세스 잠금, CLI/로그 secret 비노출. 첫 실행은 테스트에서 환경 변수를 비우면서 Windows 임시 경로 캐시가 cwd를 가리킨 fixture 문제로 5개 실패했고 fixture 수정 후 두 번째 실행에서 통과했습니다. 실제 upstream은 차단하고 fake transport만 사용했습니다. 출력은 작업 도구 응답으로 확인했고 별도 원시 로그 파일은 저장하지 않았습니다. 이후 변경은 이 검증 설명 보완뿐입니다.
 
 Unity/Android/CLI 변경 및 실행 없음, APK 생성 없음. Linux 잠금 분기, 실제 TLS 프록시/소켓 배포, 재부팅·디스크 장애·백업 복구, 실 PlayFab 권한/정책 설정은 미검증입니다. Python과 WSGI 버전 pin은 검증 기준이며 이후 보안 patch 검토를 대체하지 않습니다.
 
