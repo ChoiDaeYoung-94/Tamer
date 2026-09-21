@@ -110,7 +110,9 @@ namespace AD.Privacy
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }
-        public void Clear() { if (File.Exists(_path)) File.Delete(_path); }
+        // File.Delete is already idempotent for an absent file. Do not hide access failures with File.Exists:
+        // the caller must retain the protected key whenever removal of the journal fails.
+        public void Clear() { File.Delete(_path); }
     }
 
     // Set by explicit application bootstrap before login. An unreadable record fails closed.

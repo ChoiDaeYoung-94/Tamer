@@ -16,10 +16,10 @@ public class RevivalDeletionReceiptTests
     private sealed class FaultStore : IDeletionRecoveryStore
     {
         public FileDeletionRecoveryStore Inner;
-        public bool FailClear, FailRegisteredSave;
+        public bool FailRegisteredSave;
         public DeletionRecovery Load() => Inner.Load();
         public void Save(DeletionRecovery r) { if (FailRegisteredSave && r.ReceiptRegistered) throw new IOException(); Inner.Save(r); }
-        public void Clear() { if (FailClear) throw new IOException(); Inner.Clear(); }
+        public void Clear() { Inner.Clear(); }
     }
     private sealed class Gateway : IDeletionReceiptGateway
     {
@@ -27,6 +27,7 @@ public class RevivalDeletionReceiptTests
         public string Verifier;
         public bool Accepted, LoseRegistration, Acked, Mismatch;
         public int Reads, Registers, Acks;
+        public Action AfterAck;
         public Task<DeletionReceipt> RegisterReceiptAsync(DeletionAuthorization auth, string id, string verifier, CancellationToken t)
         {
             Registers++;
@@ -44,7 +45,7 @@ public class RevivalDeletionReceiptTests
             return Task.FromResult(Response(true));
         }
         public Task AcknowledgeReceiptAsync(string id, string cap, CancellationToken t)
-        { Acks++; Assert.That(DeletionReceiptClient.Verifier(cap), Is.EqualTo(Verifier)); Acked = true; return Task.CompletedTask; }
+        { Acks++; Assert.That(DeletionReceiptClient.Verifier(cap), Is.EqualTo(Verifier)); Acked = true; AfterAck?.Invoke(); return Task.CompletedTask; }
         private DeletionReceipt Response(bool reading) => new DeletionReceipt { requestId = Record.RequestId, clientKey = Record.ClientKey,
             ownerHash = Mismatch ? DeletionRecovery.Hash("foreign-owner") : Record.OwnerHash, binding = Record.Binding,
             expiresAt = 2000, policyRevision = Record.Revision, scope = "title",
@@ -94,14 +95,25 @@ public class RevivalDeletionReceiptTests
         await Register(); _gateway.Accepted = true;
         await Client().ReadAsync(_record, CancellationToken.None);
         string otherAlias = "tamer.deletion.receipt." + new string('b', 32); _keys.Create(otherAlias);
-        int applied = 0; _store.FailClear = true;
-        Assert.ThrowsAsync<IOException>(async () => await Client().FinishAsync(_record, () => applied++, CancellationToken.None));
+        int applied = 0;
+        FileStream deletionLock = null;
+        _gateway.AfterAck = () => deletionLock = new FileStream(Path.Combine(_directory, "pending.json"),
+            FileMode.Open, FileAccess.Read, FileShare.Read); // Real Windows sharing denial, after the terminal save.
+        try
+        {
+            Assert.ThrowsAsync<IOException>(async () => await Client().FinishAsync(_record, () => applied++, CancellationToken.None));
+            Assert.That(_keys.Keys.ContainsKey(_record.KeyAlias), Is.True, "Failed journal removal must preserve its verification key");
+            Assert.That(_store.Load().CleanupApplied, Is.True);
+        }
+        finally { deletionLock?.Dispose(); _gateway.AfterAck = null; }
         Assert.That(_gateway.Acked, Is.True);
-        var restarted = _store.Load(); _store.FailClear = false;
+        var restarted = _store.Load();
         Assert.That((await Client().ReadAsync(restarted, CancellationToken.None)).State, Is.EqualTo(DeletionState.Accepted));
         await Client().FinishAsync(restarted, () => applied++, CancellationToken.None);
         Assert.That(applied, Is.EqualTo(1)); Assert.That(_gateway.Reads, Is.EqualTo(1)); Assert.That(_gateway.Acks, Is.EqualTo(2));
         Assert.That(_keys.Keys.ContainsKey(otherAlias), Is.True); Assert.That(_keys.Keys.Count, Is.EqualTo(1));
+        Assert.That(_store.Load(), Is.Null);
+        Assert.DoesNotThrow(() => _store.Clear(), "An already absent journal remains idempotent");
     }
     [Test] public async Task Revival_DeletionReceiptMissingKeyOrWrongOwnerNeverBecomesAccepted()
     {
