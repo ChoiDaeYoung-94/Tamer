@@ -1,5 +1,7 @@
 # 연령 선택 Android UI 검증
 
+**최종 결과: 승인된 오프라인 기기 시나리오 통과.** 최초 질문·13~15세 저장·재실행 시 재질문 없음·설정 재선택·응답 거절 저장·재실행 후 거절 유지까지 확인했다. 최종 APK 소스는 `08a8fefe63b989e9c89ae3f5fa2c07f91a830203`이며 아래 이전 중단 기록은 이력으로 보존한다. 운영 광고·지역 동의·실제 구매 검증 완료를 뜻하지 않는다.
+
 ## 검증 구성
 
 2026-09-21, 병합된 PR #184의 실제 Android 화면과 기기 로컬 저장을 확인한다. 기존 `RevivalGameplayHarness`와 원본 Login/Main/Game/NextScene을 재사용하며 `agechoice` 빌드 모드만 추가했다. 자동 전투를 실행하지 않고 원본 Main에서 선택·설정 UI를 직접 조작한다.
@@ -42,7 +44,7 @@ Manager prefab 자체가 Canvas인데 자식 연령 Canvas의 RectTransform이 �
 
 이어 동일 객체를 일반 Editor Scene과 비교하려던 진단은 `Cannot create a new scene additively with an untitled scene unsaved` 예외로 끝났다. 이 예외는 UI 치수 실패가 아니라 테스트 환경 제약이다. 승인 후 두 실패에 도달해 추가 실행을 중단했다. 표시 순서 설정의 활성화 시점이 미해결이며, 이를 수정했다고 아직 주장하지 않는다. 기기 두 번째 실행·수정 APK 빌드는 여전히 수행하지 않았다.
 
-## 추가 사용자 승인 후 수정과 현재 중단 상태
+## 추가 사용자 승인 후 수정과 당시 중단 상태
 
 표시 순서 적용을 `_modal.SetActive(true)` 직후로 옮긴 소스 `b9b3f00b895072edf080a9e104589fcc48e72dd4`의 Editor 회귀는 1/1 통과했다. 기존 assertion을 유지하고 재열기 표시 순서도 확인했다. 일반 씬 생성 진단을 제거하고 테스트 소유 Preview Scene만 생성·정리했다. 사용자 미저장 씬을 저장하거나 삭제하지 않았다.
 
@@ -55,3 +57,21 @@ Manager prefab 자체가 Canvas인데 자식 연령 Canvas의 RectTransform이 �
 로컬 검사 스크립트가 원시 XML 값을 `1|13to15`와 직접 비교해 assertion 실패를 냈다. 이 검사기 해석 오류도 승인 후 두 번째 실패로 계수하라는 담당자 지시에 따라 중단했다. 승인 전 percent-decode 수정·재검증·앱 재시작을 하지 않았다. **정규화된 저장값 검증, 프로세스 재실행, 설정 재선택, 응답 거절 보존은 미완료**다. 정상 화면과 선택 닫힘 관찰만을 저장 roundtrip 전체 성공으로 확대하지 않는다.
 
 현재 전용 앱은 중지했고 설치/데이터를 보존했다. Editor는 종료·설정 복원 상태이며 슬롯을 반환했다. 이전 네 실패와 이번 두 실패 및 보고 정정 이력을 모두 유지하며 PR은 Draft다.
+
+## 마지막 재개 승인 후 완료한 시나리오
+
+사용자가 검사기 수정과 남은 검증 재개를 승인했다. 기존 여섯 실패를 보존하고, 이번 구간은 새 실패 없이 완료했다. APK 재빌드와 성공한 최초 화면 검증은 반복하지 않았다.
+
+`verify_age_choice_prefs.py`는 XML에서 정확히 하나의 string 키를 찾고, 관측된 percent encoding을 한 번만 UTF-8로 해석한 뒤 버전·구간의 전체 문자열을 엄격히 비교한다. 누락/중복 키, 잘못된 escape, 다른 버전·구간, 이중 인코딩, 뒤의 공백을 허용하지 않으며 파일을 쓰지 않는다. 합성 검사기 테스트 4/4가 통과했다. 공식 PlayerPrefs 문서는 Android XML 저장 위치를 설명하지만 이 검사기의 percent 처리 근거는 해당 pin에서 관측한 원시값과 실제 재실행 동작이다. 모든 Unity 버전의 내부 저장 형식으로 일반화하지 않는다. [Unity PlayerPrefs](https://docs.unity.cn/6000.1/Documentation/ScriptReference/PlayerPrefs.html)
+
+| 단계 | 실제 결과 |
+| --- | --- |
+| 기존 선택의 저장 검사 | 원시 `1%7C13to15` → 정확한 `1|13to15`, 데이터 변경 없음 |
+| 프로세스 재실행 | 새 프로세스의 Main 화면에서 재질문 없음 |
+| 원본 설정 재선택 | 설정 → Account & privacy → 연령대 다시 선택으로 중립적 선택 화면 표시 |
+| 응답 거절 | 선택 후 설정 화면 복귀, 원시 `1%7Cdeclined` → 정확한 `1|declined` |
+| 거절 후 프로세스 재실행 | Main에서 재질문 없음, 저장값 `1|declined` 유지 |
+
+두 재시작 로그에 `ISOLATION_OK`와 `AGE_UI_READY`가 있으며 화면의 managed harness errors는 0이다. 별도로 native Player Connection의 multicast socket 설정 오류가 로그에 남는다. INTERNET 권한이 제거된 개발 APK에서 관측된 진단 메시지이며 전체 로그 오류 0으로 표현하지 않는다. 운영 광고·UMP 네트워크·로그인·결제는 실행하지 않았다.
+
+최종 프로세스를 종료하고 PID 부재를 확인했다. 전용 앱 설치와 거절 저장값을 보존했으며 다른 앱 데이터는 변경하지 않았다. 회사폰 슬롯을 반환했고, 이번 구간은 Editor를 열거나 APK를 다시 빌드하지 않았다. 화면·원시 XML·단계별 의미값 검사 결과·종료 근거의 SHA-256은 증거 manifest에 추가했다. 지역별 UMP 폼, 광고 5초 종료, 실제 IAP 구매/복원, 다른 기기 화면 크기 및 16KB 런타임은 계속 미검증이다.

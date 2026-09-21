@@ -26,8 +26,8 @@
     "adIdPermission": false,
     "mobileAdsInitProvider": false
   },
-  "result": "blocked-after-second-approved-retry-checker-failure",
-  "deviceAttempts": 3,
+  "result": "passed-scoped-offline-age-choice-device-scenarios",
+  "deviceAttempts": 5,
   "deviceLayoutFailures": 1,
   "followupLayoutTests": {
     "total": 1,
@@ -123,6 +123,66 @@
     {
       "path": "Logs/revival/agechoice-native-wrapped.json",
       "sha256": "83b828b4e9581cb5f2c591217871b2296ea0d9274c19db5945f3d737531b1914"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/resume-current-prefs.xml",
+      "sha256": "2f137aa1b901e0ac9603b2230f804d3c31d27c21ad314c470fb54df11e5a5d61"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/resume-current-result.json",
+      "sha256": "4296e0ccb7308bde078ba1b1b8fc5960babbba8e874349c919f2a5cf5455b3a4"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-13to15.png",
+      "sha256": "f694442c98f98d264467fbb82a9720fa436ceb0b5422004c14f4edc8ecc4d799"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-13to15.log",
+      "sha256": "7f02862236ba19e7ca794181c44883a3cc3ef946c13de93a18985ce1d3fa66f9"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/settings-entry.png",
+      "sha256": "b9f22eda1c705724fab82ed1e00dad05b6d94045ed497c894cc2fb8157e755a0"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/account-privacy.png",
+      "sha256": "bdce1f45bf6180b8a0d9ed124cb1ad8c5d8ba98016adfd67c0bd3c5dda3ddbf4"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/settings-reselect.png",
+      "sha256": "6628839c135efd51eb6761a6dc0c265433ffba72c6ed6706b4e27021995e0ce2"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-declined.png",
+      "sha256": "bdce1f45bf6180b8a0d9ed124cb1ad8c5d8ba98016adfd67c0bd3c5dda3ddbf4"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-declined-prefs.xml",
+      "sha256": "09ee24ef7b80175de95948659b690accca9007ff247e5dad47a806e8afd37379"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-declined-result.json",
+      "sha256": "da2b0015284c44f27a28e5fb15720c941d01a067ab98ea7624491af9dddda220"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined.png",
+      "sha256": "d6bbe8098b78330e7ed11058377a19a7aecdd4c8835b473ed8f46c5297dad8ad"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined.log",
+      "sha256": "a4c15f61a8a8150acdd8abad77727ed71c0fe82bb7db659267b6dce4232b9548"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined-prefs.xml",
+      "sha256": "3254e248c3a2237bd2bf98bcd4f1d7a90fe86ecefb561484d124939a9db5af4b"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined-result.json",
+      "sha256": "da2b0015284c44f27a28e5fb15720c941d01a067ab98ea7624491af9dddda220"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/final-stop.json",
+      "sha256": "86c33fcf4f7f0a8f66565e82b36b5dbb255f072be3237c97d0fdeaa378074cb8"
     }
   ],
   "approvedRetry": {
@@ -180,5 +240,25 @@
       "Declined persistence after restart"
     ],
     "furtherExecutionStopped": true
+  },
+  "completion": {
+    "newFailuresAfterLatestApproval": 0,
+    "priorFailuresPreserved": 6,
+    "checkerSyntheticTests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "scenarios": {
+      "current13to15Meaning": "passed",
+      "restartWithoutQuestion": "passed",
+      "settingsReselection": "passed",
+      "declinedMeaning": "passed",
+      "restartKeepsDeclinedWithoutQuestion": "passed"
+    },
+    "rebuiltApk": false,
+    "nativePlayerConnectionSocketErrorsObserved": true,
+    "managedHarnessErrors": 0,
+    "dataPreserved": true,
+    "phoneSlotReturned": true
   }
 }
