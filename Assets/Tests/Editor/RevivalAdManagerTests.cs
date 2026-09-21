@@ -84,7 +84,8 @@ public class RevivalAdManagerTests
             .Invoke(null, new object[] { plan });
         var type = config.GetType();
         Assert.That(type.GetField("AgeRestrictedTreatment").GetValue(config).ToString(), Is.EqualTo(treatment));
-        Assert.That(type.GetField("MaxAdContentRating").GetValue(config).ToString(), Is.EqualTo("G"));
+        var ratingField = type.GetField("MaxAdContentRating");
+        Assert.That(ratingField.GetValue(config), Is.SameAs(ratingField.FieldType.GetField("G").GetValue(null)));
         Assert.That(type.GetField("TagForChildDirectedTreatment").GetValue(config), Is.Null);
         Assert.That(type.GetField("TagForUnderAgeOfConsent").GetValue(config), Is.Null);
         AssertNoSdkActivity();
