@@ -19,6 +19,53 @@ public class RevivalDeletionIntakeTests
         target.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, args);
 
     [Test]
+    public void Revival_DeletionPendingLoginOpensRecoveryWithoutUnlockingWritesOrOldLogin()
+    {
+        var root = new GameObject("Deletion restart isolated owner");
+        root.SetActive(false);
+        var managersType = DataType.Assembly.GetType("AD.Managers");
+        var instance = managersType.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static);
+        var previousManagers = instance.GetValue(null);
+        var guard = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.Privacy.DeletionRecoveryGuard"))
+            .First(t => t != null).GetProperty("HasPendingSubmission");
+        var previousGuard = guard.GetValue(null);
+        var credentials = new PlayFabAuthenticationContext();
+        credentials.CopyFrom(PlayFabSettings.staticPlayer);
+        try
+        {
+            guard.SetValue(null, (Func<string, bool>)(account => account == "synthetic-pending"));
+            var data = root.AddComponent(DataType);
+            var managers = root.AddComponent(managersType);
+            Set(managers, "_dataM", data); instance.SetValue(null, managers);
+            var login = root.AddComponent(DataType.Assembly.GetType("AD.Login"));
+            Set(login, "_dataOwner", data);
+            PrivateCall(login, "CaptureLoginSession");
+            var context = new PlayFabAuthenticationContext { PlayFabId = "synthetic-pending", EntityId = "synthetic-entity",
+                EntityType = "title_player_account", ClientSessionTicket = "synthetic-ticket" };
+            PrivateCall(login, "OnLoggedIn", "synthetic-pending", false, "CustomID", context, null);
+            Assert.That(DataType.GetProperty("DeletionInProgress").GetValue(data), Is.True);
+            Assert.That(DataType.GetProperty("IsServerDataReady").GetValue(data), Is.False);
+            Assert.That(PrivateCall(login, "LoginCurrent"), Is.False);
+            Assert.Throws<TargetInvocationException>(() => Call(data, "SaveLocalData"));
+            var panel = (GameObject)login.GetType().GetField("_deletionRecoveryPanel", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(login);
+            Assert.That(panel, Is.Not.Null);
+            Assert.That(panel.activeSelf, Is.True);
+            panel.SetActive(false);
+            Call(login, "RetryConnection");
+            Assert.That(panel.activeSelf, Is.True, "Retry must reopen recovery rather than attempt a new login");
+            Assert.That(DataType.GetProperty("DeletionInProgress").GetValue(data), Is.True);
+            Assert.That(PrivateCall(login, "LoginCurrent"), Is.False);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+            instance.SetValue(null, previousManagers);
+            guard.SetValue(null, previousGuard);
+            PlayFabSettings.staticPlayer.CopyFrom(credentials);
+        }
+    }
+
+    [Test]
     public void Revival_DeletionConfirmedCancellationRestoresSessionWithoutRevivingOldLogin()
     {
         var root = new GameObject("Deletion cancellation isolated owner");

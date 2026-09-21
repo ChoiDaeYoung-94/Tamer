@@ -10,6 +10,7 @@ namespace AD
         public TMP_Text Message { get; private set; }
         public UnityEngine.UI.Button RequestButton { get; private set; }
         public UnityEngine.UI.Button ConfirmButton { get; private set; }
+        public UnityEngine.UI.Button SessionConfirmButton { get; private set; }
         public UnityEngine.UI.Button RefreshButton { get; private set; }
         public UnityEngine.UI.Button CancelButton { get; private set; }
         public UnityEngine.UI.Button RetryButton { get; private set; }
@@ -35,10 +36,11 @@ namespace AD
             space.flexibleHeight = 1;
             RequestButton = Button("Request", content, "Request account deletion", font);
             ConfirmButton = Button("Confirm", content, "Confirm deletion request", font);
+            SessionConfirmButton = Button("SessionConfirm", content, "Confirm current game session", font);
             RefreshButton = Button("Refresh", content, "Check request status", font);
             CancelButton = Button("CancelRequest", content, "Cancel deletion request", font);
             RetryButton = Button("Retry", content, "Retry", font);
-            ReauthenticateButton = Button("Reauthenticate", content, "Verify identity again", font);
+            ReauthenticateButton = Button("Reauthenticate", content, "Check current session again", font);
             CloseButton = Button("Close", content, "Back to settings", font);
             CloseButton.onClick.AddListener(() => close());
         }

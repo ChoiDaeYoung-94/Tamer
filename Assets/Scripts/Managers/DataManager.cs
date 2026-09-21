@@ -41,7 +41,9 @@ namespace AD
         public const string DeletionLoginPauseKey = "AD_DeletionAcceptedNeedsLogin";
 
         public AD.Privacy.DeletionSession DeletionSession() => string.IsNullOrEmpty(PlayFabId) ? null
-            : new AD.Privacy.DeletionSession(this, PlayFabId, _accountGeneration.ToString());
+            : new AD.Privacy.DeletionSession(this, PlayFabId, _accountGeneration.ToString(), PlayFab.PlayFabSettings.TitleId,
+                PlayFab.PlayFabSettings.staticPlayer.PlayFabId == PlayFabId && PlayFab.PlayFabSettings.staticPlayer.EntityType == "title_player_account"
+                    ? PlayFab.PlayFabSettings.staticPlayer.EntityId : null);
 
         public void BeginDeletionSubmission(AD.Privacy.DeletionSession session)
         {
@@ -177,6 +179,13 @@ namespace AD
             PlayFabPlayerData = null;
             IsConflict = false;
             _sessionBackupCreated = false;
+            if (AD.Privacy.DeletionRecoveryGuard.IsPending(playFabId))
+            {
+                // Authentication may proceed only into the recovery UI, never profile/gameplay writes.
+                _readyBeforeDeletion = false;
+                DeletionInProgress = true;
+                DeletionEpoch++;
+            }
         }
 
         public void SuspendAccountSession()

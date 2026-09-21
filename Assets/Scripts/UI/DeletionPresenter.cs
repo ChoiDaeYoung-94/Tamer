@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using AD.Privacy;
@@ -14,6 +15,37 @@ namespace AD
         private int _dirty;
         // Explicit application bootstrap only. Null is the default, so builds cannot contact a deletion service accidentally.
         public static Func<DeletionFlow> RuntimeFlowFactory { private get; set; }
+
+        // Call during application bootstrap, before login. No endpoint or title is inferred or enabled by default.
+        public static void ConfigureSessionService(Uri httpsOrigin, string titleId, string recoveryDirectory = null)
+        {
+            if (httpsOrigin == null || string.IsNullOrEmpty(titleId)) throw new ArgumentNullException();
+            // Validate the origin now, before installing the login guard.
+            using (HttpDeletionGateway.ForSessionConfirmation(httpsOrigin, s => null)) { }
+            var directory = recoveryDirectory ?? Path.Combine(Application.persistentDataPath, "DeletionRecovery");
+            Func<string, FileDeletionRecoveryStore> store = account => new FileDeletionRecoveryStore(Path.Combine(directory,
+                DeletionRecovery.Hash(httpsOrigin.AbsoluteUri, titleId, account) + ".json"));
+            DeletionRecoveryGuard.HasPendingSubmission = account => store(account).Load()?.SubmissionStarted == true;
+            RuntimeFlowFactory = () =>
+            {
+                var owner = Managers.DataM;
+                var session = owner?.DeletionSession();
+                if (session == null || !session.HasEntityBinding || session.TitleId != titleId)
+                    return new DeletionFlow(new UnavailableDeletionGateway(), () => null);
+                var gateway = HttpDeletionGateway.ForSessionConfirmation(httpsOrigin, captured =>
+                {
+                    var player = PlayFab.PlayFabSettings.staticPlayer;
+                    if (!captured.Matches(owner.DeletionSession()) || !ReferenceEquals(owner, Managers.DataM) ||
+                        player.PlayFabId != captured.AccountId || player.EntityId != captured.EntityId ||
+                        player.EntityType != "title_player_account" || PlayFab.PlayFabSettings.TitleId != titleId)
+                        throw new InvalidOperationException();
+                    return player.ClientSessionTicket;
+                });
+                return new DeletionFlow(gateway, owner.DeletionSession, owner.BeginDeletionSubmission,
+                    owner.FinishAcceptedDeletion, owner.FinishCancelledDeletion, store(session.AccountId),
+                    DeletionRecovery.Hash(httpsOrigin.AbsoluteUri, titleId, session.AccountId, session.EntityId));
+            };
+        }
 
         public static void ConfigureService(Uri httpsOrigin,
             Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> freshAuthentication)
@@ -34,6 +66,7 @@ namespace AD
             _view = view;
             view.RequestButton.onClick.AddListener(() => Execute(() => _flow.RequestAsync()));
             view.ConfirmButton.onClick.AddListener(() => Execute(() => _flow.ConfirmAsync()));
+            view.SessionConfirmButton.onClick.AddListener(() => Execute(() => _flow.ConfirmSessionAsync()));
             view.RefreshButton.onClick.AddListener(() => Execute(() => _flow.RefreshAsync()));
             view.CancelButton.onClick.AddListener(() => Execute(() => _flow.CancelAsync()));
             view.ReauthenticateButton.onClick.AddListener(() => Execute(() => _flow.ReauthenticateAsync()));
@@ -78,7 +111,7 @@ namespace AD
         {
             var owner = _flow;
             if (owner == null || owner.IsBusy || !owner.IsAvailable || action == null) return;
-            _retry = action; // Preserve cancel/confirm intent after failure.
+            _retry = owner.UsesSessionConfirmation ? () => owner.ReauthenticateAsync() : action;
             try { await action(); }
             catch (Exception) { /* No raw account/proof/error data is displayed or logged. */ }
             if (ReferenceEquals(_flow, owner)) MarkDirty();
@@ -93,9 +126,18 @@ namespace AD
             switch (state)
             {
                 case DeletionState.Idle:
-                    text = "Verify your identity before reviewing a deletion request. Nothing is deleted by opening this screen."; break;
+                    text = _flow.UsesSessionConfirmation
+                        ? "Review deletion using your current game session. Nothing is deleted by opening this screen."
+                        : "Verify your identity before reviewing a deletion request. Nothing is deleted by opening this screen."; break;
                 case DeletionState.Authenticating:
-                    text = "Identity verification is required. Waiting for verification to finish."; break;
+                    text = _flow.UsesSessionConfirmation ? "Checking your current game session."
+                        : "Identity verification is required. Waiting for verification to finish."; break;
+                case DeletionState.AwaitingSessionConfirmation:
+                    text = "Confirm that you want to use this signed-in game account for this deletion request. This confirms your current session; it is not a new Google sign-in. No deletion is submitted by this step."; break;
+                case DeletionState.RecoveryRequired:
+                    text = "A previous deletion request was found. Confirm your current session to recover the same request. An uncertain submission will only be checked, not sent again."; break;
+                case DeletionState.UnsupportedAccount:
+                    text = "This account type is not supported by the configured deletion service. No deletion was submitted by this check. Existing pending requests and local data are preserved."; break;
                 case DeletionState.AwaitingConfirmation:
                     text = "Review the deletion scope before confirming.\n" +
                         (_flow.Request.Scope == "master" ? "Scope: account and linked titles." : "Scope: this game's account data.") +
@@ -126,12 +168,14 @@ namespace AD
             if (_flow.IsBusy && state != DeletionState.Authenticating) text += "\nWaiting for the current action...";
             _view.Message.text = text;
             Set(_view.RequestButton, state == DeletionState.Unavailable || state == DeletionState.Idle, ready && state == DeletionState.Idle);
-            Set(_view.ConfirmButton, state == DeletionState.AwaitingConfirmation, ready);
+            Set(_view.ConfirmButton, state == DeletionState.AwaitingConfirmation && _flow.CanConfirmDeletion, ready);
+            Set(_view.SessionConfirmButton, state == DeletionState.AwaitingSessionConfirmation, ready);
             Set(_view.RefreshButton, state == DeletionState.Queued || state == DeletionState.Processing || state == DeletionState.SubmissionUnknown ||
-                state == DeletionState.RetryableFailure && _flow.Request != null, ready);
-            Set(_view.CancelButton, state == DeletionState.AwaitingConfirmation || state == DeletionState.Queued, ready);
+                state == DeletionState.RetryableFailure && _flow.Request != null, ready && !_flow.NeedsAuthorization);
+            Set(_view.CancelButton, state == DeletionState.AwaitingConfirmation || state == DeletionState.Queued, ready && !_flow.NeedsAuthorization);
             Set(_view.RetryButton, state == DeletionState.RetryableFailure && _retry != null, ready);
-            Set(_view.ReauthenticateButton, state == DeletionState.RetryableFailure, ready);
+            Set(_view.ReauthenticateButton, state == DeletionState.RetryableFailure || state == DeletionState.RecoveryRequired ||
+                state == DeletionState.SubmissionUnknown || state == DeletionState.AwaitingSessionConfirmation, ready);
         }
 
         private static void Set(UnityEngine.UI.Button button, bool visible, bool enabled)

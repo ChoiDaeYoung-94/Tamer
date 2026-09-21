@@ -9,14 +9,68 @@ using System.Threading.Tasks;
 
 namespace AD.Privacy
 {
+    public sealed class DeletionSessionChallenge
+    {
+        internal string Nonce { get; }
+        internal string Ticket { get; }
+        internal DeletionSession Session { get; }
+        internal DeletionSessionChallenge(string nonce, string ticket, DeletionSession session)
+        { Nonce = nonce; Ticket = ticket; Session = session; }
+    }
+
+    public interface ISessionConfirmationGateway
+    {
+        bool UsesSessionConfirmation { get; }
+        Task<DeletionSessionChallenge> BeginSessionAsync(DeletionSession session, string clientKey, CancellationToken token);
+        Task<DeletionAuthorization> ConfirmSessionAsync(DeletionSession session, DeletionSessionChallenge challenge, CancellationToken token);
+    }
+
+    public sealed class UnsupportedDeletionAccountException : Exception { }
+
     /// <summary>Explicit HTTPS intake adapter. Requires an independently configured fresh-auth exchange.</summary>
-    public sealed class HttpDeletionGateway : IDeletionGateway, IDisposable
+    public sealed class HttpDeletionGateway : IDeletionGateway, ISessionConfirmationGateway, IDisposable
     {
         private readonly Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> _reauthenticate;
         private readonly HttpClient _client;
+        private Func<DeletionSession, string> _sessionTicket;
         private bool _disposed;
         public bool IsAvailable => !_disposed;
         public bool IsSynthetic => false;
+        public bool UsesSessionConfirmation => _sessionTicket != null;
+
+        public static HttpDeletionGateway ForSessionConfirmation(Uri endpoint, Func<DeletionSession, string> sessionTicket)
+        {
+            if (sessionTicket == null) throw new ArgumentNullException(nameof(sessionTicket));
+            return new HttpDeletionGateway(endpoint, (s, t) => Task.FromException<DeletionAuthorization>(new InvalidOperationException()))
+                { _sessionTicket = sessionTicket };
+        }
+
+        public async Task<DeletionSessionChallenge> BeginSessionAsync(DeletionSession session, string clientKey, CancellationToken token)
+        {
+            if (!UsesSessionConfirmation || session == null || !session.HasEntityBinding) throw new InvalidOperationException();
+            var config = await Send<Config>("v1/deletion/config", null, token);
+            if (!config.available || config.synthetic || config.evidenceKind != "session_confirmation")
+                throw new InvalidOperationException("Session confirmation is unavailable.");
+            var ticket = _sessionTicket(session);
+            if (string.IsNullOrEmpty(ticket) || ticket.Length > 4096) throw new InvalidOperationException();
+            var result = await Send<SessionChallengeBody>("v1/deletion/session-challenge",
+                new SessionBeginBody { sessionTicket = ticket, clientKey = clientKey }, token);
+            if (result.evidenceKind != "session_confirmation" || result.purpose != "delete_title_account" ||
+                string.IsNullOrEmpty(result.nonce) || result.nonce.Length != 43)
+                throw new InvalidOperationException("Invalid session confirmation.");
+            return new DeletionSessionChallenge(result.nonce, ticket, session);
+        }
+
+        public async Task<DeletionAuthorization> ConfirmSessionAsync(DeletionSession session, DeletionSessionChallenge challenge, CancellationToken token)
+        {
+            if (!UsesSessionConfirmation || challenge == null || !challenge.Session.Matches(session) ||
+                _sessionTicket(session) != challenge.Ticket) throw new InvalidOperationException();
+            var result = await Send<SessionAuthorizationBody>("v1/deletion/session-confirm",
+                new SessionConfirmBody { sessionTicket = challenge.Ticket, nonce = challenge.Nonce, confirmed = true }, token);
+            if (result.evidenceKind != "session_confirmation" || result.accountId != session.AccountId || string.IsNullOrEmpty(result.proof))
+                throw new InvalidOperationException("Invalid session confirmation.");
+            return new DeletionAuthorization(result.accountId, result.proof);
+        }
 
         public HttpDeletionGateway(Uri endpoint, Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> reauthenticate, TimeSpan? timeout = null)
         {
@@ -104,7 +158,22 @@ namespace AD.Privacy
                 using (var response = await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead, token))
                 {
                     // Do not expose a response body, server exception or proof through errors.
-                    if (!response.IsSuccessStatusCode) throw new InvalidOperationException("Deletion HTTP request failed.");
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        // Only a whitelisted classification is surfaced; never return response bodies or credentials.
+                        if (response.Content.Headers.ContentType?.MediaType == "application/json")
+                        {
+                            ErrorBody error = null;
+                            try
+                            {
+                                using (var stream = new MemoryStream(await response.Content.ReadAsByteArrayAsync()))
+                                    error = (ErrorBody)new DataContractJsonSerializer(typeof(ErrorBody)).ReadObject(stream);
+                            }
+                            catch (Exception) { }
+                            if (error?.code == "account_type_unsupported") throw new UnsupportedDeletionAccountException();
+                        }
+                        throw new InvalidOperationException("Deletion HTTP request failed.");
+                    }
                     if (response.Content.Headers.ContentType?.MediaType != "application/json")
                         throw new InvalidOperationException("Invalid deletion content type.");
                     var bytes = await response.Content.ReadAsByteArrayAsync();
@@ -118,7 +187,19 @@ namespace AD.Privacy
         public void Dispose() { if (_disposed) return; _disposed = true; _client.Dispose(); }
 
         [DataContract] private sealed class Config
-        { [DataMember(IsRequired = true)] public bool available { get; set; } [DataMember(IsRequired = true)] public bool synthetic { get; set; } }
+        { [DataMember(IsRequired = true)] public bool available { get; set; } [DataMember(IsRequired = true)] public bool synthetic { get; set; }
+          [DataMember] public string evidenceKind { get; set; } }
+        [DataContract] private sealed class ErrorBody { [DataMember] public string code { get; set; } }
+        [DataContract] private sealed class SessionBeginBody
+        { [DataMember] public string sessionTicket { get; set; } [DataMember] public string clientKey { get; set; } }
+        [DataContract] private sealed class SessionConfirmBody
+        { [DataMember] public string sessionTicket { get; set; } [DataMember] public string nonce { get; set; } [DataMember] public bool confirmed { get; set; } }
+        [DataContract] private sealed class SessionChallengeBody
+        { [DataMember(IsRequired = true)] public string nonce { get; set; } [DataMember(IsRequired = true)] public string evidenceKind { get; set; }
+          [DataMember(IsRequired = true)] public string purpose { get; set; } }
+        [DataContract] private sealed class SessionAuthorizationBody
+        { [DataMember(IsRequired = true)] public string accountId { get; set; } [DataMember(IsRequired = true)] public string proof { get; set; }
+          [DataMember(IsRequired = true)] public string evidenceKind { get; set; } }
         [DataContract] private sealed class RequestBody
         { [DataMember] public string proof { get; set; } [DataMember] public string clientKey { get; set; } }
         [DataContract] private sealed class IdBody

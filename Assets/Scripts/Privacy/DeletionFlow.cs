@@ -4,18 +4,22 @@ using System.Threading.Tasks;
 
 namespace AD.Privacy
 {
-    public enum DeletionState { Unavailable, Idle, Authenticating, AwaitingConfirmation, Queued, Processing, Completed, Cancelled, RetryableFailure, SessionChanged, Accepted, SubmissionUnknown }
+    public enum DeletionState { Unavailable, Idle, Authenticating, AwaitingConfirmation, Queued, Processing, Completed, Cancelled, RetryableFailure, SessionChanged, Accepted, SubmissionUnknown, AwaitingSessionConfirmation, RecoveryRequired, UnsupportedAccount }
 
     public sealed class DeletionSession
     {
         public object Owner { get; }
         public string AccountId { get; }
         public string SessionKey { get; }
-        public DeletionSession(object owner, string accountId, string sessionKey)
-        { Owner = owner; AccountId = accountId; SessionKey = sessionKey; }
+        public string TitleId { get; }
+        public string EntityId { get; }
+        public DeletionSession(object owner, string accountId, string sessionKey, string titleId = null, string entityId = null)
+        { Owner = owner; AccountId = accountId; SessionKey = sessionKey; TitleId = titleId; EntityId = entityId; }
         public bool IsValid => Owner != null && !string.IsNullOrEmpty(AccountId) && !string.IsNullOrEmpty(SessionKey);
+        public bool HasEntityBinding => IsValid && !string.IsNullOrEmpty(TitleId) && !string.IsNullOrEmpty(EntityId);
         public bool Matches(DeletionSession other) => other != null && IsValid && other.IsValid &&
-            ReferenceEquals(Owner, other.Owner) && AccountId == other.AccountId && SessionKey == other.SessionKey;
+            ReferenceEquals(Owner, other.Owner) && AccountId == other.AccountId && SessionKey == other.SessionKey &&
+            TitleId == other.TitleId && EntityId == other.EntityId;
     }
 
     public sealed class DeletionAuthorization
@@ -54,7 +58,17 @@ namespace AD.Privacy
         private readonly IDeletionGateway _gateway;
         private readonly Func<DeletionSession> _current;
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
-        private readonly string _clientKey = Guid.NewGuid().ToString("N");
+        private string _clientKey = Guid.NewGuid().ToString("N");
+        private readonly IDeletionRecoveryStore _recovery;
+        private readonly string _binding;
+        private DeletionSessionChallenge _sessionChallenge;
+        private bool _submissionStarted;
+        private bool _recoveryBlocked;
+        private ISessionConfirmationGateway SessionGateway => _gateway as ISessionConfirmationGateway;
+        public bool UsesSessionConfirmation => SessionGateway?.UsesSessionConfirmation == true;
+        public bool NeedsAuthorization => _authorization == null;
+        public bool CanConfirmDeletion => Request?.State == DeletionState.AwaitingConfirmation &&
+            !string.IsNullOrEmpty(Request.Challenge) && (!UsesSessionConfirmation || !_submissionStarted && _authorization != null);
         private DeletionSession _session;
         private DeletionAuthorization _authorization;
         private bool _disposed;
@@ -71,14 +85,38 @@ namespace AD.Privacy
 
         public DeletionFlow(IDeletionGateway gateway, Func<DeletionSession> currentSession,
             Action<DeletionSession> beforeSubmit = null, Action<DeletionSession> accepted = null,
-            Action<DeletionSession> cancelled = null)
+            Action<DeletionSession> cancelled = null, IDeletionRecoveryStore recovery = null, string binding = null)
         {
             _gateway = gateway ?? throw new ArgumentNullException(nameof(gateway));
             _current = currentSession ?? throw new ArgumentNullException(nameof(currentSession));
             _beforeSubmit = beforeSubmit;
             _accepted = accepted;
             _cancelled = cancelled;
+            _recovery = recovery;
+            _binding = binding;
+            if (UsesSessionConfirmation && (recovery == null || string.IsNullOrEmpty(binding)))
+                throw new ArgumentException("Session confirmation requires durable account-bound recovery.");
             State = gateway.IsAvailable ? DeletionState.Idle : DeletionState.Unavailable;
+            if (recovery != null)
+            {
+                try
+                {
+                    _session = _current(); // Bind the journal to this live owner before any delayed user action.
+                    var record = recovery.Load();
+                    if (record != null)
+                    {
+                        record.Validate();
+                        if (record.Binding != binding) throw new InvalidOperationException();
+                        _clientKey = record.ClientKey;
+                        _submissionStarted = record.SubmissionStarted;
+                        if (record.RequestId != null)
+                            Request = new DeletionSnapshot(record.RequestId, record.Revision, "title",
+                                _submissionStarted ? DeletionState.SubmissionUnknown : DeletionState.AwaitingConfirmation);
+                        State = DeletionState.RecoveryRequired;
+                    }
+                }
+                catch (Exception) { _recoveryBlocked = true; State = DeletionState.Unavailable; }
+            }
         }
 
         private void Notify() => Changed?.Invoke();
@@ -88,7 +126,7 @@ namespace AD.Privacy
             catch (Exception) { return false; }
         }
 
-        public Task<bool> ReauthenticateAsync() => Request == null ? RequestAsync() : Run(async token =>
+        public Task<bool> ReauthenticateAsync() => UsesSessionConfirmation ? BeginSessionAsync() : Request == null ? RequestAsync() : Run(async token =>
         {
             var authorization = await _gateway.ReauthenticateAsync(_session, token);
             if (!Current() || authorization == null || authorization.AccountId != _session.AccountId ||
@@ -99,7 +137,7 @@ namespace AD.Privacy
                 : await _gateway.StatusAsync(authorization, Request.RequestId, token);
         });
 
-        public Task<bool> RequestAsync() => Run(async token =>
+        public Task<bool> RequestAsync() => UsesSessionConfirmation ? BeginSessionAsync() : Run(async token =>
         {
             // Reauthentication is an explicit adapter boundary, not reuse of a cached ID.
             var authorization = await _gateway.ReauthenticateAsync(_session, token);
@@ -109,18 +147,76 @@ namespace AD.Privacy
             return await _gateway.RequestAsync(authorization, _clientKey, token);
         }, true);
 
-        public Task<bool> ConfirmAsync() => Request == null || Request.State != DeletionState.AwaitingConfirmation
-            ? Task.FromResult(false) : Run(token => { _beforeSubmit?.Invoke(_session); return _gateway.ConfirmAsync(_authorization, Request, token); });
+        private async Task<bool> BeginSessionAsync()
+        {
+            if (!CanRun()) return false;
+            IsBusy = true;
+            try
+            {
+                if (_session == null) _session = _current();
+                if (!Current() || !_session.HasEntityBinding) { State = DeletionState.SessionChanged; return false; }
+                _authorization = null;
+                _sessionChallenge = null;
+                Persist(); // Preserve the intent key even if the first HTTP response is lost.
+                State = DeletionState.Authenticating;
+                Notify();
+                var challenge = await SessionGateway.BeginSessionAsync(_session, _clientKey, _lifetime.Token);
+                if (!Current()) { if (!_disposed) State = DeletionState.SessionChanged; return false; }
+                _sessionChallenge = challenge ?? throw new InvalidOperationException();
+                State = DeletionState.AwaitingSessionConfirmation;
+                return true;
+            }
+            catch (UnsupportedDeletionAccountException) { if (!_disposed) State = Current() ? DeletionState.UnsupportedAccount : DeletionState.SessionChanged; return false; }
+            catch (Exception) { if (!_disposed) State = Current() ? DeletionState.RetryableFailure : DeletionState.SessionChanged; return false; }
+            finally { IsBusy = false; if (!_disposed) Notify(); }
+        }
+
+        // Called only by the explicit confirmation button, never by a status/retry operation.
+        public Task<bool> ConfirmSessionAsync() => State != DeletionState.AwaitingSessionConfirmation || _sessionChallenge == null
+            ? Task.FromResult(false) : Run(async token =>
+            {
+                var challenge = _sessionChallenge;
+                _sessionChallenge = null; // A consumed or uncertain nonce must never be reused.
+                var authorization = await SessionGateway.ConfirmSessionAsync(_session, challenge, token);
+                if (!Current() || authorization == null || authorization.AccountId != _session.AccountId || string.IsNullOrEmpty(authorization.Proof))
+                    throw new InvalidOperationException();
+                _authorization = authorization;
+                // Once submission has started, only status may follow renewed confirmation.
+                return _submissionStarted
+                    ? await _gateway.StatusAsync(authorization, Request.RequestId, token)
+                    : await _gateway.RequestAsync(authorization, _clientKey, token);
+            });
+
+        public Task<bool> ConfirmAsync() => !CanConfirmDeletion
+            ? Task.FromResult(false) : Run(token =>
+            {
+                if (UsesSessionConfirmation)
+                {
+                    _submissionStarted = true;
+                    try { Persist(); } // A failed journal write must prevent the external submit.
+                    catch { _submissionStarted = false; throw; }
+                }
+                _beforeSubmit?.Invoke(_session);
+                return _gateway.ConfirmAsync(_authorization, Request, token);
+            });
         public Task<bool> RefreshAsync() => Request == null ? Task.FromResult(false)
             : Run(token => _gateway.StatusAsync(_authorization, Request.RequestId, token));
         public Task<bool> CancelAsync() => Request == null ||
             (Request.State != DeletionState.AwaitingConfirmation && Request.State != DeletionState.Queued)
             ? Task.FromResult(false) : Run(token => _gateway.CancelAsync(_authorization, Request.RequestId, token));
 
+        private bool CanRun() => IsAvailable && !_recoveryBlocked && !IsBusy && State != DeletionState.Accepted &&
+            State != DeletionState.Completed && State != DeletionState.Cancelled && State != DeletionState.SessionChanged && State != DeletionState.UnsupportedAccount;
+
+        private void Persist()
+        {
+            _recovery?.Save(new DeletionRecovery { Binding = _binding, ClientKey = _clientKey,
+                RequestId = Request?.RequestId, Revision = Request?.PolicyRevision, SubmissionStarted = _submissionStarted });
+        }
+
         private async Task<bool> Run(Func<CancellationToken, Task<DeletionSnapshot>> action, bool authenticate = false)
         {
-            if (!IsAvailable || IsBusy || State == DeletionState.Accepted || State == DeletionState.Completed || State == DeletionState.Cancelled || State == DeletionState.SessionChanged)
-                return false;
+            if (!CanRun()) return false;
             if (authenticate && Request != null) return false;
             IsBusy = true;
             try
@@ -139,23 +235,24 @@ namespace AD.Privacy
                     (result.State != DeletionState.AwaitingConfirmation && result.State != DeletionState.Queued &&
                      result.State != DeletionState.Processing && result.State != DeletionState.Completed && result.State != DeletionState.Cancelled &&
                      result.State != DeletionState.Accepted && result.State != DeletionState.SubmissionUnknown) ||
-                    (result.State == DeletionState.AwaitingConfirmation && string.IsNullOrEmpty(result.Challenge)) ||
+                    (result.State == DeletionState.AwaitingConfirmation && string.IsNullOrEmpty(result.Challenge) && !_submissionStarted) ||
                     (result.State == DeletionState.Accepted && result.Scope != "title") ||
                     (result.State == DeletionState.Completed && string.IsNullOrEmpty(result.CompletionEvidence)))
                     throw new InvalidOperationException();
                 Request = result;
                 State = result.State;
-                if (State == DeletionState.Cancelled) _cancelled?.Invoke(_session);
+                if (State == DeletionState.Cancelled) { _recovery?.Clear(); _cancelled?.Invoke(_session); }
                 if (State == DeletionState.Accepted)
                 {
-                    try { _accepted?.Invoke(_session); }
+                    try { _accepted?.Invoke(_session); _recovery?.Clear(); }
                     catch (Exception) { AcceptedCleanupFailed = true; } // Never resubmit an accepted deletion to retry a local cleanup.
                 }
+                else if (State != DeletionState.Cancelled) Persist();
                 return true;
             }
             catch (Exception)
             {
-                if (!_disposed) State = Current() ? DeletionState.RetryableFailure : DeletionState.SessionChanged;
+                if (!_disposed) State = Current() ? (_submissionStarted ? DeletionState.SubmissionUnknown : DeletionState.RetryableFailure) : DeletionState.SessionChanged;
                 return false;
             }
             finally { IsBusy = false; if (!_disposed) Notify(); }
@@ -168,6 +265,7 @@ namespace AD.Privacy
             _lifetime.Cancel();
             _lifetime.Dispose();
             _authorization = null;
+            _sessionChallenge = null;
             if (_gateway is IDisposable disposable) disposable.Dispose();
             Changed = null;
         }
