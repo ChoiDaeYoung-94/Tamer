@@ -647,12 +647,18 @@ public class Monster : Creature
         _deathHandled = false;
     }
 
-    private void AfterDie()
+    private bool TryBeginDeathCallback()
     {
-        if (!isDie || Hp > 0 || _deathHandled || !HasSessionIdentity(_deathLifetime)) return;
-        if (!IsCurrentSession(_deathLifetime)) { _deathCallbackPending = true; return; }
+        if (!isDie || Hp > 0 || _deathHandled || !HasSessionIdentity(_deathLifetime)) return false;
+        if (!IsCurrentSession(_deathLifetime)) { _deathCallbackPending = true; return false; }
         _deathCallbackPending = false;
         _deathHandled = true;
+        return true;
+    }
+
+    private void AfterDie()
+    {
+        if (!TryBeginDeathCallback()) return;
         if (_isAlly)
         {
             Player.Instance.RemoveAllyMonster(this);

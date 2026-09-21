@@ -99,8 +99,9 @@ public class RevivalGameplaySessionTests
         }
     }
 
-    [Test]
-    public void Revival_DeathAnimationDuringDeletionWaitIsDeferredAndStaleGenerationCannotReward()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_DeferredDeathResumesOnceOrRejectsReplacement(bool replaceSession)
     {
         using (var f = new Fixture())
         {
@@ -113,11 +114,12 @@ public class RevivalGameplaySessionTests
             Call(f.Monster, "AfterDie");
             Assert.That(Get(f.Monster, "_deathCallbackPending"), Is.True);
             Assert.That(Get(f.Monster, "_deathHandled"), Is.False);
-            Set(f.Data, "_accountGeneration", 2);
+            if (replaceSession) Set(f.Data, "_accountGeneration", 2);
             Set(f.Data, "<DeletionInProgress>k__BackingField", false);
             Set(f.Data, "<IsServerDataReady>k__BackingField", true);
-            Call(f.Monster, "AfterDie");
-            Assert.That(Get(f.Monster, "_deathHandled"), Is.False);
+            Assert.That(Call(f.Monster, "TryBeginDeathCallback"), Is.EqualTo(!replaceSession));
+            Assert.That(Call(f.Monster, "TryBeginDeathCallback"), Is.False);
+            Assert.That(Get(f.Monster, "_deathHandled"), Is.EqualTo(!replaceSession));
             Assert.That(File.Exists(f.SavePath), Is.False);
         }
     }
