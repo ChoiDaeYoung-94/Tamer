@@ -51,8 +51,10 @@ public static class RevivalAdHarnessBuild
 
     public static void BuildSample() => Build(true);
     public static void BuildReleaseControl() => Build(false);
+    // Sample identity only. This cannot validate this publisher's configured messages.
+    public static void BuildUmpSample() => Build(true, true);
 
-    private static void Build(bool development)
+    private static void Build(bool development, bool umpOnly = false)
     {
         int exitCode = 1;
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
@@ -61,7 +63,9 @@ public static class RevivalAdHarnessBuild
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         byte[] settingsBytes = File.ReadAllBytes(SettingsPath), manifestBytes = File.ReadAllBytes(ManifestPath);
-        string applicationId = development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";
+        string variant = umpOnly ? "ump-sample" : development ? "sample" : "control";
+        string applicationId = umpOnly ? "com.AeDeong.MonsterTamer.revival.ump" :
+            development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";
         try
         {
             RevivalBuild.ValidateBaseline();
@@ -84,12 +88,14 @@ public static class RevivalAdHarnessBuild
             Directory.CreateDirectory("Build/revival");
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = new[] { ScenePath }, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
-                locationPathName = "Build/revival/Tamer-ads-" + (development ? "sample" : "control") + ".apk",
+                locationPathName = "Build/revival/Tamer-ads-" + variant + ".apk",
                 options = development ? BuildOptions.Development | BuildOptions.CompressWithLz4 : BuildOptions.None,
-                extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS" }
+                extraScriptingDefines = umpOnly
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS" }
+                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS" }
             });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Ad harness build failed.");
-            Debug.Log("AD_HARNESS_BUILD_OK variant=" + (development ? "sample" : "control"));
+            Debug.Log("AD_HARNESS_BUILD_OK variant=" + variant);
             exitCode = 0;
         }
         catch (Exception error) { Debug.LogException(error); }
