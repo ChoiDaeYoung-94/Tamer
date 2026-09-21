@@ -47,12 +47,18 @@ public class Monster : Creature
     private MonsterGenerator _sessionGenerator;
     private int _deathLifetime = -1;
     private bool _deathHandled;
+    private bool _deathCallbackPending;
     public int SessionLifetime => _session.Lifetime;
     public bool IsCurrentSession(int lifetime)
     {
         var data = AD.Managers.DataM;
         return data != null && _session.Matches(data, data.PlayFabId, data.AccountGeneration,
             data.IsServerDataReady && !data.DeletionInProgress, lifetime);
+    }
+    private bool HasSessionIdentity(int lifetime)
+    {
+        var data = AD.Managers.DataM;
+        return data != null && _session.Matches(data, data.PlayFabId, data.AccountGeneration, true, lifetime);
     }
     public bool TryConsumeReward(int lifetime)
     {
@@ -89,7 +95,13 @@ public class Monster : Creature
 
     private void Update()
     {
-        if (!IsCurrentSession(SessionLifetime)) { RetireSession(); return; }
+        if (!IsCurrentSession(SessionLifetime))
+        {
+            // A reversible deletion prompt pauses the same session; only replacement retires it.
+            if (!HasSessionIdentity(SessionLifetime)) RetireSession();
+            return;
+        }
+        if (_deathCallbackPending) { AfterDie(); return; }
         if (!isDie && NavMeshAgent != null && NavMeshAgent.isActiveAndEnabled && NavMeshAgent.isOnNavMesh)
             MonsterAI();
     }
@@ -111,7 +123,7 @@ public class Monster : Creature
             data != null && data.IsServerDataReady && !data.DeletionInProgress);
         _sessionPool = AD.Managers.PoolM;
         _sessionGenerator = MonsterGenerator.Instance;
-        _deathLifetime = -1; _deathHandled = false;
+        _deathLifetime = -1; _deathHandled = false; _deathCallbackPending = false;
         // Clear retained death animation state on pooled reactivation.
         if (_animator != null) _animator.Rebind();
         _spawnEffect.SetActive(true);
@@ -134,7 +146,7 @@ public class Monster : Creature
     public override void Clear()
     {
         _session.Invalidate();
-        _deathLifetime = -1; _deathHandled = false;
+        _deathLifetime = -1; _deathHandled = false; _deathCallbackPending = false;
         if (Player.Instance != null) Player.Instance.ReleaseCaptureTarget(this);
         StopBattle();
 
@@ -631,13 +643,15 @@ public class Monster : Creature
     /// </summary>
     protected override void OnDeath()
     {
-        _deathLifetime = IsCurrentSession(SessionLifetime) ? SessionLifetime : -1;
+        _deathLifetime = HasSessionIdentity(SessionLifetime) ? SessionLifetime : -1;
         _deathHandled = false;
     }
 
     private void AfterDie()
     {
-        if (!isDie || Hp > 0 || _deathHandled || !IsCurrentSession(_deathLifetime)) return;
+        if (!isDie || Hp > 0 || _deathHandled || !HasSessionIdentity(_deathLifetime)) return;
+        if (!IsCurrentSession(_deathLifetime)) { _deathCallbackPending = true; return; }
+        _deathCallbackPending = false;
         _deathHandled = true;
         if (_isAlly)
         {
@@ -683,7 +697,8 @@ public class Monster : Creature
         while (!token.IsCancellationRequested)
         {
             await UniTask.Delay(System.TimeSpan.FromSeconds(5f), cancellationToken: token);
-            if (token.IsCancellationRequested || !IsCurrentSession(lifetime)) return;
+            if (token.IsCancellationRequested || !HasSessionIdentity(lifetime)) return;
+            if (!IsCurrentSession(lifetime)) continue;
             float distance = Vector3.Distance(Player.Instance.transform.position, transform.position);
             if (distance > 10f)
             {
@@ -776,7 +791,7 @@ public class Monster : Creature
     public void AllySetting(Vector3 playerPosition, bool setting = false)
     {
         if (!IsCurrentSession(SessionLifetime)) return;
-        _deathLifetime = -1; _deathHandled = false;
+        _deathLifetime = -1; _deathHandled = false; _deathCallbackPending = false;
         ResetMonster();
         RemoveTarget();
 

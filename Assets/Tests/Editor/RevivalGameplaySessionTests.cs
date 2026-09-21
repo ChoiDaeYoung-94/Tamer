@@ -79,6 +79,50 @@ public class RevivalGameplaySessionTests
     }
 
     [Test]
+    public void Revival_CancelledDeletionPreservesSameSessionMonstersAndRewards()
+    {
+        using (var f = new Fixture())
+        {
+            ((IList)Get(f.Player, "_allyMonsters")).Add(f.Monster);
+            Set(f.Data, "<IsServerDataReady>k__BackingField", false);
+            Set(f.Data, "<DeletionInProgress>k__BackingField", true);
+            Call(f.Monster, "Update");
+            Call(f.Player, "NotifyPlayerOfDeath", f.Monster.gameObject, 25, f.Lifetime);
+            Assert.That(File.Exists(f.SavePath), Is.False);
+            Assert.That((int)f.Monster.GetType().GetProperty("SessionLifetime").GetValue(f.Monster), Is.EqualTo(f.Lifetime));
+            Set(f.Data, "<DeletionInProgress>k__BackingField", false);
+            Set(f.Data, "<IsServerDataReady>k__BackingField", true);
+            Assert.That(Call(f.Monster, "IsCurrentSession", f.Lifetime), Is.True);
+            Assert.That((IEnumerable)Get(f.Player, "_allyMonsters"), Has.Exactly(1).Items);
+            Call(f.Player, "NotifyPlayerOfDeath", f.Monster.gameObject, 25, f.Lifetime);
+            Assert.That(f.Values["Gold"], Is.EqualTo("125"));
+        }
+    }
+
+    [Test]
+    public void Revival_DeathAnimationDuringDeletionWaitIsDeferredAndStaleGenerationCannotReward()
+    {
+        using (var f = new Fixture())
+        {
+            var creature = Runtime("Creature");
+            creature.GetField("isDie", Fields).SetValue(f.Monster, true);
+            creature.GetField("_hp", Fields).SetValue(f.Monster, 0f);
+            Call(f.Monster, "OnDeath");
+            Set(f.Data, "<IsServerDataReady>k__BackingField", false);
+            Set(f.Data, "<DeletionInProgress>k__BackingField", true);
+            Call(f.Monster, "AfterDie");
+            Assert.That(Get(f.Monster, "_deathCallbackPending"), Is.True);
+            Assert.That(Get(f.Monster, "_deathHandled"), Is.False);
+            Set(f.Data, "_accountGeneration", 2);
+            Set(f.Data, "<DeletionInProgress>k__BackingField", false);
+            Set(f.Data, "<IsServerDataReady>k__BackingField", true);
+            Call(f.Monster, "AfterDie");
+            Assert.That(Get(f.Monster, "_deathHandled"), Is.False);
+            Assert.That(File.Exists(f.SavePath), Is.False);
+        }
+    }
+
+    [Test]
     public void Revival_UnknownCurrentAllyDeathDoesNotRewriteRoster()
     {
         using (var f = new Fixture())
