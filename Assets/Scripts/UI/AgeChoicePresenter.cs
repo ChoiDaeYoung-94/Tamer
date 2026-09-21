@@ -33,8 +33,6 @@ namespace AD
             _modal.SetActive(false);
             var canvas = _modal.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = 30000;
             var scaler = _modal.AddComponent<UnityEngine.UI.CanvasScaler>();
             scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080, 1920);
@@ -107,6 +105,10 @@ namespace AD
             _popups.RegisterBlocker(_modal, true);
             Time.timeScale = 0;
             _modal.SetActive(true);
+            // Apply sorting after the nested Canvas has joined its active parent.
+            var canvas = _modal.GetComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 30000;
         }
 
         private void Close()
