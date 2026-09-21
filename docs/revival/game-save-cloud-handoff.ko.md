@@ -1,5 +1,7 @@
 # Cloud 전용 로그인 빌드와 수동 인계
 
+2026-09-21 후속 결과: 개인폰에서 실제 Cloud 8키의 두 단계 저장·재조회·재시작·새 읽기 전용 복원을 완료했다. [실기기 검증 기록](game-save-cloud-device.ko.md)을 참조한다. 아래 빌드 시점의 미실행 표기는 2026-09-14 당시 기록이다.
+
 ## 구현 경계
 
 Cloud 전용 패키지는 `com.AeDeong.MonsterTamer.revival.gamesavecloud`, 출력은 `Build/revival/Tamer-gamesave-cloud.apk`이다.
