@@ -17,3 +17,13 @@
 ## 검증 범위
 
 설정/title/package/코드 요청과 manifest의 최소 EditMode 테스트 및 `RevivalPgsBuild.CompileScripts`의 Android 플레이어 분기 컴파일을 사용한다. 후자는 로컬 실제 OAuth 설정 없이 합성 코드 경계를 컴파일할 뿐 서비스 인증을 실행하지 않는다. 전체 APK, 실행화면, GPGS 외부설정, 실제 인증 성공은 미검증이다.
+
+## 2026-09-21 검증 기록
+
+- checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, 기준 main `953b7b6878188e5adc990f491e8ca97f2bf63862`, 코드 `771a1e55748faa16adaa5881826ef2f679e7ba19`. 이후 하네스 BOM/끝 빈줄 정리만 수행했다.
+- Unity6000.0.81f1 / CLI1.0.0-beta.8 / GPGS2.2.1. Android min24/target36/ARM64, NDK 기준27.2.12479018(이번 NDK 실행 없음).
+- 에셋 4,561개 일치/복사0. RevivalPgsTests 1회 13/13 통과, 실패0/skip0, CLI exit0. XML `Logs/revival/pgs-harness-tests.xml`, SHA256 `f234f82e60cf19dba31c9fc00e2a5d4b021b0cc213ac621fdcf82990d14a452d`.
+- 테스트 이후 Android 전용 URL만 시험 HTTPS 주소로 고정했다. 테스트 대상 설정/요청/manifest는 동일하다. 최종 Android 소스는 `RevivalPgsBuild.CompileScripts` 1회 통과(exit0/PGS_TEST_COMPILE_OK).
+- player 조건 Android/DevelopmentBuild/TAMER_REVIVAL_SMOKE/TAMER_PGS_HARNESS, UNITY_EDITOR 제외. 결과 `Logs/revival/pgs-player-20260921-084516`, DLL SHA256 `9a2bdb20a12e83a8fcf2f92f0139bbb8b9c5c9a670b22c68ba5ff6b21727593b`. 로그 `Logs/revival/pgs-harness-compile.log` 비공개 보존.
+- Editor PID0/ProjectSettings 스냅샷 복원 확인. 전체/변경없는 테스트 반복 없음. APK SHA256 해당없음(미생성).
+- 실제 전체 빌드의 manifest 병합/복원, APK 권한/서명, UI 표시, SDK/OS 자동 동작과 로그, 실제 인증 성공은 미검증이다.
