@@ -18,6 +18,58 @@ public class RevivalDeletionIntakeTests
     private static object PrivateCall(object target, string name, params object[] args) =>
         target.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, args);
 
+    [TestCase(1)] [TestCase(2)]
+    public void Revival_DeletionReceiptBootstrapOpensBeforeLoginAndDoesNotChooseMultipleAccounts(int count)
+    {
+        var root = new GameObject("Pre-login receipt fixture"); root.SetActive(false);
+        string directory = Path.Combine(Path.GetTempPath(), "receipt-bootstrap-" + Guid.NewGuid().ToString("N"));
+        var managersType = DataType.Assembly.GetType("AD.Managers");
+        var instance = managersType.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static);
+        var previousManager = instance.GetValue(null);
+        var credentials = new PlayFabAuthenticationContext(); credentials.CopyFrom(PlayFabSettings.staticPlayer);
+        string title = PlayFabSettings.TitleId;
+        var bootstrap = DataType.Assembly.GetType("AD.DeletionReceiptBootstrap");
+        var savedConfig = new[] { "_origin", "_title", "_directory" }.Select(n => bootstrap.GetField(n, BindingFlags.NonPublic | BindingFlags.Static).GetValue(null)).ToArray();
+        try
+        {
+            PlayFabSettings.staticPlayer.ForgetAllCredentials(); PlayFabSettings.TitleId = "TEST1";
+            var recordType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.Privacy.DeletionRecovery")).First(t => t != null);
+            var storeType = recordType.Assembly.GetType("AD.Privacy.FileDeletionRecoveryStore");
+            string Hash(params string[] parts) => (string)recordType.GetMethod("Hash").Invoke(null, new object[] { parts });
+            for (int i = 0; i < count; i++)
+            {
+                var record = Activator.CreateInstance(recordType);
+                void Field(string name, object value) => recordType.GetField(name).SetValue(record, value);
+                string key = Guid.NewGuid().ToString("N"), owner = Hash("https://example.invalid/", "TEST1", "synthetic-" + i);
+                Field("Origin", "https://example.invalid/"); Field("Title", "TEST1"); Field("OwnerHash", owner);
+                Field("Binding", Hash("https://example.invalid/", "TEST1", "synthetic-" + i, "entity"));
+                Field("ClientKey", key); Field("RequestId", "request-" + i); Field("Revision", "v1");
+                Field("SubmissionStarted", true); Field("KeyAlias", "tamer.deletion.receipt." + key);
+                Field("KeyCreated", true); Field("ReceiptRegistered", true); Field("ReceiptExpires", 2000d);
+                var store = Activator.CreateInstance(storeType, Path.Combine(directory, owner + ".json"));
+                Call(store, "Save", record);
+            }
+            bootstrap.GetMethod("Configure").Invoke(null, new object[] { new Uri("https://example.invalid/"), "TEST1", directory });
+            var data = root.AddComponent(DataType); var managers = root.AddComponent(managersType);
+            Set(managers, "_dataM", data); instance.SetValue(null, managers);
+            var login = root.AddComponent(DataType.Assembly.GetType("AD.Login"));
+            PrivateCall(login, "Start");
+            Assert.That(login.GetType().GetField("_receiptRecoverySignIn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(login), Is.True);
+            Assert.That(DataType.GetProperty("PlayFabId").GetValue(data), Is.Empty);
+            Assert.That(PlayFabSettings.staticPlayer.ClientSessionTicket, Is.Null.Or.Empty);
+            var view = root.GetComponentInChildren(DataType.Assembly.GetType("AD.DeletionView"), true);
+            Assert.That(view, Is.Not.Null);
+            var refresh = (UnityEngine.Component)view.GetType().GetProperty("RefreshButton").GetValue(view);
+            Assert.That(refresh.gameObject.activeSelf, Is.EqualTo(count == 1), "Multiple records must not select or query one intent automatically");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root); Directory.Delete(directory, true); instance.SetValue(null, previousManager);
+            PlayFabSettings.TitleId = title; PlayFabSettings.staticPlayer.CopyFrom(credentials);
+            bootstrap.GetMethod("Configure").Invoke(null, savedConfig);
+        }
+    }
+
     [TestCase("synthetic-owner", false, true)]
     [TestCase("foreign-owner", false, false)]
     [TestCase("", false, false)]
