@@ -386,7 +386,7 @@ public class RevivalMonsterLifecycleTests
         Call(monster, "RetireSession"); // Repeated teardown is harmless.
         Assert.That((System.Collections.IEnumerable)Get(original, "_activeMonsters"), Is.Empty);
         Assert.That(Get(original, "BossMonster"), Is.Null);
-        Assert.That((System.Collections.IEnumerable)Get(replacement, "_activeMonsters"), Has.Exactly(1).Items);
+        Assert.That((System.Collections.IEnumerable)Get(replacement, "_activeMonsters"), Has.Count.EqualTo(1));
         Assert.That(Get(replacement, "BossMonster"), Is.SameAs(monster.gameObject));
     }
 

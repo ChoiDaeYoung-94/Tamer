@@ -93,7 +93,7 @@ public class RevivalGameplaySessionTests
             Set(f.Data, "<DeletionInProgress>k__BackingField", false);
             Set(f.Data, "<IsServerDataReady>k__BackingField", true);
             Assert.That(Call(f.Monster, "IsCurrentSession", f.Lifetime), Is.True);
-            Assert.That((IEnumerable)Get(f.Player, "_allyMonsters"), Has.Exactly(1).Items);
+            Assert.That((IEnumerable)Get(f.Player, "_allyMonsters"), Has.Count.EqualTo(1));
             Call(f.Player, "NotifyPlayerOfDeath", f.Monster.gameObject, 25, f.Lifetime);
             Assert.That(f.Values["Gold"], Is.EqualTo("125"));
         }
