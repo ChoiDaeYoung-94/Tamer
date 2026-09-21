@@ -32,3 +32,11 @@ unknown은 성공 안내·로그아웃·파일 정리를 하지 않는다. accep
 Unity `6000.0.81f1`, CLI `1.0.0-beta.8`, Android min24/target36/ARM64 기준 유지. Editor async 완료 결과를 확인했고 자체 PID33532/56640 종료와 ProjectSettings 복원을 완료했다. 기기/APK 실행·생성 없음, 새 APK SHA 없음.
 
 남은 실제 연결 입력은 신선한 인증 공급자와 서버 검증 방식, 승인된 고정 title/endpoint, 호스팅과 영속 저장이다. 현 SQLite는 영속 파일을 가진 WSGI 호스트용이며 Functions의 임시 로컬 파일 저장으로 배포하지 않는다. Azure Table 변환·Functions packaging·비용/구독 확정·공개 웹 인증 및 명시 재가입/백업 보관 정리는 미완료다. 운영 배포 전에 이 입력과 남은 경로를 검토하며 완료 증거 수집용 서비스로 범위를 다시 넓히지 않는다.
+
+## PR 리뷰 보완 검증
+
+검증 소스 `64a6a4b`에서 로그인 시작 시 계정 세대와 삭제 epoch를 포착한다. 삭제 전에 시작된 로그인 응답은 accepted 정리 후 진행 표시가 해제돼도 적용되지 않으며 후속 profile·nickname·scene 진입과 오래된 요청의 재시도 안내도 현재 세대를 검사한다. 새로 시작한 명시적 로그인만 새 epoch를 포착한다.
+
+confirm 오류만으로 제출되지 않았다고 추측하지 않는다. 서버에서 해당 요청의 취소가 확정된 `Cancelled` 응답을 검증한 뒤에만 진행 제한을 해제하고 이전 서버 데이터 준비 상태를 복원한다. 일반 HTTP 거절/응답 유실/unknown에서는 유지하며, 거절 뒤 취소를 확정하는 경로로 복구한다. 삭제 epoch는 되돌리지 않아 취소 전 로그인 응답도 재사용하지 않는다.
+
+같은 checkout과 도구 버전에서 `Revival_Deletion` 관련 Editor 테스트 34/34, 0.52초, 실패0으로 비동기 완료를 확인했다. 늦은 로그인 응답 거절·명시적 새 로그인 허용·확정 취소 뒤 계정 사용 가능·전송 실패만으로 제한을 풀지 않는 재현을 포함한다. 원본 `Logs/revival/deletion-review-editor-tests.json` SHA-256은 `62f755d093582d75c5656fa6abbdbc9d8168ba321c3226105c3f7ce3e61aad38`이다. 자체 Editor PID68568 정상 종료·소멸 확인 뒤 ProjectSettings를 복원했다. 변경 없는 Python 범위는 재실행하지 않았으며 운영 인증·삭제·기기/APK 미검증 범위는 동일하다.
