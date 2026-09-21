@@ -40,6 +40,8 @@ namespace AD
         public int DeletionEpoch { get; private set; }
         private bool _readyBeforeDeletion;
         private PlayerInventoryStore _inventoryStore;
+        private string _inventorySession;
+        private string _inventoryBoundSession;
 
         public PlayerInventorySnapshot ReadInventory()
         {
@@ -51,6 +53,11 @@ namespace AD
                 if (ItemData == null || MonsterData == null || slots.Keys.Any(key => !ItemData.ContainsKey(key)))
                     throw new InvalidDataException("Inventory catalogs are unavailable.");
                 _inventoryStore = new PlayerInventoryStore(_playerDataPath + ".inventory", MonsterData.Keys, slots);
+            }
+            if (_inventoryBoundSession != _inventorySession)
+            {
+                _inventoryStore.BindSession(PlayFabId, _inventorySession);
+                _inventoryBoundSession = _inventorySession;
             }
             return _inventoryStore.Load(PlayFabId);
         }
@@ -79,6 +86,7 @@ namespace AD
             foreach (string account in new[] { PlayFabId, player.PlayFabId })
                 if (!string.IsNullOrEmpty(account) && AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, account) != record.OwnerHash)
                     return false;
+            if (IsServerDataReady && (record.InventorySession == null || record.InventorySession != _inventorySession)) return false;
             if (!string.IsNullOrEmpty(player.PlayFabId) &&
                 (player.EntityType != "title_player_account" || string.IsNullOrEmpty(player.EntityId) ||
                  AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, player.PlayFabId, player.EntityId) != record.Binding)) return false;
@@ -97,7 +105,7 @@ namespace AD
             }
             if (!string.IsNullOrEmpty(PlayFabId))
             {
-                FinishAcceptedDeletion(DeletionSession());
+                FinishAcceptedDeletion(DeletionSession().ForCleanup(record));
                 return;
             }
             // No live account is being impersonated. The receipt's server-derived owner hash selects only matching disk progress.
@@ -106,9 +114,10 @@ namespace AD
             if (!string.IsNullOrEmpty(PlayFab.PlayFabSettings.staticPlayer.PlayFabId))
                 PlayFab.PlayFabSettings.staticPlayer.ForgetAllCredentials(); // Only the matching account passed the binding guard above.
             PlayerPrefs.SetInt(DeletionLoginPauseKey, 1); PlayerPrefs.Save();
-            if (!string.IsNullOrEmpty(_playerDataPath) && File.Exists(_playerDataPath))
+            DeleteReceiptInventory(record);
+            var stored = ReadDeletionProgress();
+            if (stored != null)
             {
-                var stored = ParseData(File.ReadAllText(_playerDataPath));
                 if (stored.TryGetValue(OwnerKey, out var owner) && !string.IsNullOrEmpty(owner) &&
                     AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, owner) == record.OwnerHash)
                 {
@@ -129,7 +138,37 @@ namespace AD
         public AD.Privacy.DeletionSession DeletionSession() => string.IsNullOrEmpty(PlayFabId) ? null
             : new AD.Privacy.DeletionSession(this, PlayFabId, _accountGeneration.ToString(), PlayFab.PlayFabSettings.TitleId,
                 PlayFab.PlayFabSettings.staticPlayer.PlayFabId == PlayFabId && PlayFab.PlayFabSettings.staticPlayer.EntityType == "title_player_account"
-                    ? PlayFab.PlayFabSettings.staticPlayer.EntityId : null);
+                    ? PlayFab.PlayFabSettings.staticPlayer.EntityId : null,
+                _inventorySession == null ? null : PlayerInventoryStore.OwnerKey(PlayFabId), _inventorySession);
+
+        private Dictionary<string, string> ReadDeletionProgress()
+        {
+            if (string.IsNullOrEmpty(_playerDataPath)) return null;
+            try { return ParseData(File.ReadAllText(_playerDataPath)); }
+            catch (FileNotFoundException) { return null; }
+            catch (DirectoryNotFoundException) { return null; }
+        }
+
+        private void DeleteReceiptInventory(AD.Privacy.DeletionRecovery record)
+        {
+            if (string.IsNullOrEmpty(_playerDataPath)) throw new InvalidOperationException("Local save path is unavailable.");
+            var directory = _playerDataPath + ".inventory";
+            if (record.InventoryOwnerKey == null)
+            {
+                // Older receipts carry no inventory incarnation. Never guess an owner or delete a later save.
+                string[] files;
+                try { files = Directory.GetFiles(directory, "*.json"); }
+                catch (DirectoryNotFoundException)
+                {
+                    if (PlayerInventoryStore.IsMissingDirectory(directory)) return;
+                    throw;
+                }
+                if (files.Length != 0) throw new InvalidDataException("Inventory cleanup binding is unavailable; files preserved.");
+                return;
+            }
+            PlayerInventoryStore.DeleteBound(directory, record.InventoryOwnerKey, record.InventorySession,
+                owner => AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, owner) == record.OwnerHash);
+        }
 
         public void BeginDeletionSubmission(AD.Privacy.DeletionSession session)
         {
@@ -156,6 +195,9 @@ namespace AD
         public void FinishAcceptedDeletion(AD.Privacy.DeletionSession session)
         {
             if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
+            if (IsServerDataReady && session.InventorySession != _inventorySession) throw new InvalidOperationException("A newer inventory session is active.");
+            if (session.InventoryOwnerKey != null && session.InventoryOwnerKey != PlayerInventoryStore.OwnerKey(session.AccountId))
+                throw new InvalidOperationException("Inventory owner binding changed.");
             if (!string.IsNullOrEmpty(PlayFab.PlayFabSettings.staticPlayer.PlayFabId) &&
                 PlayFab.PlayFabSettings.staticPlayer.PlayFabId != session.AccountId) throw new InvalidOperationException();
             // Invalidate writes/callbacks and credentials even if a local disk operation fails.
@@ -168,9 +210,12 @@ namespace AD
             PlayFabPlayerData = null;
             try
             {
-                if (!string.IsNullOrEmpty(_playerDataPath) && File.Exists(_playerDataPath))
+                if (!string.IsNullOrEmpty(_playerDataPath))
+                    PlayerInventoryStore.DeleteBound(_playerDataPath + ".inventory", PlayerInventoryStore.OwnerKey(session.AccountId),
+                        session.InventorySession, owner => owner == session.AccountId);
+                var stored = ReadDeletionProgress();
+                if (stored != null)
                 {
-                    var stored = ParseData(File.ReadAllText(_playerDataPath));
                     if (stored.TryGetValue(OwnerKey, out var owner) && owner == session.AccountId)
                     {
                         // Keep account-bound entitlement evidence outside active progress; never grant it to a new account.
@@ -186,7 +231,7 @@ namespace AD
             finally
             {
                 DeletionInProgress = false;
-                if (!string.IsNullOrEmpty(_playerDataPath) && File.Exists(_playerDataPath))
+                if (ReadDeletionProgress() != null)
                     LoadStoredData(); // Preserve the owner fence of an untouched foreign/legacy file for subsequent login.
                 else
                 {
@@ -261,6 +306,7 @@ namespace AD
             if (!PlayerDataSyncPolicy.CanBindAccount(_localOwner, playFabId))
                 throw new InvalidOperationException("The local save belongs to another account. Account recovery is required.");
             PlayFabId = playFabId;
+            _inventorySession = Guid.NewGuid().ToString("N");
             _deletionSignedOut = false;
             PlayFabPlayerData = null;
             IsConflict = false;
@@ -278,6 +324,8 @@ namespace AD
         {
             _accountGeneration++;
             IsServerDataReady = false;
+            _inventorySession = null;
+            _inventoryBoundSession = null;
             Player.Instance?.ClearInventorySession();
             ShopMan.Instance?.ClearInventorySession();
             _server?.CancelPendingRequests();
@@ -451,6 +499,7 @@ namespace AD
             _localOwner = PlayFabId;
             IsServerDataReady = true;
             IsConflict = false;
+            if (MonsterData != null && ItemData != null) ReadInventory();
             Player.Instance?.RefreshInventorySession();
             ShopMan.Instance?.RefreshInventorySession();
         }

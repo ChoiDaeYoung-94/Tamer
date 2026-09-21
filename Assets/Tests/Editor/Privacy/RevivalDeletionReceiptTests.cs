@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AD.Privacy;
@@ -63,6 +65,43 @@ public class RevivalDeletionReceiptTests
     }
     [TearDown] public void TearDown() { if (Directory.Exists(_directory)) Directory.Delete(_directory, true); }
     private Task Register() => Client().RegisterAsync(new DeletionAuthorization("synthetic-a", "synthetic-proof"), _record, CancellationToken.None);
+
+    [Test] public async Task Revival_InventoryDeletionFailureRetainsReceiptAndKeyForRestart()
+    {
+        var inventoryType=AppDomain.CurrentDomain.GetAssemblies().Select(a=>a.GetType("AD.PlayerInventoryStore")).First(t=>t!=null);
+        _record.InventoryOwnerKey=(string)inventoryType.GetMethod("OwnerKey").Invoke(null,new object[]{"synthetic-a"});
+        _record.InventorySession=new string('b',32);
+        await Register();
+        string directory=Path.Combine(_directory,"inventory"); Directory.CreateDirectory(directory);
+        string path=Path.Combine(directory,_record.InventoryOwnerKey+".json");
+        File.WriteAllText(path,"{\"Version\":1,\"Owner\":\"synthetic-a\",\"Session\":\""+_record.InventorySession+"\",\"Collection\":[],\"OwnedItems\":[],\"Equipped\":{\"Sword\":null,\"Shield\":null}}");
+        Action cleanup=()=>
+        {
+            try { inventoryType.GetMethod("DeleteBound").Invoke(null,new object[]{directory,_record.InventoryOwnerKey,_record.InventorySession,new Func<string,bool>(owner=>owner=="synthetic-a")}); }
+            catch(TargetInvocationException e) { throw e.InnerException ?? e; }
+        };
+        _gateway.Accepted=true; await Client().ReadAsync(_record,CancellationToken.None);
+        using(var held=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read))
+            Assert.ThrowsAsync<IOException>(async()=>await Client().FinishAsync(_record,cleanup,CancellationToken.None));
+        Assert.That(_store.Load().CleanupApplied,Is.False); Assert.That(_keys.Keys.Count,Is.EqualTo(1)); Assert.That(_gateway.Acked,Is.False);
+        var restarted=_store.Load(); int reads=_gateway.Reads;
+        Assert.That((await Client().ReadAsync(restarted,CancellationToken.None)).State,Is.EqualTo(DeletionState.Accepted));
+        await Client().FinishAsync(restarted,cleanup,CancellationToken.None);
+        Assert.That(_gateway.Reads,Is.EqualTo(reads)); Assert.That(File.Exists(path),Is.False);
+        Assert.That(_store.Load(),Is.Null); Assert.That(_keys.Keys,Is.Empty);
+    }
+
+    [Test] public async Task Revival_InventoryDeletionMetadataIsBoundToReceiptCapabilityAndSeal()
+    {
+        _record.InventoryOwnerKey=new string('b',64); _record.InventorySession=new string('c',32);
+        await Register(); _gateway.Accepted=true;
+        var tampered=_store.Load(); tampered.InventorySession=new string('d',32);
+        Assert.ThrowsAsync<AssertionException>(async()=>await Client().ReadAsync(tampered,CancellationToken.None));
+        await Client().ReadAsync(_record,CancellationToken.None);
+        var terminal=_store.Load(); terminal.InventorySession=new string('d',32);
+        Assert.ThrowsAsync<InvalidOperationException>(async()=>await Client().ReadAsync(terminal,CancellationToken.None));
+        Assert.That(_store.Load().CleanupApplied,Is.False); Assert.That(_keys.Keys.Count,Is.EqualTo(1));
+    }
 
     [Test] public void Revival_DeletionReceiptClearDoesNotHideDirectoryAccessFailureAsAbsentFile()
     {

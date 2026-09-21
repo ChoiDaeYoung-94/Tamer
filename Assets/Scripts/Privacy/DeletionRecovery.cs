@@ -27,9 +27,14 @@ namespace AD.Privacy
         [DataMember] public string TerminalState;
         [DataMember] public string TerminalSeal;
         [DataMember] public bool CleanupApplied;
+        [DataMember] public string InventoryOwnerKey;
+        [DataMember] public string InventorySession;
 
         public void Validate()
         {
+            if ((InventoryOwnerKey == null) != (InventorySession == null) ||
+                InventoryOwnerKey != null && (!Hex(InventoryOwnerKey, 64) || !Hex(InventorySession, 32)))
+                throw new InvalidDataException("Inventory cleanup binding is unavailable.");
             if (Version != 1 || !Hex(Binding, 64) || !Hex(ClientKey, 32) ||
                 (RequestId == null) != (Revision == null) ||
                 RequestId != null && (RequestId.Length == 0 || RequestId.Length > 128 || Revision.Length == 0 || Revision.Length > 128) ||
