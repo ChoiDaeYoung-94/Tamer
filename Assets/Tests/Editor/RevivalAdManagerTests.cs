@@ -52,6 +52,38 @@ public class RevivalAdManagerTests
         public void ShowPrivacyOptions(Action<bool> done) => Assert.Fail("Not required.");
     }
 
+    [TestCase("EEA")]
+    [TestCase("RegulatedUSState")]
+    [TestCase("Other")]
+    public void Revival_UmpDebugSettingsContainOnlyExplicitTestDevice(string geography)
+    {
+        var clientType = FindType("AD.GoogleUmpConsentClient");
+        var create = clientType.GetMethod("CreateDebugSettings", BindingFlags.NonPublic | BindingFlags.Static);
+        var region = Enum.Parse(create.GetParameters()[0].ParameterType, geography);
+        const string syntheticHash = "0123456789ABCDEF0123456789ABCDEF";
+        var settings = create.Invoke(null, new object[] { region, syntheticHash });
+        Assert.That(settings.GetType().GetField("DebugGeography").GetValue(settings).ToString(), Is.EqualTo(geography));
+        Assert.That(settings.GetType().GetField("TestDeviceHashedIds").GetValue(settings),
+            Is.EquivalentTo(new[] { syntheticHash }));
+        var ordinaryClient = Activator.CreateInstance(clientType, true);
+        Assert.That(clientType.GetField("_debugSettings", InstanceMembers).GetValue(ordinaryClient), Is.Null);
+    }
+
+    [TestCase("Disabled", "0123456789ABCDEF0123456789ABCDEF")]
+    [TestCase("NotEEA", "0123456789ABCDEF0123456789ABCDEF")]
+    [TestCase("EEA", null)]
+    [TestCase("EEA", "")]
+    [TestCase("EEA", "short")]
+    [TestCase("EEA", "0123456789ABCDEF0123456789ABCDEG")]
+    public void Revival_UmpDebugSettingsRejectAmbiguousRegionOrInvalidHash(string geography, string hash)
+    {
+        var create = FindType("AD.GoogleUmpConsentClient").GetMethod("CreateDebugSettings",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        var region = Enum.Parse(create.GetParameters()[0].ParameterType, geography);
+        var error = Assert.Throws<TargetInvocationException>(() => create.Invoke(null, new object[] { region, hash }));
+        Assert.That(error.InnerException, Is.InstanceOf<ArgumentException>());
+    }
+
     [TestCase(AgeChoice.Unknown)]
     [TestCase(AgeChoice.Declined)]
     [TestCase(AgeChoice.Under13)]
