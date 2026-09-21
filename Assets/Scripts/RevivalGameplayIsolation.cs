@@ -10,6 +10,31 @@ namespace AD
     public static class RevivalGameplayIsolation
     {
         public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.gameplay";
+        public const string PlayerRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.playerrestore";
+        public static string RuntimeApplicationId =>
+#if TAMER_PLAYER_RESTORE
+            PlayerRestoreApplicationId;
+#else
+            ApplicationId;
+#endif
+
+        public static void ValidatePlayerRestore(string applicationId, bool editor, Func<string, bool> hasKey)
+        {
+            if (editor || applicationId != PlayerRestoreApplicationId)
+                throw new InvalidOperationException("Separate player-restore application required.");
+            foreach (var key in new[] { "AllyMonsters", "playerEquippedItems", "LocalItem" })
+                if (hasKey(key)) throw new InvalidOperationException("Existing legacy preferences; preserve and stop.");
+        }
+
+#if UNITY_EDITOR || TAMER_PLAYER_RESTORE
+        public static Dictionary<string, string> PlayerRestoreSeed()
+        {
+            var values = RevivalGameSaveSchema.Fixture(2);
+            values["GoogleAdMob"] = "null";
+            values["GooglePlay"] = "";
+            return values;
+        }
+#endif
         public const string AccountId = "revival-offline-gameplay";
         public static int Reads { get; private set; }
         public static int Writes { get; private set; }
@@ -39,6 +64,9 @@ namespace AD
         private static ServerManager _gameplayServer;
         public static ServerManager CreateServer(DataManager owner)
         {
+#if TAMER_PLAYER_RESTORE
+            ValidatePlayerRestore(UnityEngine.Application.identifier, UnityEngine.Application.isEditor, UnityEngine.PlayerPrefs.HasKey);
+#endif
             _gameplayServer = CreateTestServer(owner, () => AccountId);
             return _gameplayServer;
         }
@@ -53,7 +81,12 @@ namespace AD
         public static ServerManager CreateTestServer(DataManager owner, Func<string> expectedAccount)
         {
             if (owner == null) throw new ArgumentNullException(nameof(owner));
-            var cloud = Seed();
+            var cloud =
+#if TAMER_PLAYER_RESTORE
+                PlayerRestoreSeed();
+#else
+                Seed();
+#endif
             return new ServerManager(() => owner != null ? owner.PlayFabId : null,
                 () => owner != null && owner.IsServerDataReady,
                 (account, success, failure) =>
