@@ -38,7 +38,7 @@ Python `3.14.0`, 표준 라이브러리만 사용했다. 실제 임시 SQLite·W
 
 - SQLite 영속 파일이 있는 단일 호스트용이다. 여러 프로세스의 원자적 소비는 같은 DB 파일의 잠금에 의존한다. Azure Functions 임시 파일/여러 호스트에 그대로 배포할 수 없으며 Table adapter의 조건부 원자적 갱신은 미구현이다.
 - 만료 nonce/proof 정리는 새 challenge가 시작될 때 수행한다. 유휴 상태의 별도 정리 작업이나 운영 보관 정책은 구성하지 않았다. 운영 HTTPS ingress/접근 제어/요청량 제한·호스팅·서버키 주입도 미구성이다.
-- Unity의 nonce UI/HTTP 교환은 아직 연결하지 않았다. 현재 DeletionFlow의 내부 clientKey와 서버 session-challenge의 clientKey를 공유하고, 닫기/재시작 후 동일 의도를 복구하는 보관 경로가 필요하다. 이 서버 PR만으로 앱 삭제 기능이 활성화되지 않는다.
+- Unity nonce UI/HTTP 교환과 동일 clientKey의 닫기/재시작 복구는 후속 [Unity 연결 기록](deletion-session-unity.ko.md)에 구현·검증 범위를 기록했다. 서버 또는 Unity 코드 병합만으로 앱 삭제 기능이 활성화되지 않으며 명시적인 서비스 구성이 필요하다.
 - native PGS, Xbox, 일반 PlayFab 이메일, 복수 연결 계정은 이 익명 확인 경로의 지원 대상으로 자동 편입하지 않는다. 별도 계정유형에 맞는 확인 경로가 필요하다. 현재 운영 콘솔의 계정은 검증 fixture가 아니다. 신규 로그인 공유 비밀번호 문제는 별도 작업이며 이 확인 경로로 해결됐다고 하지 않는다.
 - 실제 PlayFab 응답·TLS·인증·삭제는 실행하지 않았고, 공개 웹 경로 및 비운영 배포 검증도 하지 않았다. 환경 입력/정책이 없으면 비활성이다.
 
