@@ -152,8 +152,9 @@ namespace AD
                 case DeletionState.Processing:
                     text = "Deletion request is being processed. Completion has not been confirmed."; break;
                 case DeletionState.Accepted:
-                    text = "Your deletion request was accepted. You have been signed out." +
-                        (_flow.AcceptedCleanupFailed ? " Some local data could not be cleared. Do not submit another deletion request." : ""); break;
+                    text = "Your deletion request was accepted." + (_flow.AcceptedCleanupFailed
+                        ? " Local sign-out or cleanup could not finish. Do not submit another deletion request."
+                        : " You have been signed out."); break;
                 case DeletionState.SubmissionUnknown:
                     text = "We could not confirm whether the deletion request was accepted. Your local data has not been cleared. Check this request; do not submit another."; break;
                 case DeletionState.Completed:

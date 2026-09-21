@@ -82,6 +82,8 @@ class ReceiptRecovery:
         phase = operation['phase'] if operation else 'not_submitted'
         if state == 'accepted' and phase == 'accepted':
             state = 'processing'
+        if state == 'cancelled' and phase == 'ready':
+            phase = 'not_submitted' # Bound but never submitted; terminal cancellation remains readable.
         if state not in ('awaiting_confirmation', 'queued', 'processing', 'cancelled'):
             raise Rejected('receipt_unavailable')
         return dict(requestId=row['request_id'], clientKey=row['client_key'], ownerHash=row['owner_hash'],

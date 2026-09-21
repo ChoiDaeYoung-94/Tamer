@@ -97,5 +97,17 @@ class ReceiptRecoveryTests(unittest.TestCase):
         with sqlite3.connect(self.f.path) as db:
             self.assertEqual(db.execute('SELECT entity_id FROM deletion_receipt_access').fetchone()[0], 'entity-a')
 
+    def test_cancelled_bound_but_unsubmitted_intent_has_readable_terminal_receipt(self):
+        self.register()
+        self.f.service.core.confirm(self.proof, self.request['requestId'], self.request['challenge'], 'v1')
+        target = self.f.service.resolve_target('synthetic-a')
+        self.f.service.provider.bind_confirmed(self.request['requestId'], target, self.f.policy)
+        self.f.service.cancel(self.proof, self.request['requestId'])
+        status, receipt = self.read()
+        self.assertEqual(status, '200 OK')
+        self.assertEqual((receipt['state'], receipt['submissionState']), ('cancelled', 'not_submitted'))
+        self.assertEqual(self.read('receipt-ack'), ('200 OK', {'acknowledged': True}))
+        self.assertNotIn('DeletePlayer', self.f.calls)
+
 
 if __name__ == '__main__': unittest.main()

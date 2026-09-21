@@ -12,7 +12,11 @@ $receiptSettings = Save-RevivalProjectSettings -ProjectPath $ProjectPath
 $receiptAssets = @{}
 foreach ($relative in @('Assets/Plugins/Android/AndroidManifest.xml',
     'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset',
-    'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml')) {
+    'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml',
+    'Assets/Settings/Settings/UniversalRP-HighQuality.asset', 'Assets/Settings/Settings/UniversalRP-LowQuality.asset',
+    'Assets/Settings/Settings/UniversalRP-MediumQuality.asset', 'Assets/Tests/Scenes/RevivalSmoke.unity',
+    'Assets/UniversalRenderPipelineGlobalSettings.asset', 'ProjectSettings/AndroidResolverDependencies.xml',
+    'ProjectSettings/GraphicsSettings.asset', 'ProjectSettings/SceneTemplateSettings.json')) {
     $path = Join-Path $ProjectPath $relative
     $receiptAssets[$path] = [IO.File]::ReadAllBytes($path)
 }
