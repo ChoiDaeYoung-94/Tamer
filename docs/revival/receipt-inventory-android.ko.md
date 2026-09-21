@@ -17,6 +17,8 @@ adb로 새로 확인한 테스트폰은 **SM-N986N / Android13 / user0**이었�
 
 APK manifest 검사에서 INTERNET·ACCESS_NETWORK_STATE·BILLING·AD_ID 및 MobileAdsInitProvider가 없고, 런타임도 INTERNET 권한 부재를 확인했다. 로그인·광고·IAP·운영 계정·원격 삭제 호출은 하지 않았다.
 
+기기 로그에는 INTERNET 권한이 없는 Development Player의 개발 연결 소켓 오류와 기존 JNI Byte 사용 관련 obsolete 경고가 관측됐다. 하네스의 두 단계 성공과 파일/키 결과는 위 증거로 확인했지만 로그 전체가 오류·경고0이거나 네트워크 연결 시도 자체가 전혀 없었다고 주장하지 않는다. 개발 연결 오류·JNI 경고의 일반 제품 영향은 이번 격리 시험에서 확정하지 않았다. 원시 로그는 비공개로 보존한다.
+
 ## APK와 비공개 증거
 
 `Build/revival/Tamer-receipt.apk`: **132,761,685 bytes**, SHA-256 **`a6d85bc6cb7cda95b0722b35441923713c2523972f03152ea24d5543db42b39f`**. versionName1.0.5/versionCode26, debuggable, debug 서명 확인. APK·로그·화면·기기 식별 자료는 커밋하지 않았다.
