@@ -33,7 +33,7 @@ def verify(apk, android, variant='development'):
         raise ValueError('Offline manifest still contains a forbidden permission/provider')
     if variant == 'playerrestore':
         for attribute in ('allowBackup', 'fullBackupContent'):
-            if not re.search(r'android:' + attribute + r'[^\n]*=\(type 0x12\)0x0\b', manifest):
+            if not re.search(r'android:' + attribute + r'[^\n]*=(?:false|\(type 0x12\)0x0)\s*(?:\n|$)', manifest):
                 raise ValueError('Backup must be disabled: ' + attribute)
         if 'android:dataExtractionRules' not in manifest:
             raise ValueError('Missing extraction rules reference')
