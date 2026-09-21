@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
+﻿#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,9 +11,12 @@ namespace AD
     {
         public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.gameplay";
         public const string PlayerRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.playerrestore";
+        public const string SessionApplicationId = "com.AeDeong.MonsterTamer.revival.sessionguard";
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
         public static string RuntimeApplicationId =>
-#if TAMER_AGE_CHOICE
+#if TAMER_SESSION_HARNESS
+            SessionApplicationId;
+#elif TAMER_AGE_CHOICE
             AgeChoiceApplicationId;
 #else
 #if TAMER_PLAYER_RESTORE
@@ -91,7 +94,7 @@ namespace AD
 
 #if TAMER_GAMEPLAY_HARNESS
         public static bool AllowsCaptureAssist => !UnityEngine.Application.isEditor &&
-            UnityEngine.Application.identifier == ApplicationId && Managers.Instance != null &&
+            (UnityEngine.Application.identifier == ApplicationId || UnityEngine.Application.identifier == SessionApplicationId) && Managers.Instance != null &&
             Managers.DataM.PlayFabId == AccountId && Managers.DataM.IsServerDataReady &&
             _gameplayServer != null && ReferenceEquals(Managers.ServerM, _gameplayServer);
 #endif

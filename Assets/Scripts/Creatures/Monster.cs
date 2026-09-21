@@ -658,6 +658,9 @@ public class Monster : Creature
 
     private void AfterDie()
     {
+#if TAMER_SESSION_HARNESS
+        RevivalSessionGameplayHarness.ObserveDeathEvent(this);
+#endif
         if (!TryBeginDeathCallback()) return;
         if (_isAlly)
         {
