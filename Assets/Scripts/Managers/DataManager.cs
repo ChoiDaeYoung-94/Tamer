@@ -158,7 +158,11 @@ namespace AD
                 // Older receipts carry no inventory incarnation. Never guess an owner or delete a later save.
                 string[] files;
                 try { files = Directory.GetFiles(directory, "*.json"); }
-                catch (DirectoryNotFoundException) when (PlayerInventoryStore.IsMissingDirectory(directory)) { return; }
+                catch (DirectoryNotFoundException)
+                {
+                    if (PlayerInventoryStore.IsMissingDirectory(directory)) return;
+                    throw;
+                }
                 if (files.Length != 0) throw new InvalidDataException("Inventory cleanup binding is unavailable; files preserved.");
                 return;
             }

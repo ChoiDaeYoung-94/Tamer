@@ -44,7 +44,11 @@ namespace AD
             string json;
             try { json = File.ReadAllText(path, Encoding.UTF8); }
             catch (FileNotFoundException) { return null; }
-            catch (DirectoryNotFoundException) when (IsMissingDirectory(Path.GetDirectoryName(path))) { return null; }
+            catch (DirectoryNotFoundException)
+            {
+                if (IsMissingDirectory(Path.GetDirectoryName(path))) return null;
+                throw;
+            }
             var record = JsonConvert.DeserializeObject<Record>(json);
             if (record == null || record.Version != 1 || string.IsNullOrWhiteSpace(record.Owner))
                 throw new InvalidDataException("Unsupported inventory record; original preserved.");
