@@ -64,6 +64,13 @@ public class RevivalDeletionReceiptTests
     [TearDown] public void TearDown() { if (Directory.Exists(_directory)) Directory.Delete(_directory, true); }
     private Task Register() => Client().RegisterAsync(new DeletionAuthorization("synthetic-a", "synthetic-proof"), _record, CancellationToken.None);
 
+    [Test] public void Revival_DeletionReceiptClearDoesNotHideDirectoryAccessFailureAsAbsentFile()
+    {
+        Directory.CreateDirectory(Path.Combine(_directory, "pending.json"));
+        Assert.Throws<UnauthorizedAccessException>(() => _store.Clear());
+        Assert.That(Directory.Exists(Path.Combine(_directory, "pending.json")), Is.True);
+    }
+
     [Test] public async Task Revival_DeletionReceiptAcceptedLostSessionRestartNeedsNoTicketAndNeverResubmits()
     {
         await Register();
