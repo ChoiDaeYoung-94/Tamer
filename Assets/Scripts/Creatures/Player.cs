@@ -44,6 +44,10 @@ public class Player : Creature
     private Collider _captureTrigger;
     private string _monsterCollection = string.Empty;
     private AD.UpdateManager _updateSource;
+    private string _inventoryOwner;
+    private int _inventoryGeneration = -1;
+    private string _targetInventoryOwner;
+    private int _targetInventoryGeneration = -1;
 
     private const string PLAYER_MONSTERS_KEY = "AllyMonsters";
     private const string PLAYER_EQUIPPED_ITEMS_KEY = "playerEquippedItems";
@@ -117,9 +121,6 @@ public class Player : Creature
         }
 
         InitPrefs();
-
-        foreach (string item in PlayerEquippedItems)
-            ApplyEquipment(item);
 
         JoyStick.Instance.SetSpeed(_moveSpeed);
 
@@ -478,27 +479,74 @@ public class Player : Creature
 
     private void InitPrefs()
     {
-        _monsterCollection = PlayerPrefs.GetString(PLAYER_MONSTERS_KEY);
-        PlayerMonsterCollection = _monsterCollection.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        RefreshInventorySession();
+    }
 
-        EquippedItems = PlayerPrefs.GetString(PLAYER_EQUIPPED_ITEMS_KEY);
-        PlayerEquippedItems = EquippedItems.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+    public void ClearInventorySession()
+    {
+        _curTargetMonsterObject = null; _curTargetMonster = null;
+        _targetInventoryOwner = null; _targetInventoryGeneration = -1;
+        ClearCaptureTarget();
+        foreach (var item in PlayerEquippedItems)
+        {
+            UnequipEquipment(item);
+            if (AD.Managers.EquipmentM.EquipmentMapping.TryGetValue(item, out var model) && model != null) model.SetActive(false);
+        }
+        PlayerMonsterCollection.Clear(); PlayerEquippedItems.Clear();
+        _monsterCollection = EquippedItems = string.Empty;
+        _inventoryOwner = null; _inventoryGeneration = -1;
+    }
+
+    public void RefreshInventorySession()
+    {
+        var data = AD.Managers.DataM;
+        if (!data.IsServerDataReady) { ClearInventorySession(); return; }
+        if (_inventoryOwner == data.PlayFabId && _inventoryGeneration == data.AccountGeneration) return;
+        ClearInventorySession();
+        var snapshot = data.ReadInventory();
+        _inventoryOwner = snapshot.Owner; _inventoryGeneration = data.AccountGeneration;
+        PlayerMonsterCollection = snapshot.Collection.ToList();
+        _monsterCollection = string.Join(",", PlayerMonsterCollection);
+        PlayerEquippedItems = snapshot.Equipped.Values.Where(value => value != null).ToList();
+        EquippedItems = string.Join(",", PlayerEquippedItems);
+        foreach (var item in PlayerEquippedItems)
+        {
+            ApplyEquipment(item);
+            if (AD.Managers.EquipmentM.EquipmentMapping.TryGetValue(item, out var model) && model != null) model.SetActive(true);
+        }
+    }
+
+    public void EquipInventoryItem(string item)
+    {
+        var data = AD.Managers.DataM;
+        var current = data.ReadInventory();
+        var slots = new Dictionary<string, string>(current.Equipped);
+        string slot = AD.Managers.EquipmentM.SegmentedEquipment.First(pair => pair.Value.Contains(item)).Key;
+        string previous = slots[slot]; slots[slot] = item;
+        var saved = data.WriteInventory(_inventoryOwner, _inventoryGeneration, current.Collection, current.OwnedItems, slots);
+        // Slot replacement is one durable write; failed validation/I/O leaves equipment and stats untouched.
+        if (previous != null)
+        {
+            UnequipEquipment(previous);
+            AD.Managers.EquipmentM.EquipmentMapping[previous].SetActive(false);
+        }
+        PlayerEquippedItems = saved.Equipped.Values.Where(value => value != null).ToList();
+        EquippedItems = string.Join(",", PlayerEquippedItems);
+        ApplyEquipment(item); AD.Managers.EquipmentM.EquipmentMapping[item].SetActive(true);
     }
 
     public string SavePrefs(List<string> list, string str, string data, string key)
     {
         if (list.Contains(data))
             return str;
-
-        if (string.IsNullOrEmpty(str))
-            str = $"{data}";
-        else
-            str += $",{data}";
-
-        PlayerPrefs.SetString(key, str);
-        list.Add(data);
-
-        return str;
+        if (key != PLAYER_MONSTERS_KEY) throw new InvalidOperationException("Use atomic inventory equipment replacement.");
+        var manager = AD.Managers.DataM;
+        var current = manager.ReadInventory();
+        var collection = current.Collection.ToList();
+        if (!collection.Contains(data)) collection.Add(data);
+        var saved = manager.WriteInventory(_inventoryOwner, _inventoryGeneration, collection, current.OwnedItems, current.Equipped);
+        list.Clear(); list.AddRange(saved.Collection);
+        return string.Join(",", list);
     }
 
     public string RemovePrefs(List<string> list, string str, string data, string key)
@@ -506,14 +554,13 @@ public class Player : Creature
         if (!list.Contains(data))
             return str;
 
-        list.Remove(data);
-        str = string.Empty;
-        foreach (string temp_str in list)
-            str += $"{temp_str},";
-
-        PlayerPrefs.SetString(key, str);
-
-        return str;
+        if (key != PLAYER_MONSTERS_KEY) throw new InvalidOperationException("Use atomic inventory equipment replacement.");
+        var manager = AD.Managers.DataM;
+        var current = manager.ReadInventory();
+        var collection = current.Collection.Where(value => value != data).ToList();
+        var saved = manager.WriteInventory(_inventoryOwner, _inventoryGeneration, collection, current.OwnedItems, current.Equipped);
+        list.Clear(); list.AddRange(saved.Collection);
+        return string.Join(",", list);
     }
 
     #endregion
@@ -528,15 +575,20 @@ public class Player : Creature
     /// </summary>
     public void NotifyPlayerOfDeath(GameObject target, int gold)
     {
-        if (target == _curTargetMonsterObject)
-        {
-            _monsterCollection =
-                SavePrefs(PlayerMonsterCollection, _monsterCollection, _curTargetMonster.CreatureType.ToString(), PLAYER_MONSTERS_KEY);
-            _curTargetMonsterObject = null;
-        }
+        RecordDefeatedMonster(target);
         _gold += gold;
         AD.Managers.DataM.UpdateLocalData(GOLD_KEY, _gold.ToString());
         PlayerUICanvas.Instance.UpdatePlayerInfo();
+    }
+
+    private void RecordDefeatedMonster(GameObject target)
+    {
+        if (target == null || target != _curTargetMonsterObject || _curTargetMonster == null ||
+            _targetInventoryOwner == null || _targetInventoryOwner != _inventoryOwner ||
+            _targetInventoryGeneration != _inventoryGeneration) return;
+        _monsterCollection = SavePrefs(PlayerMonsterCollection, _monsterCollection,
+            _curTargetMonster.CreatureType.ToString(), PLAYER_MONSTERS_KEY);
+        _curTargetMonsterObject = null; _curTargetMonster = null;
     }
 
     /// <summary>
@@ -574,6 +626,8 @@ public class Player : Creature
             {
                 _curTargetMonsterObject = col.gameObject;
                 _curTargetMonster = _curTargetMonsterObject.GetComponent<Monster>();
+                _targetInventoryOwner = _inventoryOwner;
+                _targetInventoryGeneration = _inventoryGeneration;
             }
         }
     }

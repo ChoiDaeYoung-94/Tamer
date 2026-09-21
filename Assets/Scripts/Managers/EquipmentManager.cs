@@ -68,38 +68,7 @@ namespace AD
         /// </summary>
         private void CheckSlotAndEquip(string item)
         {
-            string newItemCategory = GetEquipmentCategory(item);
-
-            foreach (string equippedItem in Player.Instance.PlayerEquippedItems)
-            {
-                if (equippedItem == item)
-                    continue;
-
-                string equippedCategory = GetEquipmentCategory(equippedItem);
-                if (!string.IsNullOrEmpty(newItemCategory) && newItemCategory == equippedCategory)
-                {
-                    Player.Instance.EquippedItems =
-                        Player.Instance.RemovePrefs(
-                            Player.Instance.PlayerEquippedItems,
-                            Player.Instance.EquippedItems,
-                            equippedItem,
-                            "playerEquippedItems");
-
-                    EquipmentMapping[equippedItem].SetActive(false);
-                    Player.Instance.UnequipEquipment(equippedItem);
-                    break;
-                }
-            }
-
-            Player.Instance.EquippedItems =
-                Player.Instance.SavePrefs(
-                    Player.Instance.PlayerEquippedItems,
-                    Player.Instance.EquippedItems,
-                    item,
-                    "playerEquippedItems");
-
-            EquipmentMapping[item].SetActive(true);
-            Player.Instance.ApplyEquipment(item);
+            Player.Instance.EquipInventoryItem(item);
         }
 
         /// <summary>

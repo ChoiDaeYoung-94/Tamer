@@ -32,6 +32,8 @@ public class ShopMan : MonoBehaviour
     private bool _isEquipmentItem;
     private bool _purchasePending;
     private bool _purchaseResultOpen;
+    private string _inventoryOwner;
+    private int _inventoryGeneration = -1;
 
     private void Awake()
     {
@@ -49,20 +51,38 @@ public class ShopMan : MonoBehaviour
     #region Functions
     private void Init()
     {
-        _currentItemsText = PlayerPrefs.GetString("LocalItem");
-        CurrentItemsList = _currentItemsText.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        RefreshInventorySession();
+    }
+
+    public void ClearInventorySession()
+    {
+        _purchasePending = false;
+        _inventoryOwner = null; _inventoryGeneration = -1;
+        _currentItemsText = string.Empty; CurrentItemsList.Clear();
+    }
+
+    public void RefreshInventorySession()
+    {
+        var data = AD.Managers.DataM;
+        if (!data.IsServerDataReady) { ClearInventorySession(); return; }
+        if (_inventoryOwner == data.PlayFabId && _inventoryGeneration == data.AccountGeneration) return;
+        ClearInventorySession();
+        var snapshot = data.ReadInventory();
+        _inventoryOwner = snapshot.Owner; _inventoryGeneration = data.AccountGeneration;
+        CurrentItemsList = snapshot.OwnedItems.ToList();
+        _currentItemsText = string.Join(",", CurrentItemsList);
     }
 
     public void SaveItem(string item)
     {
         if (CurrentItemsList.Contains(item)) return;
-        if (string.IsNullOrEmpty(_currentItemsText))
-            _currentItemsText = item;
-        else
-            _currentItemsText += $",{item}";
-
-        PlayerPrefs.SetString("LocalItem", _currentItemsText);
-        CurrentItemsList.Add(item);
+        var data = AD.Managers.DataM;
+        var current = data.ReadInventory();
+        var owned = current.OwnedItems.ToList();
+        if (!owned.Contains(item)) owned.Add(item);
+        var saved = data.WriteInventory(_inventoryOwner, _inventoryGeneration, current.Collection, owned, current.Equipped);
+        CurrentItemsList = saved.OwnedItems.ToList();
+        _currentItemsText = string.Join(",", CurrentItemsList);
     }
 
     public void OpenShop(int index)
