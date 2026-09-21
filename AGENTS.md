@@ -13,6 +13,9 @@
 - `src/AeDeong.keystore`와 기존 계정/저장/No Ads 권한을 보존한다. 기준 개발 APK는 별도 앱 ID, debug signing, 격리 시작 씬을 사용한다. 운영 로그인·저장·구매·광고로 자동 테스트하지 않는다.
 - CLI: `tools/.local/unity-cli/1.0.0-beta.8/unity.exe`. 설치는 `python tools/revival/install_cli.py`. 프로젝트의 `unity-cli`, `unity-pipeline` skill을 따른다.
 - 모든 Editor 명령에 `--project-path` 절대 경로를 지정한다. 같은 Editor 쓰기는 직렬화한다. batch 전에 해당 checkout Editor만 정상 종료한다. 다른 Editor/PID를 종료하지 않는다.
+- Unity를 열거나 검증하기 직전에 절대 checkout 경로, 현재 브랜치, HEAD, 미커밋 변경, 검증 대상 커밋을 대조하고 증거에 기록한다. Hub 최근 프로젝트나 기본 cwd로 대상을 추정하지 않는다. 프로세스 확인 시 명령행 전체를 출력하지 말고 PID·projectPath·Editor 버전만 추출한다.
+- 최신 통합 상태를 검증할 때는 원격 main을 조회한 뒤 의도한 통합 checkout만 fast-forward한다. 그 checkout이 dirty이면 갱신을 중단하고 변경 소유자를 확인한다. PR 검증은 해당 head와 미커밋 변경을 명시하고, 검증을 위해 무조건 main으로 전환하지 않는다. 원본과 다른 담당자의 checkout은 임의로 전환·갱신하지 않는다.
+- 해당 checkout의 Editor가 실행 중일 때는 checkout·merge 등 소스를 바꾸는 Git 작업을 하지 않는다. 소스 수정 후 검증하려면 재컴파일 완료를 확인한다. 기존 PR 커밋의 검증 결과를 이후 최신 main의 검증 결과로 표현하지 않는다.
 - 라이브 검증: `command editor_status`, `set_autotick --enable true`, `get_console_logs`, `list_open_scenes`, `get_scene_hierarchy`, `run_tests --mode editor --filter Revival --async_tests true`, `test_status`. 성공 응답만으로 비동기 완료를 가정하지 않는다.
 - 로컬 전체 검증은 `./tools/revival/Run-SdkValidation.ps1`이며 Python·기준 테스트/APK·GUID·네이티브 LOAD/ZIP 검사를 포함한다. 테스트만 실행할 때는 `Run-Baseline.ps1 -TestsOnly`를 사용한다. 공식 추가 RELRO 조건은 `python tools/revival/verify_native_alignment.py --strict-relro`로 별도 확인하며 기본 검사의 성공과 구분한다.
 - 라이선스 문제는 `unity auth status`, `unity license status`로 확인한다. `license activate`의 빈 products 응답은 활성 라이선스가 있다는 증거가 아니다. 프로젝트 계정 pin을 사용하며 다른 프로젝트의 기본 계정을 바꾸지 않는다.
