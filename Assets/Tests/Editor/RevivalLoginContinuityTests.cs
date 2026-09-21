@@ -14,7 +14,6 @@ public class RevivalLoginContinuityTests
         bool existingOrUnknown = (bool)Policy("HasLocalProgress", (object)null);
         Assert.That(existingOrUnknown, Is.True);
         Assert.That(Policy("CanCreateAccount", "", existingOrUnknown), Is.False);
-        Assert.That(Policy("CanCreateGoogleAccount", "", existingOrUnknown, false), Is.False);
     }
 
     private static Type RuntimeType(string name) => AppDomain.CurrentDomain.GetAssemblies()
@@ -35,7 +34,9 @@ public class RevivalLoginContinuityTests
     private static object Policy(string method, params object[] args) => Call(RuntimeType("LoginContinuityPolicy"), method, args);
 
     [TestCase("old-player", "old-player", "old-player")]
-    [TestCase("old-player", null, "old-player")]
+    [TestCase("old-player", null, null)]
+    [TestCase("old-player", "", null)]
+    [TestCase(null, null, null)]
     [TestCase("old-player", "other-player", null)]
     [TestCase("old-player", "OLD-PLAYER", null)]
     [TestCase(null, "first-player", "first-player")]
@@ -67,7 +68,7 @@ public class RevivalLoginContinuityTests
     [TestCase("android", false, false)]
     [TestCase("custom", false, false)]
     [TestCase("gpgs", false, false)]
-    [TestCase("gpgs-pending", false, true)]
+    [TestCase("gpgs-pending", false, false)]
     [TestCase("custom-pending", false, true)]
     [TestCase("android-pending", false, true)]
     [TestCase("gpgs-pending", true, false)]
@@ -75,16 +76,43 @@ public class RevivalLoginContinuityTests
     public void Revival_LoginCreationRequiresAnUnplayedFirstSelection(string mode, bool progress, bool expected)
         => Assert.That(Policy("CanCreateAccount", mode, progress), Is.EqualTo(expected));
 
-    [TestCase("", false, false, true)]
-    [TestCase("", false, true, false)]
-    [TestCase("", true, false, false)]
-    [TestCase("gpgs", false, true, false)]
-    [TestCase("gpgs-pending", false, true, true)]
-    [TestCase("gpgs-pending", true, true, false)]
-    [TestCase("android-pending", false, false, false)]
-    public void Revival_LoginGoogleCreationSeparatesFreshSelectionFromSavedIdentity(
-        string mode, bool progress, bool cachedId, bool expected)
-        => Assert.That(Policy("CanCreateGoogleAccount", mode, progress, cachedId), Is.EqualTo(expected));
+    [TestCase(false, false, "", "", true)]
+    [TestCase(false, true, "", "", false)]
+    [TestCase(false, false, "gpgs", "", false)]
+    [TestCase(false, false, "gpgs-pending", "", false)]
+    [TestCase(false, false, "", "saved-google-id", false)]
+    [TestCase(true, true, "gpgs", "saved-google-id", true)]
+    public void Revival_NativeGoogleRequiresKnownOwnerOrCleanFirstLogin(
+        bool owner, bool progress, string mode, string cachedId, bool expected)
+        => Assert.That(Policy("CanAttemptNativeGoogle", owner, progress, mode, cachedId), Is.EqualTo(expected));
+
+    [TestCase("original", "original", true)]
+    [TestCase("original", "different", false)]
+    [TestCase("original", "ORIGINAL", false)]
+    [TestCase(null, "linked-account", true)]
+    [TestCase(null, null, false)]
+    [TestCase("original", "", false)]
+    public void Revival_NativeGoogleRejectsReturnedAccountMismatch(string known, string returned, bool expected)
+        => Assert.That(Policy("MatchesKnownPlayFabAccount", known, returned), Is.EqualTo(expected));
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase(" ")]
+    public void Revival_NativeGoogleRejectsMissingFreshCode(string code)
+        => Assert.Throws<ArgumentException>(() => Call(RuntimeType("Login"), "CreateGoogleLoginRequest", code));
+
+    [Test]
+    public void Revival_NativeGoogleNeverCreatesAccountsOrUsesSharedAuthenticationContext()
+    {
+        var first = Call(RuntimeType("Login"), "CreateGoogleLoginRequest", "synthetic-code-one");
+        var second = Call(RuntimeType("Login"), "CreateGoogleLoginRequest", "synthetic-code-two");
+        var type = first.GetType();
+        Assert.That(type.GetField("CreateAccount").GetValue(first), Is.EqualTo(false));
+        Assert.That(type.GetField("ServerAuthCode").GetValue(first), Is.EqualTo("synthetic-code-one"));
+        var context = type.GetField("AuthenticationContext");
+        Assert.That(context.GetValue(first), Is.Not.Null);
+        Assert.That(context.GetValue(first), Is.Not.SameAs(context.GetValue(second)));
+    }
 
     [TestCase("Sex", "null", false)]
     [TestCase("GooglePlay", "", false)]
@@ -156,21 +184,4 @@ public class RevivalLoginContinuityTests
         }
     }
 
-    [TestCase("AccountNotFound", true, true)]
-    [TestCase("AccountNotFound", false, false)]
-    [TestCase("InvalidEmailOrPassword", true, true)]
-    [TestCase("InvalidEmailOrPassword", false, false)]
-    [TestCase("InvalidEmailAddress", true, false)]
-    [TestCase("InvalidParams", true, false)]
-    [TestCase("ConnectionError", true, false)]
-    public void Revival_LoginRegistrationRequiresFreshSelectionAndAnEligibleResponse(
-        string errorName, bool allowCreate, bool expected)
-    {
-        var errorType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("PlayFab.PlayFabError"))
-            .First(t => t != null);
-        var error = Activator.CreateInstance(errorType);
-        var codeField = errorType.GetField("Error");
-        codeField.SetValue(error, Enum.Parse(codeField.FieldType, errorName));
-        Assert.That(Call(RuntimeType("Login"), "IsRegistrationCandidate", error, allowCreate), Is.EqualTo(expected));
-    }
 }
