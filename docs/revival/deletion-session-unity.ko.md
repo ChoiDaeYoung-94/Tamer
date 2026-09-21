@@ -1,5 +1,7 @@
 # Unity 삭제 세션 확인과 동일 요청 복구
 
+아래는 최초 세션 기반 연결의 검증 기록이다. 접수 응답 유실 후 티켓까지 무효화된 복구 결함은 후속 [로그인 없는 접수 영수증 복구](deletion-receipt-recovery.ko.md)에서 보완했다. 현재 상태 조회·보호 키·로그인 전 진입·기기 검증의 최종 계약은 후속 문서를 따른다.
+
 2026-09-21, checkout `C:/Users/pc_17/.codex/worktrees/7299/Tamer`, 기준 main `bc260e308be1c745cbb60dbe3d1e8aa2152a300d`. 기본 구현 `c760a11b089d98944607a26b1a9470ffdaf8909e`, UI 검사 추가 `91ca4faa1fd0d392de83a1d117634b0527fcdd0a`, 관리자 교체 가드 보강 `967580740da4700d419a760d8731b2514196a1d0`, 파일 접근 오류 구분 `a712744892796c3146ba6d99297c71d46eb6ab1b`. 서버 계약은 [세션 확인 문서](deletion-session-confirmation.ko.md)를 따른다.
 
 ## 연결과 명시 확인

@@ -22,6 +22,8 @@ proof는 300초 동안 해당 의도만 request/confirm/status/cancel할 수 있
 
 확인 이후 이 capability의 유효기간 안에서는 PlayFab ticket이 삭제로 무효화돼도 accepted/unknown 상태를 읽을 수 있다. 매 요청마다 같은 PlayFab ticket의 유효성을 다시 요구하지 않으므로 이 짧은 capability 자체가 인증 수단이다. 만료 후 복구는 새 세션 확인이 필요하며, 계정 삭제로 더 이상 세션 확인을 할 수 없는 경우의 장기 상태 복구는 구현하지 않았다. 소거 완료 관측 서비스를 추가하지 않는다. 정상 접수와 unknown 처리/재제출 방지는 기존 provider를 그대로 사용한다.
 
+후속 [기기 보호 접수 영수증 복구](deletion-receipt-recovery.ko.md)는 이 짧은 session proof와 별개로, 삭제 제출 전에 단일 intent의 상태 조회 전용 권한을 등록한다. 해당 경로는 재로그인 없이 접수 상태를 복구하며 소거 완료를 관측하지 않는다.
+
 ## 검증
 
 Python `3.14.0`, 표준 라이브러리만 사용했다. 실제 임시 SQLite·WSGI와 합성 PlayFab 응답으로 검증했으며 테스트 중 실제 urllib 네트워크 호출을 차단했다.
