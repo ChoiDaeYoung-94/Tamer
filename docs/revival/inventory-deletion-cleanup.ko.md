@@ -29,3 +29,5 @@ Unity `6000.0.81f1` / CLI `1.0.0-beta.8`, Android min24/target36/ARM64 유지. �
 - `inventory-deletion-preflight.json`, `inventory-deletion-test-preflight.json`, console/scenes/hierarchy 기록도 같은 디렉터리에 보존.
 
 console 25개는 모두 Log이며 오류·경고 0. 정상 종료 후 해당 checkout Unity 프로세스 0을 확인하고 alias 원본을 복원했다. 운영 계정 삭제·서버·기기 호출과 APK 생성은 없어 새 APK SHA-256도 없다. Android 파일 삭제·실제 키 저장소·운영 endpoint 연결 및 실제 배포 업그레이드/다운그레이드는 이번 시험에 포함되지 않는다. 최종 문서 커밋은 위 소스 시험 이후 문서만 추가한다.
+
+후속 [오프라인 Android 검증](receipt-inventory-android.ko.md)에서 별도 소스·APK로 실제 키 저장소와 파일 정리의 제한된 연결을 확인했다. 위 Editor 시험의 범위와 결과를 소급 변경하지 않는다.
