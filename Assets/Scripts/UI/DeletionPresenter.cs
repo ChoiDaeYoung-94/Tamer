@@ -12,6 +12,21 @@ namespace AD
         private DeletionView _view;
         private Func<Task<bool>> _retry;
         private int _dirty;
+        // Explicit application bootstrap only. Null is the default, so builds cannot contact a deletion service accidentally.
+        public static Func<DeletionFlow> RuntimeFlowFactory { private get; set; }
+
+        public static void ConfigureService(Uri httpsOrigin,
+            Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> freshAuthentication)
+        {
+            if (httpsOrigin == null || freshAuthentication == null) throw new ArgumentNullException();
+            RuntimeFlowFactory = () =>
+            {
+                var owner = Managers.DataM;
+                if (owner == null) return new DeletionFlow(new UnavailableDeletionGateway(), () => null);
+                return new DeletionFlow(new HttpDeletionGateway(httpsOrigin, freshAuthentication),
+                    owner.DeletionSession, owner.BeginDeletionSubmission, owner.FinishAcceptedDeletion);
+            };
+        }
 
         public void Bind(DeletionView view)
         {
@@ -39,7 +54,12 @@ namespace AD
 
         private void OnEnable()
         {
-            if (_flow == null) Attach(new DeletionFlow(new UnavailableDeletionGateway(), () => null));
+            if (_flow == null)
+            {
+                DeletionFlow flow = null;
+                try { flow = RuntimeFlowFactory?.Invoke(); } catch (Exception) { }
+                Attach(flow ?? new DeletionFlow(new UnavailableDeletionGateway(), () => null));
+            }
             Render();
         }
 
@@ -83,6 +103,11 @@ namespace AD
                     text = "Deletion request received. Deletion is not complete."; break;
                 case DeletionState.Processing:
                     text = "Deletion request is being processed. Completion has not been confirmed."; break;
+                case DeletionState.Accepted:
+                    text = "Your deletion request was accepted. You have been signed out." +
+                        (_flow.AcceptedCleanupFailed ? " Some local data could not be cleared. Do not submit another deletion request." : ""); break;
+                case DeletionState.SubmissionUnknown:
+                    text = "We could not confirm whether the deletion request was accepted. Your local data has not been cleared. Check this request; do not submit another."; break;
                 case DeletionState.Completed:
                     text = _flow.IsSynthetic && !string.IsNullOrEmpty(_flow.Request?.CompletionEvidence)
                         ? "Test deletion completed. No real account data was deleted."
@@ -101,7 +126,7 @@ namespace AD
             _view.Message.text = text;
             Set(_view.RequestButton, state == DeletionState.Unavailable || state == DeletionState.Idle, ready && state == DeletionState.Idle);
             Set(_view.ConfirmButton, state == DeletionState.AwaitingConfirmation, ready);
-            Set(_view.RefreshButton, state == DeletionState.Queued || state == DeletionState.Processing ||
+            Set(_view.RefreshButton, state == DeletionState.Queued || state == DeletionState.Processing || state == DeletionState.SubmissionUnknown ||
                 state == DeletionState.RetryableFailure && _flow.Request != null, ready);
             Set(_view.CancelButton, state == DeletionState.AwaitingConfirmation || state == DeletionState.Queued, ready);
             Set(_view.RetryButton, state == DeletionState.RetryableFailure && _retry != null, ready);

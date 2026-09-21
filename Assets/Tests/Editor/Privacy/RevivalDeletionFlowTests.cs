@@ -136,4 +136,49 @@ public class RevivalDeletionFlowTests
             Assert.That(flow.State, Is.EqualTo(DeletionState.RetryableFailure));
         }
     }
+
+    [TestCase(DeletionState.Accepted, 1)]
+    [TestCase(DeletionState.SubmissionUnknown, 0)]
+    public async Task Revival_DeletionIntakeOnlyAcceptedCleansCurrentOwner(DeletionState state, int expected)
+    {
+        var gateway = new DelayedGateway();
+        int cleanups = 0;
+        using (var flow = new DeletionFlow(gateway, () => _current, accepted: session => cleanups++))
+        {
+            var pending = flow.RequestAsync();
+            gateway.Pending.SetResult(new DeletionSnapshot("id", "v1", "title", state));
+            Assert.That(await pending, Is.True);
+            Assert.That(cleanups, Is.EqualTo(expected));
+            Assert.That(flow.State, Is.EqualTo(state));
+            if (state == DeletionState.Accepted) Assert.That(await flow.RequestAsync(), Is.False);
+        }
+    }
+
+    [Test] public async Task Revival_DeletionIntakeLateAcceptedCannotCleanReplacement()
+    {
+        var gateway = new DelayedGateway();
+        int cleanups = 0;
+        using (var flow = new DeletionFlow(gateway, () => _current, accepted: session => cleanups++))
+        {
+            var pending = flow.RequestAsync();
+            _current = new DeletionSession(new object(), "synthetic-other", "new-session");
+            gateway.Pending.SetResult(new DeletionSnapshot("id", "v1", "title", DeletionState.Accepted));
+            Assert.That(await pending, Is.False);
+            Assert.That(cleanups, Is.Zero);
+        }
+    }
+
+    [Test] public async Task Revival_DeletionIntakeCleanupFailureDoesNotRetryDeletion()
+    {
+        var gateway = new DelayedGateway();
+        using (var flow = new DeletionFlow(gateway, () => _current, accepted: session => throw new System.IO.IOException()))
+        {
+            var pending = flow.RequestAsync();
+            gateway.Pending.SetResult(new DeletionSnapshot("id", "v1", "title", DeletionState.Accepted));
+            Assert.That(await pending, Is.True);
+            Assert.That(flow.AcceptedCleanupFailed, Is.True);
+            Assert.That(flow.State, Is.EqualTo(DeletionState.Accepted));
+            Assert.That(await flow.RefreshAsync(), Is.False);
+        }
+    }
 }

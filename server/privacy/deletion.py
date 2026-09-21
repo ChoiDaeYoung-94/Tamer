@@ -35,6 +35,7 @@ class Policy:
 class Principal:
     account: str
     reauthenticated_at: float
+    title_entity_id: str = ''
 
 
 @dataclass(frozen=True)
@@ -105,7 +106,7 @@ class DeletionService:
             if old is None:
                 # A reopened app/web flow has no persisted client key. Freshly
                 # authenticated owners resume their one outstanding request.
-                old = db.execute("SELECT * FROM deletion_requests WHERE account=? AND state NOT IN ('cancelled','completed')", (account,)).fetchone()
+                old = db.execute("SELECT * FROM deletion_requests WHERE account=? AND state NOT IN ('cancelled','completed','accepted')", (account,)).fetchone()
                 if old:
                     client_key = old['client_key']
             if old:
@@ -141,7 +142,7 @@ class DeletionService:
             row = self.owned(db, request_id, account)
             if row['revision'] != revision or revision != self.policy.revision or row['scope'] != self.policy.scope:
                 raise Rejected('policy_changed')
-            if row['state'] in ('queued', 'processing', 'completed'):
+            if row['state'] in ('queued', 'processing', 'completed', 'accepted'):
                 return self.view(row)
             if row['state'] != 'awaiting_confirmation' or row['expires'] < self.clock():
                 raise Rejected('confirmation_expired')

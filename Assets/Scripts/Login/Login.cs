@@ -97,6 +97,11 @@ namespace AD
 #endif
             _dataOwner = AD.Managers.DataM;
             _cts = new CancellationTokenSource();
+            if (PlayerPrefs.GetInt(AD.DataManager.DeletionLoginPauseKey, 0) != 0)
+            {
+                ShowRetry("Deletion request accepted. Sign in explicitly to continue.");
+                return;
+            }
             StartLogin();
         }
 
@@ -115,6 +120,7 @@ namespace AD
 
         private void StartLogin()
         {
+            if (AD.Managers.DataM != null && AD.Managers.DataM.DeletionInProgress) return;
 #if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
             return;
 #endif
@@ -482,8 +488,10 @@ namespace AD
 
         private void OnLoggedIn(string playFabId, bool isNewAccount, string method, PlayFabAuthenticationContext context, string loginMode = null)
         {
+            if (AD.Managers.DataM.DeletionInProgress) return;
             AD.Managers.DataM.BeginAccountSession(playFabId);
             PlayFabSettings.staticPlayer.CopyFrom(context);
+            PlayerPrefs.DeleteKey(AD.DataManager.DeletionLoginPauseKey);
 
             // 다음 실행에서 같은 방식의 계정으로 접속하도록 기록
             if (!string.IsNullOrEmpty(loginMode))
