@@ -72,7 +72,8 @@ namespace AD.Privacy
         public bool NeedsAuthorization => _authorization == null;
         public bool CanRecoverReceipt => _record?.ReceiptRegistered == true && _receipts != null;
         public bool CanConfirmDeletion => Request?.State == DeletionState.AwaitingConfirmation &&
-            !string.IsNullOrEmpty(Request.Challenge) && (!UsesSessionConfirmation || !_submissionStarted && _authorization != null);
+            !string.IsNullOrEmpty(Request.Challenge) && !_submissionStarted &&
+            (!UsesSessionConfirmation && _receipts == null || _authorization != null);
         private DeletionSession _session;
         private DeletionAuthorization _authorization;
         private bool _disposed;
@@ -140,13 +141,14 @@ namespace AD.Privacy
             if (!Current() || authorization == null || authorization.AccountId != _session.AccountId ||
                 string.IsNullOrEmpty(authorization.Proof)) throw new InvalidOperationException();
             _authorization = authorization;
-            return Request.State == DeletionState.AwaitingConfirmation
+            return !_submissionStarted && Request.State == DeletionState.AwaitingConfirmation
                 ? await _gateway.RequestAsync(authorization, _clientKey, token)
                 : await _gateway.StatusAsync(authorization, Request.RequestId, token);
         });
 
         public Task<bool> RequestAsync() => UsesSessionConfirmation ? BeginSessionAsync() : Run(async token =>
         {
+            Persist(); // Retain the same intent if provider authentication or the request response is lost.
             // Reauthentication is an explicit adapter boundary, not reuse of a cached ID.
             var authorization = await _gateway.ReauthenticateAsync(_session, token);
             if (!Current() || authorization == null || authorization.AccountId != _session.AccountId ||
@@ -198,7 +200,7 @@ namespace AD.Privacy
         public Task<bool> ConfirmAsync() => !CanConfirmDeletion
             ? Task.FromResult(false) : Run(async token =>
             {
-                if (UsesSessionConfirmation)
+                if (UsesSessionConfirmation || _receipts != null)
                 {
                     if (_receipts != null) await _receipts.RegisterAsync(_authorization, _record, token);
                     else if (!IsSynthetic) throw new InvalidOperationException("Protected receipt recovery is required.");

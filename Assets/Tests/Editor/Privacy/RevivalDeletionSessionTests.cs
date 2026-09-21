@@ -26,7 +26,7 @@ public class RevivalDeletionSessionTests
         public readonly List<string> Paths = new List<string>();
         public readonly List<string> Bodies = new List<string>();
         public string Status = "submission_unknown";
-        public bool LoseSubmit, Unsupported, WrongEvidence;
+        public bool LoseSubmit, Unsupported, WrongEvidence, Provider, LoseRegistration;
         public TaskCompletionSource<HttpResponseMessage> PendingSubmit;
         public Func<DeletionRecovery> Record;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
@@ -35,7 +35,7 @@ public class RevivalDeletionSessionTests
             Paths.Add(path);
             Bodies.Add(request.Content == null ? "" : await request.Content.ReadAsStringAsync());
             if (path.EndsWith("config")) return Json("{\"available\":true,\"synthetic\":false,\"receiptRecovery\":true,\"evidenceKind\":\"" +
-                (WrongEvidence ? "provider_reauthentication" : "session_confirmation") + "\"}");
+                (WrongEvidence || Provider ? "provider_reauthentication" : "session_confirmation") + "\"}");
             if (path.EndsWith("session-challenge")) return Unsupported
                 ? Json("{\"code\":\"account_type_unsupported\"}", HttpStatusCode.Conflict)
                 : Json("{\"nonce\":\"" + new string('n', 43) + "\",\"purpose\":\"delete_title_account\",\"evidenceKind\":\"session_confirmation\"}");
@@ -45,6 +45,7 @@ public class RevivalDeletionSessionTests
             {
                 var r = Record();
                 bool registration = path.EndsWith("receipt-register");
+                if (registration && LoseRegistration) throw new HttpRequestException("synthetic registration loss");
                 return Json("{\"requestId\":\"" + r.RequestId + "\",\"policyRevision\":\"" + r.Revision + "\",\"scope\":\"title\",\"state\":\"" +
                     (registration ? "awaiting_confirmation" : "processing") + "\",\"submissionState\":\"" +
                     (registration ? "not_submitted" : Status) + "\",\"clientKey\":\"" + r.ClientKey + "\",\"ownerHash\":\"" + r.OwnerHash +
@@ -77,7 +78,11 @@ public class RevivalDeletionSessionTests
     [TearDown] public void TearDown() { if (Directory.Exists(_directory)) Directory.Delete(_directory, true); }
     private DeletionFlow Flow(Server server, IDeletionRecoveryStore store = null, Action<DeletionSession> accepted = null, string binding = null)
     {
-        var gateway = HttpDeletionGateway.ForSessionConfirmation(new Uri("https://example.invalid/"), session => _ticket);
+        var gateway = server.Provider
+            ? new HttpDeletionGateway(new Uri("https://example.invalid/"), (session, token) =>
+                _ticket == null ? Task.FromException<DeletionAuthorization>(new InvalidOperationException())
+                    : Task.FromResult(new DeletionAuthorization(Account, Proof)))
+            : HttpDeletionGateway.ForSessionConfirmation(new Uri("https://example.invalid/"), session => _ticket);
         var client = typeof(HttpDeletionGateway).GetField("_client", BindingFlags.Instance | BindingFlags.NonPublic);
         ((HttpClient)client.GetValue(gateway)).Dispose();
         client.SetValue(gateway, new HttpClient(server) { BaseAddress = new Uri("https://example.invalid/") });
@@ -87,6 +92,60 @@ public class RevivalDeletionSessionTests
             receipts: new DeletionReceiptClient(gateway, _keys, journal), origin: "https://example.invalid/");
     }
     private static int Count(Server server, string operation) => server.Paths.FindAll(p => p == "/v1/deletion/" + operation).Count;
+
+    [TestCase(false)] [TestCase(true)]
+    public async Task Revival_DeletionProviderRecoveryRegistersBeforeSubmitAndRecoversWithoutAuthentication(bool loseResponse)
+    {
+        var server = new Server { Provider = true, LoseSubmit = loseResponse, Status = "accepted" };
+        int cleanups = 0;
+        using (var flow = Flow(server, accepted: s => cleanups++))
+        {
+            Assert.That(flow.UsesSessionConfirmation, Is.False);
+            Assert.That(await flow.RequestAsync(), Is.True);
+            Assert.That(await flow.ConfirmAsync(), Is.EqualTo(!loseResponse));
+            Assert.That(Count(server, "receipt-register"), Is.EqualTo(1));
+            Assert.That(server.Paths.IndexOf("/v1/deletion/receipt-register"), Is.LessThan(server.Paths.IndexOf("/v1/deletion/confirm")));
+            Assert.That(Count(server, "session-challenge"), Is.Zero);
+            if (loseResponse)
+            {
+                Assert.That(_store.Load().SubmissionStarted, Is.True);
+                Assert.That(_store.Load().ReceiptRegistered, Is.True);
+                Assert.That(await flow.ConfirmAsync(), Is.False);
+                Assert.That(cleanups, Is.Zero);
+            }
+        }
+        if (loseResponse)
+        {
+            _ticket = null; // Provider authentication is unavailable after deletion.
+            var restartedServer = new Server { Provider = true, Status = "accepted" };
+            using (var restarted = Flow(restartedServer, accepted: s => cleanups++))
+            {
+                Assert.That(restarted.State, Is.EqualTo(DeletionState.RecoveryRequired));
+                Assert.That(await restarted.RefreshAsync(), Is.True);
+                Assert.That(restarted.State, Is.EqualTo(DeletionState.Accepted));
+                Assert.That(Count(restartedServer, "receipt-status"), Is.EqualTo(1));
+                Assert.That(Count(restartedServer, "config"), Is.Zero);
+                Assert.That(Count(restartedServer, "request"), Is.Zero);
+                Assert.That(Count(restartedServer, "confirm"), Is.Zero);
+            }
+        }
+        Assert.That(cleanups, Is.EqualTo(1));
+        Assert.That(_store.Load(), Is.Null);
+        Assert.That(_keys.Keys, Is.Empty);
+    }
+
+    [Test] public async Task Revival_DeletionProviderRecoveryRegistrationFailureNeverSubmits()
+    {
+        var server = new Server { Provider = true, LoseRegistration = true };
+        using (var flow = Flow(server))
+        {
+            Assert.That(await flow.RequestAsync(), Is.True);
+            Assert.That(await flow.ConfirmAsync(), Is.False);
+            Assert.That(Count(server, "confirm"), Is.Zero);
+            Assert.That(_store.Load().SubmissionStarted, Is.False);
+            Assert.That(_store.Load().ReceiptRegistered, Is.False);
+        }
+    }
 
     [Test] public void Revival_DeletionSessionUnreadableJournalDoesNotMeanNoPendingIntent()
     {
