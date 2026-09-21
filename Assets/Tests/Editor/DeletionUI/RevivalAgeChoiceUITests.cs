@@ -22,6 +22,10 @@ public class RevivalAgeChoiceUITests
         var scene = EditorSceneManager.NewPreviewScene();
         var root = new GameObject("Age UI fixture", typeof(RectTransform));
         SceneManager.MoveGameObjectToScene(root, scene);
+        // Reproduce PopupManager's real nested-Canvas hierarchy at a stable size.
+        var parentCanvas = root.AddComponent<Canvas>();
+        parentCanvas.renderMode = RenderMode.WorldSpace;
+        ((RectTransform)root.transform).sizeDelta = new Vector2(1080, 1920);
         float time = Time.timeScale;
         Component ads = null, presenter = null;
         try
@@ -51,6 +55,11 @@ public class RevivalAgeChoiceUITests
             Assert.That(buttons.Select(b => b.targetGraphic.color).Distinct().Count(), Is.EqualTo(1));
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)canvas.transform.Find("Content"));
+            var modalRect = (RectTransform)canvas.transform;
+            Assert.That(modalRect.rect.width, Is.EqualTo(1080).Within(1));
+            Assert.That(modalRect.rect.height, Is.EqualTo(1920).Within(1));
+            Assert.That(canvas.overrideSorting, Is.True);
+            Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.width > 800), Is.True);
             Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.height > 0), Is.True);
             buttons.Single(b => b.name == "Declined").onClick.Invoke();
             Assert.That(stored, Is.EqualTo("1|declined"));

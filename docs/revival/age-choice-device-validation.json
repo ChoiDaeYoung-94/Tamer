@@ -1,0 +1,67 @@
+{
+  "date": "2026-09-21",
+  "sourceCommit": "4216b9cec39aa337000ad32bea60ddf7bebb6088",
+  "package": "com.AeDeong.MonsterTamer.revival.agechoice",
+  "device": {
+    "model": "SM-N986N",
+    "android": "13",
+    "user": 0
+  },
+  "apk": {
+    "variant": "agechoice",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.agechoice",
+    "bytes": 105462423,
+    "sha256": "2fad6fe2fbf005875deccc630c74ff05fdb394e9db7bfc39ebd95821dee52668",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "result": "blocked-after-device-layout-and-dependent-editor-failure",
+  "deviceAttempts": 1,
+  "deviceLayoutFailures": 1,
+  "followupLayoutTests": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "deviceSecondAttemptPerformed": false,
+  "ageWasSelected": false,
+  "appStopped": true,
+  "appDataPreserved": true,
+  "files": [
+    {
+      "path": "Logs/revival/agechoice-isolation-tests.xml",
+      "sha256": "2543feb576aca205ed74abb9a4b4e615526f5f31433aa5f64f0f37764fa8c415"
+    },
+    {
+      "path": "Logs/revival/agechoice-apk-verification.json",
+      "sha256": "7a0f9e6e970eaa8990ee0a372fe6cd943c371a7888be704b73a53902d4551d9f"
+    },
+    {
+      "path": "Logs/revival/agechoice-layout-tests.xml",
+      "sha256": "2e56cea29dcaca3e65a50439f69d3ad6a1cf24e4be8f98ce6ea1abf60cd7d454"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/first-question.png",
+      "sha256": "dbd1a8ab5cf3571b659911d742a0ecb148f70049eb7835401976fe70ed97f140"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/first-question.log",
+      "sha256": "ada0300c186b9f6fa42a15d16ae6c150ae436fcfc3a1f3923ce0d90dbb0d266c"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/attempt1-preupdate-prefs.xml",
+      "sha256": "7757892ef5a8f86e622576854ce0ec1ff8f0c569e18e01a19fe83acff0f3e8b0"
+    }
+  ]
+}

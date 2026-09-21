@@ -24,10 +24,16 @@ namespace AD
             var template = settings.GetComponentInChildren<TMP_Text>(true);
             var font = template != null ? template.font : null;
             var root = DeletionView.Rect("AgeChoiceCanvas", transform);
+            // PopupManager lives on the existing root Canvas. A nested Canvas does
+            // not resize itself to the screen, so stretch its RectTransform explicitly.
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = root.offsetMax = Vector2.zero;
             _modal = root.gameObject;
             _modal.SetActive(false);
             var canvas = _modal.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
             canvas.sortingOrder = 30000;
             var scaler = _modal.AddComponent<UnityEngine.UI.CanvasScaler>();
             scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
