@@ -6,6 +6,7 @@ receipt is not completion. Default policy disables all requests and execution.
 from dataclasses import dataclass
 from contextlib import contextmanager
 import hashlib
+import math
 import secrets
 import sqlite3
 import time
@@ -24,6 +25,7 @@ class Policy:
     rejoin_approved: bool = False
     enabled: bool = False
     retention_plan: tuple = ()
+    session_confirmation_enabled: bool = False
 
     @property
     def ready(self):
@@ -34,8 +36,11 @@ class Policy:
 @dataclass(frozen=True)
 class Principal:
     account: str
-    reauthenticated_at: float
+    reauthenticated_at: float | None
     title_entity_id: str = ''
+    evidence_kind: str = 'provider_reauthentication'
+    confirmed_at: float | None = None
+    intent_key: str = ''
 
 
 @dataclass(frozen=True)
@@ -74,7 +79,17 @@ class DeletionService:
         principal = self.authenticate(proof)
         if not isinstance(principal, Principal) or not principal.account:
             raise Rejected('reauthentication_required')
-        age = self.clock() - principal.reauthenticated_at
+        if principal.evidence_kind == 'provider_reauthentication' and principal.confirmed_at is None:
+            observed_at = principal.reauthenticated_at
+        elif (principal.evidence_kind == 'session_confirmation' and self.policy.session_confirmation_enabled
+                and principal.reauthenticated_at is None and principal.intent_key):
+            self.key(principal.intent_key)
+            observed_at = principal.confirmed_at
+        else:
+            raise Rejected('reauthentication_required')
+        if type(observed_at) not in (int, float) or not math.isfinite(observed_at):
+            raise Rejected('reauthentication_required')
+        age = self.clock() - observed_at
         if not 0 <= age <= 300:
             raise Rejected('reauthentication_required')
         return principal
@@ -97,8 +112,11 @@ class DeletionService:
 
     def request(self, proof, client_key):
         self.ready()
-        account = self.principal(proof).account
+        principal = self.principal(proof)
+        account = principal.account
         self.key(client_key)
+        if principal.intent_key and principal.intent_key != client_key:
+            raise Rejected('operation_conflict')
         with self.connection() as db:
             db.execute('BEGIN IMMEDIATE')
             old = db.execute('SELECT * FROM deletion_requests WHERE account=? AND client_key=?',
@@ -108,6 +126,8 @@ class DeletionService:
                 # authenticated owners resume their one outstanding request.
                 old = db.execute("SELECT * FROM deletion_requests WHERE account=? AND state NOT IN ('cancelled','completed','accepted')", (account,)).fetchone()
                 if old:
+                    if principal.intent_key and principal.intent_key != old['client_key']:
+                        raise Rejected('operation_conflict')
                     client_key = old['client_key']
             if old:
                 # A lost initial response may ask for a new challenge for the same request.
@@ -127,19 +147,22 @@ class DeletionService:
             row = db.execute('SELECT * FROM deletion_requests WHERE id=?', (request_id,)).fetchone()
             return dict(self.view(row), challenge=challenge)
 
-    def owned(self, db, request_id, account):
+    def owned(self, db, request_id, account, principal=None):
         self.key(request_id)
         row = db.execute('SELECT * FROM deletion_requests WHERE id=? AND account=?', (request_id, account)).fetchone()
         if row is None:
             raise Rejected('request_not_found')
+        if principal is not None and principal.intent_key and principal.intent_key != row['client_key']:
+            raise Rejected('operation_conflict')
         return row
 
     def confirm(self, proof, request_id, challenge, revision):
         self.ready()
-        account = self.principal(proof).account
+        principal = self.principal(proof)
+        account = principal.account
         with self.connection() as db:
             db.execute('BEGIN IMMEDIATE')
-            row = self.owned(db, request_id, account)
+            row = self.owned(db, request_id, account, principal)
             if row['revision'] != revision or revision != self.policy.revision or row['scope'] != self.policy.scope:
                 raise Rejected('policy_changed')
             if row['state'] in ('queued', 'processing', 'completed', 'accepted'):
@@ -153,15 +176,17 @@ class DeletionService:
             return dict(self.view(row), state='queued')
 
     def status(self, proof, request_id):
-        account = self.principal(proof).account
+        principal = self.principal(proof)
+        account = principal.account
         with self.connection() as db:
-            return self.view(self.owned(db, request_id, account))
+            return self.view(self.owned(db, request_id, account, principal))
 
     def cancel(self, proof, request_id):
-        account = self.principal(proof).account
+        principal = self.principal(proof)
+        account = principal.account
         with self.connection() as db:
             db.execute('BEGIN IMMEDIATE')
-            row = self.owned(db, request_id, account)
+            row = self.owned(db, request_id, account, principal)
             if row['state'] not in ('awaiting_confirmation', 'queued', 'cancelled'):
                 raise Rejected('already_submitted')
             db.execute("UPDATE deletion_requests SET state='cancelled', challenge_hash='' WHERE id=?", (request_id,))

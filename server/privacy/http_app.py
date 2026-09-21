@@ -5,7 +5,8 @@ from .deletion import Rejected, SyntheticProvider
 
 PUBLIC_CODES = frozenset(('reauthentication_required', 'invalid_request', 'policy_unavailable', 'policy_changed',
                           'request_already_exists', 'request_not_found', 'confirmation_expired', 'invalid_confirmation',
-                          'already_submitted', 'provider_unconfirmed', 'unavailable', 'synthetic_account_required', 'operation_conflict'))
+                          'already_submitted', 'provider_unconfirmed', 'unavailable', 'synthetic_account_required', 'operation_conflict',
+                          'session_confirmation_required', 'account_type_unsupported'))
 
 
 def unique(pairs):
@@ -17,9 +18,12 @@ def unique(pairs):
     return result
 
 
-def create_app(service, synthetic_demo=False):
+def create_app(service, synthetic_demo=False, session_confirmation=None):
     if synthetic_demo and not isinstance(service.provider, SyntheticProvider):
         raise ValueError('Synthetic provider required')
+    if session_confirmation is not None and (synthetic_demo or service.core.authenticate != session_confirmation.authenticate
+            or service.policy != session_confirmation.policy):
+        raise ValueError('Matching session confirmation composition required')
 
     def app(environ, start_response):
         status, payload, content_type = '503 Service Unavailable', {'code': 'unavailable'}, 'application/json'
@@ -32,8 +36,10 @@ def create_app(service, synthetic_demo=False):
                            '<h1>계정 및 데이터 삭제</h1><p>삭제 접수 서비스는 아직 제공되지 않습니다. 계정은 변경되지 않았습니다.</p></html>')
                 status = '200 OK'
             elif method == 'GET' and path == '/v1/deletion/config':
-                payload, status = {'available': service.policy.ready, 'synthetic': synthetic_demo}, '200 OK'
-            elif method == 'POST' and path in ('/v1/deletion/request', '/v1/deletion/confirm', '/v1/deletion/status', '/v1/deletion/cancel', '/demo/advance'):
+                payload, status = {'available': service.policy.ready, 'synthetic': synthetic_demo,
+                    'evidenceKind': 'session_confirmation' if session_confirmation else 'provider_reauthentication'}, '200 OK'
+            elif method == 'POST' and path in ('/v1/deletion/request', '/v1/deletion/confirm', '/v1/deletion/status', '/v1/deletion/cancel', '/demo/advance',
+                                              '/v1/deletion/session-challenge', '/v1/deletion/session-confirm'):
                 length = int(environ.get('CONTENT_LENGTH') or 0)
                 if not 0 < length <= 16384 or environ.get('CONTENT_TYPE', '').split(';')[0] != 'application/json':
                     raise ValueError()
@@ -46,9 +52,19 @@ def create_app(service, synthetic_demo=False):
                     required |= {'challenge', 'policyRevision'}
                 if path == '/demo/advance':
                     required |= {'complete'}
+                if path.endswith('/session-challenge'):
+                    required = {'sessionTicket', 'clientKey'}
+                if path.endswith('/session-confirm'):
+                    required = {'sessionTicket', 'nonce', 'confirmed'}
                 if not isinstance(body, dict) or set(body) != required:
                     raise ValueError()
-                if path.endswith('/request'):
+                if path.endswith('/session-challenge') or path.endswith('/session-confirm'):
+                    if session_confirmation is None:
+                        raise Rejected('unavailable')
+                    payload = (session_confirmation.begin(body['sessionTicket'], body['clientKey'])
+                        if path.endswith('/session-challenge') else
+                        session_confirmation.confirm(body['sessionTicket'], body['nonce'], body['confirmed']))
+                elif path.endswith('/request'):
                     payload = service.request(body['proof'], body['clientKey'])
                 elif path.endswith('/confirm'):
                     payload = service.confirm(body['proof'], body['requestId'], body['challenge'], body['policyRevision'])
