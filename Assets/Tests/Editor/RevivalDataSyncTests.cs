@@ -4,12 +4,65 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Globalization;
 using NUnit.Framework;
 using UnityEngine;
 
 // Reflection avoids an Assembly-CSharp dependency. No Managers, PlayerPrefs, SDK calls, or live saves.
 public class RevivalDataSyncTests
 {
+    [TestCase("en-US", 1)]
+    [TestCase("de-DE", 1)]
+    [TestCase("fr-FR", 2)]
+    public void Revival_PlayerSavedStatsUseInvariantCulture(string culture, int step)
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        var managerType = RuntimeType("AD.Managers");
+        var instance = managerType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var previousManager = instance.GetValue(null);
+        var root = new GameObject("Isolated saved Player stats");
+        root.SetActive(false); // Never run service initialization, Player Awake, or PlayerPrefs.
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+            var fixture = (Dictionary<string, string>)Invoke(RuntimeType("AD.RevivalGameSaveSchema"), "Fixture", step);
+            var values = Merge(Defaults(), new Dictionary<string, string>(), fixture, new Dictionary<string, string>());
+            var data = root.AddComponent(RuntimeType("AD.DataManager"));
+            data.GetType().GetField("LocalPlayerData").SetValue(data, values);
+            var manager = root.AddComponent(managerType);
+            managerType.GetField("_dataM", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(manager, data);
+            instance.SetValue(null, manager);
+            var player = root.AddComponent(RuntimeType("Player"));
+            var creature = RuntimeType("Creature");
+            var kind = creature.GetField("CreatureType");
+            kind.SetValue(player, Enum.Parse(kind.FieldType, "Player"));
+            creature.GetMethod("Settings", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(player, null);
+            Assert.That(creature.GetProperty("Power").GetValue(player), Is.EqualTo(step == 1 ? 11f : 12f));
+            Assert.That(creature.GetProperty("AttackSpeed").GetValue(player), Is.EqualTo(step == 1 ? 0.6f : 0.7f));
+            Assert.That(creature.GetProperty("MoveSpeed").GetValue(player), Is.EqualTo(step == 1 ? 3.2f : 3.4f));
+        }
+        finally
+        {
+            instance.SetValue(null, previousManager);
+            UnityEngine.Object.DestroyImmediate(root);
+            CultureInfo.CurrentCulture = previousCulture;
+        }
+    }
+
+    [TestCase("de-DE", "0,7")]
+    [TestCase("en-US", "1,000")]
+    public void Revival_SavedStatsRejectLocaleDependentSeparators(string culture, string value)
+    {
+        var previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+            Assert.Throws<InvalidDataException>(() => Merge(Defaults(), new Dictionary<string, string>(),
+                new Dictionary<string, string> { ["AttackSpeed"] = value }, new Dictionary<string, string>()));
+        }
+        finally { CultureInfo.CurrentCulture = previous; }
+    }
+
     private static Type RuntimeType(string name) => AppDomain.CurrentDomain.GetAssemblies()
         .Select(a => a.GetType(name)).First(t => t != null);
 
