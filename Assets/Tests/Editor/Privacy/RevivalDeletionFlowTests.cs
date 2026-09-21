@@ -60,6 +60,22 @@ public class RevivalDeletionFlowTests
         Assert.That(_flow.State, Is.EqualTo(DeletionState.Cancelled));
         Assert.That(await _flow.ConfirmAsync(), Is.False);
     }
+    [Test] public async Task Revival_DeletionRejectedConfirmOnlyUnlocksAfterConfirmedCancellation()
+    {
+        int locks = 0, unlocks = 0;
+        using (var flow = new DeletionFlow(_gateway, () => _current,
+            beforeSubmit: s => locks++, cancelled: s => unlocks++))
+        {
+            await flow.RequestAsync();
+            _gateway.FailNext = true;
+            Assert.That(await flow.ConfirmAsync(), Is.False);
+            Assert.That(locks, Is.EqualTo(1));
+            Assert.That(unlocks, Is.Zero, "Transport failure is not proof of no submission");
+            Assert.That(await flow.CancelAsync(), Is.True);
+            Assert.That(unlocks, Is.EqualTo(1));
+            Assert.That(await flow.ConfirmAsync(), Is.False);
+        }
+    }
     [Test] public async Task Revival_DeletionProcessingCannotBeCancelled()
     {
         await _flow.RequestAsync(); await _flow.ConfirmAsync();
@@ -134,6 +150,51 @@ public class RevivalDeletionFlowTests
             gateway.Pending.SetResult(new DeletionSnapshot("id", "v1", "title", DeletionState.Completed));
             Assert.That(await pending, Is.False);
             Assert.That(flow.State, Is.EqualTo(DeletionState.RetryableFailure));
+        }
+    }
+
+    [TestCase(DeletionState.Accepted, 1)]
+    [TestCase(DeletionState.SubmissionUnknown, 0)]
+    public async Task Revival_DeletionIntakeOnlyAcceptedCleansCurrentOwner(DeletionState state, int expected)
+    {
+        var gateway = new DelayedGateway();
+        int cleanups = 0;
+        using (var flow = new DeletionFlow(gateway, () => _current, accepted: session => cleanups++))
+        {
+            var pending = flow.RequestAsync();
+            gateway.Pending.SetResult(new DeletionSnapshot("id", "v1", "title", state));
+            Assert.That(await pending, Is.True);
+            Assert.That(cleanups, Is.EqualTo(expected));
+            Assert.That(flow.State, Is.EqualTo(state));
+            if (state == DeletionState.Accepted) Assert.That(await flow.RequestAsync(), Is.False);
+        }
+    }
+
+    [Test] public async Task Revival_DeletionIntakeLateAcceptedCannotCleanReplacement()
+    {
+        var gateway = new DelayedGateway();
+        int cleanups = 0;
+        using (var flow = new DeletionFlow(gateway, () => _current, accepted: session => cleanups++))
+        {
+            var pending = flow.RequestAsync();
+            _current = new DeletionSession(new object(), "synthetic-other", "new-session");
+            gateway.Pending.SetResult(new DeletionSnapshot("id", "v1", "title", DeletionState.Accepted));
+            Assert.That(await pending, Is.False);
+            Assert.That(cleanups, Is.Zero);
+        }
+    }
+
+    [Test] public async Task Revival_DeletionIntakeCleanupFailureDoesNotRetryDeletion()
+    {
+        var gateway = new DelayedGateway();
+        using (var flow = new DeletionFlow(gateway, () => _current, accepted: session => throw new System.IO.IOException()))
+        {
+            var pending = flow.RequestAsync();
+            gateway.Pending.SetResult(new DeletionSnapshot("id", "v1", "title", DeletionState.Accepted));
+            Assert.That(await pending, Is.True);
+            Assert.That(flow.AcceptedCleanupFailed, Is.True);
+            Assert.That(flow.State, Is.EqualTo(DeletionState.Accepted));
+            Assert.That(await flow.RefreshAsync(), Is.False);
         }
     }
 }

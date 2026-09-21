@@ -33,6 +33,81 @@ namespace AD
         private CancellationTokenSource _ctsLocalDataUpdate;
         private bool _initialized;
         private bool _shutdown;
+        public bool DeletionInProgress { get; private set; }
+        private bool _deletionSignedOut;
+        public int AccountGeneration => _accountGeneration;
+        public int DeletionEpoch { get; private set; }
+        private bool _readyBeforeDeletion;
+        public const string DeletionLoginPauseKey = "AD_DeletionAcceptedNeedsLogin";
+
+        public AD.Privacy.DeletionSession DeletionSession() => string.IsNullOrEmpty(PlayFabId) ? null
+            : new AD.Privacy.DeletionSession(this, PlayFabId, _accountGeneration.ToString());
+
+        public void BeginDeletionSubmission(AD.Privacy.DeletionSession session)
+        {
+            if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
+            if (!DeletionInProgress)
+            {
+                _readyBeforeDeletion = IsServerDataReady;
+                DeletionEpoch++;
+            }
+            DeletionInProgress = true;
+            IsServerDataReady = false;
+            _server?.CancelPendingRequests();
+        }
+
+        // Only a validated terminal cancellation proves no submission can still occur.
+        public void FinishCancelledDeletion(AD.Privacy.DeletionSession session)
+        {
+            if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
+            if (!DeletionInProgress) return;
+            DeletionInProgress = false;
+            IsServerDataReady = _readyBeforeDeletion;
+        }
+
+        public void FinishAcceptedDeletion(AD.Privacy.DeletionSession session)
+        {
+            if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
+            if (!string.IsNullOrEmpty(PlayFab.PlayFabSettings.staticPlayer.PlayFabId) &&
+                PlayFab.PlayFabSettings.staticPlayer.PlayFabId != session.AccountId) throw new InvalidOperationException();
+            // Invalidate writes/callbacks and credentials even if a local disk operation fails.
+            SuspendAccountSession();
+            PlayFab.PlayFabSettings.staticPlayer.ForgetAllCredentials();
+            PlayerPrefs.SetInt(DeletionLoginPauseKey, 1);
+            PlayerPrefs.Save();
+            PlayFabId = string.Empty;
+            _deletionSignedOut = true;
+            PlayFabPlayerData = null;
+            try
+            {
+                if (!string.IsNullOrEmpty(_playerDataPath) && File.Exists(_playerDataPath))
+                {
+                    var stored = ParseData(File.ReadAllText(_playerDataPath));
+                    if (stored.TryGetValue(OwnerKey, out var owner) && owner == session.AccountId)
+                    {
+                        // Keep account-bound entitlement evidence outside active progress; never grant it to a new account.
+                        if (stored.TryGetValue("GooglePlay", out var entitlement) && !string.IsNullOrEmpty(entitlement))
+                        {
+                            var evidence = new Dictionary<string, string> { [OwnerKey] = owner, ["GooglePlay"] = entitlement };
+                            WriteAtomically(_playerDataPath + ".deletion-entitlement-" + Guid.NewGuid().ToString("N"), Utility.SerializeToJson(evidence));
+                        }
+                        File.Delete(_playerDataPath);
+                    }
+                }
+            }
+            finally
+            {
+                DeletionInProgress = false;
+                if (!string.IsNullOrEmpty(_playerDataPath) && File.Exists(_playerDataPath))
+                    LoadStoredData(); // Preserve the owner fence of an untouched foreign/legacy file for subsequent login.
+                else
+                {
+                    LocalPlayerData = _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
+                    _localOwner = string.Empty;
+                    _changes = new PlayerDataChanges();
+                }
+            }
+        }
 
         public void InitializeData()
         {
@@ -92,11 +167,13 @@ namespace AD
         /// <summary>Bind only after authentication. An owner mismatch requires explicit account recovery.</summary>
         public void BeginAccountSession(string playFabId)
         {
+            if (DeletionInProgress) throw new InvalidOperationException("Deletion submission is unresolved.");
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             SuspendAccountSession();
             if (!PlayerDataSyncPolicy.CanBindAccount(_localOwner, playFabId))
                 throw new InvalidOperationException("The local save belongs to another account. Account recovery is required.");
             PlayFabId = playFabId;
+            _deletionSignedOut = false;
             PlayFabPlayerData = null;
             IsConflict = false;
             _sessionBackupCreated = false;
@@ -170,6 +247,7 @@ namespace AD
 
         public void SaveLocalData()
         {
+            if (DeletionInProgress || _deletionSignedOut) throw new InvalidOperationException("No writable account session.");
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (LocalPlayerData == null || string.IsNullOrEmpty(_playerDataPath))
                 throw new InvalidOperationException("Player data has not been initialized.");
@@ -209,6 +287,7 @@ namespace AD
 
         public void UpdatePlayerData()
         {
+            if (DeletionInProgress || _deletionSignedOut) return;
             if (_shutdown) return;
             if (!IsServerDataReady)
             {
@@ -242,6 +321,7 @@ namespace AD
         /// <summary>Called only for a successful server read. No write requests originate here.</summary>
         public void UpdateData()
         {
+            if (DeletionInProgress || _deletionSignedOut) return;
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (PlayFabPlayerData == null || LocalPlayerData == null || _defaults == null)
                 throw new InvalidOperationException("A successful server snapshot is required.");

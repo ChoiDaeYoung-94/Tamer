@@ -1,0 +1,142 @@
+using System;
+using System.IO;
+using System.Net.Http;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace AD.Privacy
+{
+    /// <summary>Explicit HTTPS intake adapter. Requires an independently configured fresh-auth exchange.</summary>
+    public sealed class HttpDeletionGateway : IDeletionGateway, IDisposable
+    {
+        private readonly Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> _reauthenticate;
+        private readonly HttpClient _client;
+        private bool _disposed;
+        public bool IsAvailable => !_disposed;
+        public bool IsSynthetic => false;
+
+        public HttpDeletionGateway(Uri endpoint, Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> reauthenticate, TimeSpan? timeout = null)
+        {
+            // Pin an explicit HTTPS origin. Never follow redirects or use ambient proxy credentials.
+            if (endpoint == null || !endpoint.IsAbsoluteUri || endpoint.Scheme != "https" ||
+                string.IsNullOrEmpty(endpoint.Host) || endpoint.UserInfo != "" || endpoint.AbsolutePath != "/" ||
+                endpoint.Query != "" || endpoint.Fragment != "")
+                throw new ArgumentException("An explicit HTTPS origin is required.", nameof(endpoint));
+            _reauthenticate = reauthenticate ?? throw new ArgumentNullException(nameof(reauthenticate));
+            var duration = timeout ?? TimeSpan.FromSeconds(5);
+            if (duration <= TimeSpan.Zero || duration > TimeSpan.FromSeconds(30))
+                throw new ArgumentOutOfRangeException(nameof(timeout));
+            _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false })
+            { BaseAddress = endpoint, Timeout = duration, MaxResponseContentBufferSize = 16384 };
+        }
+
+        public async Task<DeletionAuthorization> ReauthenticateAsync(DeletionSession session, CancellationToken token)
+        {
+            if (session == null || !session.IsValid) throw new InvalidOperationException();
+            var config = await Send<Config>("v1/deletion/config", null, token);
+            if (!config.available || config.synthetic) throw new InvalidOperationException("Deletion service unavailable.");
+            var auth = await _reauthenticate(session, token);
+            Validate(auth);
+            if (auth.AccountId != session.AccountId) throw new InvalidOperationException();
+            return auth;
+        }
+
+        private static void Validate(DeletionAuthorization auth)
+        {
+            if (auth == null || string.IsNullOrEmpty(auth.AccountId) || string.IsNullOrEmpty(auth.Proof))
+                throw new InvalidOperationException("Fresh authorization required.");
+        }
+
+        public Task<DeletionSnapshot> RequestAsync(DeletionAuthorization auth, string key, CancellationToken token)
+        { Validate(auth); return Snapshot("request", new RequestBody { proof = auth.Proof, clientKey = key }, token); }
+        public Task<DeletionSnapshot> ConfirmAsync(DeletionAuthorization auth, DeletionSnapshot request, CancellationToken token)
+        {
+            Validate(auth);
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            return Snapshot("confirm", new ConfirmBody { proof = auth.Proof, requestId = request.RequestId,
+                challenge = request.Challenge, policyRevision = request.PolicyRevision }, token);
+        }
+        public Task<DeletionSnapshot> StatusAsync(DeletionAuthorization auth, string id, CancellationToken token)
+        { Validate(auth); return Snapshot("status", new IdBody { proof = auth.Proof, requestId = id }, token); }
+        public Task<DeletionSnapshot> CancelAsync(DeletionAuthorization auth, string id, CancellationToken token)
+        { Validate(auth); return Snapshot("cancel", new IdBody { proof = auth.Proof, requestId = id }, token); }
+
+        private async Task<DeletionSnapshot> Snapshot(string operation, object body, CancellationToken token)
+        {
+            var result = await Send<SnapshotBody>("v1/deletion/" + operation, body, token);
+            DeletionState state;
+            switch (result.state)
+            {
+                case "awaiting_confirmation": state = DeletionState.AwaitingConfirmation; break;
+                case "queued": state = DeletionState.Queued; break;
+                case "processing": state = DeletionState.Processing; break;
+                case "cancelled": state = DeletionState.Cancelled; break;
+                default: throw new InvalidOperationException("Invalid deletion state.");
+            }
+            if (result.submissionState == "accepted" && result.state == "processing") state = DeletionState.Accepted;
+            else if (result.submissionState == "submission_unknown" && result.state == "processing") state = DeletionState.SubmissionUnknown;
+            else if (result.submissionState != "not_submitted" && result.submissionState != "ready")
+                throw new InvalidOperationException("Invalid submission state.");
+            if (string.IsNullOrEmpty(result.requestId) || string.IsNullOrEmpty(result.policyRevision) ||
+                result.scope != "title" ||
+                (state == DeletionState.Completed && string.IsNullOrEmpty(result.completionEvidence)))
+                throw new InvalidOperationException("Invalid deletion response.");
+            return new DeletionSnapshot(result.requestId, result.policyRevision, result.scope, state,
+                result.challenge, result.completionEvidence);
+        }
+
+        private async Task<T> Send<T>(string path, object body, CancellationToken token)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(HttpDeletionGateway));
+            using (var request = new HttpRequestMessage(body == null ? HttpMethod.Get : HttpMethod.Post, path))
+            {
+                if (body != null)
+                {
+                    using (var stream = new MemoryStream())
+                    {
+                        new DataContractJsonSerializer(body.GetType()).WriteObject(stream, body);
+                        request.Content = new StringContent(Encoding.UTF8.GetString(stream.ToArray()), Encoding.UTF8, "application/json");
+                    }
+                }
+                using (var response = await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead, token))
+                {
+                    // Do not expose a response body, server exception or proof through errors.
+                    if (!response.IsSuccessStatusCode) throw new InvalidOperationException("Deletion HTTP request failed.");
+                    if (response.Content.Headers.ContentType?.MediaType != "application/json")
+                        throw new InvalidOperationException("Invalid deletion content type.");
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    token.ThrowIfCancellationRequested();
+                    using (var stream = new MemoryStream(bytes))
+                        return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(stream);
+                }
+            }
+        }
+
+        public void Dispose() { if (_disposed) return; _disposed = true; _client.Dispose(); }
+
+        [DataContract] private sealed class Config
+        { [DataMember(IsRequired = true)] public bool available { get; set; } [DataMember(IsRequired = true)] public bool synthetic { get; set; } }
+        [DataContract] private sealed class RequestBody
+        { [DataMember] public string proof { get; set; } [DataMember] public string clientKey { get; set; } }
+        [DataContract] private sealed class IdBody
+        { [DataMember] public string proof { get; set; } [DataMember] public string requestId { get; set; } }
+        [DataContract] private sealed class ConfirmBody
+        {
+            [DataMember] public string proof { get; set; } [DataMember] public string requestId { get; set; }
+            [DataMember] public string challenge { get; set; } [DataMember] public string policyRevision { get; set; }
+        }
+        [DataContract] private sealed class SnapshotBody
+        {
+            [DataMember(IsRequired = true)] public string requestId { get; set; }
+            [DataMember(IsRequired = true)] public string policyRevision { get; set; }
+            [DataMember(IsRequired = true)] public string scope { get; set; }
+            [DataMember(IsRequired = true)] public string state { get; set; }
+            [DataMember] public string challenge { get; set; }
+            [DataMember(IsRequired = true)] public string submissionState { get; set; }
+            [DataMember] public string completionEvidence { get; set; }
+        }
+    }
+}

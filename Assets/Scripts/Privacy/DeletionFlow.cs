@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace AD.Privacy
 {
-    public enum DeletionState { Unavailable, Idle, Authenticating, AwaitingConfirmation, Queued, Processing, Completed, Cancelled, RetryableFailure, SessionChanged }
+    public enum DeletionState { Unavailable, Idle, Authenticating, AwaitingConfirmation, Queued, Processing, Completed, Cancelled, RetryableFailure, SessionChanged, Accepted, SubmissionUnknown }
 
     public sealed class DeletionSession
     {
@@ -58,17 +58,26 @@ namespace AD.Privacy
         private DeletionSession _session;
         private DeletionAuthorization _authorization;
         private bool _disposed;
+        private readonly Action<DeletionSession> _beforeSubmit;
+        private readonly Action<DeletionSession> _accepted;
+        private readonly Action<DeletionSession> _cancelled;
         public DeletionState State { get; private set; }
         public DeletionSnapshot Request { get; private set; }
         public bool IsBusy { get; private set; }
+        public bool AcceptedCleanupFailed { get; private set; }
         public bool IsSynthetic => _gateway.IsSynthetic;
         public bool IsAvailable => !_disposed && _gateway.IsAvailable;
         public event Action Changed;
 
-        public DeletionFlow(IDeletionGateway gateway, Func<DeletionSession> currentSession)
+        public DeletionFlow(IDeletionGateway gateway, Func<DeletionSession> currentSession,
+            Action<DeletionSession> beforeSubmit = null, Action<DeletionSession> accepted = null,
+            Action<DeletionSession> cancelled = null)
         {
             _gateway = gateway ?? throw new ArgumentNullException(nameof(gateway));
             _current = currentSession ?? throw new ArgumentNullException(nameof(currentSession));
+            _beforeSubmit = beforeSubmit;
+            _accepted = accepted;
+            _cancelled = cancelled;
             State = gateway.IsAvailable ? DeletionState.Idle : DeletionState.Unavailable;
         }
 
@@ -101,7 +110,7 @@ namespace AD.Privacy
         }, true);
 
         public Task<bool> ConfirmAsync() => Request == null || Request.State != DeletionState.AwaitingConfirmation
-            ? Task.FromResult(false) : Run(token => _gateway.ConfirmAsync(_authorization, Request, token));
+            ? Task.FromResult(false) : Run(token => { _beforeSubmit?.Invoke(_session); return _gateway.ConfirmAsync(_authorization, Request, token); });
         public Task<bool> RefreshAsync() => Request == null ? Task.FromResult(false)
             : Run(token => _gateway.StatusAsync(_authorization, Request.RequestId, token));
         public Task<bool> CancelAsync() => Request == null ||
@@ -110,7 +119,7 @@ namespace AD.Privacy
 
         private async Task<bool> Run(Func<CancellationToken, Task<DeletionSnapshot>> action, bool authenticate = false)
         {
-            if (!IsAvailable || IsBusy || State == DeletionState.Completed || State == DeletionState.Cancelled || State == DeletionState.SessionChanged)
+            if (!IsAvailable || IsBusy || State == DeletionState.Accepted || State == DeletionState.Completed || State == DeletionState.Cancelled || State == DeletionState.SessionChanged)
                 return false;
             if (authenticate && Request != null) return false;
             IsBusy = true;
@@ -128,12 +137,20 @@ namespace AD.Privacy
                     (result.Scope != "title" && result.Scope != "master") ||
                     (Request != null && (result.RequestId != Request.RequestId || result.PolicyRevision != Request.PolicyRevision || result.Scope != Request.Scope)) ||
                     (result.State != DeletionState.AwaitingConfirmation && result.State != DeletionState.Queued &&
-                     result.State != DeletionState.Processing && result.State != DeletionState.Completed && result.State != DeletionState.Cancelled) ||
+                     result.State != DeletionState.Processing && result.State != DeletionState.Completed && result.State != DeletionState.Cancelled &&
+                     result.State != DeletionState.Accepted && result.State != DeletionState.SubmissionUnknown) ||
                     (result.State == DeletionState.AwaitingConfirmation && string.IsNullOrEmpty(result.Challenge)) ||
+                    (result.State == DeletionState.Accepted && result.Scope != "title") ||
                     (result.State == DeletionState.Completed && string.IsNullOrEmpty(result.CompletionEvidence)))
                     throw new InvalidOperationException();
                 Request = result;
                 State = result.State;
+                if (State == DeletionState.Cancelled) _cancelled?.Invoke(_session);
+                if (State == DeletionState.Accepted)
+                {
+                    try { _accepted?.Invoke(_session); }
+                    catch (Exception) { AcceptedCleanupFailed = true; } // Never resubmit an accepted deletion to retry a local cleanup.
+                }
                 return true;
             }
             catch (Exception)
@@ -151,6 +168,7 @@ namespace AD.Privacy
             _lifetime.Cancel();
             _lifetime.Dispose();
             _authorization = null;
+            if (_gateway is IDisposable disposable) disposable.Dispose();
             Changed = null;
         }
     }

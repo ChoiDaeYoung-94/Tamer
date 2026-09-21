@@ -6,7 +6,7 @@
 
 `TitleDeletionProvider(..., components=None)`으로 접수 전용 구성을 만들고 기존 DeletionService의 신선한 principal 확인, request/confirm 후 서버가 도출한 DeletionTarget을 `bind_confirmed`한다. 이어 `submit_confirmed(request_id, authenticated_account, policy)`를 호출하면 완료 callback 없이 제출한다. 정상 접수는 `accepted`, 이미 불확실한 요청은 `submission_unknown`이며, 취소 요청은 거절한다. 첫 timeout은 기존 `Rejected(provider_unconfirmed)`로 전달되고 영속 상태는 unknown으로 남는다. 이 API는 신뢰된 서버 내부용이며 직접 클라이언트 입력으로 account/target을 만들지 않는다.
 
-접수 전용 구성에서는 `DeletionService.advance`/provider `reconcile`을 호출하지 않는다. 기존 강한 완료 경로는 호환용으로 남지만 필수 실행 경로가 아니다. 현재 HTTP/UI는 아직 `submissionState`를 소비하지 않는다. 새 메서드만으로 배포 가능한 서버가 완성된 것은 아니다.
+접수 전용 구성에서는 `DeletionService.advance`/provider `reconcile`을 호출하지 않는다. 기존 강한 완료 경로는 호환용으로 남지만 필수 실행 경로가 아니다. `IntakeService`와 Unity HTTPS gateway/presenter는 이제 `submissionState`를 소비하며, 정상 접수 때 소유 확인된 로컬 정리와 로그아웃을 연결한다. 실제 인증 검증기와 운영 endpoint는 미구성이므로 기본 비활성이다. 구현 범위와 합성 검증 결과는 [삭제 접수 연결 검증](../../../docs/revival/deletion-intake-connection.ko.md)을 참고한다.
 
 ## 검토 가능한 파일과 자원
 

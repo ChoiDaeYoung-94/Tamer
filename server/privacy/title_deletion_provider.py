@@ -136,12 +136,12 @@ class TitleDeletionProvider:
             request = db.execute('SELECT * FROM deletion_requests WHERE id=?', (request_id,)).fetchone()
             if (request is None or request['account'] != account or request['scope'] != 'title'
                     or request['revision'] != policy.revision
-                    or request['state'] not in ('queued', 'processing', 'completed')):
+                    or request['state'] not in ('queued', 'processing', 'completed', 'accepted')):
                 raise Rejected('operation_conflict')
             target = DeletionTarget(row['title_id'], row['account'], row['entity_id'])
             phase = row['phase']
             if phase == 'ready':
-                if request['state'] == 'completed':
+                if request['state'] in ('completed', 'accepted'):
                     raise Rejected('operation_conflict')
                 # Serialize cancellation against submission using the same database.
                 db.execute("UPDATE deletion_requests SET state='processing' WHERE id=?", (request_id,))

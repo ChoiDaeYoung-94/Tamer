@@ -67,6 +67,23 @@ namespace AD
         private DataManager _dataOwner;
         private readonly LoginOperationGate _operations = new LoginOperationGate();
         private string _selectedGpgsId;
+        private int _loginGeneration;
+        private int _loginDeletionEpoch;
+        private bool _loginCaptured;
+
+        private bool LoginCurrent() => _loginCaptured && _dataOwner != null
+            && ReferenceEquals(_dataOwner, AD.Managers.DataM) && !_dataOwner.DeletionInProgress
+            && _loginGeneration == _dataOwner.AccountGeneration
+            && _loginDeletionEpoch == _dataOwner.DeletionEpoch;
+
+        private bool LoginCancelled(CancellationToken token) => token.IsCancellationRequested || !LoginCurrent();
+
+        private void CaptureLoginSession()
+        {
+            _loginGeneration = _dataOwner.AccountGeneration;
+            _loginDeletionEpoch = _dataOwner.DeletionEpoch;
+            _loginCaptured = true;
+        }
 
         #region Unity Lifecycle
 
@@ -97,13 +114,18 @@ namespace AD
 #endif
             _dataOwner = AD.Managers.DataM;
             _cts = new CancellationTokenSource();
+            if (PlayerPrefs.GetInt(AD.DataManager.DeletionLoginPauseKey, 0) != 0)
+            {
+                ShowRetry("Deletion request accepted. Sign in explicitly to continue.");
+                return;
+            }
             StartLogin();
         }
 
         private void OnDestroy()
         {
             _cts?.Cancel();
-            if (_dataOwner != null && !_operations.HasEnteredScene)
+            if (LoginCurrent() && !_operations.HasEnteredScene)
                 _dataOwner.SuspendAccountSession();
             _cts?.Dispose();
             _cts = null;
@@ -115,6 +137,7 @@ namespace AD
 
         private void StartLogin()
         {
+            if (AD.Managers.DataM != null && AD.Managers.DataM.DeletionInProgress) return;
 #if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
             return;
 #endif
@@ -125,6 +148,7 @@ namespace AD
             }
 
             AD.Managers.DataM.SuspendAccountSession();
+            CaptureLoginSession();
             RunLoginAsync(_cts.Token).Forget();
         }
 
@@ -161,7 +185,7 @@ namespace AD
                 loggedIn = await LoginWithDeviceAsync(token);
 #endif
 
-                if (token.IsCancellationRequested)
+                if (LoginCancelled(token))
                     return;
 
                 if (!loggedIn)
@@ -224,7 +248,7 @@ namespace AD
                 return false;
 
             string authenticatedId = await AuthenticateGooglePlayAsync(token);
-            if (token.IsCancellationRequested)
+            if (LoginCancelled(token))
                 return false;
 
             string selectedId = LoginContinuityPolicy.SelectGoogleId(cachedGpgsId, authenticatedId);
@@ -274,7 +298,7 @@ namespace AD
             ShowLoading("LogIn...");
             SignInStatus status = await RequestGpgsSignInAsync(manual: false, token);
 
-            if (status != SignInStatus.Success && !token.IsCancellationRequested)
+            if (status != SignInStatus.Success && !LoginCancelled(token))
             {
                 // 자동 로그인 실패 -> 계정 선택 UI를 띄워 사용자가 직접 로그인하도록 한다
                 LogStep($"GPGS 자동 로그인 실패({status}) -> 수동 로그인 시도");
@@ -311,14 +335,14 @@ namespace AD
         /// </summary>
         private async UniTask<SignInStatus> RequestGpgsSignInAsync(bool manual, CancellationToken token)
         {
-            if (token.IsCancellationRequested) return SignInStatus.InternalError;
+            if (LoginCancelled(token)) return SignInStatus.InternalError;
             SignInStatus status = SignInStatus.InternalError;
             var pending = new LoginCallbackGate();
             try
             {
                 Action<SignInStatus> callback = result =>
                 {
-                    if (!pending.TryComplete(token.IsCancellationRequested)) return;
+                    if (!pending.TryComplete(LoginCancelled(token))) return;
                     status = result;
                 };
                 if (manual) PlayGamesPlatform.Instance.ManuallyAuthenticate(callback);
@@ -339,7 +363,7 @@ namespace AD
         /// <summary>Choose one device identity. Never fall through after a request fails.</summary>
         private async UniTask<bool> LoginWithDeviceAsync(CancellationToken token)
         {
-            if (token.IsCancellationRequested) return false;
+            if (LoginCancelled(token)) return false;
             ShowLoading("LogIn...");
             string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
             string customId = PlayerPrefs.GetString(PrefsKeyCustomId, string.Empty);
@@ -373,7 +397,7 @@ namespace AD
                         AndroidDevice = SystemInfo.deviceModel,
                         CreateAccount = allowCreate
                     }, onOk, onError), "LoginWithAndroidDeviceID", token);
-                if (!device.IsSuccess || token.IsCancellationRequested) return false;
+                if (!device.IsSuccess || LoginCancelled(token)) return false;
                 OnLoggedIn(device.Result.PlayFabId, device.Result.NewlyCreated,
                     "AndroidDeviceID", device.Result.AuthenticationContext, LoginModeAndroid);
                 return true;
@@ -387,7 +411,7 @@ namespace AD
                     CustomId = customId,
                     CreateAccount = allowCreate
                 }, onOk, onError), "LoginWithCustomID", token);
-            if (!custom.IsSuccess || token.IsCancellationRequested) return false;
+            if (!custom.IsSuccess || LoginCancelled(token)) return false;
             OnLoggedIn(custom.Result.PlayFabId, custom.Result.NewlyCreated,
                 "CustomID", custom.Result.AuthenticationContext, LoginModeCustom);
             return true;
@@ -422,13 +446,13 @@ namespace AD
             string email = $"{userId}{EmailDomain}";
 
             var login = await LoginWithEmailAsync(email, token);
-            if (login.IsSuccess && !token.IsCancellationRequested)
+            if (login.IsSuccess && !LoginCancelled(token))
             {
                 OnLoggedIn(login.Result.PlayFabId, false, "EmailAddress", login.Result.AuthenticationContext, LoginModeGpgs);
                 return true;
             }
 
-            if (token.IsCancellationRequested || !IsRegistrationCandidate(login.Error, allowCreate))
+            if (LoginCancelled(token) || !IsRegistrationCandidate(login.Error, allowCreate))
             {
                 // Existing identity, transient failure or invalid input cannot create an account.
                 LogStep($"LoginWithEmailAddress 실패(등록 대상 아님) -> {Describe(login)}");
@@ -446,7 +470,7 @@ namespace AD
                 }, onOk, onError),
                 "RegisterPlayFabUser", token);
 
-            if (register.IsSuccess && !token.IsCancellationRequested)
+            if (register.IsSuccess && !LoginCancelled(token))
             {
                 OnLoggedIn(register.Result.PlayFabId, true, "Register", register.Result.AuthenticationContext, LoginModeGpgs);
                 return true;
@@ -457,7 +481,7 @@ namespace AD
             {
                 LogStep("이미 존재하는 계정 -> 로그인 재시도");
                 var retry = await LoginWithEmailAsync(email, token);
-                if (retry.IsSuccess && !token.IsCancellationRequested)
+                if (retry.IsSuccess && !LoginCancelled(token))
                 {
                     OnLoggedIn(retry.Result.PlayFabId, false, "EmailAddress(retry)", retry.Result.AuthenticationContext, LoginModeGpgs);
                     return true;
@@ -482,8 +506,11 @@ namespace AD
 
         private void OnLoggedIn(string playFabId, bool isNewAccount, string method, PlayFabAuthenticationContext context, string loginMode = null)
         {
+            if (!LoginCurrent()) return;
             AD.Managers.DataM.BeginAccountSession(playFabId);
+            _loginGeneration = _dataOwner.AccountGeneration;
             PlayFabSettings.staticPlayer.CopyFrom(context);
+            PlayerPrefs.DeleteKey(AD.DataManager.DeletionLoginPauseKey);
 
             // 다음 실행에서 같은 방식의 계정으로 접속하도록 기록
             if (!string.IsNullOrEmpty(loginMode))
@@ -512,13 +539,13 @@ namespace AD
                 }, onOk, onError),
                 "LoginWithEmailAddress(Test)", token);
 
-            if (login.IsSuccess && !token.IsCancellationRequested)
+            if (login.IsSuccess && !LoginCancelled(token))
             {
                 OnLoggedIn(login.Result.PlayFabId, false, "TestAccount", login.Result.AuthenticationContext);
                 return true;
             }
 
-            if (token.IsCancellationRequested || !IsRegistrationCandidate(login.Error, !HasLocalProgress()))
+            if (LoginCancelled(token) || !IsRegistrationCandidate(login.Error, !HasLocalProgress()))
                 return false;
 
             var register = await CallWithRetryAsync<RegisterPlayFabUserResult>(
@@ -531,7 +558,7 @@ namespace AD
                 }, onOk, onError),
                 "RegisterPlayFabUser(Test)", token);
 
-            if (register.IsSuccess && !token.IsCancellationRequested)
+            if (register.IsSuccess && !LoginCancelled(token))
             {
                 OnLoggedIn(register.Result.PlayFabId, true, "TestAccount(Register)", register.Result.AuthenticationContext);
                 return true;
@@ -553,6 +580,7 @@ namespace AD
         /// </summary>
         private async UniTask ResolveProfileAsync(CancellationToken token)
         {
+            if (!LoginCurrent()) return;
             ShowLoading("Check Data...");
 
             var profile = await CallWithRetryAsync<GetPlayerProfileResult>(
@@ -564,7 +592,7 @@ namespace AD
                 }, onOk, onError),
                 "GetPlayerProfile", token);
 
-            if (token.IsCancellationRequested)
+            if (LoginCancelled(token))
                 return;
 
             if (!profile.IsSuccess)
@@ -591,7 +619,7 @@ namespace AD
 
         public void CheckNickName()
         {
-            if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginNickname())
+            if (!LoginCurrent() || _cts == null || _cts.IsCancellationRequested || !_operations.TryBeginNickname())
                 return;
 
             string nickname = _nicknameInput != null ? _nicknameInput.text.Trim() : string.Empty;
@@ -616,7 +644,7 @@ namespace AD
                         DisplayName = name
                     }, onOk, onError), "UpdateUserTitleDisplayName", token);
 
-                if (token.IsCancellationRequested) return;
+                if (LoginCancelled(token)) return;
                 if (!update.IsSuccess)
                 {
                     if (update.IsTimeout || (update.Error != null && IsTransient(update.Error)))
@@ -637,7 +665,7 @@ namespace AD
             catch (OperationCanceledException) { }
             catch (Exception)
             {
-                if (!token.IsCancellationRequested) ShowRetry("Could not save your profile. Please try again.");
+                if (!LoginCancelled(token)) ShowRetry("Could not save your profile. Please try again.");
             }
             finally { _operations.EndOperation(); }
         }
@@ -648,9 +676,10 @@ namespace AD
 
         private async UniTask GoNextAsync(CancellationToken token)
         {
+            if (!LoginCurrent()) return;
             ShowLoading("Check Data...");
             AD.Managers.DataM.UpdatePlayerData();
-            if (!await WaitForServerAsync(token) || !_operations.TryEnterScene()) return;
+            if (!await WaitForServerAsync(token) || !LoginCurrent() || !_operations.TryEnterScene()) return;
 
             string sex = "null";
             var localData = AD.Managers.DataM.LocalPlayerData;
@@ -663,11 +692,10 @@ namespace AD
         private async UniTask<bool> WaitForServerAsync(CancellationToken token)
         {
             var server = AD.Managers.ServerM;
-            if (server == null || token.IsCancellationRequested) return false;
+            if (server == null || LoginCancelled(token)) return false;
             bool completed = await WaitUntilAsync(() => !server.IsInProgress, ServerSyncTimeout, token);
-            if (!completed || token.IsCancellationRequested)
-                server.CancelPendingRequests();
-            if (token.IsCancellationRequested) return false;
+            if (LoginCancelled(token)) return false;
+            if (!completed) server.CancelPendingRequests();
             if (!completed || server.HasFailed)
             {
                 ShowRetry("Could not load your saved progress. Please try again.");
@@ -703,7 +731,7 @@ namespace AD
 
             for (int attempt = 0; attempt < MaxApiAttempts; attempt++)
             {
-                if (token.IsCancellationRequested)
+                if (LoginCancelled(token))
                     return result;
 
                 result = await CallAsync(invoke, label, token);
@@ -732,7 +760,7 @@ namespace AD
         private async UniTask<ApiResult<T>> CallAsync<T>(
             Action<Action<T>, Action<PlayFabError>> invoke, string label, CancellationToken token) where T : class
         {
-            if (token.IsCancellationRequested) return new ApiResult<T> { IsTimeout = true };
+            if (LoginCancelled(token)) return new ApiResult<T> { IsTimeout = true };
             T apiResult = null;
             PlayFabError apiError = null;
             var callback = new LoginCallbackGate();
@@ -740,11 +768,11 @@ namespace AD
             {
                 invoke(value =>
                     {
-                        if (!callback.TryComplete(token.IsCancellationRequested)) return;
+                        if (!callback.TryComplete(LoginCancelled(token))) return;
                         apiResult = value;
                     }, error =>
                     {
-                        if (!callback.TryComplete(token.IsCancellationRequested)) return;
+                        if (!callback.TryComplete(LoginCancelled(token))) return;
                         apiError = error;
                     });
                 if (!await WaitUntilAsync(() => callback.IsCompleted, ApiTimeout, token))
@@ -871,7 +899,9 @@ namespace AD
 
         private void ShowRetry(string message)
         {
+            if (_loginCaptured && !LoginCurrent()) return;
             AD.Managers.DataM.SuspendAccountSession();
+            if (_loginCaptured) _loginGeneration = _dataOwner.AccountGeneration;
             _operations.ResetForRetry();
             LogStep($"재시도 패널 노출 -> {message}");
 
