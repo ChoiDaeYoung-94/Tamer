@@ -26,6 +26,7 @@
 | `PORT` | localhost 수신 포트 1024~65535 |
 | `ENABLED` | 정확히 `true` 또는 `false`, 누락 시 `false` |
 | `RETENTION_APPROVED`, `REJOIN_APPROVED`, `SESSION_CONFIRMATION_ENABLED` | 각각 정확히 `true`/`false`, 누락 시 `false`. 활성화하려면 모두 `true` 필요 |
+| `GOOGLE_PLAY_GAMES_SESSION_CONFIRMATION_ENABLED` | 정확히 `true`/`false`, 누락 시 `false`. 단일 PGS 연결 계정을 현재 세션 확인 대상으로 추가하는 선택 옵션. 이 값만으로 서비스가 활성화되지는 않음 |
 
 활성/비활성 모두 필수 설정을 검증합니다. 비활성 서비스는 POST를 거부하고 upstream을 호출하지 않습니다. `/health/live`는 프로세스 응답만 뜻하며 DB·PlayFab 권한·삭제 서비스 활성화를 보증하지 않습니다. HTTPS와 Host를 검사한 `/v1/deletion/config`에서 활성 여부를 읽습니다.
 
@@ -57,4 +58,4 @@ python -m unittest tools.revival.test_deletion_runtime -v
 
 Unity/Android/CLI 변경 및 실행 없음, APK 생성 없음. Linux 잠금 분기, 실제 TLS 프록시/소켓 배포, 재부팅·디스크 장애·백업 복구, 실 PlayFab 권한/정책 설정은 미검증입니다. Python과 WSGI 버전 pin은 검증 기준이며 이후 보안 patch 검토를 대체하지 않습니다.
 
-`GET /privacy/deletion`은 여전히 미제공 안내 페이지입니다. 실제 외부 요청 페이지와 nativePGS 본인확인은 구현하지 않았습니다. 현재 어댑터는 단일 AndroidDevice 또는 CustomId 익명 계정만 수용합니다. 성공한 접수는 `accepted`이며 최종 삭제 완료로 바꾸지 않습니다.
+`GET /privacy/deletion`은 여전히 미제공 안내 페이지입니다. 실제 외부 요청 페이지는 구현하지 않았습니다. 기본 어댑터는 단일 AndroidDevice 또는 CustomId 익명 계정을 수용하며, 별도 PGS 옵션을 켜면 단일 GooglePlayGamesInfo 계정도 같은 세션 확인 계약으로 수용합니다. [PGS 지원 범위와 검증](../../docs/revival/deletion-pgs-session.ko.md)을 따릅니다. Google 재인증이나 PGS로 발급된 ticket임을 증명하는 기능이 아닙니다. 성공한 접수는 `accepted`이며 최종 삭제 완료로 바꾸지 않습니다.
