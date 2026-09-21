@@ -23,6 +23,9 @@ namespace AD
             panel.offsetMin = panel.offsetMax = Vector2.zero;
             var view = panel.gameObject.AddComponent<DeletionView>();
             view.Build(font, () => manager.RequestClosePopup(panel.gameObject));
+            var policy = DeletionView.Button("PrivacyPolicy", view.Message.transform.parent, "개인정보처리방침", font);
+            policy.transform.SetSiblingIndex(view.Message.transform.GetSiblingIndex());
+            policy.onClick.AddListener(() => Application.OpenURL("https://github.com/ChoiDaeYoung-94/Tamer#개인정보처리방침"));
             var age = DeletionView.Button("AgeChoice", view.Message.transform.parent, "연령대 다시 선택", font);
             age.transform.SetSiblingIndex(view.Message.transform.GetSiblingIndex() + 1);
             age.onClick.AddListener(() => manager.GetComponent<AgeChoicePresenter>()?.Open());
