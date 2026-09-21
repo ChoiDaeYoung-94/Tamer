@@ -24,9 +24,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private string _armedAction = "none";
     private double _actionAt = double.PositiveInfinity;
 #if TAMER_UMP_ONLY_HARNESS
-    private const bool UmpOnly = true;
+    private static bool UmpOnly => true;
 #else
-    private const bool UmpOnly = false;
+    private static bool UmpOnly => false;
 #endif
     private AdConsentGate _ump;
     private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _umpCallbacks =
@@ -134,20 +134,20 @@ public sealed class RevivalAdHarness : MonoBehaviour
         if (UmpOnly) DrawUmpOnly();
         else
         {
-        GUILayout.Label("SAMPLE ADS ONLY - isolated account/save/billing-free harness");
-        GUILayout.Label("Rewards: " + _rewards + " / finishes: " + _finishes + " / owner: " + _ownerId);
-        GUILayout.Label("BGM playing: " + Bgm.isPlaying + " / sample: " + Bgm.timeSamples);
-        GUILayout.Label("Opened callback is not native first pixel. Record native close UI separately.");
-        GUI.enabled = Ads != null;
-        if (GUILayout.Button("Load sample (explicit SDK initialization)", GUILayout.Height(52))) { Record("load_button"); Ads.LoadRewardedAd(); }
-        if (GUILayout.Button("Show sample / policy-block control", GUILayout.Height(52))) Show();
-        if (Ads != null && Ads.PrivacyOptionsRequired &&
-            GUILayout.Button("Privacy options", GUILayout.Height(44))) Ads.ShowPrivacyOptions();
-        GUI.enabled = true;
-        if (GUILayout.Button("New receipt owner", GUILayout.Height(44))) NewOwner();
-        foreach (string action in new[] { "none", "destroy owner", "destroy manager", "scene A-B-A", "replace BGM", "duplicate show" })
-            if (GUILayout.Button("Arm: " + action + (_armedAction == action ? " [selected]" : ""), GUILayout.Height(38))) _armedAction = action;
-        GUILayout.Label("Armed action runs >=2s after opened callback when Unity updates; never closes or rewards an ad.");
+            GUILayout.Label("SAMPLE ADS ONLY - isolated account/save/billing-free harness");
+            GUILayout.Label("Rewards: " + _rewards + " / finishes: " + _finishes + " / owner: " + _ownerId);
+            GUILayout.Label("BGM playing: " + Bgm.isPlaying + " / sample: " + Bgm.timeSamples);
+            GUILayout.Label("Opened callback is not native first pixel. Record native close UI separately.");
+            GUI.enabled = Ads != null;
+            if (GUILayout.Button("Load sample (explicit SDK initialization)", GUILayout.Height(52))) { Record("load_button"); Ads.LoadRewardedAd(); }
+            if (GUILayout.Button("Show sample / policy-block control", GUILayout.Height(52))) Show();
+            if (Ads != null && Ads.PrivacyOptionsRequired &&
+                GUILayout.Button("Privacy options", GUILayout.Height(44))) Ads.ShowPrivacyOptions();
+            GUI.enabled = true;
+            if (GUILayout.Button("New receipt owner", GUILayout.Height(44))) NewOwner();
+            foreach (string action in new[] { "none", "destroy owner", "destroy manager", "scene A-B-A", "replace BGM", "duplicate show" })
+                if (GUILayout.Button("Arm: " + action + (_armedAction == action ? " [selected]" : ""), GUILayout.Height(38))) _armedAction = action;
+            GUILayout.Label("Armed action runs >=2s after opened callback when Unity updates; never closes or rewards an ad.");
         }
         foreach (string line in _events) GUILayout.Label(line);
         GUILayout.EndScrollView();
@@ -174,6 +174,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
         if (GUILayout.Button("Explicit UMP Update + required form (network)", GUILayout.Height(52))) StartUmpOnly();
         if (_ump != null && _ump.PrivacyOptionsRequired && GUILayout.Button("UMP privacy options", GUILayout.Height(44)))
             _ump.OpenPrivacyOptions(allowed => Record("ump_privacy_finished can_request=" + allowed));
+        GUI.enabled = GUI.enabled && AgeTreatmentPolicy.TryCreatePlan(_testAge, out _);
         if (GUILayout.Button("Reset test consent locally", GUILayout.Height(44)))
         { DisposeUmp(); ConsentInformation.Reset(); Record("ump_test_reset"); }
         GUI.enabled = previousEnabled;
