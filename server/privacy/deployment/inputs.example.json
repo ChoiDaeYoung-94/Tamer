@@ -1,0 +1,45 @@
+{
+  "reviewOnly": true,
+  "resourceInputs": {
+    "AZURE_SUBSCRIPTION_ID": null,
+    "AZURE_TENANT_ID": null,
+    "AZURE_LOCATION": null,
+    "RESOURCE_GROUP": null,
+    "FUNCTION_APP_NAME": null,
+    "STORAGE_ACCOUNT_NAME": null,
+    "KEY_VAULT_NAME": null,
+    "PYTHON_RUNTIME_VERSION": null,
+    "MONTHLY_COST_CEILING_USD": null,
+    "EXPECTED_MONTHLY_REQUESTS": null
+  },
+  "applicationInputs": {
+    "PLAYFAB_TITLE_ID": null,
+    "DELETION_SCOPE": "title",
+    "DELETION_ACCEPT_ENABLED": false,
+    "DELETION_SUBMIT_ENABLED": false,
+    "DELETION_POLICY_REVISION": null,
+    "DELETION_RETENTION_PLAN": null,
+    "AUTH_ISSUER": null,
+    "AUTH_AUDIENCE": null,
+    "AUTH_CALLBACK_ORIGIN": null,
+    "WEB_ALLOWED_ORIGIN": null,
+    "EXTERNAL_HTTPS_BASE_URL": null,
+    "LEDGER_TABLE_NAME": "DeletionLedger",
+    "UNKNOWN_SUBMISSION_RECOVERY_PROCEDURE": null,
+    "REQUEST_RATE_LIMIT": null
+  },
+  "secretReferencesOnly": {
+    "PLAYFAB_SERVER_KEY_SECRET_URI": null,
+    "AUTH_PROVIDER_SECRET_URI_IF_REQUIRED": null,
+    "IDENTITY_INDEX_HMAC_KEY_SECRET_URI": null
+  },
+  "neverSupply": [
+    "raw secret values",
+    "real player identifiers",
+    "status tokens",
+    "session tickets",
+    "raw logs",
+    "master/publisher deletion credentials"
+  ],
+  "note": "Null means unresolved, not default. These flags and inputs are proposed composition requirements, not implemented environment variables. Keep actual local values outside Git. No app is runnable from this file."
+}
