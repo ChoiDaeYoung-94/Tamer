@@ -20,6 +20,8 @@ public class RevivalAgeChoiceUITests
     public void Revival_AgeViewHasNeutralChoicesSavesDeclineAndRestoresPause()
     {
         var scene = EditorSceneManager.NewPreviewScene();
+        var originalScene = SceneManager.GetActiveScene();
+        Scene layoutScene = default;
         var root = new GameObject("Age UI fixture", typeof(RectTransform));
         SceneManager.MoveGameObjectToScene(root, scene);
         // Reproduce PopupManager's real nested-Canvas hierarchy at a stable size.
@@ -56,6 +58,23 @@ public class RevivalAgeChoiceUITests
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)canvas.transform.Find("Content"));
             var modalRect = (RectTransform)canvas.transform;
+            var contentRect = (RectTransform)canvas.transform.Find("Content");
+            var group = contentRect.GetComponent<VerticalLayoutGroup>();
+            Debug.Log("AGE_LAYOUT_PREVIEW modal=" + modalRect.rect.size + " content=" + contentRect.rect.size +
+                " groupEnabled=" + group.enabled + " groupActive=" + group.isActiveAndEnabled +
+                " objectActive=" + contentRect.gameObject.activeInHierarchy + " buttons=" +
+                string.Join(",", buttons.Select(b => ((RectTransform)b.transform).rect.width.ToString())));
+            // Compare the same objects in a regular Editor scene, where uGUI's
+            // ExecuteAlways layout behaviours participate in the normal layout pass.
+            layoutScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            SceneManager.MoveGameObjectToScene(root, layoutScene);
+            modalRect.ForceUpdateRectTransforms();
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+            Debug.Log("AGE_LAYOUT_EDITOR modal=" + modalRect.rect.size + " content=" + contentRect.rect.size +
+                " groupEnabled=" + group.enabled + " groupActive=" + group.isActiveAndEnabled +
+                " objectActive=" + contentRect.gameObject.activeInHierarchy + " buttons=" +
+                string.Join(",", buttons.Select(b => ((RectTransform)b.transform).rect.width.ToString())));
             Assert.That(modalRect.rect.width, Is.EqualTo(1080).Within(1));
             Assert.That(modalRect.rect.height, Is.EqualTo(1920).Within(1));
             Assert.That(canvas.overrideSorting, Is.True);
@@ -73,6 +92,8 @@ public class RevivalAgeChoiceUITests
             if (presenter != null) Call(presenter, "OnDisable");
             if (ads != null) Call(ads, "OnDestroy");
             UnityEngine.Object.DestroyImmediate(root);
+            if (layoutScene.IsValid()) EditorSceneManager.CloseScene(layoutScene, true);
+            if (originalScene.IsValid()) SceneManager.SetActiveScene(originalScene);
             EditorSceneManager.ClosePreviewScene(scene);
             Time.timeScale = time;
         }

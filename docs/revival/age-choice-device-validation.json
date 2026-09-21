@@ -26,13 +26,14 @@
     "adIdPermission": false,
     "mobileAdsInitProvider": false
   },
-  "result": "blocked-after-device-layout-and-dependent-editor-failure",
+  "result": "blocked-after-approved-retry-two-failures",
   "deviceAttempts": 1,
   "deviceLayoutFailures": 1,
   "followupLayoutTests": {
     "total": 1,
     "passed": 0,
-    "failed": 1
+    "failed": 1,
+    "failedAssertion": "canvas.overrideSorting == true (prior width interpretation corrected)"
   },
   "deviceSecondAttemptPerformed": false,
   "ageWasSelected": false,
@@ -62,6 +63,35 @@
     {
       "path": "Logs/revival/agechoice-device/attempt1-preupdate-prefs.xml",
       "sha256": "7757892ef5a8f86e622576854ce0ec1ff8f0c569e18e01a19fe83acff0f3e8b0"
+    },
+    {
+      "path": "Logs/revival/agechoice-resume-measure.xml",
+      "sha256": "cbc0b6edb20bfb07d3be2929026fc3ca48166eeda8e24f16035fea1c817d4c68"
+    },
+    {
+      "path": "Logs/revival/agechoice-resume-layout.xml",
+      "sha256": "22ea2636ea4d2f514ec28c4823fcc3754b7f20a4afcf82cb25537ede4327137c"
+    },
+    {
+      "path": "Logs/revival/agechoice-resume-layout.log",
+      "sha256": "df4de56e19124f1ee2644c4853cb6d85be930082dd7d1c17a2484ea377ffeb19"
     }
-  ]
+  ],
+  "approvedRetry": {
+    "tests": 2,
+    "failures": 2,
+    "firstFailure": "overrideSorting assertion",
+    "secondFailure": "additive Editor scene rejected because untitled scene was unsaved",
+    "measuredButtonWidths": [
+      907.2001,
+      907.2001,
+      907.2001,
+      907.2001,
+      907.2001
+    ],
+    "measuredModal": [
+      1080,
+      1920
+    ]
+  }
 }

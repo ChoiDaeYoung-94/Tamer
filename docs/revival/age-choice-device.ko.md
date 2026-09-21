@@ -28,8 +28,16 @@ APK 105462423 bytes, SHA-256 `2fad6fe2fbf005875deccc630c74ff05fdb394e9db7bfc39eb
 
 SM-N986N / Android 13 / user 0에서 전용 패키지 부재를 확인하고 최초 설치했다. 원본 Main에 진입하고 로그인·광고 차단/메모리 서버 준비 마커와 오류 0을 확인했다. 그러나 최초 연령 화면이 전체 화면을 채우지 못하고 설명·버튼이 좁게 겹쳐 **UI 실패 1회**로 판정했다. 선택하지 않고 앱을 중지했으며 연령 키 부재와 저장 파일을 보존했다.
 
-Manager prefab 자체가 Canvas인데 자식 연령 Canvas의 RectTransform이 기본 100×100으로 남는 것이 첫 원인이다. 수정안은 부모 전체 stretch와 표시 순서 override다. 실제 Canvas 부모를 포함하도록 보강한 Editor 회귀는 modal 1080×1920·정렬 검사를 통과한 뒤 버튼 너비 >800 검사에서 **0/1 실패**했다. 하위 LayoutGroup 폭이 충분하지 않은 이유는 추가 진단이 필요하다. 테스트 fixture의 재계산 문제 가능성을 실제 화면 수정 성공으로 단정하지 않는다.
+Manager prefab 자체가 Canvas인데 자식 연령 Canvas의 RectTransform이 기본 100×100으로 남는 것이 첫 원인이다. 수정안은 부모 전체 stretch와 표시 순서 override다. 실제 Canvas 부모를 포함하도록 보강한 Editor 회귀는 modal 1080×1920 검사 후 `canvas.overrideSorting == true` 검사에서 **0/1 실패**했다. 처음에는 stack trace 61행을 버튼 너비 검사로 잘못 해석했으며, 아래 승인 후 측정에서 이를 정정했다.
 
 기기 실패와 종속 회귀 실패를 보수적으로 2회 경계로 보고 추가 수정·빌드·기기 실행을 중단하여 담당자에게 보고했다. 수정 APK와 두 번째 기기 실행은 아직 없다. 구간 선택 저장·프로세스 재실행·설정 재선택·응답 거절 유지는 **기기 미검증**이다. 기존 68개 Editor 회귀 통과가 기기 레이아웃 성공을 보장하지 않음을 기록한다.
 
 실패 APK·화면·로그·연령 선택 전 PlayerPrefs·XML은 비공개 로컬에 보존한다. 공개 [증거 manifest](age-choice-device-validation.json)에는 경로와 해시만 기록한다. 전용 앱을 중지하고 설치/데이터를 보존했으며, 다른 앱과 계정은 변경하지 않았다. 본인 Editor 종료·설정/폰트 복원 후 Editor와 폰 슬롯을 반환했다.
+
+## 사용자 재시도 승인 후 측정과 보고 정정
+
+사용자가 명시적으로 재시도를 승인해 진단을 재개했다. 이전 두 실패는 그대로 보존했다. 승인 후 첫 실행은 같은 `overrideSorting` 검사에서 실패했다. 이때 NUnit Progress 출력은 원본 결과에 남지 않았다.
+
+두 번째 실행에서는 Unity 로그로 다음 실제 치수를 확보했다: modal **1080×1920**, content **907.2×1459.2**, 버튼 5개 너비 각각 **907.2001**, LayoutGroup enabled/active 모두 true. 따라서 버튼 너비가 좁다는 기존 Editor 실패 해석은 잘못이었다. 기존 파일의 61행은 `overrideSorting` assertion이고 너비 assertion은 62행이다. 최초 기기 APK의 100×100 문제와 stretch 수정 후의 정상 너비를 구분한다.
+
+이어 동일 객체를 일반 Editor Scene과 비교하려던 진단은 `Cannot create a new scene additively with an untitled scene unsaved` 예외로 끝났다. 이 예외는 UI 치수 실패가 아니라 테스트 환경 제약이다. 승인 후 두 실패에 도달해 추가 실행을 중단했다. 표시 순서 설정의 활성화 시점이 미해결이며, 이를 수정했다고 아직 주장하지 않는다. 기기 두 번째 실행·수정 APK 빌드는 여전히 수행하지 않았다.
