@@ -1,0 +1,125 @@
+{
+  "date": "2026-09-21",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "executionCheckoutCommit": "b40787c1fa78f00277deb42266f46c4adf95c381",
+  "apkSourceCommit": "3f155a3f37867e2c97be602336fe5ee04e11bd9d",
+  "implementationMergeCommit": "d9307704dea815894d98a78816d9108ac79b7620",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "device": {
+    "model": "SM-S938N",
+    "android": "16",
+    "ownership": "personal"
+  },
+  "apkSha256": "5d8431d55b78c579ebc140c2258ad09b740c774f42bc07fa387c5caeccc17aef",
+  "applicationId": "com.AeDeong.MonsterTamer.revival.gamesavecloud",
+  "manualAccountCreationObserved": true,
+  "manualAuthenticationSuccessCount": 3,
+  "failureCount": 0,
+  "stages": [
+    {
+      "step": 1,
+      "pendingCountBeforeUpload": 8,
+      "pendingVerification": "PASS",
+      "cloudUploadReadback": "PASS",
+      "uploadSessionReads": 2,
+      "uploadSessionWrites": 1,
+      "processRestartPrimaryRestore": "PASS",
+      "freshReadOnlyRestore": "PASS",
+      "restoreReads": 1,
+      "restoreWrites": 0,
+      "finalPendingCount": 0,
+      "busy": false,
+      "failed": false
+    },
+    {
+      "step": 2,
+      "pendingCountBeforeUpload": 7,
+      "pendingVerification": "PASS",
+      "cloudUploadReadback": "PASS",
+      "uploadSessionReads": 2,
+      "uploadSessionWrites": 1,
+      "processRestartPrimaryRestore": "PASS",
+      "freshReadOnlyRestore": "PASS",
+      "restoreReads": 1,
+      "restoreWrites": 0,
+      "finalPendingCount": 0,
+      "busy": false,
+      "failed": false
+    }
+  ],
+  "authenticationDisconnected": true,
+  "appProcessStopped": true,
+  "privateEvidence": [
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step1-pending-pass.png",
+      "sha256": "a8c5f01bddcb5d33cedf7f964c9d4c504d042a14cd84947adb20c741e9bc07e6"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step1-ack-pass.png",
+      "sha256": "6b6b2b03d4cff7d7e2a4add0fb6293b263870fb9771633e991be4a032a4207d0"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step1-restart-primary-pass.png",
+      "sha256": "49bf62ab1cbd12dcf1132872fb8ae13ee73896e3e5f7934f56b2cd2c36ec2f8b"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step1-restore1-pass.png",
+      "sha256": "501b438f4bb026de2b4dadd7f23b9f94e2f2d659a7dcecb1170332e80ae9dd33"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step2-pending-pass.png",
+      "sha256": "a07bc0ab5cf874961e94ab3ffb66f1f8817205045543c05e66e3c5697c1834f6"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step2-ack-pass.png",
+      "sha256": "9592a0dc6d3a327e9dff8e965d5e3c8352c571d64bc2ac10b8ccf53aaedaacff"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step2-restart-primary-pass.png",
+      "sha256": "079ea7bea63602eee261c4826b5e8ac5f848882b6ef0985af52909c1279f5202"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step2-restore2-pass.png",
+      "sha256": "e49a4df2c8a9cbb0526690b7582a806d85cbc83ef62d6ca7f2d0a871c28e100b"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step1-process-restart.json",
+      "sha256": "da4a51181d1edd23058905a525ae5cc6164ac80062315640b192da0be83fa7e9"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/step2-process-restart.json",
+      "sha256": "9af624150d5be42b5d75cec5d9150e4f14d95dd677cb24d344ca766ebcc9c9f2"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/final-primary.json",
+      "sha256": "4d80c85de33257fae39a6c7e7c46055535dfd26e91fab9852fb3bea33fffc03a"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/final-restore1.json",
+      "sha256": "00dadb491c55c78f5ec317dedb9c8a041722f313e78db7f4a5d7a4cb63d99668"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/final-restore2.json",
+      "sha256": "cadca32beceb10b22207113283285a6500c7afdca554bbc1c35409864cf4f426"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/final-disconnected.png",
+      "sha256": "b80c8c9f062e959cf655aae8697d542d73d1f581e26e25869399e98bc064ad9b"
+    },
+    {
+      "file": ".revival-local/gameplay-cloud-handoff/final-stop.json",
+      "sha256": "5e649a64a9aa187d17ea4a92757a3c02c445f5d9da6076a37a93b79078f26719"
+    }
+  ],
+  "notVerified": [
+    "Actual Player scene restore",
+    "PlayerPrefs inventory migration",
+    "Google, purchases, ads and store flows",
+    "16 KB runtime compatibility"
+  ],
+  "priorBuildLimit": {
+    "strictRelroEndAlignmentFailures": 5,
+    "rerun": false
+  }
+}
