@@ -26,8 +26,8 @@
     "adIdPermission": false,
     "mobileAdsInitProvider": false
   },
-  "result": "blocked-after-approved-retry-two-failures",
-  "deviceAttempts": 1,
+  "result": "blocked-after-second-approved-retry-checker-failure",
+  "deviceAttempts": 3,
   "deviceLayoutFailures": 1,
   "followupLayoutTests": {
     "total": 1,
@@ -35,8 +35,8 @@
     "failed": 1,
     "failedAssertion": "canvas.overrideSorting == true (prior width interpretation corrected)"
   },
-  "deviceSecondAttemptPerformed": false,
-  "ageWasSelected": false,
+  "deviceSecondAttemptPerformed": true,
+  "ageWasSelected": true,
   "appStopped": true,
   "appDataPreserved": true,
   "files": [
@@ -75,6 +75,54 @@
     {
       "path": "Logs/revival/agechoice-resume-layout.log",
       "sha256": "df4de56e19124f1ee2644c4853cb6d85be930082dd7d1c17a2484ea377ffeb19"
+    },
+    {
+      "path": "Logs/revival/agechoice-sorting-tests.xml",
+      "sha256": "dc17b785ef553b486a2c9459753f733d0b864d5a8b0ca7daffadc21fbf287d69"
+    },
+    {
+      "path": "Logs/revival/agechoice-wrap-tests.xml",
+      "sha256": "20f81a6046a0f55d51f800b226f4e9f0fbe6a4e26abbce1ca8e64bf5643ac7b7"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/attempt2-apk-verification.json",
+      "sha256": "b67a0e94911133fd0d9a7e973aac3c368c004d33e10935256139d74680613b55"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/wrapped-first-question.png",
+      "sha256": "46a22d10334df2174e6cddf428ae96de99270dc5f75fa2a977aa5588c3639fbb"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/wrapped-first-question.log",
+      "sha256": "9ee7ff94af887f15de250a0e6e5cbe37a819b301ef84f2315067ad9ee994e288"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-13to15.png",
+      "sha256": "c414b3deb8bc61baf49f66baded3495e14cf81471a8d3721538e0d9bf79f9d58"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-13to15.log",
+      "sha256": "d1520c6998b5cd8b397a926fea18dbfc013dc39dd9b02585b03f86af2c6c1916"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-13to15-prefs.xml",
+      "sha256": "2f137aa1b901e0ac9603b2230f804d3c31d27c21ad314c470fb54df11e5a5d61"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/before-wrap-update-prefs.xml",
+      "sha256": "f199bc5afb526ee3c7ae87d4e0b6b48245934f4134a664d6002ba38b64d7c321"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/after-wrap-update-prefs.xml",
+      "sha256": "f199bc5afb526ee3c7ae87d4e0b6b48245934f4134a664d6002ba38b64d7c321"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/wrapped-apksigner.txt",
+      "sha256": "e4c4ed3a982ba2c6753533f8be851450758be722efd250f68bccdeaef7abe632"
+    },
+    {
+      "path": "Logs/revival/agechoice-native-wrapped.json",
+      "sha256": "83b828b4e9581cb5f2c591217871b2296ea0d9274c19db5945f3d737531b1914"
     }
   ],
   "approvedRetry": {
@@ -93,5 +141,44 @@
       1080,
       1920
     ]
+  },
+  "finalSourceCommit": "08a8fefe63b989e9c89ae3f5fa2c07f91a830203",
+  "finalApk": {
+    "variant": "agechoice",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.agechoice",
+    "bytes": 144739418,
+    "sha256": "91086547b51c6ae6a194314c28e9f074fa1b82097d3532a41720ffc47b7a57d6",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "secondApprovedRetry": {
+    "failures": 2,
+    "firstFailure": "Device description did not wrap within content; fixed in final APK",
+    "secondFailure": "Local checker compared percent-encoded XML text directly with unencoded expected string",
+    "editorSortingTests": "1/1 Passed",
+    "editorWrapTests": "1/1 Passed",
+    "observations": [
+      "Final screen readable with five neutral choices",
+      "13–15 click closed question",
+      "Raw XML value 1%7C13to15"
+    ],
+    "remaining": [
+      "Decoded persistence validation",
+      "Process restart",
+      "Settings reselection",
+      "Declined persistence after restart"
+    ],
+    "furtherExecutionStopped": true
   }
 }

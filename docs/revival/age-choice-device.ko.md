@@ -41,3 +41,17 @@ Manager prefab 자체가 Canvas인데 자식 연령 Canvas의 RectTransform이 �
 두 번째 실행에서는 Unity 로그로 다음 실제 치수를 확보했다: modal **1080×1920**, content **907.2×1459.2**, 버튼 5개 너비 각각 **907.2001**, LayoutGroup enabled/active 모두 true. 따라서 버튼 너비가 좁다는 기존 Editor 실패 해석은 잘못이었다. 기존 파일의 61행은 `overrideSorting` assertion이고 너비 assertion은 62행이다. 최초 기기 APK의 100×100 문제와 stretch 수정 후의 정상 너비를 구분한다.
 
 이어 동일 객체를 일반 Editor Scene과 비교하려던 진단은 `Cannot create a new scene additively with an untitled scene unsaved` 예외로 끝났다. 이 예외는 UI 치수 실패가 아니라 테스트 환경 제약이다. 승인 후 두 실패에 도달해 추가 실행을 중단했다. 표시 순서 설정의 활성화 시점이 미해결이며, 이를 수정했다고 아직 주장하지 않는다. 기기 두 번째 실행·수정 APK 빌드는 여전히 수행하지 않았다.
+
+## 추가 사용자 승인 후 수정과 현재 중단 상태
+
+표시 순서 적용을 `_modal.SetActive(true)` 직후로 옮긴 소스 `b9b3f00b895072edf080a9e104589fcc48e72dd4`의 Editor 회귀는 1/1 통과했다. 기존 assertion을 유지하고 재열기 표시 순서도 확인했다. 일반 씬 생성 진단을 제거하고 테스트 소유 Preview Scene만 생성·정리했다. 사용자 미저장 씬을 저장하거나 삭제하지 않았다.
+
+이 APK의 기기 화면은 전체 Canvas와 버튼 배치가 정상이었으나 안내 TMP 문장이 줄바꿈 없이 가장자리로 넘쳐 승인 후 실패 1회로 기록했다. 명시적인 Normal 줄바꿈과 LayoutElement min/preferredWidth=0을 적용하여 부모 폭을 따르도록 수정했다. 소스 `08a8fefe63b989e9c89ae3f5fa2c07f91a830203`의 최소 Editor 회귀 1/1이 통과했다. 이 검사는 자식 Rect 폭 검사이며 실제 glyph 가독성은 아래 기기 관찰과 구분한다.
+
+최종 APK는 144739418 bytes, SHA-256 `91086547b51c6ae6a194314c28e9f074fa1b82097d3532a41720ffc47b7a57d6`이다. 기존 APK와 debug 서명 일치, 정확 패키지, INTERNET/ACCESS_NETWORK_STATE/BILLING/AD_ID와 MobileAdsInitProvider 제거, 백업/복원 제외를 독립 검토했다. ACCESS_ADSERVICES 계열 권한까지 모두 제거됐다는 의미는 아니다. LOAD/ZIP 통과, 별도 RELRO 끝 정렬 5개 실패는 유지한다. 이전 대비 APK 크기 증가는 대부분 ZIP entry 사이 공간이며, 압축된 entry 총량 차이는 약 1.5KB였다. 증분 패킹 잔여라는 원인은 추정으로 남긴다.
+
+동일 패키지를 `install -r`로 업데이트했고 저장 파일은 업데이트 전후 byte 단위 동일했다. 최종 기기 화면에서 안내 문구 전체 줄바꿈·가독성·동일한 다섯 선택지를 확인했다. `13~15세` 선택 후 질문이 닫혔으며 원시 XML 값 `1%7C13to15`가 생성됐다.
+
+로컬 검사 스크립트가 원시 XML 값을 `1|13to15`와 직접 비교해 assertion 실패를 냈다. 이 검사기 해석 오류도 승인 후 두 번째 실패로 계수하라는 담당자 지시에 따라 중단했다. 승인 전 percent-decode 수정·재검증·앱 재시작을 하지 않았다. **정규화된 저장값 검증, 프로세스 재실행, 설정 재선택, 응답 거절 보존은 미완료**다. 정상 화면과 선택 닫힘 관찰만을 저장 roundtrip 전체 성공으로 확대하지 않는다.
+
+현재 전용 앱은 중지했고 설치/데이터를 보존했다. Editor는 종료·설정 복원 상태이며 슬롯을 반환했다. 이전 네 실패와 이번 두 실패 및 보고 정정 이력을 모두 유지하며 PR은 Draft다.
