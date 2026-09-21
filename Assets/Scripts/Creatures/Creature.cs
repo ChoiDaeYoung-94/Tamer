@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 
 using UnityEngine;
@@ -103,9 +104,9 @@ public abstract class Creature : MonoBehaviour
         {
             _itemAdditionalHp = _originalHp = 100f;
             _hp = 100f;
-            _power = float.Parse(AD.Managers.DataM.LocalPlayerData["Power"]);
-            _attackSpeed = float.Parse(AD.Managers.DataM.LocalPlayerData["AttackSpeed"]);
-            _moveSpeed = float.Parse(AD.Managers.DataM.LocalPlayerData["MoveSpeed"]);
+            _power = float.Parse(AD.Managers.DataM.LocalPlayerData["Power"], NumberStyles.Float, CultureInfo.InvariantCulture);
+            _attackSpeed = float.Parse(AD.Managers.DataM.LocalPlayerData["AttackSpeed"], NumberStyles.Float, CultureInfo.InvariantCulture);
+            _moveSpeed = float.Parse(AD.Managers.DataM.LocalPlayerData["MoveSpeed"], NumberStyles.Float, CultureInfo.InvariantCulture);
         }
         else
         {
