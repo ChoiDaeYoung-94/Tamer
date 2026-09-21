@@ -39,11 +39,8 @@ namespace AD
 
         private const string LogTag = "[Tamer/Login]";
 
-        private const string EmailDomain = "@AeDeong.com";
-        private const string PlayFabPassword = "AeDeong";
-        private const string TestAccountId = "testAccount";
 
-        // 이전에 로그인에 성공했던 Google Play id -> GPGS 인증이 실패해도 같은 계정으로 진입하기 위해 보관
+        // Previous Google identity is a continuity hint, never authentication proof.
         private const string PrefsKeyGpgsId = "AD_LastGpgsId";
         // GPGS를 전혀 사용할 수 없는 환경에서 사용하는 단말 고유 id
         private const string PrefsKeyCustomId = "AD_CustomId";
@@ -67,6 +64,7 @@ namespace AD
         private DataManager _dataOwner;
         private readonly LoginOperationGate _operations = new LoginOperationGate();
         private string _selectedGpgsId;
+        private string _loginFailureMessage;
         private int _loginGeneration;
         private int _loginDeletionEpoch;
         private bool _loginCaptured;
@@ -167,6 +165,7 @@ namespace AD
         private async UniTask RunLoginAsync(CancellationToken token)
         {
             ShowLoading("LogIn...");
+            _loginFailureMessage = "Sign-in failed. Please try again.";
 
             try
             {
@@ -178,7 +177,8 @@ namespace AD
 
                 bool loggedIn;
 #if UNITY_EDITOR
-                loggedIn = await LoginWithTestAccountAsync(token);
+                loggedIn = false;
+                _loginFailureMessage = "Use the isolated test harness in the Editor.";
 #elif UNITY_ANDROID
                 loggedIn = await LoginOnAndroidAsync(token);
 #else
@@ -190,7 +190,7 @@ namespace AD
 
                 if (!loggedIn)
                 {
-                    ShowRetry("Sign-in failed. Please try again.");
+                    ShowRetry(_loginFailureMessage);
                     return;
                 }
 
@@ -209,7 +209,7 @@ namespace AD
             {
                 // 예외로 인해 로딩 화면에 갇히는 상황을 막는다
                 LogStep($"로그인 처리 중 예외 -> {e.GetType().Name}");
-                ShowRetry("Sign-in failed. Please try again.");
+                ShowRetry(_loginFailureMessage);
             }
             finally
             {
@@ -247,6 +247,13 @@ namespace AD
             if (!string.IsNullOrEmpty(mode) && mode != LoginModeGpgs && mode != "gpgs-pending")
                 return false;
 
+            if (!LoginContinuityPolicy.CanAttemptNativeGoogle(_dataOwner.HasKnownAccount,
+                HasLocalProgress(), mode, cachedGpgsId))
+            {
+                _loginFailureMessage = "Account ownership could not be verified. Contact support to recover your existing account.";
+                return false;
+            }
+
             string authenticatedId = await AuthenticateGooglePlayAsync(token);
             if (LoginCancelled(token))
                 return false;
@@ -256,28 +263,17 @@ namespace AD
                 && selectedId == null)
             {
                 LogStep("Google Play account differs from the saved account; retry with the original account.");
+                _loginFailureMessage = "Sign in with your original Google Play account.";
                 return false;
             }
 
-            if (!string.IsNullOrEmpty(selectedId))
+            if (string.IsNullOrEmpty(selectedId))
             {
-                bool allowCreate = LoginContinuityPolicy.CanCreateGoogleAccount(mode, HasLocalProgress(),
-                    !string.IsNullOrEmpty(cachedGpgsId));
-                // Pin a first selection before network I/O; a timeout must retry this same identity.
-                _selectedGpgsId = selectedId;
-                if (string.IsNullOrEmpty(cachedGpgsId) && allowCreate)
-                {
-                    PlayerPrefs.SetString(PrefsKeyGpgsId, selectedId);
-                    PlayerPrefs.SetString(PrefsKeyLoginMode, "gpgs-pending");
-                    PlayerPrefs.Save();
-                }
-                return await LoginOrRegisterWithEmailAsync(selectedId, allowCreate, token);
-            }
-
-            if (!string.IsNullOrEmpty(mode) || HasLocalProgress())
+                _loginFailureMessage = "Google Play sign-in is required. Retry with your original account.";
                 return false;
-
-            return await LoginWithDeviceAsync(token);
+            }
+            _selectedGpgsId = selectedId;
+            return await LoginWithNativeGoogleAsync(token);
         }
 
         /// <summary>
@@ -437,72 +433,74 @@ namespace AD
 
         #region PlayFab Login
 
-        /// <summary>
-        /// 기존 계정 로그인 후, 신규 생성이 허용된 첫 식별자만 같은 이메일로 등록을 시도한다.
-        /// 이메일 로그인은 미등록 이메일과 잘못된 암호를 별도 오류로 구분하지 않는다.
-        /// </summary>
-        private async UniTask<bool> LoginOrRegisterWithEmailAsync(string userId, bool allowCreate, CancellationToken token)
+        private async UniTask<bool> LoginWithNativeGoogleAsync(CancellationToken token)
         {
-            string email = $"{userId}{EmailDomain}";
-
-            var login = await LoginWithEmailAsync(email, token);
-            if (login.IsSuccess && !LoginCancelled(token))
+            _loginFailureMessage = "Google Play account is not linked or sign-in is unavailable. Retry or contact support for account recovery.";
+#if UNITY_ANDROID && !UNITY_EDITOR
+            string code = await RequestGoogleServerCodeAsync(token);
+            if (LoginCancelled(token) || string.IsNullOrWhiteSpace(code)) return false;
+            // Auth codes are single-use. A user retry must acquire a fresh code;
+            // never pass this exchange through CallWithRetryAsync.
+            var request = CreateGoogleLoginRequest(code);
+            var login = await CallAsync<LoginResult>((onOk, onError) =>
+                PlayFabClientAPI.LoginWithGooglePlayGamesServices(request, onOk, onError),
+                "LoginWithGooglePlayGamesServices", token);
+            if (!login.IsSuccess || LoginCancelled(token) || login.Result == null
+                || login.Result.NewlyCreated) return false;
+            if (!LoginContinuityPolicy.MatchesKnownPlayFabAccount(_dataOwner.PlayFabId, login.Result.PlayFabId))
             {
-                OnLoggedIn(login.Result.PlayFabId, false, "EmailAddress", login.Result.AuthenticationContext, LoginModeGpgs);
-                return true;
-            }
-
-            if (LoginCancelled(token) || !IsRegistrationCandidate(login.Error, allowCreate))
-            {
-                // Existing identity, transient failure or invalid input cannot create an account.
-                LogStep($"LoginWithEmailAddress 실패(등록 대상 아님) -> {Describe(login)}");
+                _loginFailureMessage = "The linked account differs from your saved account. Contact support for account recovery.";
                 return false;
             }
-
-            LogStep("첫 계정 선택 -> 동일 이메일 등록 시도");
-            var register = await CallWithRetryAsync<RegisterPlayFabUserResult>(
-                (onOk, onError) => PlayFabClientAPI.RegisterPlayFabUser(new RegisterPlayFabUserRequest
-                {
-                    AuthenticationContext = new PlayFabAuthenticationContext(),
-                    Email = email,
-                    Password = PlayFabPassword,
-                    RequireBothUsernameAndEmail = false
-                }, onOk, onError),
-                "RegisterPlayFabUser", token);
-
-            if (register.IsSuccess && !LoginCancelled(token))
-            {
-                OnLoggedIn(register.Result.PlayFabId, true, "Register", register.Result.AuthenticationContext, LoginModeGpgs);
-                return true;
-            }
-
-            // 이미 존재하는 계정 -> 기존 로그인이 일시적으로 실패했던 것이므로 다시 로그인
-            if (register.Error != null && register.Error.Error == PlayFabErrorCode.EmailAddressNotAvailable)
-            {
-                LogStep("이미 존재하는 계정 -> 로그인 재시도");
-                var retry = await LoginWithEmailAsync(email, token);
-                if (retry.IsSuccess && !LoginCancelled(token))
-                {
-                    OnLoggedIn(retry.Result.PlayFabId, false, "EmailAddress(retry)", retry.Result.AuthenticationContext, LoginModeGpgs);
-                    return true;
-                }
-            }
-
-            LogStep($"RegisterPlayFabUser 실패 -> {Describe(register)}");
+            // BeginAccountSession rejects an existing local owner mismatch before
+            // CopyFrom exposes the returned authentication context to gameplay.
+            OnLoggedIn(login.Result.PlayFabId, false, "GooglePlayGamesServices",
+                login.Result.AuthenticationContext, LoginModeGpgs);
+            return true;
+#else
+            await UniTask.CompletedTask;
             return false;
+#endif
         }
 
-        private UniTask<ApiResult<LoginResult>> LoginWithEmailAsync(string email, CancellationToken token)
+        private static LoginWithGooglePlayGamesServicesRequest CreateGoogleLoginRequest(string code)
         {
-            return CallWithRetryAsync<LoginResult>(
-                (onOk, onError) => PlayFabClientAPI.LoginWithEmailAddress(new LoginWithEmailAddressRequest
-                {
-                    AuthenticationContext = new PlayFabAuthenticationContext(),
-                    Email = email,
-                    Password = PlayFabPassword
-                }, onOk, onError),
-                "LoginWithEmailAddress", token);
+            if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("A fresh server auth code is required.");
+            return new LoginWithGooglePlayGamesServicesRequest
+            {
+                AuthenticationContext = new PlayFabAuthenticationContext(),
+                ServerAuthCode = code,
+                CreateAccount = false
+            };
         }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        private async UniTask<string> RequestGoogleServerCodeAsync(CancellationToken token)
+        {
+            if (LoginCancelled(token)) return null;
+            var callback = new LoginCallbackGate();
+            string code = null;
+            try
+            {
+                // The pinned plugin rejects a missing WebClientId. Its exception
+                // is handled without exposing configuration or authentication data.
+                PlayGamesPlatform.Instance.RequestServerSideAccess(false, value =>
+                {
+                    if (!callback.TryComplete(LoginCancelled(token))) return;
+                    code = value;
+                });
+                if (!await WaitUntilAsync(() => callback.IsCompleted, GpgsTimeout, token)
+                    || LoginCancelled(token)) return null;
+                return code;
+            }
+            catch (Exception)
+            {
+                _loginFailureMessage = "Google Play server sign-in is not configured or unavailable. Contact support.";
+                return null;
+            }
+            finally { callback.Expire(); }
+        }
+#endif
 
         private void OnLoggedIn(string playFabId, bool isNewAccount, string method, PlayFabAuthenticationContext context, string loginMode = null)
         {
@@ -523,52 +521,6 @@ namespace AD
             LogStep($"PlayFab 로그인 성공 (method: {method}, newAccount: {isNewAccount})");
             ShowLoading("Success!!");
         }
-
-        #region Test account (Editor only)
-
-        private async UniTask<bool> LoginWithTestAccountAsync(CancellationToken token)
-        {
-            string email = $"{TestAccountId}{EmailDomain}";
-
-            var login = await CallWithRetryAsync<LoginResult>(
-                (onOk, onError) => PlayFabClientAPI.LoginWithEmailAddress(new LoginWithEmailAddressRequest
-                {
-                    AuthenticationContext = new PlayFabAuthenticationContext(),
-                    Email = email,
-                    Password = "TestAccount"
-                }, onOk, onError),
-                "LoginWithEmailAddress(Test)", token);
-
-            if (login.IsSuccess && !LoginCancelled(token))
-            {
-                OnLoggedIn(login.Result.PlayFabId, false, "TestAccount", login.Result.AuthenticationContext);
-                return true;
-            }
-
-            if (LoginCancelled(token) || !IsRegistrationCandidate(login.Error, !HasLocalProgress()))
-                return false;
-
-            var register = await CallWithRetryAsync<RegisterPlayFabUserResult>(
-                (onOk, onError) => PlayFabClientAPI.RegisterPlayFabUser(new RegisterPlayFabUserRequest
-                {
-                    AuthenticationContext = new PlayFabAuthenticationContext(),
-                    Email = email,
-                    Password = "TestAccount",
-                    RequireBothUsernameAndEmail = false
-                }, onOk, onError),
-                "RegisterPlayFabUser(Test)", token);
-
-            if (register.IsSuccess && !LoginCancelled(token))
-            {
-                OnLoggedIn(register.Result.PlayFabId, true, "TestAccount(Register)", register.Result.AuthenticationContext);
-                return true;
-            }
-
-            LogStep($"테스트 계정 로그인 실패 -> {Describe(register)}");
-            return false;
-        }
-
-        #endregion
 
         #endregion
 
@@ -805,24 +757,6 @@ namespace AD
             return error.HttpCode >= 500 || error.HttpCode == 429 || error.HttpCode == 408 || error.HttpCode == 0;
         }
 
-        /// <summary>
-        /// Fresh pinned identities may try registration with the same generated email.
-        /// InvalidEmailOrPassword is not proof that an account is missing; an existing
-        /// email cannot be recreated and the caller retries login on EmailAddressNotAvailable.
-        /// </summary>
-        private static bool IsRegistrationCandidate(PlayFabError error, bool allowCreate)
-        {
-            if (!allowCreate || error == null) return false;
-            switch (error.Error)
-            {
-                case PlayFabErrorCode.AccountNotFound:
-                case PlayFabErrorCode.InvalidEmailOrPassword:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         private static PlayFabAuthenticationContext CopySessionContext()
         {
             var context = new PlayFabAuthenticationContext();
@@ -940,18 +874,23 @@ namespace AD
 
         public static string SelectGoogleId(string cachedId, string authenticatedId)
         {
+            if (string.IsNullOrEmpty(authenticatedId)) return null;
             if (!string.IsNullOrEmpty(cachedId) && !string.IsNullOrEmpty(authenticatedId)
                 && !string.Equals(cachedId, authenticatedId, StringComparison.Ordinal)) return null;
             return string.IsNullOrEmpty(cachedId) ? authenticatedId : cachedId;
         }
 
         public static bool CanCreateAccount(string mode, bool hasLocalProgress) => !hasLocalProgress
-            && (string.IsNullOrEmpty(mode) || mode == "gpgs-pending"
+            && (string.IsNullOrEmpty(mode)
                 || mode == "android-pending" || mode == "custom-pending");
 
-        public static bool CanCreateGoogleAccount(string mode, bool hasLocalProgress, bool hasCachedId)
-            => !hasLocalProgress && (string.IsNullOrEmpty(mode) || mode == "gpgs-pending")
-                && (!hasCachedId || mode == "gpgs-pending");
+        public static bool CanAttemptNativeGoogle(bool hasKnownOwner, bool hasLocalProgress,
+            string mode, string cachedId) => hasKnownOwner
+                || (!hasLocalProgress && string.IsNullOrEmpty(mode) && string.IsNullOrEmpty(cachedId));
+
+        public static bool MatchesKnownPlayFabAccount(string knownId, string returnedId) =>
+            !string.IsNullOrWhiteSpace(returnedId) && (string.IsNullOrEmpty(knownId)
+                || string.Equals(knownId, returnedId, StringComparison.Ordinal));
 
         public static string SelectDeviceMode(string mode, bool hasCustomId, bool hasAndroidId)
         {
