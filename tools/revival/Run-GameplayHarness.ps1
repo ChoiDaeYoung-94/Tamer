@@ -1,6 +1,6 @@
 param(
     [string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path,
-    [ValidateSet('development', 'photo')][string]$Variant = 'development'
+    [ValidateSet('development', 'photo', 'agechoice')][string]$Variant = 'development'
 )
 $ErrorActionPreference = 'Stop'
 $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path
@@ -27,9 +27,9 @@ foreach ($gameplayHarnessRelative in @(
 }
 Push-Location $ProjectPath
 try {
-    $gameplayHarnessMethod = if ($Variant -eq 'photo') { 'RevivalGameplayBuild.BuildPhotoAndroid' } else { 'RevivalGameplayBuild.BuildAndroid' }
+    $gameplayHarnessMethod = if ($Variant -eq 'agechoice') { 'RevivalGameplayBuild.BuildAgeChoiceAndroid' } elseif ($Variant -eq 'photo') { 'RevivalGameplayBuild.BuildPhotoAndroid' } else { 'RevivalGameplayBuild.BuildAndroid' }
     $gameplayHarnessCli = Join-Path $ProjectPath 'tools/.local/unity-cli/1.0.0-beta.8/unity.exe'
-    $gameplayHarnessLog = Join-Path $ProjectPath $(if ($Variant -eq 'photo') { 'Logs/revival/gameplay-photo-build.log' } else { 'Logs/revival/gameplay-build.log' })
+    $gameplayHarnessLog = Join-Path $ProjectPath $(if ($Variant -eq 'agechoice') { 'Logs/revival/agechoice-build.log' } elseif ($Variant -eq 'photo') { 'Logs/revival/gameplay-photo-build.log' } else { 'Logs/revival/gameplay-build.log' })
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $gameplayHarnessLog) | Out-Null
     & $gameplayHarnessCli build $ProjectPath --editor-version 6000.0.81f1 --target Android --execute-method $gameplayHarnessMethod --log-file $gameplayHarnessLog --no-tail --non-interactive
     if ($LASTEXITCODE -ne 0) { throw "Harness build failed (exit $LASTEXITCODE)." }

@@ -11,6 +11,25 @@ using UnityEngine.SceneManagement;
 
 public class RevivalGameplayIsolationTests
 {
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", false, null, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.playerrestore", false, null, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.agechoice", true, null, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.agechoice", false, "AllyMonsters", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.agechoice", false, "playerEquippedItems", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.agechoice", false, "LocalItem", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.agechoice", false, null, true)]
+    public void Revival_AgeChoiceRequiresItsPrivateRuntimeAndPreservesLegacyKeys(string package, bool editor, string existing, bool allowed)
+    {
+        Func<string, bool> hasKey = key => key == existing;
+        var method = Runtime("AD.RevivalGameplayIsolation").GetMethod("ValidateAgeChoice");
+        if (allowed) Assert.DoesNotThrow(() => method.Invoke(null, new object[] { package, editor, hasKey }));
+        else
+        {
+            var error = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { package, editor, hasKey }));
+            Assert.That(error.InnerException, Is.TypeOf<InvalidOperationException>());
+        }
+    }
+
     [TestCase("AllyMonsters")]
     [TestCase("playerEquippedItems")]
     [TestCase("LocalItem")]

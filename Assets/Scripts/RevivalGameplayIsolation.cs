@@ -11,17 +11,32 @@ namespace AD
     {
         public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.gameplay";
         public const string PlayerRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.playerrestore";
+        public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
         public static string RuntimeApplicationId =>
+#if TAMER_AGE_CHOICE
+            AgeChoiceApplicationId;
+#else
 #if TAMER_PLAYER_RESTORE
             PlayerRestoreApplicationId;
 #else
             ApplicationId;
 #endif
+#endif
 
         public static void ValidatePlayerRestore(string applicationId, bool editor, Func<string, bool> hasKey)
         {
-            if (editor || applicationId != PlayerRestoreApplicationId)
-                throw new InvalidOperationException("Separate player-restore application required.");
+            ValidatePrivatePreferences(applicationId, editor, hasKey, PlayerRestoreApplicationId);
+        }
+
+        public static void ValidateAgeChoice(string applicationId, bool editor, Func<string, bool> hasKey)
+        {
+            ValidatePrivatePreferences(applicationId, editor, hasKey, AgeChoiceApplicationId);
+        }
+
+        private static void ValidatePrivatePreferences(string applicationId, bool editor, Func<string, bool> hasKey, string expectedId)
+        {
+            if (editor || applicationId != expectedId)
+                throw new InvalidOperationException("Separate isolated application required.");
             foreach (var key in new[] { "AllyMonsters", "playerEquippedItems", "LocalItem" })
                 if (hasKey(key)) throw new InvalidOperationException("Existing legacy preferences; preserve and stop.");
         }
@@ -64,6 +79,9 @@ namespace AD
         private static ServerManager _gameplayServer;
         public static ServerManager CreateServer(DataManager owner)
         {
+#if TAMER_AGE_CHOICE
+            ValidateAgeChoice(UnityEngine.Application.identifier, UnityEngine.Application.isEditor, UnityEngine.PlayerPrefs.HasKey);
+#endif
 #if TAMER_PLAYER_RESTORE
             ValidatePlayerRestore(UnityEngine.Application.identifier, UnityEngine.Application.isEditor, UnityEngine.PlayerPrefs.HasKey);
 #endif
