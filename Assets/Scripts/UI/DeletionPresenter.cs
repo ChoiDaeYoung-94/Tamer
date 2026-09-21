@@ -24,7 +24,8 @@ namespace AD
                 var owner = Managers.DataM;
                 if (owner == null) return new DeletionFlow(new UnavailableDeletionGateway(), () => null);
                 return new DeletionFlow(new HttpDeletionGateway(httpsOrigin, freshAuthentication),
-                    owner.DeletionSession, owner.BeginDeletionSubmission, owner.FinishAcceptedDeletion);
+                    owner.DeletionSession, owner.BeginDeletionSubmission, owner.FinishAcceptedDeletion,
+                    owner.FinishCancelledDeletion);
             };
         }
 

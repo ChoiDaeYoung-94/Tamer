@@ -60,6 +60,7 @@ namespace AD.Privacy
         private bool _disposed;
         private readonly Action<DeletionSession> _beforeSubmit;
         private readonly Action<DeletionSession> _accepted;
+        private readonly Action<DeletionSession> _cancelled;
         public DeletionState State { get; private set; }
         public DeletionSnapshot Request { get; private set; }
         public bool IsBusy { get; private set; }
@@ -69,12 +70,14 @@ namespace AD.Privacy
         public event Action Changed;
 
         public DeletionFlow(IDeletionGateway gateway, Func<DeletionSession> currentSession,
-            Action<DeletionSession> beforeSubmit = null, Action<DeletionSession> accepted = null)
+            Action<DeletionSession> beforeSubmit = null, Action<DeletionSession> accepted = null,
+            Action<DeletionSession> cancelled = null)
         {
             _gateway = gateway ?? throw new ArgumentNullException(nameof(gateway));
             _current = currentSession ?? throw new ArgumentNullException(nameof(currentSession));
             _beforeSubmit = beforeSubmit;
             _accepted = accepted;
+            _cancelled = cancelled;
             State = gateway.IsAvailable ? DeletionState.Idle : DeletionState.Unavailable;
         }
 
@@ -142,6 +145,7 @@ namespace AD.Privacy
                     throw new InvalidOperationException();
                 Request = result;
                 State = result.State;
+                if (State == DeletionState.Cancelled) _cancelled?.Invoke(_session);
                 if (State == DeletionState.Accepted)
                 {
                     try { _accepted?.Invoke(_session); }

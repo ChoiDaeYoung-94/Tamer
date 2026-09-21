@@ -35,6 +35,9 @@ namespace AD
         private bool _shutdown;
         public bool DeletionInProgress { get; private set; }
         private bool _deletionSignedOut;
+        public int AccountGeneration => _accountGeneration;
+        public int DeletionEpoch { get; private set; }
+        private bool _readyBeforeDeletion;
         public const string DeletionLoginPauseKey = "AD_DeletionAcceptedNeedsLogin";
 
         public AD.Privacy.DeletionSession DeletionSession() => string.IsNullOrEmpty(PlayFabId) ? null
@@ -43,9 +46,23 @@ namespace AD
         public void BeginDeletionSubmission(AD.Privacy.DeletionSession session)
         {
             if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
+            if (!DeletionInProgress)
+            {
+                _readyBeforeDeletion = IsServerDataReady;
+                DeletionEpoch++;
+            }
             DeletionInProgress = true;
             IsServerDataReady = false;
             _server?.CancelPendingRequests();
+        }
+
+        // Only a validated terminal cancellation proves no submission can still occur.
+        public void FinishCancelledDeletion(AD.Privacy.DeletionSession session)
+        {
+            if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
+            if (!DeletionInProgress) return;
+            DeletionInProgress = false;
+            IsServerDataReady = _readyBeforeDeletion;
         }
 
         public void FinishAcceptedDeletion(AD.Privacy.DeletionSession session)

@@ -60,6 +60,22 @@ public class RevivalDeletionFlowTests
         Assert.That(_flow.State, Is.EqualTo(DeletionState.Cancelled));
         Assert.That(await _flow.ConfirmAsync(), Is.False);
     }
+    [Test] public async Task Revival_DeletionRejectedConfirmOnlyUnlocksAfterConfirmedCancellation()
+    {
+        int locks = 0, unlocks = 0;
+        using (var flow = new DeletionFlow(_gateway, () => _current,
+            beforeSubmit: s => locks++, cancelled: s => unlocks++))
+        {
+            await flow.RequestAsync();
+            _gateway.FailNext = true;
+            Assert.That(await flow.ConfirmAsync(), Is.False);
+            Assert.That(locks, Is.EqualTo(1));
+            Assert.That(unlocks, Is.Zero, "Transport failure is not proof of no submission");
+            Assert.That(await flow.CancelAsync(), Is.True);
+            Assert.That(unlocks, Is.EqualTo(1));
+            Assert.That(await flow.ConfirmAsync(), Is.False);
+        }
+    }
     [Test] public async Task Revival_DeletionProcessingCannotBeCancelled()
     {
         await _flow.RequestAsync(); await _flow.ConfirmAsync();
