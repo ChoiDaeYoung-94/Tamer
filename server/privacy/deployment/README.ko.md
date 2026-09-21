@@ -10,6 +10,8 @@
 
 ## 검토 가능한 파일과 자원
 
+익명 계정에 한해 서버 ticket 검증과 일회성 nonce 확인을 연결한 구현은 [세션 삭제 확인](../../../docs/revival/deletion-session-confirmation.ko.md)에 있다. `session_confirmation`과 `provider_reauthentication`을 구분하며 기본 비활성이다. SQLite 영속 호스트용 서버 연결이고 Unity nonce UI·Table adapter·배포까지 완료한 것은 아니다.
+
 - `resources.review.json`: 신규 resource group 1, Linux Flex FC1 plan 1, HTTP Functions app 1, StorageV2 Standard_LRS 1(비공개 package container와 DeletionLedger table 포함), Standard Key Vault 1, app identity의 storage/vault 역할 목록. **ARM/Bicep 실행 파일이 아니며 자원을 생성하지 않는다.**
 - `inputs.example.json`: 구독/tenant/지역/이름/runtime/월 예산/요청량, 고정 title/정책/보관/인증 issuer·audience/콜백 origin/unknown 예외절차, secret URI 목록. 실제 값은 비공개 파일에서만 채운다. null은 미확정이며 계정 키·토큰을 채워 Git에 넣지 않는다.
 - `connection.review.json`: 기존 HTTP 다섯 경로와 필요한 변경, 정확한 접수 상태 투영, 최소 영속 필드, 로컬 정리 제한. 제출·접수 플래그 기본 false, 구현 전 환경변수가 동작한다고 가정하지 않는다.
