@@ -11,6 +11,74 @@ using UnityEngine.SceneManagement;
 
 public class RevivalGameplayIsolationTests
 {
+    [TestCase(1)]
+    [TestCase(2)]
+    public void Revival_RestoredPlayerValuesReachHudAndPopup(int step)
+    {
+        const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+        var scene = EditorSceneManager.NewPreviewScene();
+        var managersType = Runtime("AD.Managers");
+        var playerType = Runtime("Player");
+        var managerInstance = managersType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var playerInstance = playerType.GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var oldManager = managerInstance.GetValue(null);
+        var oldPlayer = playerInstance.GetValue(null);
+        var oldCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            var root = new GameObject("Offline restored HUD fixture");
+            root.SetActive(false); // No Awake, services, scene transitions, or PlayerPrefs.
+            SceneManager.MoveGameObjectToScene(root, scene);
+            var data = root.AddComponent(Runtime("AD.DataManager"));
+            var values = (System.Collections.Generic.Dictionary<string, string>)Runtime("AD.RevivalGameSaveSchema")
+                .GetMethod("Fixture").Invoke(null, new object[] { step });
+            data.GetType().GetField("LocalPlayerData").SetValue(data, values);
+            var managers = root.AddComponent(managersType);
+            managersType.GetField("_dataM", fields).SetValue(managers, data);
+            managerInstance.SetValue(null, managers);
+            var player = root.AddComponent(playerType);
+            playerInstance.SetValue(null, player);
+            playerType.GetField("_gold", fields).SetValue(player, int.Parse(values["Gold"]));
+            var creature = Runtime("Creature");
+            var kind = creature.GetField("CreatureType");
+            kind.SetValue(player, Enum.Parse(kind.FieldType, "Player"));
+            creature.GetMethod("Settings", fields).Invoke(player, null);
+            var canvas = root.AddComponent(Runtime("PlayerUICanvas"));
+            var labels = new System.Collections.Generic.Dictionary<string, Component>();
+            foreach (var field in canvas.GetType().GetFields(fields).Where(f => f.FieldType.FullName == "TMPro.TMP_Text"))
+            {
+                var label = new GameObject(field.Name, typeof(RectTransform));
+                label.SetActive(false);
+                label.transform.SetParent(root.transform);
+                var text = label.AddComponent(Runtime("TMPro.TextMeshProUGUI"));
+                field.SetValue(canvas, text);
+                labels.Add(field.Name, text);
+            }
+            var sliderObject = new GameObject("Offline HP slider", typeof(RectTransform));
+            sliderObject.SetActive(false);
+            sliderObject.transform.SetParent(root.transform);
+            canvas.GetType().GetField("_playerHpSlider", fields).SetValue(canvas,
+                sliderObject.AddComponent(Runtime("UnityEngine.UI.Slider")));
+            canvas.GetType().GetMethod("DataSettings", fields).Invoke(canvas, null);
+            string Text(string name) => (string)labels[name].GetType().GetProperty("text").GetValue(labels[name]);
+            Assert.That(Text("_playerNickNameText"), Is.EqualTo(values["NickName"]));
+            Assert.That(Text("_popupNickNameText"), Is.EqualTo("NickName - " + values["NickName"]));
+            Assert.That(Text("_goldText"), Is.EqualTo("Gold - " + values["Gold"]));
+            Assert.That(Text("_popupGoldText"), Is.EqualTo("Gold - " + values["Gold"]));
+            foreach (string stat in new[] { "Power", "AttackSpeed", "MoveSpeed" })
+                Assert.That(Text("_popup" + stat + "Text"), Is.EqualTo(stat + " - " + values[stat]));
+            Assert.That(Text("_playerHpText"), Is.EqualTo("100 / 100"));
+        }
+        finally
+        {
+            managerInstance.SetValue(null, oldManager);
+            playerInstance.SetValue(null, oldPlayer);
+            EditorSceneManager.ClosePreviewScene(scene);
+            System.Globalization.CultureInfo.CurrentCulture = oldCulture;
+        }
+    }
+
     private static Type Runtime(string name) => AppDomain.CurrentDomain.GetAssemblies()
         .Select(a => a.GetType(name)).First(t => t != null);
 
