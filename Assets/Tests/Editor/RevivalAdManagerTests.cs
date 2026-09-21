@@ -85,7 +85,11 @@ public class RevivalAdManagerTests
         var type = config.GetType();
         Assert.That(type.GetField("AgeRestrictedTreatment").GetValue(config).ToString(), Is.EqualTo(treatment));
         var ratingField = type.GetField("MaxAdContentRating");
-        Assert.That(ratingField.GetValue(config), Is.SameAs(ratingField.FieldType.GetField("G").GetValue(null)));
+        var rating = ratingField.GetValue(config);
+        Assert.That(rating, Is.Not.Null);
+        var ratingValue = ratingField.FieldType.GetProperty("Value", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(ratingValue, Is.Not.Null, "Pinned SDK exposes the content rating through Value.");
+        Assert.That(ratingValue.GetValue(rating), Is.EqualTo("G"));
         Assert.That(type.GetField("TagForChildDirectedTreatment").GetValue(config), Is.Null);
         Assert.That(type.GetField("TagForUnderAgeOfConsent").GetValue(config), Is.Null);
         AssertNoSdkActivity();
