@@ -140,7 +140,7 @@ public class RevivalGameplaySessionTests
                 var creature = Runtime("Creature");
                 creature.GetField("isDie", Fields).SetValue(f.Monster, true);
                 creature.GetField("_hp", Fields).SetValue(f.Monster, 0f);
-                creature.GetField("NavMeshAgent", Fields).SetValue(f.Monster, f.Monster.gameObject.AddComponent<UnityEngine.AI.NavMeshAgent>());
+                Set(f.Monster, "NavMeshAgent", f.Monster.gameObject.AddComponent<UnityEngine.AI.NavMeshAgent>());
                 Set(f.Monster, "_rewardGold", 25); Set(f.Monster, "_isAbleAlly", true);
                 var effect = new GameObject("Offline corpse effect");
                 effect.transform.SetParent(f.Monster.transform); effect.SetActive(false);
