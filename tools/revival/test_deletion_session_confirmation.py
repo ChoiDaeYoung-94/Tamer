@@ -116,6 +116,92 @@ class SessionConfirmationTests(unittest.TestCase):
         self.assertFalse(service.policy.ready)
         self.assertEqual(self.calls, [])
 
+    def enable_pgs(self):
+        self.policy = replace(self.policy, google_play_games_session_confirmation_enabled=True)
+        self.info.pop('CustomIdInfo', None)
+        self.info['GooglePlayGamesInfo'] = {'GooglePlayGamesPlayerId': 'synthetic-pgs-player'}
+        self.service, self.confirmation = self.make()
+
+    def test_pgs_opt_in_preserves_session_evidence_and_all_target_boundaries(self):
+        self.info.pop('CustomIdInfo')
+        self.info['GooglePlayGamesInfo'] = {'GooglePlayGamesPlayerId': 'synthetic-pgs-player'}
+        upstream = self.confirmation.upstream
+        target = upstream.target_from_info('ABC12', self.info)
+        for action in (lambda: upstream.authenticate(self.ticket), lambda: upstream.resolve_target('synthetic-a'),
+                       lambda: upstream.verify_target(target)):
+            with self.assertRaisesRegex(Rejected, 'account_type_unsupported'): action()
+        self.enable_pgs()
+        upstream = self.confirmation.upstream
+        self.assertEqual(upstream.authenticate(self.ticket).account_type, 'google_play_games')
+        self.assertEqual(upstream.resolve_target('synthetic-a'), target)
+        self.assertTrue(upstream.verify_target(target))
+        principal = self.confirmation.authenticate(self.grant())
+        self.assertEqual(principal.evidence_kind, 'session_confirmation')
+        self.assertIsNone(principal.reauthenticated_at)
+        self.assertEqual(principal.confirmed_at, self.now)
+        self.assertNotIn(b'synthetic-pgs-player', self.path.read_bytes())
+        self.assertNotIn('DeletePlayer', self.calls)
+
+    def test_pgs_rejects_mixed_unknown_email_google_and_invalid_ids(self):
+        self.enable_pgs()
+        base = copy.deepcopy(self.info)
+        changes = [dict(CustomIdInfo={'CustomId': 'legacy'}), dict(AndroidDeviceInfo={'AndroidDeviceId': 'legacy'}),
+                   dict(GoogleInfo={'GoogleId': 'other'}), dict(GoogleInfo={}), dict(Username='legacy'),
+                   dict(PrivateInfo={'Email': 'legacy@example.invalid'}), dict(OpenIdInfo=[{'Subject': 'other'}]),
+                   dict(FutureInfo={'Id': 'unknown'})]
+        changes += [dict(GooglePlayGamesInfo={'GooglePlayGamesPlayerId': value})
+                    for value in (None, 12, '', ' ', 'player\n', 'player id', '한글', 'x' * 1025)]
+        changes += [dict(GooglePlayGamesInfo={}), dict(GooglePlayGamesInfo={'GoogleId': 'wrong-field'})]
+        for change in changes:
+            with self.subTest(fields=list(change)):
+                self.info = dict(base, **change)
+                with self.assertRaisesRegex(Rejected, 'account_type_unsupported'): self.grant()
+                with self.assertRaisesRegex(Rejected, 'account_type_unsupported'):
+                    self.confirmation.upstream.resolve_target('synthetic-a')
+        self.assertNotIn('DeletePlayer', self.calls)
+
+    def test_pgs_nonce_binds_linked_subject_and_rejects_replay_across_restart(self):
+        self.enable_pgs()
+        base = copy.deepcopy(self.info)
+        for change in ('subject', 'owner', 'entity', 'type'):
+            self.info = copy.deepcopy(base)
+            nonce = self.confirmation.begin(self.ticket, 'a' * 32)['nonce']
+            if change == 'subject': self.info['GooglePlayGamesInfo']['GooglePlayGamesPlayerId'] = 'different-player'
+            if change == 'owner': self.info['PlayFabId'] = 'different-account'
+            if change == 'entity': self.info['TitleInfo']['TitlePlayerAccount']['Id'] = 'different-entity'
+            if change == 'type':
+                del self.info['GooglePlayGamesInfo']
+                self.info['CustomIdInfo'] = {'CustomId': 'device'}
+            with self.assertRaisesRegex(Rejected, 'operation_conflict'):
+                self.confirmation.confirm(self.ticket, nonce, True)
+        self.info = base
+        nonce = self.confirmation.begin(self.ticket, 'a' * 32)['nonce']
+        with self.assertRaises(Rejected): self.confirmation.confirm('other-ticket', nonce, True)
+        def confirm(_):
+            try: return self.confirmation.confirm(self.ticket, nonce, True)['proof']
+            except Rejected: return None
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            proofs = [p for p in pool.map(confirm, range(2)) if p]
+        self.assertEqual(len(proofs), 1)
+        _, restarted = self.make()
+        with self.assertRaises(Rejected): restarted.confirm(self.ticket, nonce, True)
+        self.assertEqual(restarted.authenticate(proofs[0]).account, 'synthetic-a')
+
+    def test_pgs_opt_in_changes_policy_hash_without_invalidating_default_legacy_proofs(self):
+        from server.privacy.session_confirmation import digest
+        old_hash = digest(json.dumps([self.policy.revision, self.policy.scope, self.policy.retention_plan,
+                                     self.policy.session_confirmation_enabled, self.confirmation.PURPOSE], sort_keys=True))
+        proof = self.grant()
+        _, same = self.make()
+        self.assertEqual(same.policy_hash(), old_hash)
+        self.assertEqual(same.authenticate(proof).account, 'synthetic-a')
+        self.enable_pgs()
+        self.assertNotEqual(self.confirmation.policy_hash(), old_hash)
+        with self.assertRaises(Rejected): self.confirmation.authenticate(proof)
+        pgs_proof = self.grant()
+        _, disabled = self.make(replace(self.policy, google_play_games_session_confirmation_enabled=False))
+        with self.assertRaises(Rejected): disabled.authenticate(pgs_proof)
+
     def test_nonce_requires_explicit_boolean_confirmation(self):
         nonce = self.confirmation.begin(self.ticket, 'a' * 32)['nonce']
         for confirmed in (False, 1, 'true', None):

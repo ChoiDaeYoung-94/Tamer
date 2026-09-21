@@ -26,6 +26,7 @@ class Policy:
     enabled: bool = False
     retention_plan: tuple = ()
     session_confirmation_enabled: bool = False
+    google_play_games_session_confirmation_enabled: bool = False
 
     @property
     def ready(self):

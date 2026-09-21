@@ -1,4 +1,4 @@
-"""Durable confirmation of an authenticated anonymous session, not fresh provider auth.
+"""Durable confirmation of an allowed account session, not fresh provider auth.
 
 SQLite is for a host with a durable local database. This is not an Azure Table
 adapter and must not use an ephemeral Functions filesystem. No listener/defaults.
@@ -63,8 +63,12 @@ class SessionConfirmation:
             raise Rejected('policy_unavailable')
 
     def policy_hash(self):
-        return digest(json.dumps([self.policy.revision, self.policy.scope, self.policy.retention_plan,
-                                  self.policy.session_confirmation_enabled, self.PURPOSE], sort_keys=True))
+        values = [self.policy.revision, self.policy.scope, self.policy.retention_plan,
+                  self.policy.session_confirmation_enabled, self.PURPOSE]
+        # Preserve existing anonymous-only proofs when the new opt-in stays off.
+        if self.policy.google_play_games_session_confirmation_enabled is True:
+            values.append('google_play_games_session_confirmation')
+        return digest(json.dumps(values, sort_keys=True))
 
     @staticmethod
     def ticket(value):
@@ -80,10 +84,24 @@ class SessionConfirmation:
 
     def verified(self, ticket):
         principal = self.upstream.authenticate(self.ticket(ticket))
+        allowed = ('android_device', 'custom_id')
+        if self.policy.google_play_games_session_confirmation_enabled is True:
+            allowed += ('google_play_games',)
         if (not isinstance(principal, VerifiedSession) or principal.title_id != self.upstream.title_id
-                or principal.account_type not in ('android_device', 'custom_id')):
+                or principal.account_type not in allowed):
+            raise Rejected('account_type_unsupported')
+        if principal.account_type == 'google_play_games' and (not isinstance(principal.subject_binding, str)
+                or len(principal.subject_binding) != 64
+                or any(c not in '0123456789abcdef' for c in principal.subject_binding)):
             raise Rejected('account_type_unsupported')
         return principal
+
+    @staticmethod
+    def nonce_account_binding(principal):
+        # Reuse the existing TEXT column; anonymous rows retain their old values.
+        # This detects a PGS linked-ID change between begin and confirm, not fresh auth.
+        return (principal.account_type + ':' + principal.subject_binding
+                if principal.account_type == 'google_play_games' else principal.account_type)
 
     def begin(self, session_ticket, client_key):
         self.ready()
@@ -100,7 +118,7 @@ class SessionConfirmation:
                        (digest(session_ticket),))
             db.execute('INSERT INTO deletion_session_nonces VALUES (?,?,?,?,?,?,?,?,?,?,?,0)',
                 (digest(nonce), verified.title_id, verified.account, verified.entity_id, digest(session_ticket),
-                 verified.account_type, client_key, self.PURPOSE, self.policy_hash(), now, now + self.NONCE_LIFETIME))
+                 self.nonce_account_binding(verified), client_key, self.PURPOSE, self.policy_hash(), now, now + self.NONCE_LIFETIME))
         return {'nonce': nonce, 'expiresAt': now + self.NONCE_LIFETIME,
                 'evidenceKind': 'session_confirmation', 'purpose': self.PURPOSE}
 
@@ -115,7 +133,7 @@ class SessionConfirmation:
             row = db.execute('SELECT * FROM deletion_session_nonces WHERE nonce_hash=?', (digest(nonce),)).fetchone()
         self.validate_nonce(row, session_ticket)
         verified = self.verified(session_ticket)
-        if (verified.account, verified.entity_id, verified.account_type) != (row['account'], row['entity_id'], row['account_type']):
+        if (verified.account, verified.entity_id, self.nonce_account_binding(verified)) != (row['account'], row['entity_id'], row['account_type']):
             raise Rejected('operation_conflict')
         grant = secrets.token_urlsafe(32)
         with self.connection() as db:
@@ -165,8 +183,10 @@ class SessionConfirmation:
 
 def compose(database, title_id, secret_key, policy=None, clock=time.time, request=None, recovery_origin=None, recovery_ttl_seconds=30 * 86400):
     """Explicit composition only. The caller supplies private credentials and enabled policy."""
-    upstream = PlayFabSession(title_id, secret_key, **({} if request is None else {'request': request}))
     effective_policy = policy if policy is not None and policy.session_confirmation_enabled else Policy()
+    upstream = PlayFabSession(title_id, secret_key,
+        google_play_games_enabled=effective_policy.google_play_games_session_confirmation_enabled,
+        **({} if request is None else {'request': request}))
     confirmation = SessionConfirmation(database, upstream, effective_policy, clock)
     service = IntakeService(database, title_id, confirmation.authenticate, upstream.resolve_target,
         ServerDeletePlayerSubmission(title_id, upstream.invoke), upstream.verify_target, confirmation.policy, clock)
