@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-21",
+  "checkout": "C:\\Users\\pc_17\\.codex\\worktrees\\e5e5\\Tamer",
+  "branch": "codex/age-consent-contract",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "android": { "minSdk": 24, "targetSdk": 36, "architecture": "ARM64", "newApkSha256": null },
+  "sdk": { "unityPlugin": "11.5.0", "androidGma": "25.4.0", "androidUmp": "4.0.0" },
+  "runs": [
+    {
+      "source": "bd64a23ad61a3ec94810e33bd0b65623e32cde5d",
+      "utc": "2026-09-21T05:50:12Z",
+      "filter": "RevivalAgeChoiceTests;RevivalAdConsentTests;RevivalAdManagerTests;RevivalAdEntitlementTests",
+      "total": 93, "passed": 89, "failed": 4,
+      "xml": "Logs/revival/age-consent-contract-editmode.xml",
+      "sha256": "11075ae00ecae700b055eefc489a76edc885b39011a08ce0d5f93c1ac85f8209",
+      "failure": "Test incorrectly expected MaxAdContentRating.ToString() to return G."
+    },
+    {
+      "source": "1d3ac08a7cb9c6e0eb4e54849a453fdf10287722",
+      "utc": "2026-09-21T05:51:03Z",
+      "filter": "Revival_PinnedSdkConfigurationUsesNewAgeTreatmentAndSeparateRating",
+      "total": 4, "passed": 0, "failed": 4,
+      "xml": "Logs/revival/age-consent-contract-config-retry.xml",
+      "sha256": "c92400b90b5a9752fed7edb5c9c4803173e10cf1d7795d988cf2a5ad61643101",
+      "failure": "Test GetField(G) returned null: G is a property, not a field."
+    },
+    {
+      "source": "aada6804dd39ee865d3853e93a5482816ace570e",
+      "utc": "2026-09-21T06:20:19Z",
+      "filter": "Revival_PinnedSdkConfigurationUsesNewAgeTreatmentAndSeparateRating",
+      "authorization": "User approved resuming the failed four cases; relayed by root.",
+      "total": 4, "passed": 4, "failed": 0, "skipped": 0,
+      "xml": "Logs/revival/age-consent-contract-config-approved.xml",
+      "sha256": "0b9fc691ec028fa14bf44759fdd9b2b77811be3f257adc48e738406acf07cdea",
+      "change": "Test reads the installed SDK public Value property and requires G; product code unchanged."
+    }
+  ],
+  "status": "approved_resumption_four_cases_passed_prior_89_not_repeated",
+  "readOnlyFinding": "G getter creates a new MaxAdContentRating instance; public Value property provides its string value.",
+  "remainingUnverified": ["Android native propagation", "regional consent and withdrawal UI", "published regional messages", "Families native five-second close"],
+  "regionalConsentReviewed": false,
+  "productionAdsEnabled": false,
+  "networkTestsRun": false,
+  "supportInquirySent": false,
+  "projectSettingsRestored": true,
+  "checkoutEditorsAfterRun": 0
+}

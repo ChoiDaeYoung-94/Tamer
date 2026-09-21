@@ -72,4 +72,25 @@ public class RevivalAgeChoiceTests
             Assert.That(AgeTreatmentPolicy.IsReviewed(choice), Is.False);
         Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.False);
     }
+
+    [TestCase(AgeChoice.Under13, AdAgeTreatment.Child, true)]
+    [TestCase(AgeChoice.From13To15, AdAgeTreatment.Child, true)]
+    [TestCase(AgeChoice.From16To17, AdAgeTreatment.Teen, false)]
+    [TestCase(AgeChoice.Adult, AdAgeTreatment.Unspecified, false)]
+    public void Revival_AgeProposalSeparatesAdvertisingFromUmp(AgeChoice age, AdAgeTreatment advertising, bool tfua)
+    {
+        Assert.That(AgeTreatmentPolicy.TryCreatePlan(age, out var plan), Is.True);
+        Assert.That(plan.Advertising, Is.EqualTo(advertising));
+        Assert.That(plan.UmpUnderAgeOfConsent, Is.EqualTo(tfua));
+        Assert.That(AgeTreatmentPolicy.IsReviewed(age), Is.False);
+    }
+
+    [TestCase(AgeChoice.Unknown)]
+    [TestCase(AgeChoice.Declined)]
+    [TestCase((AgeChoice)999)]
+    public void Revival_UnknownOrDeclinedNeverProducesTreatmentPlan(AgeChoice age)
+    {
+        Assert.That(AgeTreatmentPolicy.TryCreatePlan(age, out var plan), Is.False);
+        Assert.That(plan, Is.Null);
+    }
 }

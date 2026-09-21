@@ -52,11 +52,89 @@ public class RevivalAdManagerTests
         public void ShowPrivacyOptions(Action<bool> done) => Assert.Fail("Not required.");
     }
 
+    [TestCase(AgeChoice.Unknown)]
+    [TestCase(AgeChoice.Declined)]
+    [TestCase(AgeChoice.Under13)]
+    [TestCase(AgeChoice.From13To15)]
+    [TestCase(AgeChoice.From16To17)]
+    [TestCase(AgeChoice.Adult)]
+    public void Revival_UnreviewedRegionBlocksEveryManagerEntryBeforeSdkWork(AgeChoice age)
+    {
+        managerType.GetField("_ageSelection", InstanceMembers).SetValue(manager,
+            new LocalAgeChoice(() => LocalAgeChoice.Encode(age), _ => Assert.Fail("No persistence needed.")));
+        Invoke("Init");
+        Invoke("LoadRewardedAd");
+        Invoke("ShowPrivacyOptions");
+        Assert.That(Property<bool>("CanRequestAds"), Is.False);
+        Assert.That(Get<AdConsentGate>("_consent"), Is.Null);
+        AssertNoSdkActivity();
+        WithoutManagers(() => Invoke("ShowRewardedAd", manager, (Action)(() => Assert.Fail("Blocked reward.")),
+            (Action<RewardedAdOutcome>)(outcome => Assert.That(outcome, Is.EqualTo(RewardedAdOutcome.PolicyBlocked)))));
+        AssertNoSdkActivity();
+    }
+
+    [TestCase(AgeChoice.Under13, "Child")]
+    [TestCase(AgeChoice.From13To15, "Child")]
+    [TestCase(AgeChoice.From16To17, "Teen")]
+    [TestCase(AgeChoice.Adult, "Unspecified")]
+    public void Revival_PinnedSdkConfigurationUsesNewAgeTreatmentAndSeparateRating(AgeChoice age, string treatment)
+    {
+        Assert.That(AgeTreatmentPolicy.TryCreatePlan(age, out var plan), Is.True);
+        var config = managerType.GetMethod("CreateRequestConfiguration", BindingFlags.NonPublic | BindingFlags.Static)
+            .Invoke(null, new object[] { plan });
+        var type = config.GetType();
+        Assert.That(type.GetField("AgeRestrictedTreatment").GetValue(config).ToString(), Is.EqualTo(treatment));
+        var ratingField = type.GetField("MaxAdContentRating");
+        var rating = ratingField.GetValue(config);
+        Assert.That(rating, Is.Not.Null);
+        var ratingValue = ratingField.FieldType.GetProperty("Value", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(ratingValue, Is.Not.Null, "Pinned SDK exposes the content rating through Value.");
+        Assert.That(ratingValue.GetValue(rating), Is.EqualTo("G"));
+        Assert.That(type.GetField("TagForChildDirectedTreatment").GetValue(config), Is.Null);
+        Assert.That(type.GetField("TagForUnderAgeOfConsent").GetValue(config), Is.Null);
+        AssertNoSdkActivity();
+    }
+
+    private sealed class PrivacyClient : IAdConsentClient
+    {
+        public int PrivacyCalls;
+        public bool CanRequestAds => false;
+        public bool PrivacyOptionsRequired => true;
+        public void Update(bool underAge, Action<bool> done) => done(false);
+        public void Gather(Action<bool> done) => Assert.Fail("Failed update cannot gather.");
+        public void ShowPrivacyOptions(Action<bool> done) { PrivacyCalls++; done(true); }
+    }
+
+    [Test]
+    public void Revival_RequiredPrivacyRemainsAccessibleWhenAdsBlockedAndInvalidatesLateReward()
+    {
+        managerType.GetField("_ageSelection", InstanceMembers).SetValue(manager,
+            new LocalAgeChoice(() => "1|18plus", _ => { }));
+        var client = new PrivacyClient();
+        var gate = new AdConsentGate(client, false, action => action());
+        gate.Request(_ => { });
+        managerType.GetField("_consent", InstanceMembers).SetValue(manager, gate);
+        int rewards = 0;
+        var receipt = CreateOwnedSession(() => rewards++);
+        receipt.Complete(RewardedAdOutcome.Cancelled);
+        Assert.That(Property<bool>("CanRequestAds"), Is.False);
+        Assert.That(Property<bool>("PrivacyOptionsRequired"), Is.True);
+        Invoke("ShowPrivacyOptions");
+        receipt.EarnReward();
+        Assert.That(client.PrivacyCalls, Is.EqualTo(1));
+        Assert.That(rewards, Is.Zero);
+        Assert.That(Get<int>("_loadVersion"), Is.EqualTo(1));
+        Assert.That(Get<object>("_rewardedAd"), Is.Null);
+        Assert.That(Get<bool>("_loading"), Is.False);
+        Assert.That(Get<bool>("_initialized"), Is.False);
+        Assert.That(gate.CanRequestAds, Is.False);
+    }
+
     [Test]
     public void Revival_ConsentUpdateDeadlineReleasesManagerForManualRetry()
     {
         var client = new MissingConsentUpdate();
-        var gate = new AdConsentGate(client, action => action());
+        var gate = new AdConsentGate(client, true, action => action());
         var results = new List<bool>();
         gate.Request(results.Add);
         managerType.GetField("_consent", InstanceMembers).SetValue(manager, gate);
@@ -512,7 +590,7 @@ public class RevivalAdManagerTests
     public void Revival_AgeChangeInvalidatesConsentAndClosedRewardWithoutStartingSdk()
     {
         var client = new MissingConsentUpdate();
-        var gate = new AdConsentGate(client, action => action());
+        var gate = new AdConsentGate(client, true, action => action());
         int completed = 0, rewards = 0;
         gate.Request(_ => completed++);
         managerType.GetField("_consent", InstanceMembers).SetValue(manager, gate);

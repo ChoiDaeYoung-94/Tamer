@@ -1,5 +1,7 @@
 # Families 후속: 명시적 테스트 광고의 동의 확인
 
+현재 구현의 후속은 [연령 처리와 실행별 동의 계약 준비](age-consent-contract.ko.md)를 따른다. 아래 과거의 고정 TFUA=true·deprecated 광고 태그 설명은 당시 실행 기록이며 최신 구현은 구간별 계획과 별도 지역 검토 차단을 사용한다.
+
 2026-09-11, branch `codex/families-consent-gate`, base `18d6e48`, 통합 main `da11757`, 실행 소스 `d67684fd92a85c3fcd768b55d5fc347932f8ff63`. UI 수명 리팩토링 후 이어지는 #91 작업이다. 운영 광고는 계속 차단하며 Console/AdMob 설정을 저장하지 않는다.
 
 ## 구현 범위
