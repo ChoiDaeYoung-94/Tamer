@@ -6,7 +6,7 @@
 - Git 커밋 제목과 본문은 한국어로 작성한다. Conventional Commits 접두사(feat/fix/refactor/docs 등), 코드 식별자·경로·제품명은 필요시 원문을 유지하되 변경 목적과 설명은 한국어로 쓴다. squash/merge 커밋 메시지도 직접 지정할 수 있으면 한국어로 작성한다. 이미 공유된 기존 커밋은 이 규칙 적용만을 위해 amend/rebase/force-push로 재작성하지 않는다.
 - PR 병합 확인 후 불필요한 원격 작업 브랜치를 삭제하고 `git fetch --prune`으로 추적 참조를 정리한다. 삭제 직전에 최신 `origin/main`에 브랜치 tip이 포함되는지, 관련 PR이 merged인지, 열린 PR이나 병합 후 추가 커밋이 없는지 확인한다. 미사용 병합 로컬 브랜치는 `git branch -d`로 정리한다. `main`·기본 브랜치·미병합·작업 중 브랜치와 다른 worktree가 체크아웃한 로컬 브랜치는 보존하며 강제로 체크아웃을 바꾸지 않는다. 사용 중인 worktree의 원격 참조는 담당자가 추가 작업이 없다고 확인한 뒤에만 삭제한다. worktree 파일·Library·비공개 증거는 삭제하지 않는다. 정리 결과와 남긴 브랜치의 이유를 기록한다.
 - 원격 브랜치 삭제에는 확인한 tip SHA를 명시한 expected lease를 사용한다. 확인 이후 tip이 바뀌면 삭제를 중단하고 다시 검토한다.
-- Unity는 `6000.0.81f1`로 고정한다. 도구/SDK 기준은 `tools/revival/toolchain.json`과 `Packages/packages-lock.json`을 따른다.
+- 현재 복구·검증 단계의 Unity는 `6000.0.81f1`로 유지한다. 도구/SDK 기준은 `tools/revival/toolchain.json`과 `Packages/packages-lock.json`을 따른다. 사용자 승인된 후반 작업으로 기능·광고·저장 복구 안정화 후, 최종 출시 AAB·스토어 검증 전에 실행 시점의 최신 정식 LTS와 안정 패치를 공식 자료로 확인하고 SDK·플러그인·Android 호환성을 평가하여 격리 브랜치에서 업그레이드한다. 지금 설치·버전을 변경하거나 정확한 후속 버전을 추정하지 않는다. 전환 후 영향 범위 테스트·실기기·16KB·최종 AAB 검증을 수행하며 이전 Unity의 결과로 대체하지 않는다. 일반적인 업그레이드 작업은 이미 승인됐으며 호환 불가 등 중대한 변경만 구체적으로 보고한다.
 - 현재 구현 checkout은 이 폴더이며 `D:\meee\git\Tamer`는 소유자의 별도 원본이다. 원본의 브랜치 변경·동기화·삭제·이동을 하지 않는다.
 - `.meta`와 GUID를 보존한다. 에셋 복원은 Editor를 열기 전에 `python tools/revival/restore_assets.py --source <권한 있는 원본>`으로 수행한다. 해시 충돌을 임의 덮어쓰기/manifest 재생성으로 숨기지 않는다.
 - 구매/출처 불명 에셋과 Avalon 폰트는 비공개 복원 대상이다. 공개 LFS에도 올리지 않는다. PlayFab 설정·개발자 토큰·서명 값·로컬 감사 메모·원시 로그를 공개 이슈나 커밋에 넣지 않는다.
