@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-21",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/7299/Tamer",
+  "checkoutCommit": "da6c76b8155ca2a78a3a39e8d242a4fd8ff81381",
+  "apkSourceCommit": "169ab82f20cb238730b74b3beede1436bd57d7f1",
+  "unity": "6000.0.81f1",
+  "cli": "1.0.0-beta.8",
+  "android": {
+    "model": "SM-N986N",
+    "version": "13",
+    "user": 0,
+    "abi": "ARM64",
+    "minSdk": 24,
+    "targetSdk": 36
+  },
+  "apk": {
+    "path": "Build/revival/Tamer-playerrestore.apk",
+    "sha256": "609343129cd3609a6ea9e33cb8317d1fd2070289b4158b2f59cb36a1dc47a8ba",
+    "package": "com.AeDeong.MonsterTamer.revival.playerrestore",
+    "signing": "debug"
+  },
+  "result": {
+    "marker": "PLAYER_RESTORE_PASS",
+    "firstInstall": true,
+    "executions": 1,
+    "failures": 0,
+    "retries": 0,
+    "sex": "Woman",
+    "allies": [
+      "Bat",
+      "Magma"
+    ],
+    "navMesh": "2/2",
+    "hud": "matched",
+    "reads": 2,
+    "writes": 0,
+    "errors": 0,
+    "stopped": true,
+    "installationAndDataPreserved": true
+  },
+  "notVerified": [
+    "process-restart restore",
+    "cloud transport",
+    "combat",
+    "tutorial implementation",
+    "legacy PlayerPrefs migration",
+    "production services and store",
+    "16 KB runtime"
+  ],
+  "privateEvidence": [
+    {
+      "path": "Logs/revival/playerrestore-device/first-main.png",
+      "sha256": "e13585c44192e413c191f5e85f7e114273f70940dfe822c20c4c9ca74616eda6"
+    },
+    {
+      "path": "Logs/revival/playerrestore-device/runtime.log",
+      "sha256": "be3735c534664d21ea470020ff80a87253d47e909e4b706225cb36bd2d25e078"
+    },
+    {
+      "path": "Logs/revival/playerrestore-device/PlayerData.json",
+      "sha256": "b37b0ad3d2d8c065a56f2978971d35fd75e8da4fa58adcefcffcaa2518ccbe26"
+    },
+    {
+      "path": "Logs/revival/playerrestore-device/session-close.json",
+      "sha256": "76016de1f995d099269139020e1d8dda4459f838b3ff18e2bafe5bf47cd1e0ae"
+    }
+  ]
+}
