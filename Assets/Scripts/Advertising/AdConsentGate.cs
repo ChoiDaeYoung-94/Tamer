@@ -18,15 +18,18 @@ namespace AD.Advertising
         private readonly IAdConsentClient _client;
         private readonly Action<Action> _dispatch;
         private readonly Action<string> _trace;
+        private readonly bool _underAgeOfConsent;
         private Stage _stage;
         private int _version;
         private Action<bool> _pendingCompletion;
 
-        public AdConsentGate(IAdConsentClient client, Action<Action> dispatch, Action<string> trace = null)
+        public AdConsentGate(IAdConsentClient client, bool underAgeOfConsent,
+            Action<Action> dispatch, Action<string> trace = null)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _dispatch = dispatch ?? throw new ArgumentNullException(nameof(dispatch));
             _trace = trace ?? (_ => { });
+            _underAgeOfConsent = underAgeOfConsent;
         }
 
         public bool IsUpdating => _stage == Stage.Updating;
@@ -58,8 +61,8 @@ namespace AD.Advertising
             _trace("consent_update_call");
             try
             {
-                // Conservative test treatment, never an inferred or stored user age.
-                _client.Update(true, success => _dispatch(() =>
+                // UMP treatment is separate from Mobile Ads' Child/Teen configuration.
+                _client.Update(_underAgeOfConsent, success => _dispatch(() =>
                 {
                     if (!Current(version, Stage.Updating)) return;
                     _trace(success ? "consent_update_ok" : "consent_update_failed");

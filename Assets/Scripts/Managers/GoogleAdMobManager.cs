@@ -60,6 +60,7 @@ namespace AD
             _consent = null;
             _loading = _initializing = _initialized = false;
             DestroyLoadedAd();
+            if (_subscribed) BeginConsent(false);
         }
 
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
@@ -81,13 +82,15 @@ namespace AD
 
         public bool IsInProgress => _session != null;
         public bool IsConsentBusy => _consent != null && _consent.IsBusy;
-        public bool PrivacyOptionsRequired => _consent != null && _consent.PrivacyOptionsRequired;
+        public bool PrivacyOptionsRequired => AgeSelection.HasAge &&
+            _consent != null && _consent.PrivacyOptionsRequired;
 
         public void ShowPrivacyOptions()
         {
-            if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || _consent == null) return;
+            if (_destroyed || !AgeSelection.HasAge || IsInProgress || _loading || _initializing || _consent == null) return;
             if (!PrivacyOptionsRequired || IsConsentBusy) return;
             ++_loadVersion;
+            ++_sceneVersion; // Withdrawn choices also invalidate delayed reward receipts.
             DestroyLoadedAd();
             _consent.OpenPrivacyOptions(_ => { }); // Never auto-load after a privacy choice.
         }
@@ -124,7 +127,10 @@ namespace AD
             if (_subscribed || _destroyed) return;
             _subscribed = true;
             UnitySceneManager.activeSceneChanged += OnSceneChanged;
-            // Login/startup never initializes the SDK or requests an ad.
+            // Each app-owned manager starts with a fresh gate, never saved consent.
+            // Regional review currently blocks this before any SDK operation.
+            // Consent completion alone never initializes Mobile Ads or loads an ad.
+            BeginConsent(false);
         }
 
         private void Update()
@@ -186,15 +192,36 @@ namespace AD
         {
             if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy) return;
             Init();
+            BeginConsent(true);
+        }
+
+        private void BeginConsent(bool loadAfterConsent)
+        {
+            if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy ||
+                !AgeTreatmentPolicy.TryCreatePlan(AgeSelection.Value, out var plan)) return;
             int version = ++_loadVersion;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
             _initializing = true;
             if (_consent == null)
-                _consent = new AdConsentGate(new GoogleUmpConsentClient(), callback => Enqueue(callback), name => TraceHarness(name));
+            {
+                try
+                {
+                    // Apply protection before UMP and Mobile Ads initialization, including age changes.
+                    MobileAds.SetRequestConfiguration(CreateRequestConfiguration(plan));
+                    TraceHarness("request_flags_set");
+                    _consent = new AdConsentGate(new GoogleUmpConsentClient(), plan.UmpUnderAgeOfConsent,
+                        callback => Enqueue(callback), name => TraceHarness(name));
+                }
+                catch (Exception)
+                {
+                    _initializing = false;
+                    return;
+                }
+            }
             _consent.Request(allowed =>
             {
                 if (_destroyed || version != _loadVersion) return;
-                if (!allowed) { _initializing = false; return; }
+                if (!allowed || !loadAfterConsent || !CanRequestAds) { _initializing = false; return; }
                 _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
                 if (_initialized)
                 {
@@ -205,18 +232,25 @@ namespace AD
             });
         }
 
+        // Pure configuration construction; no SDK call and no deprecated TFCD/TFUA tags.
+        private static RequestConfiguration CreateRequestConfiguration(AgeTreatmentPlan plan)
+        {
+            if (plan == null) throw new ArgumentNullException(nameof(plan));
+            AgeRestrictedTreatment treatment;
+            switch (plan.Advertising)
+            {
+                case AdAgeTreatment.Child: treatment = AgeRestrictedTreatment.Child; break;
+                case AdAgeTreatment.Teen: treatment = AgeRestrictedTreatment.Teen; break;
+                case AdAgeTreatment.Unspecified: treatment = AgeRestrictedTreatment.Unspecified; break;
+                default: throw new ArgumentOutOfRangeException(nameof(plan));
+            }
+            return new RequestConfiguration { AgeRestrictedTreatment = treatment, MaxAdContentRating = MaxAdContentRating.G };
+        }
+
         private void InitializeSampleSdk(int version)
         {
             try
             {
-                // UMP's TFUA does not forward to Mobile Ads. Set both explicitly.
-                MobileAds.SetRequestConfiguration(new RequestConfiguration
-                {
-                    TagForChildDirectedTreatment = TagForChildDirectedTreatment.True,
-                    TagForUnderAgeOfConsent = TagForUnderAgeOfConsent.True,
-                    MaxAdContentRating = MaxAdContentRating.G
-                });
-                TraceHarness("request_flags_set");
                 TraceHarness("initialize_call");
                 MobileAds.Initialize(status =>
                 {

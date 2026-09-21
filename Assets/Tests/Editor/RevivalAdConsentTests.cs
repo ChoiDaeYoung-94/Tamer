@@ -34,7 +34,7 @@ public class RevivalAdConsentTests
     public void SetUp()
     {
         client = new Client(); callbacks = new Queue<Action>(); results = new List<bool>();
-        gate = new AdConsentGate(client, a => callbacks.Enqueue(a));
+        gate = new AdConsentGate(client, true, a => callbacks.Enqueue(a));
     }
     [TearDown] public void TearDown() => gate.Dispose();
     void Drain() { while (callbacks.Count > 0) callbacks.Dequeue()(); }
@@ -42,6 +42,26 @@ public class RevivalAdConsentTests
     {
         gate.Request(results.Add); client.Updated(true); Drain();
         client.Allowed = true; client.Gathered(true); Drain();
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void Revival_EachLaunchUpdatesWithExplicitUmpTreatmentBeforeUsingCachedPermission(bool tfua)
+    {
+        gate.Dispose();
+        gate = new AdConsentGate(client, tfua, a => callbacks.Enqueue(a));
+        Ready();
+        gate.Request(results.Add);
+        Assert.That(client.Updates, Is.EqualTo(1), "Same launch reuses completed update.");
+        gate.Dispose();
+        gate = new AdConsentGate(client, tfua, a => callbacks.Enqueue(a));
+        Assert.That(gate.CanRequestAds, Is.False, "SDK cache cannot skip a new launch update.");
+        gate.Request(results.Add);
+        Assert.That(client.Updates, Is.EqualTo(2));
+        Assert.That(client.UnderAge, Is.EqualTo(tfua));
+        Assert.That(gate.CanRequestAds, Is.False);
+        client.Updated(true); Drain(); client.Gathered(true); Drain();
+        Assert.That(gate.CanRequestAds, Is.True);
     }
 
     [Test]
