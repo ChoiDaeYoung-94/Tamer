@@ -125,6 +125,49 @@ public class RevivalGameplaySessionTests
     }
 
     [Test]
+    public void Revival_UpdateResumesDeferredDeathAndPersistsRewardExactlyOnce()
+    {
+        using (var f = new Fixture())
+        using (var cancelled = new System.Threading.CancellationTokenSource())
+        {
+            var playerInstance = Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+            var generatorInstance = Runtime("MonsterGenerator").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+            object oldPlayer = playerInstance.GetValue(null), oldGenerator = generatorInstance.GetValue(null);
+            try
+            {
+                playerInstance.SetValue(null, f.Player);
+                generatorInstance.SetValue(null, f.Monster.gameObject.AddComponent(Runtime("MonsterGenerator")));
+                var creature = Runtime("Creature");
+                creature.GetField("isDie", Fields).SetValue(f.Monster, true);
+                creature.GetField("_hp", Fields).SetValue(f.Monster, 0f);
+                creature.GetField("NavMeshAgent", Fields).SetValue(f.Monster, f.Monster.gameObject.AddComponent<UnityEngine.AI.NavMeshAgent>());
+                Set(f.Monster, "_rewardGold", 25); Set(f.Monster, "_isAbleAlly", true);
+                var effect = new GameObject("Offline corpse effect");
+                effect.transform.SetParent(f.Monster.transform); effect.SetActive(false);
+                Set(f.Monster, "_captureEffect", effect);
+                cancelled.Cancel(); // No background corpse timer in this synchronous fixture.
+                Set(f.Monster, "_afterDieTokenSource", cancelled);
+                Call(f.Monster, "OnDeath");
+                Set(f.Data, "<IsServerDataReady>k__BackingField", false);
+                Set(f.Data, "<DeletionInProgress>k__BackingField", true);
+                Call(f.Monster, "AfterDie");
+                Assert.That(Get(f.Monster, "_deathCallbackPending"), Is.True);
+                Set(f.Data, "<DeletionInProgress>k__BackingField", false);
+                Set(f.Data, "<IsServerDataReady>k__BackingField", true);
+                Call(f.Monster, "Update");
+                Call(f.Monster, "Update");
+                Call(f.Monster, "AfterDie");
+                Assert.That(Get(f.Monster, "_deathCallbackPending"), Is.False);
+                Assert.That(Get(f.Monster, "_deathHandled"), Is.True);
+                Assert.That(Get(f.Player, "_gold"), Is.EqualTo(125));
+                Assert.That(f.Values["Gold"], Is.EqualTo("125"));
+                Assert.That(File.Exists(f.SavePath), Is.True);
+            }
+            finally { playerInstance.SetValue(null, oldPlayer); generatorInstance.SetValue(null, oldGenerator); }
+        }
+    }
+
+    [Test]
     public void Revival_UnknownCurrentAllyDeathDoesNotRewriteRoster()
     {
         using (var f = new Fixture())
