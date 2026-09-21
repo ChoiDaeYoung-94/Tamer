@@ -68,6 +68,8 @@ public class RevivalAgeChoiceUITests
             Assert.That(canvas.sortingOrder, Is.EqualTo(30000));
             Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.width > 800), Is.True);
             Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.height > 0), Is.True);
+            foreach (RectTransform child in contentRect)
+                Assert.That(child.rect.width, Is.LessThanOrEqualTo(contentRect.rect.width + 1), child.name);
             buttons.Single(b => b.name == "Declined").onClick.Invoke();
             Assert.That(stored, Is.EqualTo("1|declined"));
             Assert.That(canvas.gameObject.activeSelf, Is.False);

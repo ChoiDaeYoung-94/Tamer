@@ -80,7 +80,11 @@ namespace AD
             text.alignment = TextAlignmentOptions.Center;
             text.raycastTarget = false;
             text.richText = false;
+            text.textWrappingMode = TextWrappingModes.Normal;
             var layout = text.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            // Let the parent assign the available width instead of the TMP
+            // preferred unwrapped line length expanding the label beyond it.
+            layout.minWidth = layout.preferredWidth = 0;
             layout.preferredHeight = height;
             return text;
         }
