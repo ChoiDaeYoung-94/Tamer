@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -18,6 +18,8 @@ public class RevivalMonsterLifecycleTests
     private object _previousPlayer;
     private FieldInfo _canvasInstance;
     private object _previousCanvas;
+    private FieldInfo _managerInstance;
+    private object _previousManager;
 
     private static Type RuntimeType(string name) => AppDomain.CurrentDomain.GetAssemblies()
         .Select(a => a.GetType(name)).First(t => t != null);
@@ -64,6 +66,9 @@ public class RevivalMonsterLifecycleTests
     public void SetUp()
     {
         _randomState = UnityEngine.Random.state;
+        _managerInstance = RuntimeType("AD.Managers").GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        _previousManager = _managerInstance.GetValue(null);
+        _managerInstance.SetValue(null, null);
         _generatorInstance = RuntimeType("MonsterGenerator").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
         _previousGenerator = _generatorInstance.GetValue(null);
         _generatorInstance.SetValue(null, null);
@@ -83,6 +88,7 @@ public class RevivalMonsterLifecycleTests
         _generatorInstance.SetValue(null, _previousGenerator);
         _playerInstance.SetValue(null, _previousPlayer);
         _canvasInstance.SetValue(null, _previousCanvas);
+        _managerInstance.SetValue(null, _previousManager);
         UnityEngine.Random.state = _randomState;
     }
 
@@ -444,6 +450,14 @@ public class RevivalMonsterLifecycleTests
         _objects.Add(button);
         Set(canvas, "_captureButton", button);
         monster = CreateMonster();
+        Component managers = Create("AD.Managers");
+        Component data = Create("AD.DataManager");
+        Set(managers, "_dataM", data); _managerInstance.SetValue(null, managers);
+        Set(data, "<PlayFabId>k__BackingField", "offline-fixture");
+        Set(data, "<IsServerDataReady>k__BackingField", true);
+        Set(player, "_gameplayData", data); Set(player, "_inventoryOwner", "offline-fixture"); Set(player, "_inventoryGeneration", 0);
+        var lease = Get(monster, "_session"); Call(lease, "Bind", data, "offline-fixture", 0, true);
+        Set(player, "_captureLifetime", (int)lease.GetType().GetProperty("Lifetime").GetValue(lease));
         var effect = (GameObject)Get(monster, "_captureEffect");
         effect.transform.SetParent(monster.transform);
         effect.tag = "Capture";

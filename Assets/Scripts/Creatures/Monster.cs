@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 
 using UnityEngine;
@@ -42,7 +42,31 @@ public class Monster : Creature
     private CancellationTokenSource _detectionTokenSource;
     private CancellationTokenSource _afterDieTokenSource;
 
-    public bool IsCaptureAvailable => isActiveAndEnabled && isDie && Hp <= 0 &&
+    private readonly AD.GameplaySessionLease _session = new AD.GameplaySessionLease();
+    private AD.PoolManager _sessionPool;
+    private int _deathLifetime = -1;
+    private bool _deathHandled;
+    public int SessionLifetime => _session.Lifetime;
+    public bool IsCurrentSession(int lifetime)
+    {
+        var data = AD.Managers.DataM;
+        return data != null && _session.Matches(data, data.PlayFabId, data.AccountGeneration,
+            data.IsServerDataReady && !data.DeletionInProgress, lifetime);
+    }
+    public bool TryConsumeReward(int lifetime)
+    {
+        var data = AD.Managers.DataM;
+        return data != null && _session.TryConsumeReward(data, data.PlayFabId, data.AccountGeneration,
+            data.IsServerDataReady && !data.DeletionInProgress, lifetime);
+    }
+    public void RetireSession()
+    {
+        _session.Invalidate();
+        if (_sessionPool != null) _sessionPool.PushToPool(gameObject);
+        if (this != null && gameObject.activeSelf) gameObject.SetActive(false);
+    }
+
+    public bool IsCaptureAvailable => IsCurrentSession(SessionLifetime) && isActiveAndEnabled && isDie && Hp <= 0 &&
         _isAbleAlly && !_isAlly && _captureEffect != null && _captureEffect.activeInHierarchy;
 
     protected override void Awake()
@@ -62,6 +86,7 @@ public class Monster : Creature
 
     private void Update()
     {
+        if (!IsCurrentSession(SessionLifetime)) { RetireSession(); return; }
         if (!isDie && NavMeshAgent != null && NavMeshAgent.isActiveAndEnabled && NavMeshAgent.isOnNavMesh)
             MonsterAI();
     }
@@ -78,6 +103,13 @@ public class Monster : Creature
     /// </summary>
     private void Init()
     {
+        var data = AD.Managers.DataM;
+        _session.Bind(data, data?.PlayFabId, data?.AccountGeneration ?? -1,
+            data != null && data.IsServerDataReady && !data.DeletionInProgress);
+        _sessionPool = AD.Managers.PoolM;
+        _deathLifetime = -1; _deathHandled = false;
+        // Clear retained death animation state on pooled reactivation.
+        if (_animator != null) _animator.Rebind();
         _spawnEffect.SetActive(true);
 
         _hp = _originalHp;
@@ -97,6 +129,8 @@ public class Monster : Creature
 
     public override void Clear()
     {
+        _session.Invalidate();
+        _deathLifetime = -1; _deathHandled = false;
         if (Player.Instance != null) Player.Instance.ReleaseCaptureTarget(this);
         StopBattle();
 
@@ -555,7 +589,7 @@ public class Monster : Creature
     /// </summary>
     protected override void AttackTarget()
     {
-        if (isDie)
+        if (isDie || !IsCurrentSession(SessionLifetime))
             return;
 
         Creature target = null;
@@ -591,8 +625,16 @@ public class Monster : Creature
     /// <summary>
     /// Die ani 호출
     /// </summary>
+    protected override void OnDeath()
+    {
+        _deathLifetime = IsCurrentSession(SessionLifetime) ? SessionLifetime : -1;
+        _deathHandled = false;
+    }
+
     private void AfterDie()
     {
+        if (!isDie || Hp > 0 || _deathHandled || !IsCurrentSession(_deathLifetime)) return;
+        _deathHandled = true;
         if (_isAlly)
         {
             Player.Instance.RemoveAllyMonster(this);
@@ -618,13 +660,13 @@ public class Monster : Creature
 
         NavMeshAgent.enabled = false;
         _isDetection = false;
-        Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: _rewardGold);
+        Player.Instance.NotifyPlayerOfDeath(target: gameObject, gold: _rewardGold, lifetime: _deathLifetime);
         MonsterGenerator.Instance.MinusMonster(this);
 
         if (_isAbleAlly)
         {
             _captureEffect.SetActive(true);
-            AfterDieAsync(_afterDieTokenSource.Token).Forget();
+            AfterDieAsync(_afterDieTokenSource.Token, SessionLifetime).Forget();
         }
         else
         {
@@ -632,11 +674,12 @@ public class Monster : Creature
         }
     }
 
-    private async UniTask AfterDieAsync(CancellationToken token)
+    private async UniTask AfterDieAsync(CancellationToken token, int lifetime)
     {
         while (!token.IsCancellationRequested)
         {
             await UniTask.Delay(System.TimeSpan.FromSeconds(5f), cancellationToken: token);
+            if (token.IsCancellationRequested || !IsCurrentSession(lifetime)) return;
             float distance = Vector3.Distance(Player.Instance.transform.position, transform.position);
             if (distance > 10f)
             {
@@ -728,6 +771,8 @@ public class Monster : Creature
     /// </summary>
     public void AllySetting(Vector3 playerPosition, bool setting = false)
     {
+        if (!IsCurrentSession(SessionLifetime)) return;
+        _deathLifetime = -1; _deathHandled = false;
         ResetMonster();
         RemoveTarget();
 

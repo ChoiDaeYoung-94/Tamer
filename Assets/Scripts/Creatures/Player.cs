@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
@@ -44,6 +44,14 @@ public class Player : Creature
     private Collider _captureTrigger;
     private string _monsterCollection = string.Empty;
     private AD.UpdateManager _updateSource;
+    private AD.DataManager _gameplayData;
+    private int _captureLifetime = -1;
+    private bool GameplaySessionCurrent()
+    {
+        var data = AD.Managers.DataM;
+        return data != null && ReferenceEquals(data, _gameplayData) && data.IsServerDataReady &&
+            !data.DeletionInProgress && data.PlayFabId == _inventoryOwner && data.AccountGeneration == _inventoryGeneration;
+    }
     private string _inventoryOwner;
     private int _inventoryGeneration = -1;
     private string _targetInventoryOwner;
@@ -113,13 +121,6 @@ public class Player : Creature
     /// </summary>
     private void Init()
     {
-        _gold = int.Parse(AD.Managers.DataM.LocalPlayerData[GOLD_KEY]);
-        if (AD.Managers.DataM.LocalPlayerData[PLAYER_MONSTERS_KEY] != "null")
-        {
-            _isAllyAvailable = true;
-            SettingAllyMonster();
-        }
-
         InitPrefs();
 
         JoyStick.Instance.SetSpeed(_moveSpeed);
@@ -221,7 +222,7 @@ public class Player : Creature
     /// </summary>
     protected override void AttackTarget()
     {
-        if (isDie) return;
+        if (isDie || !GameplaySessionCurrent()) return;
         if (_curTargetMonsterObject != null)
         {
             float power = IsBuffing ? BuffPower : Power;
@@ -231,7 +232,7 @@ public class Player : Creature
 
     public void HandleAttackCoroutine(bool isGame)
     {
-        if (isGame)
+        if (isGame && GameplaySessionCurrent())
         {
             StopBattle();
             StartBattle();
@@ -304,6 +305,7 @@ public class Player : Creature
 
     public void BuyAllyMonster(string name)
     {
+        if (!GameplaySessionCurrent()) return;
         Monster monster = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM.RootPlayer).GetComponent<Monster>();
         monster.AllySetting(playerPosition: transform.position, setting: true);
         AddAllyMonster(monster);
@@ -353,8 +355,8 @@ public class Player : Creature
     public void Capture()
     {
         Monster target = _ableCaptureMonster;
-        bool allowed = !isDie && Hp > 0 && _allyMonsters.Count < MaxCaptureCapacity &&
-            target != null && target.IsCaptureAvailable &&
+        bool allowed = GameplaySessionCurrent() && target != null && target.IsCurrentSession(_captureLifetime) && !isDie && Hp > 0 && _allyMonsters.Count < MaxCaptureCapacity &&
+            target.IsCaptureAvailable &&
             _captureTrigger != null && _captureTrigger.enabled && _captureTrigger.gameObject.activeInHierarchy &&
             AD.Managers.Instance != null && AD.Managers.GameM.IsGame &&
             AD.Managers.SceneM != null && !AD.Managers.SceneM.IsTransitioning;
@@ -369,6 +371,7 @@ public class Player : Creature
     public void ClearCaptureTarget()
     {
         _ableCaptureMonster = null;
+        _captureLifetime = -1;
         _captureTrigger = null;
         if (_instance == this && PlayerUICanvas.Instance != null) PlayerUICanvas.Instance.DisableCapture();
     }
@@ -382,12 +385,13 @@ public class Player : Creature
 
     private void ObserveCaptureTrigger(Collider col)
     {
-        if (isDie || Hp <= 0 || _allyMonsters.Count >= MaxCaptureCapacity || !col.CompareTag("Capture")) return;
+        if (!GameplaySessionCurrent() || isDie || Hp <= 0 || _allyMonsters.Count >= MaxCaptureCapacity || !col.CompareTag("Capture")) return;
         Monster target = col.GetComponentInParent<Monster>();
         if (target == null || !target.IsCaptureAvailable) return;
         // Another overlapping corpse must not replace a valid current selection.
         if (_ableCaptureMonster != null && _ableCaptureMonster.IsCaptureAvailable) return;
         _ableCaptureMonster = target;
+        _captureLifetime = target.SessionLifetime;
         _captureTrigger = col;
         PlayerUICanvas.Instance.EnableCapture();
     }
@@ -407,6 +411,7 @@ public class Player : Creature
 
     private void AddAllyMonster(Monster monster)
     {
+        if (!GameplaySessionCurrent() || monster == null || !monster.IsCurrentSession(monster.SessionLifetime)) return;
         _allyMonsters.Add(monster);
         monster.transform.SetParent(AD.Managers.PoolM.RootPlayer);
 
@@ -427,7 +432,8 @@ public class Player : Creature
 
     public void RemoveAllyMonster(Monster monster)
     {
-        _allyMonsters.Remove(monster);
+        if (!GameplaySessionCurrent() || monster == null || !monster.IsCurrentSession(monster.SessionLifetime)
+            || !_allyMonsters.Remove(monster)) return;
         string tempAlly = string.Empty;
 
         if (_allyMonsters.Count <= 0)
@@ -484,6 +490,12 @@ public class Player : Creature
 
     public void ClearInventorySession()
     {
+        _gameplayData = null;
+        StopBattle();
+        foreach (var monster in _allyMonsters.ToArray())
+            if (monster != null) monster.RetireSession();
+        _allyMonsters.Clear(); _isAllyAvailable = false;
+        _gold = 0;
         _curTargetMonsterObject = null; _curTargetMonster = null;
         _targetInventoryOwner = null; _targetInventoryGeneration = -1;
         ClearCaptureTarget();
@@ -501,10 +513,17 @@ public class Player : Creature
     {
         var data = AD.Managers.DataM;
         if (!data.IsServerDataReady) { ClearInventorySession(); return; }
-        if (_inventoryOwner == data.PlayFabId && _inventoryGeneration == data.AccountGeneration) return;
+        if (ReferenceEquals(_gameplayData, data) && _inventoryOwner == data.PlayFabId && _inventoryGeneration == data.AccountGeneration) return;
         ClearInventorySession();
         var snapshot = data.ReadInventory();
         _inventoryOwner = snapshot.Owner; _inventoryGeneration = data.AccountGeneration;
+        _gameplayData = data;
+        _gold = int.Parse(data.LocalPlayerData[GOLD_KEY]);
+        if (data.LocalPlayerData[PLAYER_MONSTERS_KEY] != "null")
+        {
+            SettingAllyMonster();
+            _isAllyAvailable = _allyMonsters.Count > 0;
+        }
         PlayerMonsterCollection = snapshot.Collection.ToList();
         _monsterCollection = string.Join(",", PlayerMonsterCollection);
         PlayerEquippedItems = snapshot.Equipped.Values.Where(value => value != null).ToList();
@@ -514,6 +533,7 @@ public class Player : Creature
             ApplyEquipment(item);
             if (AD.Managers.EquipmentM.EquipmentMapping.TryGetValue(item, out var model) && model != null) model.SetActive(true);
         }
+        if (isActiveAndEnabled && AD.Managers.GameM.IsGame) StartBattle();
     }
 
     public void EquipInventoryItem(string item)
@@ -573,12 +593,15 @@ public class Player : Creature
     /// <summary>
     /// monster가 죽은 뒤 호출
     /// </summary>
-    public void NotifyPlayerOfDeath(GameObject target, int gold)
+    public void NotifyPlayerOfDeath(GameObject target, int gold, int lifetime)
     {
+        var monster = target != null ? target.GetComponent<Monster>() : null;
+        if (!GameplaySessionCurrent() || monster == null || !monster.TryConsumeReward(lifetime)) return;
+        int nextGold = _gold + gold;
+        _gameplayData.UpdateLocalData(GOLD_KEY, nextGold.ToString());
+        _gold = nextGold;
         RecordDefeatedMonster(target);
-        _gold += gold;
-        AD.Managers.DataM.UpdateLocalData(GOLD_KEY, _gold.ToString());
-        PlayerUICanvas.Instance.UpdatePlayerInfo();
+        if (PlayerUICanvas.Instance != null) PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
 
     private void RecordDefeatedMonster(GameObject target)
@@ -601,8 +624,10 @@ public class Player : Creature
 
     public void MinusGold(int gold)
     {
-        _gold -= gold;
-        AD.Managers.DataM.UpdateLocalData(GOLD_KEY, _gold.ToString());
+        if (!GameplaySessionCurrent()) return;
+        int nextGold = _gold - gold;
+        _gameplayData.UpdateLocalData(GOLD_KEY, nextGold.ToString());
+        _gold = nextGold;
         AD.Managers.DataM.UpdatePlayerData();
         PlayerUICanvas.Instance.UpdatePlayerInfo();
     }
