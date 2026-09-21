@@ -62,3 +62,12 @@ checkout `C:/Users/pc_17/.codex/worktrees/7299/Tamer`, 런타임 구현 `1295805
 | `Logs/revival/receipt-device-phase2.log` | `987756159b45548f51fcdd16fb0df7810f9e0b0212d626ad3f48fab40a972721` |
 
 원본 APK/로그/기기 식별자는 비공개이며 커밋하지 않는다. Editor·회사폰 슬롯을 반환하고 자동 변경된 ProjectSettings·URP·SmokeScene을 복원했다. APK 이후 변경은 서버의 제출 전 취소 영수증 정규화(신규 1건 검사), 빌드 실행기의 원복 대상 목록 보강, 로컬 처리 실패 시 로그아웃 완료로 단정하지 않는 안내 문구, 검증 문서다. 기기 보호 키/receipt 클라이언트 로직과 APK 소스는 위와 같으며 문구/원복 목록 때문에 동일 기기 검사를 반복하지 않았다.
+
+## Clear 실패 전파 보완
+
+리뷰 후 `c23cffb0fb9734b6d306c0dc6ec3061ff8c75a92`에서 journal 제거의 `File.Exists` 선행 조건을 제거하고 직접 `File.Delete`를 호출한다. 파일이 이미 없으면 멱등으로 끝나지만 접근/공유 오류는 호출자에게 전파된다. 따라서 journal 제거 실패를 성공으로 취급해 검증 키를 삭제하지 않는다. `2b959690d36359efd96b127069f7c7d7531f8502`는 추가 경로 오류 테스트만 포함한다.
+
+- 실제 Windows FileStream 공유 잠금으로 ack 이후 journal 삭제를 실패시켰다. 해당 키와 terminal 기록이 남고, 잠금 해제·클라이언트 재생성 뒤 서버 재조회 및 로컬 정리 중복 없이 복구·정리되는지 확인했다. 이미 없는 파일의 재삭제와 다른 intent 키 보존도 확인했다. 1/1, 0.12초, 원본 `Logs/revival/deletion-receipt-clear-tests.json`, SHA-256 `5b46b9747c45ac7fd06272e24d2e531641964caa7d0ee91e589edc93665729ee`.
+- journal 경로가 디렉터리인 실제 접근 오류를 `File.Exists=false`로 숨기지 않고 전파하는 회귀를 확인했다. 1/1, 0.03초, 원본 `Logs/revival/deletion-receipt-clear-path-tests.json`, SHA-256 `ee7d3c8aff8ca3670b8fb991abd8ce99a7eb563322790b4c3633242018c38a5c`.
+
+두 검사 모두 실패0. 첫 검사는 앞선 60건 중 1건을 실제 파일 실패로 보강한 재검사이며 새 고유 건수에 중복 합산하지 않는다. 동일 Unity/CLI와 checkout에서 최소 검사만 실행했다. 기기 키 bridge·서버 계약은 변경하지 않아 기존 전체/Android APK/회사폰 검사는 반복하지 않았다. 위 APK에는 이 후속 Clear 수정이 포함되지 않는다. 해당 Editor를 정상 종료하고 Settings를 복원한 뒤 슬롯을 반환했다.
