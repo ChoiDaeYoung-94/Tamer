@@ -16,6 +16,7 @@ class IntakeService:
         if self.policy.scope and self.policy.scope != 'title':
             raise ValueError('Title-only intake required')
         self.resolve_target = resolve_target
+        self.receipt_recovery = None
         self.provider = (TitleDeletionProvider(database, title_id, submit, verify_target)
                          if configured else None)
         kwargs = {} if clock is None else {'clock': clock}
@@ -66,6 +67,8 @@ class IntakeService:
     def confirm(self, proof, request_id, challenge, revision):
         self.core.ready()
         principal = self.principal(proof)
+        if self.receipt_recovery is not None:
+            self.receipt_recovery.require_registered(request_id, principal)
         account = principal.account
         snapshot = self.core.confirm(proof, request_id, challenge, revision)
         # Resolve only once. After deletion, profile lookup may no longer work.

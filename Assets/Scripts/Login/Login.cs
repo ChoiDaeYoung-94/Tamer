@@ -68,6 +68,8 @@ namespace AD
         private int _loginGeneration;
         private int _loginDeletionEpoch;
         private bool _loginCaptured;
+        private GameObject _deletionRecoveryPanel;
+        private bool _receiptRecoverySignIn;
 
         private bool LoginCurrent() => _loginCaptured && _dataOwner != null
             && ReferenceEquals(_dataOwner, AD.Managers.DataM) && !_dataOwner.DeletionInProgress
@@ -112,6 +114,19 @@ namespace AD
 #endif
             _dataOwner = AD.Managers.DataM;
             _cts = new CancellationTokenSource();
+            if (DeletionReceiptBootstrap.TryOpen(transform, _loadingText != null ? _loadingText.font : null, () =>
+            {
+                _receiptRecoverySignIn = true;
+                if (_loading != null) _loading.SetActive(false);
+                if (_retry != null) _retry.SetActive(true);
+                if (_retryText != null) _retryText.text = "Receipt checking has stopped. Sign in explicitly to an existing account to check its request. No new account will be created.";
+            }))
+            {
+                _receiptRecoverySignIn = true;
+                if (_loading != null) _loading.SetActive(false);
+                if (_retry != null) _retry.SetActive(false);
+                return;
+            }
             if (PlayerPrefs.GetInt(AD.DataManager.DeletionLoginPauseKey, 0) != 0)
             {
                 ShowRetry("Deletion request accepted. Sign in explicitly to continue.");
@@ -155,6 +170,11 @@ namespace AD
         /// </summary>
         public void RetryConnection()
         {
+            if (_dataOwner != null && _dataOwner.DeletionInProgress)
+            {
+                ShowDeletionRecovery();
+                return;
+            }
             if (_operations.IsRunning)
                 return;
 
@@ -391,7 +411,7 @@ namespace AD
                         AndroidDeviceId = deviceId,
                         OS = SystemInfo.operatingSystem,
                         AndroidDevice = SystemInfo.deviceModel,
-                        CreateAccount = allowCreate
+                        CreateAccount = allowCreate && !_receiptRecoverySignIn
                     }, onOk, onError), "LoginWithAndroidDeviceID", token);
                 if (!device.IsSuccess || LoginCancelled(token)) return false;
                 OnLoggedIn(device.Result.PlayFabId, device.Result.NewlyCreated,
@@ -405,7 +425,7 @@ namespace AD
                 {
                     AuthenticationContext = new PlayFabAuthenticationContext(),
                     CustomId = customId,
-                    CreateAccount = allowCreate
+                    CreateAccount = allowCreate && !_receiptRecoverySignIn
                 }, onOk, onError), "LoginWithCustomID", token);
             if (!custom.IsSuccess || LoginCancelled(token)) return false;
             OnLoggedIn(custom.Result.PlayFabId, custom.Result.NewlyCreated,
@@ -508,6 +528,13 @@ namespace AD
             AD.Managers.DataM.BeginAccountSession(playFabId);
             _loginGeneration = _dataOwner.AccountGeneration;
             PlayFabSettings.staticPlayer.CopyFrom(context);
+            if (_dataOwner.DeletionInProgress)
+            {
+                // Do not refresh the login deletion epoch or allow normal profile/scene work.
+                // This authenticated context is used only to recover the original deletion intent.
+                ShowDeletionRecovery();
+                return;
+            }
             PlayerPrefs.DeleteKey(AD.DataManager.DeletionLoginPauseKey);
 
             // 다음 실행에서 같은 방식의 계정으로 접속하도록 기록
@@ -520,6 +547,43 @@ namespace AD
 
             LogStep($"PlayFab 로그인 성공 (method: {method}, newAccount: {isNewAccount})");
             ShowLoading("Success!!");
+        }
+
+        private void ShowDeletionRecovery()
+        {
+            if (_dataOwner == null || !ReferenceEquals(_dataOwner, Managers.DataM) || !_dataOwner.DeletionInProgress) return;
+            if (_loading != null) _loading.SetActive(false);
+            if (_retry != null) _retry.SetActive(false);
+            if (_deletionRecoveryPanel != null) { _deletionRecoveryPanel.SetActive(true); return; }
+            // The login scene cannot enter gameplay to reach settings while a submission is unresolved.
+            var root = new GameObject("DeletionRecovery", typeof(RectTransform), typeof(Canvas),
+                typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
+            root.transform.SetParent(transform, false);
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 1000;
+            var scaler = root.GetComponent<UnityEngine.UI.CanvasScaler>();
+            scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            if (UnityEngine.Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+                new GameObject("RecoveryEventSystem", typeof(UnityEngine.EventSystems.EventSystem),
+                    typeof(UnityEngine.EventSystems.StandaloneInputModule)).transform.SetParent(root.transform, false);
+            var panel = DeletionView.Rect("AccountPrivacy", root.transform);
+            panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
+            panel.offsetMin = panel.offsetMax = Vector2.zero;
+            panel.gameObject.SetActive(false);
+            var view = panel.gameObject.AddComponent<DeletionView>();
+            view.Build(_loadingText != null ? _loadingText.font : null, () =>
+            {
+                panel.gameObject.SetActive(false);
+                if (_retryText != null) _retryText.text = _dataOwner != null && _dataOwner.DeletionInProgress
+                    ? "Deletion submission is unresolved. Retry opens the same request for recovery."
+                    : "Sign in explicitly to continue.";
+                if (_retry != null) _retry.SetActive(true);
+            });
+            panel.gameObject.AddComponent<DeletionPresenter>().Bind(view);
+            _deletionRecoveryPanel = panel.gameObject;
+            panel.gameObject.SetActive(true);
         }
 
         #endregion

@@ -49,10 +49,34 @@ public class RevivalDeletionUITests
     }
     DeletionFlow Configure(Fake gateway)
     {
-        var session = new DeletionSession(new object(), "synthetic-account", "synthetic-session");
-        var flow = new DeletionFlow(gateway, () => session);
+        var session = new DeletionSession(new object(), "synthetic-account", "synthetic-session", "TEST1", "synthetic-entity");
+        var flow = new DeletionFlow(gateway, () => session, recovery: gateway.UsesSessionConfirmation ? new MemoryRecovery() : null,
+            binding: DeletionRecovery.Hash("synthetic-binding"));
         Call(presenter, "ConfigureSynthetic", flow);
         return flow;
+    }
+
+    [Test] public void Revival_DeletionSessionButtonsRequireSeparateConfirmationAndNeverRetrySubmit()
+    {
+        var gateway = new Fake { UsesSessionConfirmation = true, Next = DeletionState.SubmissionUnknown };
+        var flow = Configure(gateway);
+        Click("Request");
+        Assert.That(Button("SessionConfirm").gameObject.activeSelf, Is.True);
+        Assert.That(Button("Confirm").gameObject.activeSelf, Is.False);
+        Assert.That(gateway.RequestCalls, Is.Zero);
+        Click("SessionConfirm");
+        Assert.That(Button("Confirm").gameObject.activeSelf, Is.True);
+        Assert.That(gateway.RequestCalls, Is.EqualTo(1));
+        gateway.Fail = true; Click("Confirm");
+        Assert.That(flow.State, Is.EqualTo(DeletionState.SubmissionUnknown));
+        Assert.That(Button("Retry").gameObject.activeSelf, Is.False);
+        Assert.That(Button("Confirm").gameObject.activeSelf, Is.False);
+        gateway.Fail = false; Click("Reauthenticate");
+        Assert.That(Button("SessionConfirm").gameObject.activeSelf, Is.True);
+        Click("SessionConfirm");
+        Assert.That(flow.State, Is.EqualTo(DeletionState.SubmissionUnknown));
+        Assert.That(gateway.ConfirmCalls, Is.EqualTo(1));
+        Assert.That(gateway.RequestCalls, Is.EqualTo(1));
     }
 
     [Test] public void Revival_DeletionUnavailableExplainsDisabledRequestAndNeverCompletes()
@@ -160,9 +184,10 @@ public class RevivalDeletionUITests
             Canvas.ForceUpdateCanvases();
             var output = System.IO.Path.Combine(Application.dataPath, "../.revival-local/deletion-ui");
             System.IO.Directory.CreateDirectory(output);
-            foreach (var state in new[] { "unavailable", "confirmation" })
+            foreach (var state in new[] { "unavailable", "confirmation", "session-confirmation" })
             {
                 if (state == "confirmation") { Configure(new Fake()); Click("Request"); }
+                if (state == "session-confirmation") { Configure(new Fake { UsesSessionConfirmation = true }); Click("Request"); }
                 Canvas.ForceUpdateCanvases();
                 camera.Render();
                 RenderTexture.active = target;
@@ -190,8 +215,22 @@ public class RevivalDeletionUITests
         }
     }
 
-    sealed class Fake : IDeletionGateway
+    sealed class MemoryRecovery : IDeletionRecoveryStore
     {
+        private DeletionRecovery record;
+        public DeletionRecovery Load() => record;
+        public void Save(DeletionRecovery value) { record = value; }
+        public void Clear() { record = null; }
+    }
+
+    sealed class Fake : IDeletionGateway, ISessionConfirmationGateway
+    {
+        public bool UsesSessionConfirmation { get; set; }
+        public Task<DeletionSessionChallenge> BeginSessionAsync(DeletionSession session, string key, CancellationToken token) =>
+            Task.FromResult((DeletionSessionChallenge)Activator.CreateInstance(typeof(DeletionSessionChallenge),
+                BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { "synthetic-nonce", "synthetic-ticket", session }, null));
+        public Task<DeletionAuthorization> ConfirmSessionAsync(DeletionSession session, DeletionSessionChallenge challenge, CancellationToken token) =>
+            Task.FromResult(new DeletionAuthorization(session.AccountId, "synthetic-proof"));
         public bool IsAvailable => true;
         public bool IsSynthetic => true;
         public bool Fail;

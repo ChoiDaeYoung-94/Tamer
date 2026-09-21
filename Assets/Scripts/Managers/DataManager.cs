@@ -40,8 +40,65 @@ namespace AD
         private bool _readyBeforeDeletion;
         public const string DeletionLoginPauseKey = "AD_DeletionAcceptedNeedsLogin";
 
+        public bool CanApplyDeletionReceipt(AD.Privacy.DeletionRecovery record)
+        {
+            if (record == null || string.IsNullOrEmpty(record.OwnerHash) || string.IsNullOrEmpty(record.Origin) ||
+                record.Title != PlayFab.PlayFabSettings.TitleId) return false;
+            var player = PlayFab.PlayFabSettings.staticPlayer;
+            foreach (string account in new[] { PlayFabId, player.PlayFabId })
+                if (!string.IsNullOrEmpty(account) && AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, account) != record.OwnerHash)
+                    return false;
+            if (!string.IsNullOrEmpty(player.PlayFabId) &&
+                (player.EntityType != "title_player_account" || string.IsNullOrEmpty(player.EntityId) ||
+                 AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, player.PlayFabId, player.EntityId) != record.Binding)) return false;
+            return true;
+        }
+
+        // Called only after a server-validated or KeyStore-sealed terminal receipt, including before login.
+        public void ApplyDeletionReceipt(AD.Privacy.DeletionRecovery record, bool accepted)
+        {
+            if (!CanApplyDeletionReceipt(record)) throw new InvalidOperationException();
+            if (!accepted)
+            {
+                DeletionInProgress = false;
+                IsServerDataReady = false; // A new explicit login/read is required; no old gameplay callback is revived.
+                return;
+            }
+            if (!string.IsNullOrEmpty(PlayFabId))
+            {
+                FinishAcceptedDeletion(DeletionSession());
+                return;
+            }
+            // No live account is being impersonated. The receipt's server-derived owner hash selects only matching disk progress.
+            SuspendAccountSession();
+            _deletionSignedOut = true;
+            if (!string.IsNullOrEmpty(PlayFab.PlayFabSettings.staticPlayer.PlayFabId))
+                PlayFab.PlayFabSettings.staticPlayer.ForgetAllCredentials(); // Only the matching account passed the binding guard above.
+            PlayerPrefs.SetInt(DeletionLoginPauseKey, 1); PlayerPrefs.Save();
+            if (!string.IsNullOrEmpty(_playerDataPath) && File.Exists(_playerDataPath))
+            {
+                var stored = ParseData(File.ReadAllText(_playerDataPath));
+                if (stored.TryGetValue(OwnerKey, out var owner) && !string.IsNullOrEmpty(owner) &&
+                    AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, owner) == record.OwnerHash)
+                {
+                    if (stored.TryGetValue("GooglePlay", out var entitlement) && !string.IsNullOrEmpty(entitlement))
+                        WriteAtomically(_playerDataPath + ".deletion-entitlement-" + Guid.NewGuid().ToString("N"),
+                            Utility.SerializeToJson(new Dictionary<string, string> { [OwnerKey] = owner, ["GooglePlay"] = entitlement }));
+                    File.Delete(_playerDataPath);
+                    _localOwner = string.Empty;
+                    LocalPlayerData = _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
+                    _changes = new PlayerDataChanges();
+                    PlayFabPlayerData = null;
+                }
+            }
+            DeletionInProgress = false;
+            // Foreign/legacy data remains untouched, including its owner fence and entitlement evidence.
+        }
+
         public AD.Privacy.DeletionSession DeletionSession() => string.IsNullOrEmpty(PlayFabId) ? null
-            : new AD.Privacy.DeletionSession(this, PlayFabId, _accountGeneration.ToString());
+            : new AD.Privacy.DeletionSession(this, PlayFabId, _accountGeneration.ToString(), PlayFab.PlayFabSettings.TitleId,
+                PlayFab.PlayFabSettings.staticPlayer.PlayFabId == PlayFabId && PlayFab.PlayFabSettings.staticPlayer.EntityType == "title_player_account"
+                    ? PlayFab.PlayFabSettings.staticPlayer.EntityId : null);
 
         public void BeginDeletionSubmission(AD.Privacy.DeletionSession session)
         {
@@ -177,6 +234,13 @@ namespace AD
             PlayFabPlayerData = null;
             IsConflict = false;
             _sessionBackupCreated = false;
+            if (AD.Privacy.DeletionRecoveryGuard.IsPending(playFabId))
+            {
+                // Authentication may proceed only into the recovery UI, never profile/gameplay writes.
+                _readyBeforeDeletion = false;
+                DeletionInProgress = true;
+                DeletionEpoch++;
+            }
         }
 
         public void SuspendAccountSession()
