@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 using UnityEngine;
@@ -38,6 +39,36 @@ namespace AD
         public int AccountGeneration => _accountGeneration;
         public int DeletionEpoch { get; private set; }
         private bool _readyBeforeDeletion;
+        private PlayerInventoryStore _inventoryStore;
+
+        public PlayerInventorySnapshot ReadInventory()
+        {
+            RequireInventorySession(PlayFabId, _accountGeneration);
+            if (_inventoryStore == null)
+            {
+                var slots = new Dictionary<string, string> { { "SimpleSword", "Sword" }, { "MasterSword", "Sword" },
+                    { "SimpleShield", "Shield" }, { "MasterShield", "Shield" } };
+                if (ItemData == null || MonsterData == null || slots.Keys.Any(key => !ItemData.ContainsKey(key)))
+                    throw new InvalidDataException("Inventory catalogs are unavailable.");
+                _inventoryStore = new PlayerInventoryStore(_playerDataPath + ".inventory", MonsterData.Keys, slots);
+            }
+            return _inventoryStore.Load(PlayFabId);
+        }
+
+        public PlayerInventorySnapshot WriteInventory(string owner, int generation, IEnumerable<string> collection,
+            IEnumerable<string> owned, IDictionary<string, string> equipped)
+        {
+            RequireInventorySession(owner, generation);
+            ReadInventory();
+            return _inventoryStore.Save(owner, collection, owned, equipped);
+        }
+
+        private void RequireInventorySession(string owner, int generation)
+        {
+            if (_shutdown || !IsServerDataReady || DeletionInProgress || _deletionSignedOut ||
+                string.IsNullOrWhiteSpace(owner) || owner != PlayFabId || generation != _accountGeneration)
+                throw new InvalidOperationException("Inventory requires the current ready account session.");
+        }
         public const string DeletionLoginPauseKey = "AD_DeletionAcceptedNeedsLogin";
 
         public bool CanApplyDeletionReceipt(AD.Privacy.DeletionRecovery record)
@@ -247,6 +278,8 @@ namespace AD
         {
             _accountGeneration++;
             IsServerDataReady = false;
+            Player.Instance?.ClearInventorySession();
+            ShopMan.Instance?.ClearInventorySession();
             _server?.CancelPendingRequests();
         }
 
@@ -418,6 +451,8 @@ namespace AD
             _localOwner = PlayFabId;
             IsServerDataReady = true;
             IsConflict = false;
+            Player.Instance?.RefreshInventorySession();
+            ShopMan.Instance?.RefreshInventorySession();
         }
 
         public void Shutdown()
