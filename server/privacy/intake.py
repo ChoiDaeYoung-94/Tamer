@@ -1,8 +1,8 @@
 """Opt-in HTTP composition over the existing SQLite core; no listener or credentials.
 
-authenticate must validate an independently issued reauthentication proof and return
-Principal with the server-verified authentication time. Cached session validity and
-client timestamps are not fresh authentication. No default verifier is supplied.
+authenticate must validate a server-issued evidence capability and return Principal.
+Provider reauthentication and explicitly enabled anonymous session confirmation have
+different evidence kinds/timestamps. Cached session validity is not fresh authentication.
 """
 from .deletion import DeletionService, Policy, Rejected
 from .title_deletion_provider import DeletionTarget, TitleDeletionProvider
