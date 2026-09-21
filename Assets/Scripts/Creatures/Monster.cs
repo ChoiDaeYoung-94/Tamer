@@ -44,6 +44,7 @@ public class Monster : Creature
 
     private readonly AD.GameplaySessionLease _session = new AD.GameplaySessionLease();
     private AD.PoolManager _sessionPool;
+    private MonsterGenerator _sessionGenerator;
     private int _deathLifetime = -1;
     private bool _deathHandled;
     public int SessionLifetime => _session.Lifetime;
@@ -62,6 +63,8 @@ public class Monster : Creature
     public void RetireSession()
     {
         _session.Invalidate();
+        if (_sessionGenerator != null) _sessionGenerator.MinusMonster(this);
+        UnregisterBoss();
         if (_sessionPool != null) _sessionPool.PushToPool(gameObject);
         if (this != null && gameObject.activeSelf) gameObject.SetActive(false);
     }
@@ -107,6 +110,7 @@ public class Monster : Creature
         _session.Bind(data, data?.PlayFabId, data?.AccountGeneration ?? -1,
             data != null && data.IsServerDataReady && !data.DeletionInProgress);
         _sessionPool = AD.Managers.PoolM;
+        _sessionGenerator = MonsterGenerator.Instance;
         _deathLifetime = -1; _deathHandled = false;
         // Clear retained death animation state on pooled reactivation.
         if (_animator != null) _animator.Rebind();
@@ -741,7 +745,7 @@ public class Monster : Creature
 
     private void UnregisterBoss()
     {
-        MonsterGenerator generator = MonsterGenerator.Instance;
+        MonsterGenerator generator = _sessionGenerator;
         if (generator != null && generator.BossMonster == gameObject)
             generator.BossMonster = null;
     }

@@ -53,6 +53,7 @@ public class RevivalMonsterLifecycleTests
     private Component CreateMonster()
     {
         Component monster = Create("Monster");
+        Set(monster, "_sessionGenerator", _generatorInstance.GetValue(null));
         Set(monster, "NavMeshAgent", monster.gameObject.AddComponent<NavMeshAgent>());
         Set(monster, "_capsuleCollider", monster.gameObject.AddComponent<CapsuleCollider>());
         var effect = new GameObject("Revival capture effect");
@@ -367,6 +368,26 @@ public class RevivalMonsterLifecycleTests
             Call(monster, "SetEnemyRole", commander, boss);
             Assert.That(Get(monster, "_isAbleAlly"), Is.EqualTo(expected), "seed " + seed);
         }
+    }
+
+    [Test]
+    public void Revival_RetiredSessionUnregistersOnlyItsOriginalGenerator()
+    {
+        Component original = Create("MonsterGenerator");
+        _generatorInstance.SetValue(null, original);
+        Component monster = CreateMonster();
+        Call(original, "PlusMonster", monster);
+        Set(original, "BossMonster", monster.gameObject);
+        Component replacement = Create("MonsterGenerator");
+        _generatorInstance.SetValue(null, replacement);
+        Call(replacement, "PlusMonster", monster);
+        Set(replacement, "BossMonster", monster.gameObject);
+        Call(monster, "RetireSession");
+        Call(monster, "RetireSession"); // Repeated teardown is harmless.
+        Assert.That((System.Collections.IEnumerable)Get(original, "_activeMonsters"), Is.Empty);
+        Assert.That(Get(original, "BossMonster"), Is.Null);
+        Assert.That((System.Collections.IEnumerable)Get(replacement, "_activeMonsters"), Has.Exactly(1).Items);
+        Assert.That(Get(replacement, "BossMonster"), Is.SameAs(monster.gameObject));
     }
 
     [Test]
