@@ -59,18 +59,18 @@ class TitleDeletionProvider:
     it returns None while pending or an independently verified CompletionProof.
     No lookup absence, elapsed timer or HTTP 200 may stand in for that proof.
     """
-    def __init__(self, database, title_id, submit, verify_target, components):
+    def __init__(self, database, title_id, submit, verify_target, components=None):
         if not isinstance(title_id, str) or not title_id.strip():
             raise ValueError('A pinned title is required')
         if not callable(submit) or not callable(verify_target):
             raise ValueError('Trusted server adapters are required')
-        if (not isinstance(components, dict) or 'title_player' not in components
+        if components is not None and (not isinstance(components, dict) or 'title_player' not in components
                 or 'tamer_owned_data' not in components
                 or any(not isinstance(k, str) or not k or not callable(v) for k, v in components.items())):
             raise ValueError('Explicit title and owned-data completion adapters are required')
         self.database, self.title_id = str(database), title_id
         self.submit, self.verify_target = submit, verify_target
-        self.components = dict(components)
+        self.components = dict(components or {})
         with self.connection() as db:
             db.execute('CREATE TABLE IF NOT EXISTS title_deletion_operations ('
                        'id TEXT PRIMARY KEY, title_id TEXT NOT NULL, account TEXT NOT NULL, '
@@ -118,7 +118,13 @@ class TitleDeletionProvider:
             db.execute('INSERT INTO title_deletion_operations VALUES (?,?,?,?,?,?,?,?)',
                        (request_id, *expected, 'ready', '{}'))
 
-    def reconcile(self, request_id, account, policy):
+    def submit_confirmed(self, request_id, account, policy):
+        """Trusted server composition: submit once, return acceptance, never completion.
+
+        No worker or completion callbacks are required for the intake-only flow.
+        Call after fresh same-owner authentication and confirmation; a resumed
+        unknown operation is not acceptance and must not cause local cleanup.
+        """
         DeletionService.key(request_id)
         policy_hash = self.policy_hash(policy)
         with self.connection() as db:
@@ -127,9 +133,18 @@ class TitleDeletionProvider:
             if (row is None or row['account'] != account or row['title_id'] != self.title_id
                     or row['policy_hash'] != policy_hash or row['components'] != json.dumps(sorted(self.components))):
                 raise Rejected('operation_conflict')
+            request = db.execute('SELECT * FROM deletion_requests WHERE id=?', (request_id,)).fetchone()
+            if (request is None or request['account'] != account or request['scope'] != 'title'
+                    or request['revision'] != policy.revision
+                    or request['state'] not in ('queued', 'processing', 'completed')):
+                raise Rejected('operation_conflict')
             target = DeletionTarget(row['title_id'], row['account'], row['entity_id'])
             phase = row['phase']
             if phase == 'ready':
+                if request['state'] == 'completed':
+                    raise Rejected('operation_conflict')
+                # Serialize cancellation against submission using the same database.
+                db.execute("UPDATE deletion_requests SET state='processing' WHERE id=?", (request_id,))
                 # Persist uncertainty BEFORE invoking a non-idempotency-key API.
                 db.execute("UPDATE title_deletion_operations SET phase='submission_unknown' WHERE id=?", (request_id,))
         if phase == 'ready':
@@ -148,6 +163,19 @@ class TitleDeletionProvider:
                 raise Rejected('provider_unconfirmed')
             with self.connection() as db:
                 db.execute("UPDATE title_deletion_operations SET phase='accepted' WHERE id=? AND phase='submission_unknown'", (request_id,))
+
+        with self.connection() as db:
+            return db.execute('SELECT phase FROM title_deletion_operations WHERE id=?', (request_id,)).fetchone()[0]
+
+    def reconcile(self, request_id, account, policy):
+        # Optional stronger verification remains separate from user-flow acceptance.
+        if not self.components:
+            raise Rejected('provider_unconfirmed')
+        self.submit_confirmed(request_id, account, policy)
+        policy_hash = self.policy_hash(policy)
+        with self.connection() as db:
+            row = db.execute('SELECT * FROM title_deletion_operations WHERE id=?', (request_id,)).fetchone()
+            target = DeletionTarget(row['title_id'], row['account'], row['entity_id'])
 
         for name, reconcile_component in self.components.items():
             with self.connection() as db:

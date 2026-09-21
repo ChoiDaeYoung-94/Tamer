@@ -1,0 +1,134 @@
+{
+  "format": "tamer-deletion-connection-review-v1",
+  "implemented": false,
+  "reuse": [
+    "deletion.py: request/confirm/cancel, Policy and fresh Principal; do not invoke advance for intake-only flow",
+    "server/privacy/http_app.py: strict JSON allowlists, size limit, sanitized errors",
+    "title_deletion_provider.py: bind_confirmed then submit_confirmed",
+    "Assets/Scripts/Privacy/DeletionFlow.cs: owner/session continuity and gateway boundary"
+  ],
+  "http": [
+    {
+      "method": "GET",
+      "path": "/v1/deletion/config",
+      "existing": true,
+      "auth": "none",
+      "response": "available=false until fresh auth, storage, policy and unknown handling are connected"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/deletion/request",
+      "existing": true,
+      "bodyKeys": [
+        "proof",
+        "clientKey"
+      ],
+      "auth": "Fresh server-verified self proof",
+      "changes": "Resume durable request; no post-deletion status token needed"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/deletion/confirm",
+      "existing": true,
+      "bodyKeys": [
+        "proof",
+        "requestId",
+        "challenge",
+        "policyRevision"
+      ],
+      "auth": "Fresh same-owner proof",
+      "changes": "Verify fresh principal and target ownership; confirm then bind server-derived target and call submit_confirmed. Return separate submissionState accepted/unknown, never completed."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/deletion/cancel",
+      "existing": true,
+      "bodyKeys": [
+        "proof",
+        "requestId"
+      ],
+      "auth": "Fresh same-owner proof",
+      "changes": "Only pre-submit states; serialize against worker claim"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/deletion/status",
+      "existing": true,
+      "bodyKeys": [
+        "proof",
+        "requestId"
+      ],
+      "auth": "Fresh same-owner proof",
+      "changes": "Pre-exit recovery under valid same-owner auth. Failed auth must not recreate account or create another deletion request."
+    }
+  ],
+  "statusMapping": [
+    {
+      "service": "awaiting_confirmation",
+      "provider": null,
+      "ui": "삭제 내용을 확인해 주세요.",
+      "localCleanupAllowed": false
+    },
+    {
+      "service": "queued",
+      "provider": "ready",
+      "ui": "요청을 저장했습니다. 삭제 접수를 준비 중입니다.",
+      "localCleanupAllowed": false
+    },
+    {
+      "service": "processing",
+      "provider": "submission_unknown",
+      "ui": "삭제 접수 여부를 확인 중입니다. 다시 요청하지 마세요.",
+      "localCleanupAllowed": false
+    },
+    {
+      "service": "processing",
+      "provider": "accepted",
+      "ui": "Deletion request accepted.",
+      "localCleanupAllowed": "Only after response matches current authenticated owner/session generation: sign out, invalidate late callbacks, remove proven-owner progress/session; preserve ownerless legacy and store entitlement evidence."
+    }
+  ],
+  "ledger": {
+    "binding": "Pinned title/account/entity generation, confirmed request and policy",
+    "atomicity": "Preserve SQLite BEGIN IMMEDIATE guarantees with same-partition ETag transactions, including cancellation vs submit claim",
+    "requiredFields": [
+      "request and owner binding",
+      "confirmation state",
+      "ready/submission_unknown/accepted",
+      "policy revision/hash",
+      "retention expiry"
+    ],
+    "externalCalls": "Commit unknown BEFORE API call; accepted only on explicit response. Never resubmit accepted/unknown records.",
+    "noWorker": true,
+    "noCompletionObserver": true,
+    "unknown": "Do not claim acceptance or clean local data; preserve request and prevent blind resubmission. Recovery remains an exception path.",
+    "rejoin": "Accepted ends deletion UX. Missing completion proof is not a permanent signup block. New explicit signup handles actual AccountDeleted/errors. Prior deletion record never targets new entity generation."
+  },
+  "logging": {
+    "allowed": [
+      "aggregate state counts",
+      "sanitized error code",
+      "duration",
+      "build revision"
+    ],
+    "forbidden": [
+      "request/response bodies",
+      "Authorization headers",
+      "tokens",
+      "PlayFab tickets/keys",
+      "provider identities"
+    ],
+    "httpCaching": "no-store",
+    "rateLimit": "Per-caller and global limits before activation"
+  },
+  "missingImplementation": [
+    "fresh auth verifier and trusted target derivation",
+    "HTTP composition and submissionState projection",
+    "Table adapter preserving core transactions",
+    "Function packaging and pinned dependencies",
+    "Unity gateway owner/session checks and local cleanup",
+    "login/signup bypass verification",
+    "unknown submission recovery"
+  ],
+  "providerImplemented": "submit_confirmed returns accepted or submission_unknown without completion callbacks; HTTP composition is pending"
+}

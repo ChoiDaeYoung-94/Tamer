@@ -1,0 +1,125 @@
+{
+  "format": "tamer-privacy-resource-review-v1",
+  "deployable": false,
+  "reason": "Review inventory, not an ARM template; no resource creation is authorized.",
+  "environment": "nonproduction",
+  "existingServer": false,
+  "resources": [
+    {
+      "key": "group",
+      "type": "Microsoft.Resources/resourceGroups",
+      "count": 1,
+      "nameInput": "RESOURCE_GROUP",
+      "purpose": "Isolated deletion service resources"
+    },
+    {
+      "key": "plan",
+      "type": "Microsoft.Web/serverfarms",
+      "count": 1,
+      "sku": "FC1",
+      "tier": "FlexConsumption",
+      "os": "Linux",
+      "alwaysReadyInstances": 0
+    },
+    {
+      "key": "app",
+      "type": "Microsoft.Web/sites",
+      "count": 1,
+      "kind": "functionapp,linux",
+      "nameInput": "FUNCTION_APP_NAME",
+      "httpsOnly": true,
+      "identity": "SystemAssigned",
+      "functions": [
+        "deletion_http"
+      ],
+      "publicIngress": "HTTPS with application authentication; app-level auth is not implemented"
+    },
+    {
+      "key": "storage",
+      "type": "Microsoft.Storage/storageAccounts",
+      "count": 1,
+      "sku": "Standard_LRS",
+      "kind": "StorageV2",
+      "nameInput": "STORAGE_ACCOUNT_NAME",
+      "allowBlobPublicAccess": false,
+      "allowSharedKeyAccess": false,
+      "minimumTlsVersion": "TLS1_2",
+      "purposes": [
+        "Functions host",
+        "deployment packages",
+        "submission deduplication ledger"
+      ]
+    },
+    {
+      "key": "packages",
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "count": 1,
+      "parent": "storage/default",
+      "name": "function-releases",
+      "publicAccess": "None"
+    },
+    {
+      "key": "ledger",
+      "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
+      "count": 1,
+      "parent": "storage/default",
+      "name": "DeletionLedger"
+    },
+    {
+      "key": "vault",
+      "type": "Microsoft.KeyVault/vaults",
+      "count": 1,
+      "sku": "standard",
+      "nameInput": "KEY_VAULT_NAME",
+      "enableRbacAuthorization": true,
+      "enablePurgeProtection": true,
+      "secrets": "Provision values separately after approval; never in this bundle"
+    }
+  ],
+  "roleAssignmentsToReview": [
+    {
+      "principal": "app system identity",
+      "role": "Storage Blob Data Owner",
+      "scope": "storage",
+      "purpose": "Functions host and package access; validate exact runtime minimum roles"
+    },
+    {
+      "principal": "app system identity",
+      "role": "Storage Table Data Contributor",
+      "scope": "ledger",
+      "purpose": "ETag-conditioned durable deletion records"
+    },
+    {
+      "principal": "app system identity",
+      "role": "Key Vault Secrets User",
+      "scope": "vault",
+      "purpose": "Read fixed-title server key and authentication secrets"
+    }
+  ],
+  "excluded": [
+    "VM",
+    "App Center or CI/CD",
+    "Azure Functions Always Ready",
+    "Cosmos DB",
+    "public storage blobs",
+    "PlayFab master deletion",
+    "automatic PlayFab policy changes",
+    "completion worker",
+    "completion observer",
+    "support inquiry"
+  ],
+  "optionalNotIncluded": [
+    "Application Insights and its Log Analytics workspace; decide sanitized telemetry retention and cost before adding",
+    "custom DNS; default Azure HTTPS hostname is sufficient for first approved nonproduction test"
+  ],
+  "unresolved": [
+    "subscription/tenant/region access",
+    "names",
+    "runtime version and dependency pin",
+    "regional prices and budget",
+    "fresh HTTP authentication",
+    "Table adapter implementation",
+    "request rate limits",
+    "ambiguous submission recovery procedure"
+  ]
+}
