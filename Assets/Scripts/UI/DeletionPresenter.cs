@@ -19,6 +19,30 @@ namespace AD
         // Call during application bootstrap, before login. No endpoint or title is inferred or enabled by default.
         public static void ConfigureSessionService(Uri httpsOrigin, string titleId, string recoveryDirectory = null)
         {
+            ConfigureRuntimeService(httpsOrigin, titleId, recoveryDirectory, owner =>
+                HttpDeletionGateway.ForSessionConfirmation(httpsOrigin, captured =>
+                {
+                    var player = PlayFab.PlayFabSettings.staticPlayer;
+                    if (!captured.Matches(owner.DeletionSession()) || !ReferenceEquals(owner, Managers.DataM) ||
+                        player.PlayFabId != captured.AccountId || player.EntityId != captured.EntityId ||
+                        player.EntityType != "title_player_account" || PlayFab.PlayFabSettings.TitleId != titleId)
+                        throw new InvalidOperationException();
+                    return player.ClientSessionTicket;
+                }));
+        }
+
+        public static void ConfigureService(Uri httpsOrigin, string titleId,
+            Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> freshAuthentication,
+            string recoveryDirectory = null)
+        {
+            if (freshAuthentication == null) throw new ArgumentNullException(nameof(freshAuthentication));
+            ConfigureRuntimeService(httpsOrigin, titleId, recoveryDirectory,
+                owner => new HttpDeletionGateway(httpsOrigin, freshAuthentication));
+        }
+
+        private static void ConfigureRuntimeService(Uri httpsOrigin, string titleId, string recoveryDirectory,
+            Func<DataManager, HttpDeletionGateway> createGateway)
+        {
             if (httpsOrigin == null || string.IsNullOrEmpty(titleId)) throw new ArgumentNullException();
             // Validate the origin now, before installing the login guard.
             using (HttpDeletionGateway.ForSessionConfirmation(httpsOrigin, s => null)) { }
@@ -33,34 +57,12 @@ namespace AD
                 var session = owner?.DeletionSession();
                 if (session == null || !session.HasEntityBinding || session.TitleId != titleId)
                     return new DeletionFlow(new UnavailableDeletionGateway(), () => null);
-                var gateway = HttpDeletionGateway.ForSessionConfirmation(httpsOrigin, captured =>
-                {
-                    var player = PlayFab.PlayFabSettings.staticPlayer;
-                    if (!captured.Matches(owner.DeletionSession()) || !ReferenceEquals(owner, Managers.DataM) ||
-                        player.PlayFabId != captured.AccountId || player.EntityId != captured.EntityId ||
-                        player.EntityType != "title_player_account" || PlayFab.PlayFabSettings.TitleId != titleId)
-                        throw new InvalidOperationException();
-                    return player.ClientSessionTicket;
-                });
+                var gateway = createGateway(owner);
                 var journal = store(session.AccountId);
                 return new DeletionFlow(gateway, () => ReferenceEquals(owner, Managers.DataM) ? owner.DeletionSession() : null, owner.BeginDeletionSubmission,
                     owner.FinishAcceptedDeletion, owner.FinishCancelledDeletion, journal,
                     DeletionRecovery.Hash(httpsOrigin.AbsoluteUri, titleId, session.AccountId, session.EntityId),
                     new DeletionReceiptClient(gateway, new AndroidDeletionReceiptKeys(), journal), httpsOrigin.AbsoluteUri);
-            };
-        }
-
-        public static void ConfigureService(Uri httpsOrigin,
-            Func<DeletionSession, CancellationToken, Task<DeletionAuthorization>> freshAuthentication)
-        {
-            if (httpsOrigin == null || freshAuthentication == null) throw new ArgumentNullException();
-            RuntimeFlowFactory = () =>
-            {
-                var owner = Managers.DataM;
-                if (owner == null) return new DeletionFlow(new UnavailableDeletionGateway(), () => null);
-                return new DeletionFlow(new HttpDeletionGateway(httpsOrigin, freshAuthentication),
-                    () => ReferenceEquals(owner, Managers.DataM) ? owner.DeletionSession() : null, owner.BeginDeletionSubmission, owner.FinishAcceptedDeletion,
-                    owner.FinishCancelledDeletion);
             };
         }
 

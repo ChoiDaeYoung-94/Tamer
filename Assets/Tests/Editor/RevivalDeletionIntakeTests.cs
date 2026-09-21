@@ -114,7 +114,7 @@ public class RevivalDeletionIntakeTests
         }
     }
 
-    [Test] public void Revival_DeletionRuntimeCompositionRejectsReplacedManagerBeforeAnyHttp()
+    [TestCase(false)] [TestCase(true)] public void Revival_DeletionRuntimeCompositionRejectsReplacedManagerBeforeAnyHttp(bool provider)
     {
         var root = new GameObject("Deletion runtime composition fixture");
         root.SetActive(false);
@@ -140,9 +140,23 @@ public class RevivalDeletionIntakeTests
             PlayFabSettings.staticPlayer.PlayFabId = "synthetic-runtime";
             PlayFabSettings.staticPlayer.EntityId = "synthetic-entity";
             PlayFabSettings.staticPlayer.EntityType = "title_player_account";
-            presenter.GetMethod("ConfigureSessionService").Invoke(null, new object[] { new Uri("https://example.invalid/"), "TEST1",
-                Path.Combine(Path.GetTempPath(), "tamer-unused-" + Guid.NewGuid().ToString("N")) });
+            string recoveryDirectory = Path.Combine(Path.GetTempPath(), "tamer-unused-" + Guid.NewGuid().ToString("N"));
+            if (provider)
+            {
+                var method = presenter.GetMethod("ConfigureService");
+                var authType = method.GetParameters()[2].ParameterType;
+                // This adapter must never run while constructing or inspecting the flow.
+                var invoke = authType.GetMethod("Invoke");
+                var args = invoke.GetParameters().Select(p => System.Linq.Expressions.Expression.Parameter(p.ParameterType)).ToArray();
+                var body = System.Linq.Expressions.Expression.Throw(System.Linq.Expressions.Expression.New(typeof(InvalidOperationException)), invoke.ReturnType);
+                var auth = System.Linq.Expressions.Expression.Lambda(authType, body, args).Compile();
+                method.Invoke(null, new object[] { new Uri("https://example.invalid/"), "TEST1", auth, recoveryDirectory });
+            }
+            else presenter.GetMethod("ConfigureSessionService").Invoke(null, new object[] { new Uri("https://example.invalid/"), "TEST1", recoveryDirectory });
             flow = (IDisposable)((Delegate)factory.GetValue(null)).DynamicInvoke();
+            Assert.That(flow.GetType().GetField("_receipts", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(flow), Is.Not.Null);
+            Assert.That(flow.GetType().GetField("_recovery", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(flow), Is.Not.Null);
+            Assert.That(flow.GetType().GetProperty("UsesSessionConfirmation").GetValue(flow), Is.EqualTo(!provider));
             Assert.That(PrivateCall(flow, "Current"), Is.True);
             Set(managers, "_dataM", root.AddComponent(DataType));
             Assert.That(PrivateCall(flow, "Current"), Is.False);
