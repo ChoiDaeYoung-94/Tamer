@@ -73,6 +73,20 @@ public class RevivalDeletionSessionTests
     }
     private static int Count(Server server, string operation) => server.Paths.FindAll(p => p == "/v1/deletion/" + operation).Count;
 
+    [Test] public void Revival_DeletionSessionUnreadableJournalDoesNotMeanNoPendingIntent()
+    {
+        Assert.That(_store.Load(), Is.Null);
+        Directory.CreateDirectory(Path.Combine(_directory, "pending.json"));
+        var previous = DeletionRecoveryGuard.HasPendingSubmission;
+        try
+        {
+            DeletionRecoveryGuard.HasPendingSubmission = account => _store.Load()?.SubmissionStarted == true;
+            Assert.That(DeletionRecoveryGuard.IsPending(Account), Is.True);
+            using (var flow = Flow(new Server())) Assert.That(flow.State, Is.EqualTo(DeletionState.Unavailable));
+        }
+        finally { DeletionRecoveryGuard.HasPendingSubmission = previous; }
+    }
+
     [Test] public async Task Revival_DeletionSessionExplicitConfirmationSharesIntentAndKeepsSecretsOffDisk()
     {
         var server = new Server();

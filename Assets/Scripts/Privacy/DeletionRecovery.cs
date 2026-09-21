@@ -61,8 +61,12 @@ namespace AD.Privacy
         public FileDeletionRecoveryStore(string path) { _path = Path.GetFullPath(path); }
         public DeletionRecovery Load()
         {
-            if (!File.Exists(_path)) return null;
-            using (var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            FileStream input;
+            // File.Exists also returns false on some access errors; only true absence means no pending intent.
+            try { input = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read); }
+            catch (FileNotFoundException) { return null; }
+            catch (DirectoryNotFoundException) { return null; }
+            using (var stream = input)
             {
                 if (stream.Length > 4096) throw new InvalidDataException("Deletion recovery is unavailable.");
                 var record = (DeletionRecovery)new DataContractJsonSerializer(typeof(DeletionRecovery)).ReadObject(stream);
