@@ -23,6 +23,13 @@ namespace AD
             panel.offsetMin = panel.offsetMax = Vector2.zero;
             var view = panel.gameObject.AddComponent<DeletionView>();
             view.Build(font, () => manager.RequestClosePopup(panel.gameObject));
+            var age = DeletionView.Button("AgeChoice", view.Message.transform.parent, "연령대 다시 선택", font);
+            age.transform.SetSiblingIndex(view.Message.transform.GetSiblingIndex() + 1);
+            age.onClick.AddListener(() => manager.GetComponent<AgeChoicePresenter>()?.Open());
+            var privacy = DeletionView.Button("AdPrivacyOptions", view.Message.transform.parent, "광고 개인정보 선택", font);
+            privacy.transform.SetSiblingIndex(age.transform.GetSiblingIndex() + 1);
+            privacy.onClick.AddListener(() => Managers.GoogleAdMobM?.ShowPrivacyOptions());
+            panel.gameObject.AddComponent<AgePrivacyOptionsEntry>().Bind(age, privacy);
             panel.gameObject.AddComponent<DeletionPresenter>().Bind(view);
             panel.gameObject.AddComponent<PopupObject>();
             button.onClick.AddListener(() =>

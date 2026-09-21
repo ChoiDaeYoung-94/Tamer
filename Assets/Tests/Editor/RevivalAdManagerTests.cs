@@ -508,6 +508,30 @@ public class RevivalAdManagerTests
         managerType.GetField("_resumeBgm", InstanceMembers).SetValue(manager, resume);
     }
 
+    [Test]
+    public void Revival_AgeChangeInvalidatesConsentAndClosedRewardWithoutStartingSdk()
+    {
+        var client = new MissingConsentUpdate();
+        var gate = new AdConsentGate(client, action => action());
+        int completed = 0, rewards = 0;
+        gate.Request(_ => completed++);
+        managerType.GetField("_consent", InstanceMembers).SetValue(manager, gate);
+        var receipt = (RewardedAdSession)Invoke("CreateSession", (MonoBehaviour)manager,
+            (Action)(() => rewards++), (Action<RewardedAdOutcome>)(_ => { }));
+        receipt.Complete(RewardedAdOutcome.Cancelled);
+        Property<LocalAgeChoice>("AgeSelection").BeginEdit();
+        client.Reply(true);
+        receipt.EarnReward();
+        Assert.That(completed, Is.Zero);
+        Assert.That(rewards, Is.Zero);
+        Assert.That(Get<AdConsentGate>("_consent"), Is.Null);
+        Assert.That(Get<int>("_loadVersion"), Is.EqualTo(1));
+        Assert.That(Get<int>("_sceneVersion"), Is.EqualTo(1));
+        Assert.That(Property<bool>("CanRequestAds"), Is.False);
+        Assert.That(Get<bool>("_initializing"), Is.False);
+        Assert.That(Get<bool>("_loading"), Is.False);
+    }
+
     private void DestroyManager()
     {
         // This runtime MonoBehaviour does not receive OnDestroy automatically in

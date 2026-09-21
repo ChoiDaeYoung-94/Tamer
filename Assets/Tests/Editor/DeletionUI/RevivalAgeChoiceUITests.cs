@@ -1,0 +1,71 @@
+using System;
+using System.Linq;
+using System.Reflection;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+public class RevivalAgeChoiceUITests
+{
+    private const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    private static Type Find(string name) => AppDomain.CurrentDomain.GetAssemblies()
+        .Select(a => a.GetType(name)).First(t => t != null);
+    private static object Call(object owner, string name, params object[] args) =>
+        owner.GetType().GetMethod(name, Flags).Invoke(owner, args);
+
+    [Test]
+    public void Revival_AgeViewHasNeutralChoicesSavesDeclineAndRestoresPause()
+    {
+        var scene = EditorSceneManager.NewPreviewScene();
+        var root = new GameObject("Age UI fixture", typeof(RectTransform));
+        SceneManager.MoveGameObjectToScene(root, scene);
+        float time = Time.timeScale;
+        Component ads = null, presenter = null;
+        try
+        {
+            ads = root.AddComponent(Find("AD.GoogleAdMobManager"));
+            var popups = root.AddComponent(Find("AD.PopupManager"));
+            var settings = new GameObject("Settings", typeof(RectTransform));
+            settings.transform.SetParent(root.transform, false);
+            var template = settings.AddComponent(Find("TMPro.TextMeshProUGUI"));
+            var font = AssetDatabase.LoadAssetAtPath("Assets/Fonts/DungGeunMo SDF.asset", Find("TMPro.TMP_FontAsset"));
+            template.GetType().GetProperty("font").SetValue(template, font);
+            string stored = null;
+            var selection = Activator.CreateInstance(Find("AD.Advertising.LocalAgeChoice"),
+                (Func<string>)(() => stored), (Action<string>)(s => stored = s));
+            ads.GetType().GetField("_ageSelection", Flags).SetValue(ads, selection);
+            presenter = root.AddComponent(Find("AD.AgeChoicePresenter"));
+            Call(presenter, "Bind", settings, popups, ads);
+            Time.timeScale = .5f;
+            Call(presenter, "Open");
+            var canvas = root.transform.Find("AgeChoiceCanvas").GetComponent<Canvas>();
+            Assert.That(canvas.gameObject.activeSelf, Is.True);
+            Assert.That(Time.timeScale, Is.Zero);
+            var buttons = canvas.GetComponentsInChildren<Button>();
+            Assert.That(buttons.Length, Is.EqualTo(5));
+            Assert.That(buttons.Select(b => b.GetComponent<LayoutElement>().preferredHeight).Distinct().Count(), Is.EqualTo(1));
+            Assert.That(buttons.All(b => b.navigation.mode == Navigation.Mode.None), Is.True);
+            Assert.That(buttons.Select(b => b.targetGraphic.color).Distinct().Count(), Is.EqualTo(1));
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)canvas.transform.Find("Content"));
+            Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.height > 0), Is.True);
+            buttons.Single(b => b.name == "Declined").onClick.Invoke();
+            Assert.That(stored, Is.EqualTo("1|declined"));
+            Assert.That(canvas.gameObject.activeSelf, Is.False);
+            Assert.That(Time.timeScale, Is.EqualTo(.5f));
+            Call(presenter, "Open");
+            Assert.That(canvas.gameObject.activeSelf, Is.True, "A saved refusal can be changed in settings.");
+        }
+        finally
+        {
+            if (presenter != null) Call(presenter, "OnDisable");
+            if (ads != null) Call(ads, "OnDestroy");
+            UnityEngine.Object.DestroyImmediate(root);
+            EditorSceneManager.ClosePreviewScene(scene);
+            Time.timeScale = time;
+        }
+    }
+}
