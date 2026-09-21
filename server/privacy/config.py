@@ -74,7 +74,8 @@ class Settings:
         except (ValueError, TypeError):
             raise ConfigurationError('invalid_retention_plan') from None
         policy = Policy(revision, 'title', flag('RETENTION_APPROVED'), flag('REJOIN_APPROVED'),
-                        flag('ENABLED'), tuple(plan), flag('SESSION_CONFIRMATION_ENABLED'))
+                        flag('ENABLED'), tuple(plan), flag('SESSION_CONFIRMATION_ENABLED'),
+                        flag('GOOGLE_PLAY_GAMES_SESSION_CONFIRMATION_ENABLED'))
         if policy.enabled and (not policy.ready or not policy.session_confirmation_enabled):
             raise ConfigurationError('explicit_policy_approval_required')
         root = Path(required('DATA_DIR'))

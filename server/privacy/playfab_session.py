@@ -1,5 +1,6 @@
 """Pinned-title PlayFab adapters. No environment reads, login, or I/O on import."""
 from dataclasses import dataclass
+import hashlib
 import json
 import re
 import urllib.request
@@ -36,6 +37,7 @@ class VerifiedSession:
     account: str
     entity_id: str
     account_type: str
+    subject_binding: str = ''
 
 
 class PlayFabSession:
@@ -43,13 +45,15 @@ class PlayFabSession:
               '/Server/GetUserAccountInfo': 'PlayFabId', '/Server/DeletePlayer': 'PlayFabId'}
     ANONYMOUS = {'AndroidDeviceInfo': ('AndroidDeviceId', 'android_device'),
                  'CustomIdInfo': ('CustomId', 'custom_id')}
+    GOOGLE_PLAY_GAMES = ('GooglePlayGamesPlayerId', 'google_play_games')
 
-    def __init__(self, title_id, secret_key, request=request_json):
+    def __init__(self, title_id, secret_key, request=request_json, google_play_games_enabled=False):
         if not isinstance(title_id, str) or not re.fullmatch(r'[A-Za-z0-9]{3,32}', title_id):
             raise ValueError('Pinned title required')
         if not isinstance(secret_key, str) or not 1 <= len(secret_key) <= 4096 or any(c in secret_key for c in '\r\n'):
             raise ValueError('Server credential required')
         self.title_id, self._secret, self._request = title_id, secret_key, request
+        self.google_play_games_enabled = google_play_games_enabled is True
 
     def invoke(self, title_id, route, body):
         field = self.ROUTES.get(route)
@@ -83,22 +87,33 @@ class PlayFabSession:
             raise Rejected('session_confirmation_required')
         return DeletionTarget(title, info['PlayFabId'], entity['Id'])
 
-    @classmethod
-    def anonymous_type(cls, info):
+    def session_account(self, info):
         # Origination is historical, not a list of current credentials. Ignore it.
         # Unknown/nonempty *Info and OpenIdInfo also make the choice ambiguous.
         linked = [key for key, value in info.items()
                   if key.endswith('Info') and key not in ('TitleInfo', 'PrivateInfo') and value not in (None, [])]
         private = info.get('PrivateInfo')
-        if (len(linked) != 1 or linked[0] not in cls.ANONYMOUS
+        supported = dict(self.ANONYMOUS)
+        if self.google_play_games_enabled:
+            supported['GooglePlayGamesInfo'] = self.GOOGLE_PLAY_GAMES
+        if (len(linked) != 1 or linked[0] not in supported
                 or info.get('Username') or (private is not None and
                     (not isinstance(private, dict) or private.get('Email')))):
             raise Rejected('account_type_unsupported')
-        field, kind = cls.ANONYMOUS[linked[0]]
+        field, kind = supported[linked[0]]
         link = info[linked[0]]
         if not isinstance(link, dict) or not isinstance(link.get(field), str) or not link[field]:
             raise Rejected('account_type_unsupported')
-        return kind
+        binding = ''
+        if kind == 'google_play_games':
+            subject = link[field]
+            # An opaque provider ID, not a name/email or a client-supplied identity.
+            # Do not infer that this ticket was issued through PGS from its linkage.
+            if (not subject.isascii() or len(subject) > 1024
+                    or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in subject)):
+                raise Rejected('account_type_unsupported')
+            binding = hashlib.sha256(subject.encode('ascii')).hexdigest()
+        return kind, binding
 
     def authenticate(self, ticket):
         data = self.invoke(self.title_id, '/Server/AuthenticateSessionTicket', {'SessionTicket': ticket})['data']
@@ -106,14 +121,14 @@ class PlayFabSession:
             raise Rejected('session_confirmation_required')
         info = data.get('UserInfo')
         target = self.target_from_info(self.title_id, info)
-        kind = self.anonymous_type(info)
-        return VerifiedSession(self.title_id, target.account, target.title_entity_id, kind)
+        kind, binding = self.session_account(info)
+        return VerifiedSession(self.title_id, target.account, target.title_entity_id, kind, binding)
 
     def resolve_target(self, account):
         data = self.invoke(self.title_id, '/Server/GetUserAccountInfo', {'PlayFabId': account})['data']
         info = data.get('UserInfo')
         target = self.target_from_info(self.title_id, info)
-        self.anonymous_type(info)
+        self.session_account(info)
         if target.account != account:
             raise Rejected('operation_conflict')
         return target

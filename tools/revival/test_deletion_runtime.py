@@ -51,6 +51,9 @@ class RuntimeTests(unittest.TestCase):
         info = {'PlayFabId': 'synthetic-account', 'TitleInfo': {
             'TitlePlayerAccount': {'Id': 'synthetic-entity', 'Type': 'title_player_account'}},
             'CustomIdInfo': {'CustomId': 'synthetic-device'}}
+        if getattr(self, 'pgs', False):
+            del info['CustomIdInfo']
+            info['GooglePlayGamesInfo'] = {'GooglePlayGamesPlayerId': 'synthetic-pgs-player'}
         data = ({'IsSessionTicketExpired': False, 'UserInfo': info} if route == 'AuthenticateSessionTicket'
                 else {'UserInfo': info} if route == 'GetUserAccountInfo' else {})
         return {'code': 200, 'status': 'OK', 'data': data}
@@ -107,6 +110,14 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(receipt['submissionState'], 'accepted')
         self.assertEqual(self.calls, calls)
         self.assertEqual(self.calls.count('DeletePlayer'), 1)  # Fake transport only.
+
+    def test_pgs_runtime_opt_in_validation_and_accepted_receipt_restart(self):
+        self.assertFalse(self.settings(True).policy.google_play_games_session_confirmation_enabled)
+        self.env['TAMER_DELETION_GOOGLE_PLAY_GAMES_SESSION_CONFIRMATION_ENABLED'] = '1'
+        with self.assertRaises(ConfigurationError): self.settings(True)
+        self.env['TAMER_DELETION_GOOGLE_PLAY_GAMES_SESSION_CONFIRMATION_ENABLED'] = 'true'
+        self.pgs = True
+        self.test_enabled_flow_and_restart_preserve_database_and_receipt()
 
     def test_invalid_or_missing_configuration_never_creates_database(self):
         for key in self.env:
