@@ -24,9 +24,23 @@
 - 본인 checkout Editor 정상 종료(PID 0) 및 ProjectSettings 스냅샷 복원 확인.
 - APK SHA-256: 해당 없음(이번 변경 APK 미생성). XML·원시 로그·비공개 설정은 커밋하지 않는다.
 
+### Android 전용 분기 추가 컴파일
+
+EditMode는 `UNITY_ANDROID && !UNITY_EDITOR` 본문을 컴파일하지 않으므로, 별도로 `RevivalAndroidScriptCompile.Compile`을 실행했다. 검증기 포함 소스는 `0f66fe86b40d52c9c7b5c0c9fdfdb529d504cc7f`이며, 로그인 런타임 소스는 위 코드 커밋과 동일하다.
+
+- 설치된 Unity `6000.0.81f1`의 `PlayerBuildInterface.CompilePlayerScripts`를 사용했다. target/group은 Android, options는 None, 추가 define은 없다. APK 패키징·씬 실행·로그인 요청 없이 스크립트만 컴파일했다.
+- Login.cs를 포함하는 player assembly에서 `UNITY_ANDROID=true`, `UNITY_EDITOR=false`, `TAMER_*_HARNESS` 없음 확인. 생성한 `Assembly-CSharp.dll` 메타데이터 문자열에서 Android 전용 `RequestGoogleServerCodeAsync`, `RequestServerSideAccess`, `LoginWithGooglePlayGamesServices`가 포함됐음도 확인했다.
+- 1차: 검증 도구의 반환 컬렉션→배열 변환 누락으로 CS0029 실패. 원본 로그 `Logs/revival/native-pgs-player-0921.log` 보존. `ToArray()` 수정 후 2차: **CLI exit 0, 어셈블리 66개 생성**. 원본 로그 `Logs/revival/native-pgs-player-0921-attempt2.log` 보존. 세 번째 실행은 하지 않았다.
+- 결과 디렉터리: `Logs/revival/android-script-compile/20260921-072711-1336a73aefba4f6baccbe852dc94d655`.
+- `result.json` SHA-256: `a6c8ae713cce0be2e8ca9874273039d492565776c690c3c5a24fae2661e536e8`.
+- `Assembly-CSharp.dll` SHA-256: `eee40b0769f82ff2fb2100b10a1931de599ee0b00e954270ccd9d889e7d3250a`.
+- Editor 정상 종료(PID 0), ProjectSettings 복원, 공유 Editor 슬롯 반환 확인. EditMode 60개는 변경 없이 재실행하지 않았다.
+
+실행 명령은 `unity.exe run <절대 checkout> --editor-version 6000.0.81f1 --timeout 600 -- -buildTarget Android -executeMethod RevivalAndroidScriptCompile.Compile -logFile <절대 로그 경로>`이며, 실행 전후 프로젝트 설정 스냅샷을 저장·복원했다.
+
 ## 미검증 및 별도 선행 작업
 
-EditMode 결과는 Android 전용 코드의 플레이어 빌드나 실제 GPGS→PlayFab 인증 성공을 증명하지 않는다. OAuth 설정, 실제 Android 실행, 기존 계정 복구·이전은 미검증이다. Web OAuth client ID가 GPGS와 PlayFab Google 설정에 맞게 구성돼야 하며 secret은 서버 설정에만 둔다. 설정 누락·인증 실패·미연결 계정은 오류 안내 후 중단한다. 설정값을 코드나 로그에 추가하지 않았다.
+EditMode와 Android 플레이어 스크립트 컴파일 결과는 전체 APK 빌드나 실제 GPGS→PlayFab 인증 성공을 증명하지 않는다. OAuth 설정, 실제 Android 실행, 기존 계정 복구·이전은 미검증이다. Web OAuth client ID가 GPGS와 PlayFab Google 설정에 맞게 구성돼야 하며 secret은 서버 설정에만 둔다. 설정 누락·인증 실패·미연결 계정은 오류 안내 후 중단한다. 설정값을 코드나 로그에 추가하지 않았다.
 
 native PGS 로그인은 과거 생성 이메일 계정을 자동으로 찾아 연결하지 않는다. 기존 사용자의 무중단 로그인이나 기존 No Ads 권한의 이전 완료를 주장하지 않는다. 신뢰할 수 있는 별도 소유 증명과 명시적 계정 매핑 없이 자동 연결하지 않으며, 기존 데이터와 권한을 삭제하거나 새로운 계정으로 대체하지 않는다.
 
