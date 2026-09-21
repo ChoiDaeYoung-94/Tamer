@@ -24,11 +24,15 @@ namespace AD
             var template = settings.GetComponentInChildren<TMP_Text>(true);
             var font = template != null ? template.font : null;
             var root = DeletionView.Rect("AgeChoiceCanvas", transform);
+            // PopupManager lives on the existing root Canvas. A nested Canvas does
+            // not resize itself to the screen, so stretch its RectTransform explicitly.
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = root.offsetMax = Vector2.zero;
             _modal = root.gameObject;
             _modal.SetActive(false);
             var canvas = _modal.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 30000;
             var scaler = _modal.AddComponent<UnityEngine.UI.CanvasScaler>();
             scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080, 1920);
@@ -76,7 +80,11 @@ namespace AD
             text.alignment = TextAlignmentOptions.Center;
             text.raycastTarget = false;
             text.richText = false;
+            text.textWrappingMode = TextWrappingModes.Normal;
             var layout = text.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            // Let the parent assign the available width instead of the TMP
+            // preferred unwrapped line length expanding the label beyond it.
+            layout.minWidth = layout.preferredWidth = 0;
             layout.preferredHeight = height;
             return text;
         }
@@ -101,6 +109,10 @@ namespace AD
             _popups.RegisterBlocker(_modal, true);
             Time.timeScale = 0;
             _modal.SetActive(true);
+            // Apply sorting after the nested Canvas has joined its active parent.
+            var canvas = _modal.GetComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 30000;
         }
 
         private void Close()

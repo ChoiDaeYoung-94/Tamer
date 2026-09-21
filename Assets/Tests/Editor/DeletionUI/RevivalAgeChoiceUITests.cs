@@ -22,6 +22,10 @@ public class RevivalAgeChoiceUITests
         var scene = EditorSceneManager.NewPreviewScene();
         var root = new GameObject("Age UI fixture", typeof(RectTransform));
         SceneManager.MoveGameObjectToScene(root, scene);
+        // Reproduce PopupManager's real nested-Canvas hierarchy at a stable size.
+        var parentCanvas = root.AddComponent<Canvas>();
+        parentCanvas.renderMode = RenderMode.WorldSpace;
+        ((RectTransform)root.transform).sizeDelta = new Vector2(1080, 1920);
         float time = Time.timeScale;
         Component ads = null, presenter = null;
         try
@@ -51,13 +55,29 @@ public class RevivalAgeChoiceUITests
             Assert.That(buttons.Select(b => b.targetGraphic.color).Distinct().Count(), Is.EqualTo(1));
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)canvas.transform.Find("Content"));
+            var modalRect = (RectTransform)canvas.transform;
+            var contentRect = (RectTransform)canvas.transform.Find("Content");
+            var group = contentRect.GetComponent<VerticalLayoutGroup>();
+            Debug.Log("AGE_LAYOUT_PREVIEW modal=" + modalRect.rect.size + " content=" + contentRect.rect.size +
+                " groupEnabled=" + group.enabled + " groupActive=" + group.isActiveAndEnabled +
+                " objectActive=" + contentRect.gameObject.activeInHierarchy + " buttons=" +
+                string.Join(",", buttons.Select(b => ((RectTransform)b.transform).rect.width.ToString())));
+            Assert.That(modalRect.rect.width, Is.EqualTo(1080).Within(1));
+            Assert.That(modalRect.rect.height, Is.EqualTo(1920).Within(1));
+            Assert.That(canvas.overrideSorting, Is.True);
+            Assert.That(canvas.sortingOrder, Is.EqualTo(30000));
+            Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.width > 800), Is.True);
             Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.height > 0), Is.True);
+            foreach (RectTransform child in contentRect)
+                Assert.That(child.rect.width, Is.LessThanOrEqualTo(contentRect.rect.width + 1), child.name);
             buttons.Single(b => b.name == "Declined").onClick.Invoke();
             Assert.That(stored, Is.EqualTo("1|declined"));
             Assert.That(canvas.gameObject.activeSelf, Is.False);
             Assert.That(Time.timeScale, Is.EqualTo(.5f));
             Call(presenter, "Open");
             Assert.That(canvas.gameObject.activeSelf, Is.True, "A saved refusal can be changed in settings.");
+            Assert.That(canvas.overrideSorting, Is.True, "Reopening must restore the overlay ordering.");
+            Assert.That(canvas.sortingOrder, Is.EqualTo(30000));
         }
         finally
         {

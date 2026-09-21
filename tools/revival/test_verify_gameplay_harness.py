@@ -8,7 +8,7 @@ from verify_gameplay_harness import verify
 
 class GameplayVariantVerificationTests(unittest.TestCase):
     def check_variant(self, requested, debuggable, manifest='', rules=''):
-        package = 'playerrestore' if requested == 'playerrestore' else 'gameplay'
+        package = requested if requested in ('playerrestore', 'agechoice') else 'gameplay'
         badging = f"package: name='com.AeDeong.MonsterTamer.revival.{package}' versionCode='26' versionName='1.0.5'\n" \
             "sdkVersion:'24'\ntargetSdkVersion:'36'\nnative-code: 'arm64-v8a'\n"
         if debuggable:
@@ -32,6 +32,16 @@ class GameplayVariantVerificationTests(unittest.TestCase):
             self.check_variant('playerrestore', True, manifest.replace('0x0', '0xffffffff'), rules)
         with self.assertRaisesRegex(ValueError, 'exclusions'):
             self.check_variant('playerrestore', True, manifest, 'E: cloud-backup')
+
+    def test_agechoice_requires_offline_and_backup_exclusions(self):
+        manifest = 'A: android:allowBackup=false\nA: android:fullBackupContent=false\nA: android:dataExtractionRules=@0x1\n'
+        rules = 'E: cloud-backup\nE: device-transfer\n' + 'E: exclude\n' * 18
+        result = self.check_variant('agechoice', True, manifest, rules)
+        self.assertTrue(result['applicationId'].endswith('.agechoice'))
+        with self.assertRaisesRegex(ValueError, 'Backup must be disabled'):
+            self.check_variant('agechoice', True)
+        with self.assertRaisesRegex(ValueError, 'forbidden permission/provider'):
+            self.check_variant('agechoice', True, manifest + 'android.permission.INTERNET', rules)
 
     def test_photo_requires_nondevelopment_and_normal_requires_development(self):
         self.assertFalse(self.check_variant('photo', False)['debuggable'])

@@ -1,0 +1,270 @@
+{
+  "date": "2026-09-21",
+  "sourceCommit": "4216b9cec39aa337000ad32bea60ddf7bebb6088",
+  "package": "com.AeDeong.MonsterTamer.revival.agechoice",
+  "device": {
+    "model": "SM-N986N",
+    "android": "13",
+    "user": 0
+  },
+  "apk": {
+    "variant": "agechoice",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.agechoice",
+    "bytes": 105462423,
+    "sha256": "2fad6fe2fbf005875deccc630c74ff05fdb394e9db7bfc39ebd95821dee52668",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "result": "passed-scoped-offline-age-choice-device-scenarios",
+  "deviceAttempts": 5,
+  "deviceLayoutFailures": 1,
+  "followupLayoutTests": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "failedAssertion": "canvas.overrideSorting == true (prior width interpretation corrected)"
+  },
+  "deviceSecondAttemptPerformed": true,
+  "ageWasSelected": true,
+  "appStopped": true,
+  "appDataPreserved": true,
+  "files": [
+    {
+      "path": "Logs/revival/agechoice-isolation-tests.xml",
+      "sha256": "2543feb576aca205ed74abb9a4b4e615526f5f31433aa5f64f0f37764fa8c415"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/attempt1-apk-verification.json",
+      "sha256": "7a0f9e6e970eaa8990ee0a372fe6cd943c371a7888be704b73a53902d4551d9f",
+      "role": "Initial APK verification preserved before rebuild; original digest unchanged"
+    },
+    {
+      "path": "Logs/revival/agechoice-layout-tests.xml",
+      "sha256": "2e56cea29dcaca3e65a50439f69d3ad6a1cf24e4be8f98ce6ea1abf60cd7d454"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/first-question.png",
+      "sha256": "dbd1a8ab5cf3571b659911d742a0ecb148f70049eb7835401976fe70ed97f140"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/first-question.log",
+      "sha256": "ada0300c186b9f6fa42a15d16ae6c150ae436fcfc3a1f3923ce0d90dbb0d266c"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/attempt1-preupdate-prefs.xml",
+      "sha256": "7757892ef5a8f86e622576854ce0ec1ff8f0c569e18e01a19fe83acff0f3e8b0"
+    },
+    {
+      "path": "Logs/revival/agechoice-resume-measure.xml",
+      "sha256": "cbc0b6edb20bfb07d3be2929026fc3ca48166eeda8e24f16035fea1c817d4c68"
+    },
+    {
+      "path": "Logs/revival/agechoice-resume-layout.xml",
+      "sha256": "22ea2636ea4d2f514ec28c4823fcc3754b7f20a4afcf82cb25537ede4327137c"
+    },
+    {
+      "path": "Logs/revival/agechoice-resume-layout.log",
+      "sha256": "df4de56e19124f1ee2644c4853cb6d85be930082dd7d1c17a2484ea377ffeb19"
+    },
+    {
+      "path": "Logs/revival/agechoice-sorting-tests.xml",
+      "sha256": "dc17b785ef553b486a2c9459753f733d0b864d5a8b0ca7daffadc21fbf287d69"
+    },
+    {
+      "path": "Logs/revival/agechoice-wrap-tests.xml",
+      "sha256": "20f81a6046a0f55d51f800b226f4e9f0fbe6a4e26abbce1ca8e64bf5643ac7b7"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/attempt2-apk-verification.json",
+      "sha256": "b67a0e94911133fd0d9a7e973aac3c368c004d33e10935256139d74680613b55"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/wrapped-first-question.png",
+      "sha256": "46a22d10334df2174e6cddf428ae96de99270dc5f75fa2a977aa5588c3639fbb"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/wrapped-first-question.log",
+      "sha256": "9ee7ff94af887f15de250a0e6e5cbe37a819b301ef84f2315067ad9ee994e288"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-13to15.png",
+      "sha256": "c414b3deb8bc61baf49f66baded3495e14cf81471a8d3721538e0d9bf79f9d58"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-13to15.log",
+      "sha256": "d1520c6998b5cd8b397a926fea18dbfc013dc39dd9b02585b03f86af2c6c1916"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-13to15-prefs.xml",
+      "sha256": "2f137aa1b901e0ac9603b2230f804d3c31d27c21ad314c470fb54df11e5a5d61"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/before-wrap-update-prefs.xml",
+      "sha256": "f199bc5afb526ee3c7ae87d4e0b6b48245934f4134a664d6002ba38b64d7c321"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/after-wrap-update-prefs.xml",
+      "sha256": "f199bc5afb526ee3c7ae87d4e0b6b48245934f4134a664d6002ba38b64d7c321"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/wrapped-apksigner.txt",
+      "sha256": "e4c4ed3a982ba2c6753533f8be851450758be722efd250f68bccdeaef7abe632"
+    },
+    {
+      "path": "Logs/revival/agechoice-native-wrapped.json",
+      "sha256": "83b828b4e9581cb5f2c591217871b2296ea0d9274c19db5945f3d737531b1914"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/resume-current-prefs.xml",
+      "sha256": "2f137aa1b901e0ac9603b2230f804d3c31d27c21ad314c470fb54df11e5a5d61"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/resume-current-result.json",
+      "sha256": "4296e0ccb7308bde078ba1b1b8fc5960babbba8e874349c919f2a5cf5455b3a4"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-13to15.png",
+      "sha256": "f694442c98f98d264467fbb82a9720fa436ceb0b5422004c14f4edc8ecc4d799"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-13to15.log",
+      "sha256": "7f02862236ba19e7ca794181c44883a3cc3ef946c13de93a18985ce1d3fa66f9"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/settings-entry.png",
+      "sha256": "b9f22eda1c705724fab82ed1e00dad05b6d94045ed497c894cc2fb8157e755a0"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/account-privacy.png",
+      "sha256": "bdce1f45bf6180b8a0d9ed124cb1ad8c5d8ba98016adfd67c0bd3c5dda3ddbf4"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/settings-reselect.png",
+      "sha256": "6628839c135efd51eb6761a6dc0c265433ffba72c6ed6706b4e27021995e0ce2"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-declined.png",
+      "sha256": "bdce1f45bf6180b8a0d9ed124cb1ad8c5d8ba98016adfd67c0bd3c5dda3ddbf4"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-declined-prefs.xml",
+      "sha256": "09ee24ef7b80175de95948659b690accca9007ff247e5dad47a806e8afd37379"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/selected-declined-result.json",
+      "sha256": "da2b0015284c44f27a28e5fb15720c941d01a067ab98ea7624491af9dddda220"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined.png",
+      "sha256": "d6bbe8098b78330e7ed11058377a19a7aecdd4c8835b473ed8f46c5297dad8ad"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined.log",
+      "sha256": "a4c15f61a8a8150acdd8abad77727ed71c0fe82bb7db659267b6dce4232b9548"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined-prefs.xml",
+      "sha256": "3254e248c3a2237bd2bf98bcd4f1d7a90fe86ecefb561484d124939a9db5af4b"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/restarted-declined-result.json",
+      "sha256": "da2b0015284c44f27a28e5fb15720c941d01a067ab98ea7624491af9dddda220"
+    },
+    {
+      "path": "Logs/revival/agechoice-device/final-stop.json",
+      "sha256": "86c33fcf4f7f0a8f66565e82b36b5dbb255f072be3237c97d0fdeaa378074cb8"
+    },
+    {
+      "path": "Logs/revival/agechoice-apk-verification.json",
+      "sha256": "d2d85e43ad79fc475ea3942437ac4f5a59fa4fc5f01a99712d7d2f196585f658",
+      "role": "Final APK verification for source 08a8fefe and APK 91086547"
+    }
+  ],
+  "approvedRetry": {
+    "tests": 2,
+    "failures": 2,
+    "firstFailure": "overrideSorting assertion",
+    "secondFailure": "additive Editor scene rejected because untitled scene was unsaved",
+    "measuredButtonWidths": [
+      907.2001,
+      907.2001,
+      907.2001,
+      907.2001,
+      907.2001
+    ],
+    "measuredModal": [
+      1080,
+      1920
+    ]
+  },
+  "finalSourceCommit": "08a8fefe63b989e9c89ae3f5fa2c07f91a830203",
+  "finalApk": {
+    "variant": "agechoice",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.agechoice",
+    "bytes": 144739418,
+    "sha256": "91086547b51c6ae6a194314c28e9f074fa1b82097d3532a41720ffc47b7a57d6",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "secondApprovedRetry": {
+    "failures": 2,
+    "firstFailure": "Device description did not wrap within content; fixed in final APK",
+    "secondFailure": "Local checker compared percent-encoded XML text directly with unencoded expected string",
+    "editorSortingTests": "1/1 Passed",
+    "editorWrapTests": "1/1 Passed",
+    "observations": [
+      "Final screen readable with five neutral choices",
+      "13–15 click closed question",
+      "Raw XML value 1%7C13to15"
+    ],
+    "remaining": [
+      "Decoded persistence validation",
+      "Process restart",
+      "Settings reselection",
+      "Declined persistence after restart"
+    ],
+    "furtherExecutionStopped": true
+  },
+  "completion": {
+    "newFailuresAfterLatestApproval": 0,
+    "priorFailuresPreserved": 6,
+    "checkerSyntheticTests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "scenarios": {
+      "current13to15Meaning": "passed",
+      "restartWithoutQuestion": "passed",
+      "settingsReselection": "passed",
+      "declinedMeaning": "passed",
+      "restartKeepsDeclinedWithoutQuestion": "passed"
+    },
+    "rebuiltApk": false,
+    "nativePlayerConnectionSocketErrorsObserved": true,
+    "managedHarnessErrors": 0,
+    "dataPreserved": true,
+    "phoneSlotReturned": true
+  }
+}

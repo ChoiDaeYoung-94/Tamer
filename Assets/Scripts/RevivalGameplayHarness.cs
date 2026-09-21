@@ -182,6 +182,9 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     {
         if (Application.isEditor || Application.identifier != RevivalGameplayIsolation.RuntimeApplicationId)
             throw new InvalidOperationException("Gameplay harness requires its separate Android application.");
+#if TAMER_AGE_CHOICE
+        RevivalGameplayIsolation.ValidateAgeChoice(Application.identifier, Application.isEditor, PlayerPrefs.HasKey);
+#endif
 #if TAMER_PLAYER_RESTORE
         RevivalGameplayIsolation.ValidatePlayerRestore(Application.identifier, Application.isEditor, PlayerPrefs.HasKey);
 #endif
@@ -224,6 +227,17 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         { Mark("FAIL advertising guard"); yield break; }
         Mark("ISOLATION_OK login=blocked ads=blocked memory-server=ready app-private-save=ready");
         Managers.SceneM.NextScene(GameConstants.Scene.Main);
+#if TAMER_AGE_CHOICE
+        // The real first-run age modal pauses gameplay. Do not interpret that pause as a failed scene load.
+        float deadline = Time.realtimeSinceStartup + 40;
+        while ((UnitySceneManager.GetActiveScene().name != "Main" || Player.Instance == null ||
+            Managers.SceneM.IsTransitioning) && Time.realtimeSinceStartup < deadline) yield return null;
+        if (UnitySceneManager.GetActiveScene().name != "Main" || Player.Instance == null || Managers.SceneM.IsTransitioning)
+        { Mark("AGE_UI_FAIL Main entry"); yield break; }
+        _originalPlayer = Player.Instance;
+        Mark("AGE_UI_READY original settings and age UI; no automatic gameplay");
+        yield break;
+#endif
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
@@ -327,6 +341,12 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     {
 #if TAMER_GAMEPLAY_PHOTO
         if (_photoMode) return;
+#endif
+#if TAMER_AGE_CHOICE
+        GUI.depth = -1000;
+        GUI.Label(new Rect(12, Screen.height - 70, Screen.width - 24, 60),
+            "OFFLINE AGE UI | " + _status + " | errors=" + _errors);
+        return;
 #endif
         GUI.depth = -1000;
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));

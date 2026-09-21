@@ -37,6 +37,7 @@ public static class RevivalGameplayBuild
 
     public static void BuildAndroid() => Build(false);
     public static void BuildPhotoAndroid() => Build(true);
+    public static void BuildAgeChoiceAndroid() => Build(false, false, true);
     public static void BuildPlayerRestoreAndroid() => Build(false, true);
 
     public static string PlayerRestoreManifest(string original)
@@ -66,14 +67,16 @@ public static class RevivalGameplayBuild
         public int callbackOrder => 100;
         public void OnPostGenerateGradleAndroidProject(string path)
         {
-            if (PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != RevivalGameplayIsolation.PlayerRestoreApplicationId) return;
+            string identity = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
+            if (identity != RevivalGameplayIsolation.PlayerRestoreApplicationId &&
+                identity != RevivalGameplayIsolation.AgeChoiceApplicationId) return;
             string destination = Path.Combine(path, "src/main/res/xml/tamer_playerrestore_rules.xml");
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
             File.WriteAllText(destination, PlayerRestoreExtractionRules());
         }
     }
 
-    private static void Build(bool photo, bool playerRestore = false)
+    private static void Build(bool photo, bool playerRestore = false, bool ageChoice = false)
     {
         int code = 1;
         var files = new[] { Manifest, AdsSettings, AdsManifest };
@@ -90,7 +93,7 @@ public static class RevivalGameplayBuild
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with Android build target.");
             string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
-            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_GAMEPLAY_PHOTO" || d == "TAMER_PLAYER_RESTORE"))
+            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_GAMEPLAY_PHOTO" || d == "TAMER_PLAYER_RESTORE" || d == "TAMER_AGE_CHOICE"))
                 throw new BuildFailedException("Harness symbols must not be global.");
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
@@ -98,13 +101,13 @@ public static class RevivalGameplayBuild
             var scenes = new[] { "Login", "Main", "Game", "NextScene" }
                 .Select(name => "Assets/Scenes/" + name + ".unity").ToArray();
             if (scenes.Any(path => !File.Exists(path))) throw new BuildFailedException("Original scene missing.");
-            File.WriteAllText(Manifest, playerRestore ? PlayerRestoreManifest(File.ReadAllText(Manifest)) : OfflineManifest(File.ReadAllText(Manifest)));
+            File.WriteAllText(Manifest, (playerRestore || ageChoice) ? PlayerRestoreManifest(File.ReadAllText(Manifest)) : OfflineManifest(File.ReadAllText(Manifest)));
             AssetDatabase.ImportAsset(Manifest, ImportAssetOptions.ForceUpdate);
             var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(AdsSettings));
             settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
             settings.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, playerRestore ? RevivalGameplayIsolation.PlayerRestoreApplicationId : RevivalGameplayIsolation.ApplicationId);
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, ageChoice ? RevivalGameplayIsolation.AgeChoiceApplicationId : playerRestore ? RevivalGameplayIsolation.PlayerRestoreApplicationId : RevivalGameplayIsolation.ApplicationId);
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
@@ -112,9 +115,9 @@ public static class RevivalGameplayBuild
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
-                locationPathName = playerRestore ? "Build/revival/Tamer-playerrestore.apk" : photo ? "Build/revival/Tamer-gameplay-photo.apk" : "Build/revival/Tamer-gameplay.apk",
+                locationPathName = ageChoice ? "Build/revival/Tamer-agechoice.apk" : playerRestore ? "Build/revival/Tamer-playerrestore.apk" : photo ? "Build/revival/Tamer-gameplay-photo.apk" : "Build/revival/Tamer-gameplay.apk",
                 options = BuildOptions.CompressWithLz4 | (photo ? BuildOptions.None : BuildOptions.Development),
-                extraScriptingDefines = playerRestore ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_PLAYER_RESTORE" } : photo
+                extraScriptingDefines = ageChoice ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_AGE_CHOICE" } : playerRestore ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_PLAYER_RESTORE" } : photo
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_GAMEPLAY_PHOTO" }
                     : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS" }
             });
