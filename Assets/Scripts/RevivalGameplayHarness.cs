@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+﻿#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
 using System;
 using System.Collections;
 using System.IO;
@@ -246,6 +246,12 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield break; // Keep the original Main scene available; no combat or automatic round trip.
 #endif
         Mark("MAIN_READY iapBlocked=" + RevivalGameplayIsolation.BlockedPurchases);
+#if TAMER_SESSION_HARNESS
+        _captureAssist = true;
+        _busy = true;
+        yield return gameObject.AddComponent<RevivalSessionGameplayHarness>().Run();
+        yield break;
+#endif
         // Keep the real lobby available for visual inspection before the automatic round trip.
         yield return new WaitForSecondsRealtime(8);
         yield return RoundTrip();

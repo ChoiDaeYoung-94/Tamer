@@ -20,3 +20,5 @@ Player.ClearInventorySession은 전투와 이전 동료를 정리하고 골드 �
 - 해당 checkout Editor PID0, ProjectSettings 스냅샷 복원 및 자동 직렬화 변경 복원 확인. 최초 복원 래퍼의 인자 오류는 올바른 인자로 백업 복원을 수행해 해결했다.
 
 실제 애니메이션 재생, NavMesh 전투, 기기에서의 재로그인·삭제 취소 흐름, 서버 통신과 스토어 동작은 미검증이다. APK는 생성하지 않았으므로 APK SHA256은 해당 없다. 이 검증은 #92 기준 빌드 또는 #91 광고 정책·스토어 검증 완료를 의미하지 않는다.
+
+2026-09-21 후속 [오프라인 Android 기기 검증](session-gameplay-device.ko.md)에서 원본 사망 애니메이션, generation 변경 후 콜백 차단, 삭제 취소 후 실제 Update/동료 NavMesh 이동과 생성기 회복을 별도로 확인했다. 위 Editor 검증 기록과 후속 기기 소스·범위는 구분한다.
