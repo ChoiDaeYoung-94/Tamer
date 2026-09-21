@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_GAMESAVE_HARNESS
+#if UNITY_EDITOR || TAMER_GAMESAVE_HARNESS || TAMER_PLAYER_RESTORE
 using System;
 using System.Collections.Generic;
 using System.IO;

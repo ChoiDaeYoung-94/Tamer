@@ -11,6 +11,54 @@ using UnityEngine.SceneManagement;
 
 public class RevivalGameplayIsolationTests
 {
+    [TestCase("AllyMonsters")]
+    [TestCase("playerEquippedItems")]
+    [TestCase("LocalItem")]
+    public void Revival_PlayerRestoreRejectsExistingPreferenceWithoutReadingValues(string key)
+    {
+        var method = Runtime("AD.RevivalGameplayIsolation").GetMethod("ValidatePlayerRestore");
+        Func<string, bool> hasKey = candidate => candidate == key;
+        var error = Assert.Throws<TargetInvocationException>(() => method.Invoke(null,
+            new object[] { "com.AeDeong.MonsterTamer.revival.playerrestore", false, hasKey }));
+        Assert.That(error.InnerException, Is.TypeOf<InvalidOperationException>());
+    }
+
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", false)]
+    [TestCase("com.AeDeong.MonsterTamer", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.playerrestore", true)]
+    public void Revival_PlayerRestoreRejectsWrongRuntimeBeforePreferences(string package, bool editor)
+    {
+        Func<string, bool> unexpected = key => throw new Exception("Must not inspect preferences");
+        var error = Assert.Throws<TargetInvocationException>(() => Runtime("AD.RevivalGameplayIsolation")
+            .GetMethod("ValidatePlayerRestore").Invoke(null, new object[] { package, editor, unexpected }));
+        Assert.That(error.InnerException, Is.TypeOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public void Revival_PlayerRestoreUsesFreshFemaleAllyFixtureAndDisablesBackup()
+    {
+        var type = Runtime("AD.RevivalGameplayIsolation");
+        type.GetMethod("ValidatePlayerRestore").Invoke(null, new object[] {
+            "com.AeDeong.MonsterTamer.revival.playerrestore", false, (Func<string, bool>)(_ => false) });
+        var seed = (System.Collections.Generic.Dictionary<string, string>)type.GetMethod("PlayerRestoreSeed").Invoke(null, null);
+        Assert.That(seed["Sex"], Is.EqualTo("Woman"));
+        Assert.That(seed["AllyMonsters"], Is.EqualTo("Bat,Magma"));
+        Assert.That(seed["GooglePlay"], Is.Empty);
+        var build = Runtime("RevivalGameplayBuild");
+        var xml = XDocument.Parse((string)build.GetMethod("PlayerRestoreManifest").Invoke(null,
+            new object[] { "<manifest><application/></manifest>" }));
+        XNamespace android = "http://schemas.android.com/apk/res/android";
+        Assert.That((string)xml.Root.Element("application").Attribute(android + "allowBackup"), Is.EqualTo("false"));
+        Assert.That((string)xml.Root.Element("application").Attribute(android + "fullBackupContent"), Is.EqualTo("false"));
+        var rules = XDocument.Parse((string)build.GetMethod("PlayerRestoreExtractionRules").Invoke(null, null));
+        foreach (string mode in new[] { "cloud-backup", "device-transfer" })
+        {
+            var excluded = rules.Root.Element(mode).Elements("exclude").ToArray();
+            Assert.That(excluded.Length, Is.EqualTo(9));
+            Assert.That(excluded.All(e => (string)e.Attribute("path") == "."), Is.True);
+        }
+    }
+
     [TestCase(1)]
     [TestCase(2)]
     public void Revival_RestoredPlayerValuesReachHudAndPopup(int step)

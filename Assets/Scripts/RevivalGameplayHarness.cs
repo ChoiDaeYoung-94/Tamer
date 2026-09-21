@@ -180,8 +180,11 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
-        if (Application.isEditor || Application.identifier != RevivalGameplayIsolation.ApplicationId)
+        if (Application.isEditor || Application.identifier != RevivalGameplayIsolation.RuntimeApplicationId)
             throw new InvalidOperationException("Gameplay harness requires its separate Android application.");
+#if TAMER_PLAYER_RESTORE
+        RevivalGameplayIsolation.ValidatePlayerRestore(Application.identifier, Application.isEditor, PlayerPrefs.HasKey);
+#endif
         var root = new GameObject("Offline gameplay verification");
         DontDestroyOnLoad(root);
         root.AddComponent<RevivalGameplayHarness>();
@@ -224,6 +227,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
+#if TAMER_PLAYER_RESTORE
+        VerifyPlayerRestore();
+        yield break; // Keep the original Main scene available; no combat or automatic round trip.
+#endif
         Mark("MAIN_READY iapBlocked=" + RevivalGameplayIsolation.BlockedPurchases);
         // Keep the real lobby available for visual inspection before the automatic round trip.
         yield return new WaitForSecondsRealtime(8);
@@ -235,6 +242,45 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         Player.Instance != null && Player.Instance.gameObject.activeInHierarchy &&
         CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
         CanTransitionPlayer();
+
+#if TAMER_PLAYER_RESTORE
+    private void VerifyPlayerRestore()
+    {
+        try
+        {
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var expected = RevivalGameplayIsolation.PlayerRestoreSeed();
+            var player = Player.Instance;
+            foreach (string key in RevivalGameSaveSchema.ReadKeys())
+                if (Managers.DataM.LocalPlayerData[key] != expected[key]) throw new InvalidOperationException("Data mismatch");
+            if (!player.transform.root.name.StartsWith("Player_Woman", StringComparison.Ordinal) ||
+                player.Gold != 235 || !Mathf.Approximately(player.Power, 12) ||
+                !Mathf.Approximately(player.AttackSpeed, .7f) || !Mathf.Approximately(player.MoveSpeed, 3.4f) ||
+                player.PlayerEquippedItems.Count != 0 || player.PlayerMonsterCollection.Count != 0)
+                throw new InvalidOperationException("Player or preference mismatch");
+            var allies = (System.Collections.Generic.List<Monster>)typeof(Player).GetField("_allyMonsters", flags).GetValue(player);
+            if (allies.Count != 2 || allies[0].CreatureType.ToString() != "Bat" || allies[1].CreatureType.ToString() != "Magma")
+                throw new InvalidOperationException("Saved ally mismatch");
+            int onMesh = 0;
+            foreach (var ally in allies)
+            {
+                if (!ally.gameObject.activeInHierarchy || !ally.CompareTag("AllyMonster") ||
+                    !ally.transform.IsChildOf(Managers.PoolM.RootPlayer)) throw new InvalidOperationException("Ally role mismatch");
+                if (ally.NavMeshAgent.isActiveAndEnabled && ally.NavMeshAgent.isOnNavMesh) onMesh++;
+            }
+            var canvas = PlayerUICanvas.Instance;
+            string Label(string field) => ((TMPro.TMP_Text)typeof(PlayerUICanvas).GetField(field, flags).GetValue(canvas)).text;
+            if (Label("_playerNickNameText") != expected["NickName"] || Label("_goldText") != "Gold - 235" ||
+                Label("_captureCapacityText") != "2 / " + player.MaxCaptureCapacity)
+                throw new InvalidOperationException("HUD mismatch");
+            if (_errors != 0 || Managers.GoogleAdMobM.CanRequestAds || Managers.IAPM.Status != IAPStatus.Unavailable)
+                throw new InvalidOperationException("Errors or service guard mismatch");
+            if (onMesh != 2) throw new InvalidOperationException("Restored allies are not both on NavMesh");
+            Mark("PLAYER_RESTORE_PASS Woman gold=235 power=12 attack=0.7 move=3.4 allies=Bat,Magma HUD=matched tutorial=done-branch-only navMesh=" + onMesh + "/2");
+        }
+        catch (Exception error) { Mark("PLAYER_RESTORE_FAIL " + error.Message); }
+    }
+#endif
 
     private static bool CanTransitionPlayer()
     {
@@ -294,6 +340,11 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
         GUILayout.Label(_status + " | errors=" + _errors);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
+#if TAMER_PLAYER_RESTORE
+        GUILayout.Label("Restore inspection only — no automatic round trip; preserve this app and its evidence");
+        GUILayout.EndArea();
+        return;
+#endif
         GUI.enabled = !_busy && Ready("Main");
         if (GUILayout.Button("Repeat Main / Game / Main", GUILayout.Height(55))) StartCoroutine(RoundTrip());
         GUI.enabled = !_busy && Time.timeScale == 1 && Player.Instance != null && Player.Instance.Hp > 0 &&
