@@ -61,6 +61,8 @@ def main():
     (ROOT / "Logs/revival/iap-bundle-native.json").write_text(json.dumps(native,indent=2)+"\n",encoding="utf-8")
     (ROOT / "Logs/revival/iap-bundle-verification.json").write_text(json.dumps(result,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(result))
+    # Preserve both reports even on LOAD failure; RELRO remains a separate check.
+    return 0 if result["elfLoadChecksPassed"] else 1
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
