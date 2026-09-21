@@ -69,7 +69,7 @@ namespace AD
             Status = IAPStatus.Unavailable;
             return;
 #endif
-            if (_disposed || _connecting || _initialFetchInProgress || IsReadyToPurchase) return;
+            if (_disposed || _connecting || _initialFetchInProgress || _restoring || _purchaseInProgress || IsReadyToPurchase) return;
             _connecting = true;
             _nextInitializationAttempt = DateTime.UtcNow.AddSeconds(30);
             try
@@ -100,8 +100,7 @@ namespace AD
                 {
                     if (_productsLoaded)
                     {
-                        _initialFetchInProgress = true;
-                        _store.FetchPurchases();
+                        FetchOwnedPurchases();
                     }
                     else FetchCatalog();
                 }
@@ -156,20 +155,29 @@ namespace AD
             _productsLoaded = products != null && products.Any(p => p != null &&
                 p.definition != null && p.definition.id == ProductNoAds &&
                 p.definition.type == ProductType.NonConsumable);
-            if (!_productsLoaded)
+            // Catalog availability gates new sales, not the attempt to recover ownership.
+            FetchOwnedPurchases();
+        }
+
+        private void OnProductsFetchFailed(ProductFetchFailed failure)
+        {
+            if (_disposed) return;
+            _productsLoaded = false;
+            FetchOwnedPurchases();
+        }
+
+        private void FetchOwnedPurchases()
+        {
+            if (_disposed) return;
+            if (!_connected)
             {
                 _initialFetchInProgress = false;
                 SetStatus(IAPStatus.Unavailable);
                 return;
             }
-            _store.FetchPurchases();
-        }
-
-        private void OnProductsFetchFailed(ProductFetchFailed failure)
-        {
-            _initialFetchInProgress = false;
-            _productsLoaded = false;
-            SetStatus(IAPStatus.Unavailable);
+            _initialFetchInProgress = true;
+            try { _store.FetchPurchases(); }
+            catch (Exception) { OnPurchasesFetchFailed(null); }
         }
 
         private void OnPurchasesFetchFailed(PurchasesFetchFailureDescription failure)
@@ -244,12 +252,13 @@ namespace AD
         // fetches confirmed non-consumables for automatic Google Play restore.
         public void RestorePurchases()
         {
-            if (!IsReadyToPurchase)
+            if (_disposed) return;
+            if (!_connected)
             {
                 InitializePurchasing();
                 return;
             }
-            if (_restoring || _purchaseInProgress) return;
+            if (_restoring || _purchaseInProgress || _initialFetchInProgress) return;
             _restoring = true;
             SetStatus(IAPStatus.Restoring);
             try
@@ -437,7 +446,8 @@ namespace AD
         }
 
         private bool ShouldRetryInitialization(DateTime now) => !_disposed && !_connecting &&
-            !_initialFetchInProgress && !IsReadyToPurchase && now >= _nextInitializationAttempt;
+            !_initialFetchInProgress && !_restoring && !_purchaseInProgress &&
+            !IsReadyToPurchase && now >= _nextInitializationAttempt;
 
         private void OnPurchaseConfirmed(Order order)
         {
