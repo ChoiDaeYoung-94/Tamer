@@ -33,6 +33,34 @@ namespace AD
         private int _loadVersion;
         private int _sceneVersion;
         private float _loadDeadline;
+        private LocalAgeChoice _ageSelection;
+        public const string AgeChoicePreferenceKey = "Tamer.Privacy.AgeChoice";
+        public LocalAgeChoice AgeSelection
+        {
+            get
+            {
+                if (_ageSelection == null)
+                {
+                    _ageSelection = new LocalAgeChoice(
+                        () => PlayerPrefs.GetString(AgeChoicePreferenceKey, ""),
+                        value => { PlayerPrefs.SetString(AgeChoicePreferenceKey, value); PlayerPrefs.Save(); });
+                    _ageSelection.Changed += InvalidateAgeContext;
+                }
+                return _ageSelection;
+            }
+        }
+        public bool CanChangeAge => !_destroyed && !IsInProgress && !IsConsentBusy;
+
+        private void InvalidateAgeContext()
+        {
+            ++_loadVersion;
+            ++_sceneVersion; // Also invalidate a closed impression's delayed reward receipt.
+            _session?.Invalidate(); // Keep native fullscreen ownership until its real close.
+            _consent?.Dispose();
+            _consent = null;
+            _loading = _initializing = _initialized = false;
+            DestroyLoadedAd();
+        }
 
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
         private SoundManager _harnessSound;
@@ -66,6 +94,7 @@ namespace AD
 
         // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
         public bool CanRequestAds =>
+            AgeSelection.HasAge && AgeTreatmentPolicy.IsReviewed(AgeSelection.Value) &&
             (Application.isEditor || Application.platform == RuntimePlatform.Android) &&
             AdRequestPolicy.CanRequestTestAds(
             Application.isEditor, Debug.isDebugBuild,
@@ -379,6 +408,7 @@ namespace AD
 
         private void OnDestroy()
         {
+            if (_ageSelection != null) _ageSelection.Changed -= InvalidateAgeContext;
             _consent?.Dispose();
             lock (_callbackLock) _destroyed = true;
             _loadVersion++;

@@ -48,6 +48,8 @@ namespace AD
             if (_updateManager != null) _updateManager.OnUpdateEvent += OnUpdate;
 
             SetPopup();
+            if (_popupSetting != null && GetComponent<AgeChoicePresenter>() == null)
+                gameObject.AddComponent<AgeChoicePresenter>().Bind(_popupSetting, this, Managers.GoogleAdMobM);
         }
 
         /// <summary>
