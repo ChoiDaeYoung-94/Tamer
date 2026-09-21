@@ -75,3 +75,5 @@ Manager prefab 자체가 Canvas인데 자식 연령 Canvas의 RectTransform이 �
 두 재시작 로그에 `ISOLATION_OK`와 `AGE_UI_READY`가 있으며 화면의 managed harness errors는 0이다. 별도로 native Player Connection의 multicast socket 설정 오류가 로그에 남는다. INTERNET 권한이 제거된 개발 APK에서 관측된 진단 메시지이며 전체 로그 오류 0으로 표현하지 않는다. 운영 광고·UMP 네트워크·로그인·결제는 실행하지 않았다.
 
 최종 프로세스를 종료하고 PID 부재를 확인했다. 전용 앱 설치와 거절 저장값을 보존했으며 다른 앱 데이터는 변경하지 않았다. 회사폰 슬롯을 반환했고, 이번 구간은 Editor를 열거나 APK를 다시 빌드하지 않았다. 화면·원시 XML·단계별 의미값 검사 결과·종료 근거의 SHA-256은 증거 manifest에 추가했다. 지역별 UMP 폼, 광고 5초 종료, 실제 IAP 구매/복원, 다른 기기 화면 크기 및 16KB 런타임은 계속 미검증이다.
+
+독립 검토에서 최초 APK 검사 결과의 경로가 재빌드로 갱신되는 파일을 가리키는 것을 발견했다. 최초 해시는 그대로 유지하고 실제 보존 복사본 `Logs/revival/agechoice-device/attempt1-apk-verification.json`으로 참조를 정정했다. 현재 최종 APK 검사 결과는 별도 역할과 해시로 manifest에 추가했다. 이 정정으로 과거 실패 증거를 최종 결과로 바꾸지 않았다.

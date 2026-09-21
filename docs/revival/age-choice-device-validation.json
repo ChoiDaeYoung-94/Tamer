@@ -45,8 +45,9 @@
       "sha256": "2543feb576aca205ed74abb9a4b4e615526f5f31433aa5f64f0f37764fa8c415"
     },
     {
-      "path": "Logs/revival/agechoice-apk-verification.json",
-      "sha256": "7a0f9e6e970eaa8990ee0a372fe6cd943c371a7888be704b73a53902d4551d9f"
+      "path": "Logs/revival/agechoice-device/attempt1-apk-verification.json",
+      "sha256": "7a0f9e6e970eaa8990ee0a372fe6cd943c371a7888be704b73a53902d4551d9f",
+      "role": "Initial APK verification preserved before rebuild; original digest unchanged"
     },
     {
       "path": "Logs/revival/agechoice-layout-tests.xml",
@@ -183,6 +184,11 @@
     {
       "path": "Logs/revival/agechoice-device/final-stop.json",
       "sha256": "86c33fcf4f7f0a8f66565e82b36b5dbb255f072be3237c97d0fdeaa378074cb8"
+    },
+    {
+      "path": "Logs/revival/agechoice-apk-verification.json",
+      "sha256": "d2d85e43ad79fc475ea3942437ac4f5a59fa4fc5f01a99712d7d2f196585f658",
+      "role": "Final APK verification for source 08a8fefe and APK 91086547"
     }
   ],
   "approvedRetry": {
