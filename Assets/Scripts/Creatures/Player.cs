@@ -46,6 +46,8 @@ public class Player : Creature
     private AD.UpdateManager _updateSource;
     private string _inventoryOwner;
     private int _inventoryGeneration = -1;
+    private string _targetInventoryOwner;
+    private int _targetInventoryGeneration = -1;
 
     private const string PLAYER_MONSTERS_KEY = "AllyMonsters";
     private const string PLAYER_EQUIPPED_ITEMS_KEY = "playerEquippedItems";
@@ -482,6 +484,9 @@ public class Player : Creature
 
     public void ClearInventorySession()
     {
+        _curTargetMonsterObject = null; _curTargetMonster = null;
+        _targetInventoryOwner = null; _targetInventoryGeneration = -1;
+        ClearCaptureTarget();
         foreach (var item in PlayerEquippedItems)
         {
             UnequipEquipment(item);
@@ -570,15 +575,20 @@ public class Player : Creature
     /// </summary>
     public void NotifyPlayerOfDeath(GameObject target, int gold)
     {
-        if (target == _curTargetMonsterObject)
-        {
-            _monsterCollection =
-                SavePrefs(PlayerMonsterCollection, _monsterCollection, _curTargetMonster.CreatureType.ToString(), PLAYER_MONSTERS_KEY);
-            _curTargetMonsterObject = null;
-        }
+        RecordDefeatedMonster(target);
         _gold += gold;
         AD.Managers.DataM.UpdateLocalData(GOLD_KEY, _gold.ToString());
         PlayerUICanvas.Instance.UpdatePlayerInfo();
+    }
+
+    private void RecordDefeatedMonster(GameObject target)
+    {
+        if (target == null || target != _curTargetMonsterObject || _curTargetMonster == null ||
+            _targetInventoryOwner == null || _targetInventoryOwner != _inventoryOwner ||
+            _targetInventoryGeneration != _inventoryGeneration) return;
+        _monsterCollection = SavePrefs(PlayerMonsterCollection, _monsterCollection,
+            _curTargetMonster.CreatureType.ToString(), PLAYER_MONSTERS_KEY);
+        _curTargetMonsterObject = null; _curTargetMonster = null;
     }
 
     /// <summary>
@@ -616,6 +626,8 @@ public class Player : Creature
             {
                 _curTargetMonsterObject = col.gameObject;
                 _curTargetMonster = _curTargetMonsterObject.GetComponent<Monster>();
+                _targetInventoryOwner = _inventoryOwner;
+                _targetInventoryGeneration = _inventoryGeneration;
             }
         }
     }

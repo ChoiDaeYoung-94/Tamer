@@ -94,4 +94,32 @@ public class RevivalInventoryStoreTests
         finally { UnityEngine.Object.DestroyImmediate(root); }
         Assert.That(Directory.Exists(_root),Is.False);
     }
+
+    [Test] public void Revival_InventoryTransitionClearsTargetsAndRejectsOldCollectionCallback()
+    {
+        var root=new GameObject("Inventory callback guard"); root.SetActive(false);
+        var target=new GameObject("Old account target"); target.SetActive(false);
+        try
+        {
+            var type=Runtime("Player"); var player=root.AddComponent(type);
+            var monster=target.AddComponent(Runtime("Monster"));
+            var flags=BindingFlags.NonPublic|BindingFlags.Instance;
+            Action<string,object> set=(name,value)=>type.GetField(name,flags).SetValue(player,value);
+            set("_inventoryOwner","A"); set("_inventoryGeneration",1);
+            set("_curTargetMonsterObject",target); set("_curTargetMonster",monster);
+            set("_targetInventoryOwner","A"); set("_targetInventoryGeneration",1);
+            set("_ableCaptureMonster",monster); set("_captureTrigger",target.AddComponent<BoxCollider>());
+            Call(player,"ClearInventorySession");
+            foreach(var field in new[]{"_curTargetMonsterObject","_curTargetMonster","_ableCaptureMonster","_captureTrigger"})
+                Assert.That(type.GetField(field,flags).GetValue(player),Is.Null);
+            set("_inventoryOwner","B"); set("_inventoryGeneration",2);
+            // Even a retained/reintroduced old target cannot use the newly bound inventory identity.
+            set("_curTargetMonsterObject",target); set("_curTargetMonster",monster);
+            set("_targetInventoryOwner","A"); set("_targetInventoryGeneration",1);
+            type.GetMethod("RecordDefeatedMonster",flags).Invoke(player,new object[]{target});
+            Assert.That((IEnumerable)type.GetField("PlayerMonsterCollection").GetValue(player),Is.Empty);
+            Assert.That(Directory.Exists(_root),Is.False); // No Managers/authentication/storage was required by the rejected callback.
+        }
+        finally { UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(root); }
+    }
 }
