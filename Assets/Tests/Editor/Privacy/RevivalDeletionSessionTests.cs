@@ -94,6 +94,27 @@ public class RevivalDeletionSessionTests
     private static int Count(Server server, string operation) => server.Paths.FindAll(p => p == "/v1/deletion/" + operation).Count;
 
     [TestCase(false)] [TestCase(true)]
+    public async Task Revival_InventoryDeletionFlowKeepsOriginalBindingAcrossReauthentication(bool provider)
+    {
+        string fileKey=new string('b',64), originalSession=new string('c',32);
+        _current=new DeletionSession(new object(),Account,"first","TEST1",Entity,fileKey,originalSession);
+        using(var flow=Flow(new Server{Provider=provider,LoseSubmit=true}))
+        {
+            Assert.That(await flow.RequestAsync(),Is.True);
+            if(!provider) Assert.That(await flow.ConfirmSessionAsync(),Is.True);
+            Assert.That(_store.Load().InventorySession,Is.EqualTo(originalSession));
+            Assert.That(await flow.ConfirmAsync(),Is.False);
+        }
+        _current=new DeletionSession(new object(),Account,"recovery-login","TEST1",Entity,fileKey,new string('d',32));
+        DeletionSession cleaned=null;
+        using(var recovered=Flow(new Server{Provider=provider,Status="accepted"},accepted:s=>cleaned=s))
+            Assert.That(await recovered.RefreshAsync(),Is.True);
+        Assert.That(cleaned.Matches(_current),Is.True);
+        Assert.That(cleaned.InventoryOwnerKey,Is.EqualTo(fileKey));
+        Assert.That(cleaned.InventorySession,Is.EqualTo(originalSession));
+    }
+
+    [TestCase(false)] [TestCase(true)]
     public async Task Revival_DeletionProviderRecoveryRegistersBeforeSubmitAndRecoversWithoutAuthentication(bool loseResponse)
     {
         var server = new Server { Provider = true, LoseSubmit = loseResponse, Status = "accepted" };

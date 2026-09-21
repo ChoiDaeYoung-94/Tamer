@@ -13,8 +13,16 @@ namespace AD.Privacy
         public string SessionKey { get; }
         public string TitleId { get; }
         public string EntityId { get; }
+        public string InventoryOwnerKey { get; }
+        public string InventorySession { get; }
         public DeletionSession(object owner, string accountId, string sessionKey, string titleId = null, string entityId = null)
-        { Owner = owner; AccountId = accountId; SessionKey = sessionKey; TitleId = titleId; EntityId = entityId; }
+            : this(owner, accountId, sessionKey, titleId, entityId, null, null) { }
+        public DeletionSession(object owner, string accountId, string sessionKey, string titleId, string entityId,
+            string inventoryOwnerKey, string inventorySession)
+        { Owner = owner; AccountId = accountId; SessionKey = sessionKey; TitleId = titleId; EntityId = entityId;
+            InventoryOwnerKey = inventoryOwnerKey; InventorySession = inventorySession; }
+        public DeletionSession ForCleanup(DeletionRecovery record) => new DeletionSession(Owner, AccountId, SessionKey,
+            TitleId, EntityId, record.InventoryOwnerKey, record.InventorySession);
         public bool IsValid => Owner != null && !string.IsNullOrEmpty(AccountId) && !string.IsNullOrEmpty(SessionKey);
         public bool HasEntityBinding => IsValid && !string.IsNullOrEmpty(TitleId) && !string.IsNullOrEmpty(EntityId);
         public bool Matches(DeletionSession other) => other != null && IsValid && other.IsValid &&
@@ -226,6 +234,7 @@ namespace AD.Privacy
             if (_recovery == null) return;
             if (_record == null) _record = new DeletionRecovery { Binding = _binding, ClientKey = _clientKey,
                 Origin = _origin, Title = _session?.TitleId,
+                InventoryOwnerKey = _session?.InventoryOwnerKey, InventorySession = _session?.InventorySession,
                 OwnerHash = _origin == null ? null : DeletionRecovery.Hash(_origin, _session.TitleId, _session.AccountId) };
             _record.RequestId = Request?.RequestId;
             _record.Revision = Request?.PolicyRevision;
@@ -249,7 +258,7 @@ namespace AD.Privacy
                     try { await _receipts.FinishAsync(_record, () =>
                     {
                         if (!Current()) throw new InvalidOperationException();
-                        if (snapshot.State == DeletionState.Accepted) _accepted?.Invoke(_session);
+                        if (snapshot.State == DeletionState.Accepted) _accepted?.Invoke(_session.ForCleanup(_record));
                         else _cancelled?.Invoke(_session);
                     }, _lifetime.Token); }
                     catch (Exception) { AcceptedCleanupFailed = true; }
@@ -303,7 +312,7 @@ namespace AD.Privacy
                         if (CanRecoverReceipt)
                         {
                             _receipts.RememberTerminal(_record, State);
-                            await _receipts.FinishAsync(_record, () => _accepted?.Invoke(_session), _lifetime.Token);
+                            await _receipts.FinishAsync(_record, () => _accepted?.Invoke(_session.ForCleanup(_record)), _lifetime.Token);
                         }
                         else { _accepted?.Invoke(_session); _recovery?.Clear(); }
                     }

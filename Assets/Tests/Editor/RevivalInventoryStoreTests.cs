@@ -24,6 +24,11 @@ public class RevivalInventoryStoreTests
     private object Save(string owner, string[] collection, string[] owned, string sword = null) => Call(_store,"Save",owner,collection,owned,Slots(sword));
     private string PathFor(string owner) => (string)Call(_store,"PathFor",owner);
     private static object Value(object snapshot,string name) => snapshot.GetType().GetProperty(name).GetValue(snapshot);
+    private void DeleteBound(string owner, string session, Func<string,bool> matches)
+    {
+        try { _store.GetType().GetMethod("DeleteBound").Invoke(null,new object[]{_root,Path.GetFileNameWithoutExtension(PathFor(owner)),session,matches}); }
+        catch(TargetInvocationException e) { throw e.InnerException ?? e; }
+    }
     [SetUp] public void Setup() { _root = Path.Combine(Path.GetTempPath(),"TamerInventory-"+Guid.NewGuid().ToString("N")); _store=NewStore(); }
     [TearDown] public void Cleanup() { if (Directory.Exists(_root)) Directory.Delete(_root,true); }
 
@@ -121,5 +126,45 @@ public class RevivalInventoryStoreTests
             Assert.That(Directory.Exists(_root),Is.False); // No Managers/authentication/storage was required by the rejected callback.
         }
         finally { UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(root); }
+    }
+
+    [Test] public void Revival_InventoryDeletionOnlyRemovesBoundOwnerAndSession()
+    {
+        Call(_store,"BindSession","A",new string('a',32));
+        Save("A",new[]{"Bat"},new[]{"SimpleSword"},"SimpleSword");
+        Call(_store,"BindSession","B",new string('b',32));
+        var other=File.ReadAllBytes(PathFor("B"));
+        Assert.Throws<InvalidDataException>(()=>DeleteBound("A",new string('a',32),owner=>owner=="B"));
+        Assert.That(File.Exists(PathFor("A")),Is.True);
+        DeleteBound("A",new string('a',32),owner=>owner=="A");
+        DeleteBound("A",new string('a',32),owner=>owner=="A");
+        Assert.That(File.Exists(PathFor("A")),Is.False);
+        Assert.That(File.ReadAllBytes(PathFor("B")),Is.EqualTo(other));
+    }
+
+    [Test] public void Revival_InventoryDeletionPreservesNewSessionAndUnboundLegacy()
+    {
+        Save("A",new[]{"Bat"},Array.Empty<string>());
+        Assert.Throws<InvalidDataException>(()=>DeleteBound("A",null,owner=>true));
+        Call(_store,"BindSession","A",new string('a',32));
+        Call(NewStore(),"BindSession","A",new string('b',32));
+        string fresh=File.ReadAllText(PathFor("A"));
+        Assert.Throws<InvalidDataException>(()=>DeleteBound("A",new string('a',32),owner=>true));
+        Assert.That(File.ReadAllText(PathFor("A")),Is.EqualTo(fresh));
+        Assert.That((IEnumerable)Value(Load("A"),"Collection"),Is.EqualTo(new[]{"Bat"}));
+    }
+
+    [Test] public void Revival_InventoryDeletionAccessFailureIsNotAbsentFile()
+    {
+        Call(_store,"BindSession","A",new string('a',32));
+        using(var held=new FileStream(PathFor("A"),FileMode.Open,FileAccess.Read,FileShare.Read))
+            Assert.Throws<IOException>(()=>DeleteBound("A",new string('a',32),owner=>true));
+        Assert.That(File.Exists(PathFor("A")),Is.True);
+        DeleteBound("A",new string('a',32),owner=>true);
+        Directory.CreateDirectory(PathFor("A"));
+        Assert.Throws<UnauthorizedAccessException>(()=>DeleteBound("A",new string('a',32),owner=>true));
+        Directory.Delete(PathFor("A")); Directory.Delete(_root); File.WriteAllText(_root,"preserve");
+        try { Assert.Throws<IOException>(()=>DeleteBound("A",new string('a',32),owner=>true)); }
+        finally { File.Delete(_root); }
     }
 }

@@ -62,8 +62,10 @@ namespace AD.Privacy
         public DeletionReceiptClient(IDeletionReceiptGateway gateway, IDeletionReceiptKeys keys, IDeletionRecoveryStore store)
         { _gateway = gateway; _keys = keys; _store = store; }
 
-        public static string AccessMessage(DeletionRecovery r) => DeletionRecovery.Hash("tamer.deletion.receipt.access.v1",
-            r.Origin, r.Title, r.OwnerHash, r.Binding, r.ClientKey, r.RequestId, r.Revision);
+        public static string AccessMessage(DeletionRecovery r) => r.InventoryOwnerKey == null
+            ? DeletionRecovery.Hash("tamer.deletion.receipt.access.v1", r.Origin, r.Title, r.OwnerHash, r.Binding, r.ClientKey, r.RequestId, r.Revision)
+            : DeletionRecovery.Hash("tamer.deletion.receipt.access.v2", r.Origin, r.Title, r.OwnerHash, r.Binding, r.ClientKey,
+                r.RequestId, r.Revision, r.InventoryOwnerKey, r.InventorySession);
         private static string SealMessage(DeletionRecovery r) => DeletionRecovery.Hash("tamer.deletion.receipt.local-terminal.v1",
             AccessMessage(r), r.TerminalState, r.ReceiptExpires.ToString("R", CultureInfo.InvariantCulture), r.CleanupApplied ? "applied" : "pending");
         public static string Verifier(string capability)

@@ -9,6 +9,51 @@ using PlayFab;
 
 public class RevivalDeletionIntakeTests
 {
+    [TestCase(false,false)] [TestCase(true,false)] [TestCase(true,true)]
+    public void Revival_InventoryDeletionAcceptedAndRestartRespectSession(bool restarted,bool newer)
+    {
+        var root=new GameObject("Inventory deletion fixture"); root.SetActive(false);
+        string directory=Path.Combine(Path.GetTempPath(),"inventory-deletion-"+Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+        string path=Path.Combine(directory,"PlayerData.json");
+        var credentials=new PlayFabAuthenticationContext(); credentials.CopyFrom(PlayFabSettings.staticPlayer);
+        string title=PlayFabSettings.TitleId;
+        const string pauseKey="AD_DeletionAcceptedNeedsLogin"; bool hadPause=PlayerPrefs.HasKey(pauseKey); int pause=PlayerPrefs.GetInt(pauseKey);
+        try
+        {
+            PlayFabSettings.TitleId="TEST1"; PlayFabSettings.staticPlayer.ForgetAllCredentials();
+            var data=root.AddComponent(DataType); Set(data,"_playerDataPath",path);
+            Set(data,"<PlayFabId>k__BackingField","synthetic-a");
+            string epoch=new string('a',32); Set(data,"_inventorySession",epoch);
+            var storeType=DataType.Assembly.GetType("AD.PlayerInventoryStore");
+            var store=Activator.CreateInstance(storeType,path+".inventory",new[]{"Bat"},new Dictionary<string,string>{{"SimpleSword","Sword"}});
+            Call(store,"BindSession","synthetic-a",epoch); Call(store,"BindSession","other",new string('b',32));
+            string own=(string)Call(store,"PathFor","synthetic-a"), other=(string)Call(store,"PathFor","other");
+            File.WriteAllText(path,"{\"__TamerAccountOwner\":\"synthetic-a\",\"GooglePlay\":\"ProductNoAds\"}");
+            if(restarted)
+            {
+                Set(data,"<PlayFabId>k__BackingField","");
+                var recordType=AppDomain.CurrentDomain.GetAssemblies().Select(a=>a.GetType("AD.Privacy.DeletionRecovery")).First(t=>t!=null);
+                var record=Activator.CreateInstance(recordType);
+                void Field(string n,object v)=>recordType.GetField(n).SetValue(record,v);
+                Field("Origin","https://example.invalid/"); Field("Title","TEST1");
+                Field("OwnerHash",recordType.GetMethod("Hash").Invoke(null,new object[]{new[]{"https://example.invalid/","TEST1","synthetic-a"}}));
+                Field("InventoryOwnerKey",Path.GetFileNameWithoutExtension(own)); Field("InventorySession",epoch);
+                if(newer) Call(store,"BindSession","synthetic-a",new string('c',32));
+                if(newer) Assert.Throws<TargetInvocationException>(()=>Call(data,"ApplyDeletionReceipt",record,true));
+                else { Call(data,"ApplyDeletionReceipt",record,true); Call(data,"ApplyDeletionReceipt",record,true); }
+            }
+            else Call(data,"FinishAcceptedDeletion",Call(data,"DeletionSession"));
+            Assert.That(File.Exists(own),Is.EqualTo(newer)); Assert.That(File.Exists(path),Is.EqualTo(newer));
+            Assert.That(File.Exists(other),Is.True);
+            if(!newer) Assert.That(File.ReadAllText(Directory.GetFiles(directory,"*.deletion-entitlement-*").Single()),Does.Contain("ProductNoAds"));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root); Directory.Delete(directory,true);
+            PlayFabSettings.TitleId=title; PlayFabSettings.staticPlayer.CopyFrom(credentials);
+            if(hadPause) PlayerPrefs.SetInt(pauseKey,pause); else PlayerPrefs.DeleteKey(pauseKey); PlayerPrefs.Save();
+        }
+    }
     private static Type DataType => AppDomain.CurrentDomain.GetAssemblies()
         .Select(a => a.GetType("AD.DataManager")).First(t => t != null);
     private static object Call(object target, string name, params object[] args) =>
