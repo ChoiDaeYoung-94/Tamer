@@ -18,6 +18,49 @@ public class RevivalDeletionIntakeTests
     private static object PrivateCall(object target, string name, params object[] args) =>
         target.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, args);
 
+    [Test] public void Revival_DeletionRuntimeCompositionRejectsReplacedManagerBeforeAnyHttp()
+    {
+        var root = new GameObject("Deletion runtime composition fixture");
+        root.SetActive(false);
+        var managersType = DataType.Assembly.GetType("AD.Managers");
+        var instance = managersType.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static);
+        var previousManagers = instance.GetValue(null);
+        var presenter = DataType.Assembly.GetType("AD.DeletionPresenter");
+        var factory = presenter.GetProperty("RuntimeFlowFactory");
+        var previousFactory = factory.GetValue(null);
+        var guard = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.Privacy.DeletionRecoveryGuard"))
+            .First(t => t != null).GetProperty("HasPendingSubmission");
+        var previousGuard = guard.GetValue(null);
+        var credentials = new PlayFabAuthenticationContext(); credentials.CopyFrom(PlayFabSettings.staticPlayer);
+        string title = PlayFabSettings.TitleId;
+        IDisposable flow = null;
+        try
+        {
+            var data = root.AddComponent(DataType);
+            DataType.GetProperty("PlayFabId").SetValue(data, "synthetic-runtime");
+            var managers = root.AddComponent(managersType);
+            Set(managers, "_dataM", data); instance.SetValue(null, managers);
+            PlayFabSettings.TitleId = "TEST1";
+            PlayFabSettings.staticPlayer.PlayFabId = "synthetic-runtime";
+            PlayFabSettings.staticPlayer.EntityId = "synthetic-entity";
+            PlayFabSettings.staticPlayer.EntityType = "title_player_account";
+            presenter.GetMethod("ConfigureSessionService").Invoke(null, new object[] { new Uri("https://example.invalid/"), "TEST1",
+                Path.Combine(Path.GetTempPath(), "tamer-unused-" + Guid.NewGuid().ToString("N")) });
+            flow = (IDisposable)((Delegate)factory.GetValue(null)).DynamicInvoke();
+            Assert.That(PrivateCall(flow, "Current"), Is.True);
+            Set(managers, "_dataM", root.AddComponent(DataType));
+            Assert.That(PrivateCall(flow, "Current"), Is.False);
+        }
+        finally
+        {
+            flow?.Dispose();
+            UnityEngine.Object.DestroyImmediate(root);
+            instance.SetValue(null, previousManagers); factory.SetValue(null, previousFactory);
+            guard.SetValue(null, previousGuard);
+            PlayFabSettings.TitleId = title; PlayFabSettings.staticPlayer.CopyFrom(credentials);
+        }
+    }
+
     [Test]
     public void Revival_DeletionPendingLoginOpensRecoveryWithoutUnlockingWritesOrOldLogin()
     {

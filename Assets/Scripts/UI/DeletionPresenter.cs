@@ -41,7 +41,7 @@ namespace AD
                         throw new InvalidOperationException();
                     return player.ClientSessionTicket;
                 });
-                return new DeletionFlow(gateway, owner.DeletionSession, owner.BeginDeletionSubmission,
+                return new DeletionFlow(gateway, () => ReferenceEquals(owner, Managers.DataM) ? owner.DeletionSession() : null, owner.BeginDeletionSubmission,
                     owner.FinishAcceptedDeletion, owner.FinishCancelledDeletion, store(session.AccountId),
                     DeletionRecovery.Hash(httpsOrigin.AbsoluteUri, titleId, session.AccountId, session.EntityId));
             };
@@ -56,7 +56,7 @@ namespace AD
                 var owner = Managers.DataM;
                 if (owner == null) return new DeletionFlow(new UnavailableDeletionGateway(), () => null);
                 return new DeletionFlow(new HttpDeletionGateway(httpsOrigin, freshAuthentication),
-                    owner.DeletionSession, owner.BeginDeletionSubmission, owner.FinishAcceptedDeletion,
+                    () => ReferenceEquals(owner, Managers.DataM) ? owner.DeletionSession() : null, owner.BeginDeletionSubmission, owner.FinishAcceptedDeletion,
                     owner.FinishCancelledDeletion);
             };
         }
