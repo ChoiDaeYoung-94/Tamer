@@ -61,6 +61,38 @@ class TitleDeletionProviderTests(unittest.TestCase):
         self.service.advance(self.id)
         self.assertEqual(len(self.calls), 1)
 
+    def test_intake_without_completion_observers_returns_durable_acceptance(self):
+        self.provider = TitleDeletionProvider(self.path, 'SYNTHETIC',
+            ServerDeletePlayerSubmission('SYNTHETIC', self.invoke), lambda target: target == self.target)
+        self.bind()
+        self.assertEqual(self.provider.submit_confirmed(self.id, 'synthetic-a', self.policy), 'accepted')
+        restarted = TitleDeletionProvider(self.path, 'SYNTHETIC',
+            ServerDeletePlayerSubmission('SYNTHETIC', self.invoke), lambda target: target == self.target)
+        self.assertEqual(restarted.submit_confirmed(self.id, 'synthetic-a', self.policy), 'accepted')
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.service.status('synthetic-proof', self.id)['state'], 'processing')
+        with self.assertRaises(Rejected):
+            restarted.reconcile(self.id, 'synthetic-a', self.policy)
+        self.assertEqual(self.polls, [])
+
+    def test_intake_response_loss_stays_unknown_without_second_delete(self):
+        self.bind()
+        def lost():
+            raise TimeoutError()
+        self.accept = lost
+        with self.assertRaises(Rejected):
+            self.provider.submit_confirmed(self.id, 'synthetic-a', self.policy)
+        self.assertEqual(self.provider.submit_confirmed(self.id, 'synthetic-a', self.policy), 'submission_unknown')
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.polls, [])
+
+    def test_cancelled_bound_request_cannot_submit(self):
+        self.bind()
+        self.service.cancel('synthetic-proof', self.id)
+        with self.assertRaises(Rejected):
+            self.provider.submit_confirmed(self.id, 'synthetic-a', self.policy)
+        self.assertEqual(self.calls, [])
+
     def test_unbound_and_wrong_account_never_submit(self):
         with self.assertRaises(Rejected):
             self.service.advance(self.id)
