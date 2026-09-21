@@ -1,5 +1,7 @@
 # PlayerPrefs 진행도 Cloud 확장 조사와 미승인 제안
 
+2026-09-21 후속: [계정 검증 코어와 서버 트랜잭션 경계](inventory-account-core.ko.md)에서 실제 SDK의 조건부 갱신과 Gold 원자성 공백을 조사했다. 아래 UserData 키·JSON revision은 과거의 미승인 제안이며, 서버 경쟁쓰기 보장이나 확정된 저장 형식으로 사용하지 않는다.
+
 ## 코드에서 확인한 사실
 
 기준은 `8fc8d91d9a0e74c71b59c084a852bb98ca212701`이다. 이번 Cloud 로그인 변경은 아래 데이터를 서버화하지 않는다.
