@@ -192,6 +192,8 @@ namespace AD
         {
             if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
             if (IsServerDataReady && session.InventorySession != _inventorySession) throw new InvalidOperationException("A newer inventory session is active.");
+            if (session.InventoryOwnerKey != null && session.InventoryOwnerKey != PlayerInventoryStore.OwnerKey(session.AccountId))
+                throw new InvalidOperationException("Inventory owner binding changed.");
             if (!string.IsNullOrEmpty(PlayFab.PlayFabSettings.staticPlayer.PlayFabId) &&
                 PlayFab.PlayFabSettings.staticPlayer.PlayFabId != session.AccountId) throw new InvalidOperationException();
             // Invalidate writes/callbacks and credentials even if a local disk operation fails.
