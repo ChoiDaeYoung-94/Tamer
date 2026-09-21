@@ -32,6 +32,8 @@ README의 개인정보처리방침은 게임 출시 때 마련한 공개 정책 
 
 ## 2026-09-14 최신 통합과 다음 실행
 
+광고 복구 방향은 2026-09-21 사용자 결정으로 정상 광고 + 기존 No Ads 상품 유지로 확정됐다. 신규 구매·기존 권한·복원을 모두 지원하며 광고 차단·신규 판매 중단 임시 출시안은 채택하지 않는다. [확정 실행 기준](ad-recovery-decision.ko.md)에 따라 진행하고, 이전 A/B 질문을 반복하지 않는다.
+
 후속 완료 근거(2026-09-21): [Cloud 8키 실기기 검증](game-save-cloud-device.ko.md)은 PR175에서 두 단계의 실제 서버 저장·재조회·프로세스 재시작 primary 복원·신규 읽기 전용 복원을 기록한다. 실패는 0회이며 개인폰 추가 사용은 끝났다. 이는 합성 8키 하네스의 결과로 실제 Player 씬 적용이나 PlayerPrefs 인벤토리 이행 완료는 아니다. 아래 9월 14일 기준과 테스트 수치는 과거 실행 근거로 유지한다.
 
 기준 main은 `731d9cfa3fe66960b2d8096b04295e4b220a16b6`(PR155)이다. [포획 수명 및 실기기 검증](gameplay-capture-lifecycle.ko.md)은 source `76c4b8ada7c24c91ae50e1f661ae37c45bdc0c6a`와 APK/381개 테스트 해시를 기록한다. 보조 무적·고정 roll을 사용한 포획 처리 경로와 원래 확률 검증을 구분한다. [IAP Store 검증](iap-test-bundle.ko.md)은 source `39c2b253e3d6d57e1c3b2e4fc8f2dafe1adac6ef`의 AAB·전달 APK 해시 및 기존370개 테스트와 새 실기기 결과를 구분한다. Confirm 호출은 소스와 관측 결과에 부합하지만 직접 콜백 추적·독립 acknowledgment 상태는 아직 확보하지 못했다.
