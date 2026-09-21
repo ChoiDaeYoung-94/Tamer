@@ -2,12 +2,113 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Collections.ObjectModel;
+using System.Runtime.Serialization;
 using AD.Purchasing;
 using NUnit.Framework;
 using UnityEngine.Purchasing;
 
 public class RevivalIAPOrderTests
 {
+    // Drive the real StoreController forwarding methods without initializing a store.
+    private sealed class OfflinePurchases : IPurchaseService
+    {
+        public int Fetches, Restores;
+        public bool ThrowOnFetch;
+        public IAppleStoreExtendedPurchaseService Apple => null;
+        public IGooglePlayStoreExtendedPurchaseService Google => null;
+        public IPaymentProvidersExtendedPurchaseService PaymentProviders => null;
+        public void FetchPurchases() { Fetches++; if (ThrowOnFetch) throw new InvalidOperationException(); }
+        public void RestoreTransactions(Action<bool, string> callback) { Restores++; callback(true, null); }
+        public void PurchaseProduct(Product product) => throw new InvalidOperationException("Unexpected sale");
+        public void PurchaseProduct(string id) => throw new InvalidOperationException("Unexpected sale");
+        public void Purchase(ICart cart) => throw new InvalidOperationException("Unexpected sale");
+        public void ConfirmPurchase(PendingOrder order) => throw new InvalidOperationException("Unexpected confirmation");
+        public void CheckEntitlement(Product product) => throw new NotSupportedException();
+        public ReadOnlyObservableCollection<Order> GetPurchases() => throw new NotSupportedException();
+        public void ProcessPendingOrdersOnPurchasesFetched(bool value) { }
+        public event Action<PendingOrder> OnPurchasePending { add { } remove { } }
+        public event Action<Order> OnPurchaseConfirmed { add { } remove { } }
+        public event Action<FailedOrder> OnPurchaseFailed { add { } remove { } }
+        public event Action<DeferredOrder> OnPurchaseDeferred { add { } remove { } }
+        public event Action<Orders> OnPurchasesFetched { add { } remove { } }
+        public event Action<PurchasesFetchFailureDescription> OnPurchasesFetchFailed { add { } remove { } }
+        public event Action<Entitlement> OnCheckEntitlement { add { } remove { } }
+    }
+
+    private static void WithOfflinePurchases(Action<object, OfflinePurchases> check)
+    {
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var manager = Activator.CreateInstance(ManagerType);
+        var purchases = new OfflinePurchases();
+        var store = (StoreController)FormatterServices.GetUninitializedObject(typeof(StoreController));
+        typeof(StoreController).GetField("m_PurchaseService", flags).SetValue(store, purchases);
+        ManagerType.GetField("_store", flags).SetValue(manager, store);
+        ManagerType.GetField("_connected", flags).SetValue(manager, true);
+        try { check(manager, purchases); }
+        finally
+        {
+            // Only the purchase service was supplied; no event subscriptions were made.
+            ManagerType.GetField("_store", flags).SetValue(manager, null);
+            ((IDisposable)manager).Dispose();
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_IAP_UnavailableCatalogStillFetchesOwnedPurchases(bool failed)
+    {
+        WithOfflinePurchases((manager, purchases) =>
+        {
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            ManagerType.GetField("_initialFetchInProgress", flags).SetValue(manager, true);
+            ManagerType.GetMethod(failed ? "OnProductsFetchFailed" : "OnProductsFetched", flags)
+                .Invoke(manager, new object[] { failed ? null : (object)new List<Product>() });
+            Assert.That(purchases.Fetches, Is.EqualTo(1));
+            Assert.That(ManagerType.GetProperty("IsReadyToPurchase").GetValue(manager), Is.False);
+            Assert.That(ManagerType.GetField("_initialFetchInProgress", flags).GetValue(manager), Is.True);
+            ManagerType.GetMethod("OnPurchasesFetched", flags).Invoke(manager, new object[] {
+                new Orders(Array.Empty<ConfirmedOrder>(), Array.Empty<PendingOrder>(), Array.Empty<DeferredOrder>()) });
+            Assert.That(ManagerType.GetField("_purchasesLoaded", flags).GetValue(manager), Is.True);
+            Assert.That(ManagerType.GetProperty("IsReadyToPurchase").GetValue(manager), Is.False);
+        });
+    }
+
+    [Test]
+    public void Revival_IAP_RestoreDoesNotRequirePurchasableCatalogAndDoesNotOverlap()
+    {
+        WithOfflinePurchases((manager, purchases) =>
+        {
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var restore = ManagerType.GetMethod("RestorePurchases");
+            ManagerType.GetField("_initialFetchInProgress", flags).SetValue(manager, true);
+            restore.Invoke(manager, null);
+            Assert.That(purchases.Restores, Is.Zero);
+            ManagerType.GetField("_initialFetchInProgress", flags).SetValue(manager, false);
+            restore.Invoke(manager, null);
+            restore.Invoke(manager, null);
+            Assert.That(purchases.Restores, Is.EqualTo(1));
+            Assert.That(ManagerType.GetProperty("IsReadyToPurchase").GetValue(manager), Is.False);
+            Assert.That(ManagerType.GetMethod("ShouldRetryInitialization", flags)
+                .Invoke(manager, new object[] { DateTime.UtcNow.AddMinutes(1) }), Is.False,
+                "Catalog retry must not overlap an active restore when sales are unavailable.");
+        });
+    }
+
+    [Test]
+    public void Revival_IAP_OwnedPurchaseFetchExceptionReleasesRetryGuard()
+    {
+        WithOfflinePurchases((manager, purchases) =>
+        {
+            purchases.ThrowOnFetch = true;
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            ManagerType.GetMethod("OnProductsFetchFailed", flags).Invoke(manager, new object[] { null });
+            Assert.That(purchases.Fetches, Is.EqualTo(1));
+            Assert.That(ManagerType.GetField("_initialFetchInProgress", flags).GetValue(manager), Is.False);
+            Assert.That(ManagerType.GetField("_purchasesLoaded", flags).GetValue(manager), Is.False);
+        });
+    }
+
     private sealed class FakeOrderInfo : IOrderInfo
     {
         public IAppleOrderInfo Apple => null;
