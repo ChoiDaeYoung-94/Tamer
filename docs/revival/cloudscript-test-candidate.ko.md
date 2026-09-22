@@ -2,7 +2,7 @@
 
 ## 현재 상태
 
-PR #212 이후 시험 연결 준비이다. 기존 `account-deletion.js`의 enabled=false를 유지한다. `deletion-test-gate.js`는 **시험 후보에만** 함께 붙이는 제한이며 운영 배포에 승계하지 않는다. 신규 서버/DB/영수증 서비스는 없다. 실제 시험 타이틀의 기존 revision·handler·API 옵션은 아직 읽기 확인 전이므로 무영향 배포 가능 여부를 확정하지 않았다. 원격 업로드·활성화·계정 생성·삭제는 수행하지 않았다.
+PR #212 이후 시험 연결 준비이다. 기존 `account-deletion.js`의 enabled=false를 유지한다. `deletion-test-gate.js`는 **시험 후보에만** 함께 붙이는 제한이며 운영 배포에 승계하지 않는다. 신규 서버/DB/영수증 서비스는 없다. 실제 시험 타이틀을 읽기 확인하여 원본을 보존한 비활성 결합 후보까지 만들었다. 원격 업로드·활성화·계정 생성·삭제는 수행하지 않았다.
 
 ## 기존 소스 보존과 후보 구성
 
@@ -45,6 +45,25 @@ PR #212 이후 시험 연결 준비이다. 기존 `account-deletion.js`의 enabl
 검증 순서는 비파괴 config 확인 → 검토된 폐기 계정과 정상 접수 범위 확인 → 승인된 명시 삭제 한 번 → 정상 접수 시 로그아웃/owner 정리 및 불명확 응답 시 데이터 보존/저장 차단으로 나눈다. timeout을 이유로 재삭제하지 않는다. 응답 유실은 별도 합성 경로로 먼저 확인하고 실제 계정 삭제를 반복하지 않는다. 각 테스트 2회 실패 시 중단한다.
 
 ## 로컬 검증 증거
+
+### 시험 타이틀 읽기와 비활성 결합 후보
+
+2026-09-22 별도 브라우저 탭으로 승인된 시험 타이틀만 확인하고 종료했다. 기존 PGS/Cloud/PlayFab 탭과 휴대폰은 변경하지 않았다. Classic revision 목록에는 **수정 버전 1(실시간)** 하나만 표시되었다. UI 코드 편집기의 전체 선택/복사로 원본 14044문자와 14개 handler를 비공개로 보존했고 후보의 네 가지 이름과 충돌하지 않았다. API의 version 번호·원본 Filename은 UI에서 확보하지 않았으므로 추정하지 않는다.
+
+API 기능의 **서버가 플레이어 계정을 삭제하도록 허용은 unchecked**, **클라이언트/LoginWithCustomId를 사용하여 플레이어 만들기 비활성화는 checked**였다. 설정 변경/저장은 하지 않았다. 따라서 원격 삭제 실행은 현재 설정 그대로 진행할 수 없으며, 클라이언트 신규 생성 차단을 풀지 않는 서버 측 계정 준비 경로를 먼저 검토해야 한다. 옵션 활성화는 타이틀 전체 Server/DeletePlayer 호출에 영향을 줄 수 있고 후보의 단일 계정 gate와 범위가 다르다. 임의로 켜지 않는다.
+
+비공개 `cloudscript-test-merged-disabled.js`는 원본을 그대로 prefix로 두고 세미콜론 경계를 넣은 뒤 title pin을 지정한 삭제 소스와 시험 gate를 붙였다. 기본 비활성이다. Node 구문 검사와 VM 등록 검사에서 원본 prefix 일치, 기존 14개 handler의 함수 소스 동일, 새 handler 2개만 추가, enabled=false를 확인했다. handler 자체를 실행하지 않았고 원격 요청은 0이다. 이 검사는 원격 엔진·기존 실제 호출의 무영향을 보증하지 않으며, 게시 전 최신 원본과 다시 대조해야 한다.
+
+모든 파일은 `Logs/revival/` 아래 비공개이며 실제 타이틀 pin이 있는 후보와 원본을 커밋하지 않는다.
+
+| 파일 | SHA-256 |
+|---|---|
+| cloudscript-test-existing-revision1.js | e3ea3f0a07948523d1a4b93b64d5642b97cfa28cf94a1b7483fbecdf90397604 |
+| cloudscript-test-api-features.txt | 2c24d448fdff3d9874df9cb64e363d36a936a09e8dece6387923f93974d6e72a |
+| cloudscript-test-merged-disabled.js | 5e5091fb141013f554c6a6815311d311ae727e74393f21e0d020fa769786dabf |
+| cloudscript-test-merge-check.log | 295a67d5139dea9ef07484cbe1f5528c7a8516e8a391ddc6d8bf88b5da22966c |
+
+### 코드 검사
 
 - checkout `C:\Users\pc_17\.codex\worktrees\7299\Tamer`, branch `codex/cloudscript-test-candidate`, base `21cabeb2bb3e9ab9689757bded26e4e9f2a4a48a`.
 - 2026-09-22, Node v22.20.0, `node tools/revival/test_cloudscript_deletion_gate.cjs`: 첫 실행 **15/15 통과**, 실제 요청0. 미설정/오류/다른계정/다른타이틀/미래시작/만료/장시간/형식오류 거부, 기존 handler 보존, config 비삭제, 매 호출 재읽기를 확인했다.
