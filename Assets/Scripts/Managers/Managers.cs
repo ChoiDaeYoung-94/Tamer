@@ -63,7 +63,18 @@ namespace AD
 
         private void Awake()
         {
+#if TAMER_DELETION_HARNESS
+            if (Application.identifier != RevivalDeletionTrialHarness.ApplicationId || !Debug.isDebugBuild)
+                throw new InvalidOperationException("Isolated deletion trial required.");
+            if (!TryClaimInstance()) throw new InvalidOperationException("Duplicate trial owner.");
+            _dataM = gameObject.AddComponent<DataManager>();
+            _serverM = new ServerManager(_dataM);
+            _dataM.InitializeDeletionTrial();
+            _initialized = true;
+            DontDestroyOnLoad(gameObject);
+#else
             Init();
+#endif
         }
 
         private void Start()
