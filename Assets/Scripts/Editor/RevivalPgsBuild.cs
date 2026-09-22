@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -68,9 +68,21 @@ public static class RevivalPgsBuild
         RevivalBuild.RequireSavedScenes();
         ValidateDefines();
         if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android) throw new BuildFailedException("Android target required.");
-        if (File.Exists(ConfigPath) || File.Exists(ConfigPath + ".meta") || File.Exists(SettingsPath) || File.Exists(SettingsPath + ".meta")
-            || AssetDatabase.FindAssets("t:PlayGamesSettings").Length != 0)
-            throw new BuildFailedException("Existing local PGS settings found; preserve them and review before building.");
+        if (File.Exists(ConfigPath) || File.Exists(ConfigPath + ".meta"))
+            throw new BuildFailedException("Existing temporary PGS configuration found; preserve and review it.");
+        var settingsPaths = AssetDatabase.FindAssets("t:PlayGamesSettings").Select(AssetDatabase.GUIDToAssetPath).ToArray();
+        if (settingsPaths.Length > 1 || (settingsPaths.Length == 0 && (File.Exists(SettingsPath) || File.Exists(SettingsPath + ".meta"))))
+            throw new BuildFailedException("Ambiguous local PGS settings; preserve and review them.");
+        string settingsPath = settingsPaths.Length == 1 ? settingsPaths[0] : SettingsPath;
+        byte[] originalSettings = settingsPaths.Length == 1 ? File.ReadAllBytes(settingsPath) : null;
+        byte[] originalSettingsMeta = originalSettings != null ? File.ReadAllBytes(settingsPath + ".meta") : null;
+        if (originalSettings != null)
+        {
+            string backup = Path.Combine("Logs/revival/pgs-settings-snapshots", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(backup);
+            File.WriteAllBytes(Path.Combine(backup, "PlayGamesSettings.asset"), originalSettings);
+            File.WriteAllBytes(Path.Combine(backup, "PlayGamesSettings.asset.meta"), originalSettingsMeta);
+        }
         // Verify the existing isolated scene before allowing any build-time configuration changes.
         RevivalBuild.VerifySmokeScene();
         var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
@@ -79,15 +91,19 @@ public static class RevivalPgsBuild
         var originals = new[] { Manifest, PgsManifest }.ToDictionary(p => p, File.ReadAllBytes);
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
+        string oldAlias = PlayerSettings.Android.keyaliasName;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         try
         {
             File.WriteAllText(ConfigPath, JsonUtility.ToJson(config));
             AssetDatabase.ImportAsset(ConfigPath);
-            var settings = ScriptableObject.CreateInstance<PlayGamesSettings>();
+            var settings = originalSettings == null ? ScriptableObject.CreateInstance<PlayGamesSettings>()
+                : AssetDatabase.LoadAssetAtPath<PlayGamesSettings>(settingsPath);
             settings.AppId = config.gameId; settings.WebClientId = config.webClientId;
-            AssetDatabase.CreateAsset(settings, SettingsPath);
+            if (originalSettings == null) AssetDatabase.CreateAsset(settings, settingsPath);
+            else EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
             File.WriteAllText(Manifest, IsolatedManifest(File.ReadAllText(Manifest)));
             var pgs = XDocument.Parse(File.ReadAllText(PgsManifest));
             XNamespace android = "http://schemas.android.com/apk/res/android";
@@ -111,14 +127,48 @@ public static class RevivalPgsBuild
         }
         finally
         {
-            AssetDatabase.DeleteAsset(ConfigPath); AssetDatabase.DeleteAsset(SettingsPath);
-            EditorUserBuildSettings.buildAppBundle = oldBundle;
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
-            PlayerSettings.Android.useCustomKeystore = oldKey;
-            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
-            AssetDatabase.SaveAssets();
-            foreach (var entry in originals) { File.WriteAllBytes(entry.Key, entry.Value); AssetDatabase.ImportAsset(entry.Key); }
-            if (originals.Any(e => !File.ReadAllBytes(e.Key).SequenceEqual(e.Value))) throw new BuildFailedException("PGS manifest restoration failed.");
+            var failures = new System.Collections.Generic.List<string>();
+            void Restore(string label, Action action)
+            {
+                try { action(); }
+                catch (Exception) { failures.Add(label); }
+            }
+            void RemoveTemporary(string path)
+            {
+                AssetDatabase.DeleteAsset(path);
+                if (File.Exists(path) || File.Exists(path + ".meta")) throw new IOException();
+            }
+            Restore("temporary-config", () => RemoveTemporary(ConfigPath));
+            if (originalSettings == null) Restore("temporary-settings", () => RemoveTemporary(settingsPath));
+            Restore("bundle", () => EditorUserBuildSettings.buildAppBundle = oldBundle);
+            Restore("package", () => PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId));
+            Restore("signing", () => PlayerSettings.Android.useCustomKeystore = oldKey);
+            Restore("alias", () => PlayerSettings.Android.keyaliasName = oldAlias);
+            Restore("backend", () => PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend));
+            Restore("save-settings", AssetDatabase.SaveAssets);
+            if (originalSettings != null)
+            {
+                Restore("pgs-asset-bytes", () => File.WriteAllBytes(settingsPath, originalSettings));
+                Restore("pgs-meta-bytes", () => File.WriteAllBytes(settingsPath + ".meta", originalSettingsMeta));
+                Restore("pgs-import", () => AssetDatabase.ImportAsset(settingsPath, ImportAssetOptions.ForceUpdate));
+                Restore("pgs-verify", () =>
+                {
+                    if (!File.ReadAllBytes(settingsPath).SequenceEqual(originalSettings) ||
+                        !File.ReadAllBytes(settingsPath + ".meta").SequenceEqual(originalSettingsMeta))
+                        throw new IOException();
+                });
+            }
+            foreach (var entry in originals)
+            {
+                Restore("manifest-bytes", () => File.WriteAllBytes(entry.Key, entry.Value));
+                Restore("manifest-import", () => AssetDatabase.ImportAsset(entry.Key));
+                Restore("manifest-verify", () =>
+                {
+                    if (!File.ReadAllBytes(entry.Key).SequenceEqual(entry.Value)) throw new IOException();
+                });
+            }
+            if (failures.Count != 0)
+                throw new BuildFailedException("PGS restoration failed: " + string.Join(",", failures) + "; private backups retained.");
         }
     }
     [Serializable] private sealed class CatalogFlags

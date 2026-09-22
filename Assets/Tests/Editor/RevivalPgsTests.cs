@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -15,7 +15,7 @@ public class RevivalPgsTests
         ConfigType.GetField("gameId").SetValue(c, game);
         return c;
     }
-    private static void Validate(object c, string package = "com.AeDeong.MonsterTamer.iaptest")
+    private static void Validate(object c, string package = "com.AeDeong.MonsterTamer.revival.pgs")
     {
         try { ConfigType.GetMethod("Validate").Invoke(c, new object[] { package }); }
         catch (TargetInvocationException e) { throw e.InnerException; }
@@ -25,7 +25,8 @@ public class RevivalPgsTests
     [TestCase(null)]
     public void RejectsNonTestTitle(string title) => Assert.Throws<InvalidOperationException>(() => Validate(Config(title)));
     [TestCase("com.AeDeong.MonsterTamer")]
-    [TestCase("com.AeDeong.MonsterTamer.iaptest.other")]
+    [TestCase("com.AeDeong.MonsterTamer.iaptest")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.pgs.other")]
     public void RejectsOtherPackage(string package) => Assert.Throws<InvalidOperationException>(() => Validate(Config(), package));
     [TestCase(null)]
     [TestCase("")]
