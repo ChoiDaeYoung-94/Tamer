@@ -2,7 +2,7 @@
 
 ## 범위와 현재 상태
 
-사용자가 승인한 시험 타이틀의 신규 폐기 계정 한 개에 한정한다. 기존 PGS/IAP 계정과 운영 타이틀, master 삭제는 대상이 아니다. 별도 서버/DB를 배포하지 않는다. 현재 기록은 **계정 생성 및 기기 로그인까지**이며 삭제 성공 기록이 아니다. Chrome 파일 선택 제한으로 미게시 후보 업로드 전에 멈춘 상태이다. 원격 revision/Live·삭제 옵션·내부 gate는 변경하지 않았다.
+사용자가 승인한 시험 타이틀의 신규 폐기 계정 한 개에 한정한다. 기존 PGS/IAP 계정과 운영 타이틀, master 삭제는 대상이 아니다. 별도 서버/DB를 배포하지 않는다. 현재 기록은 **계정 생성·기기 로그인·미게시 revision2의 비활성 config 확인까지**이며 삭제 성공 기록이 아니다. 기기 연결 확인 2회 실패 후 중단했고, 추가 승인된 ADB 서버 재시작도 종료 명령 timeout으로 실패했다. Live1·삭제 옵션 off·내부 gate 없음은 유지되며 실제 삭제 요청은 0회이다.
 
 ## 구현과 검증 대상
 
@@ -29,7 +29,12 @@
 - 사용자 입력 후 읽기 API 성공으로 version1/published1/latest1 확인. 브라우저의 현재 원본 14044문자도 이전 백업과 동일하다.
 - 승인된 신규 계정 한 개 생성 응답 NewlyCreated=true/시험 title 일치. 정확 ID 검색 결과1명, 생성 시각 일치, Custom 연결만, 구매 결과 없음/$0, legacy inventory 결과 없음을 비공개로 기록했다. 기존 계정을 선택·재사용하지 않았다.
 - 기기 첫 로그인 버튼 시도는 서버 호출 전에 입력 형식 오류로 멈췄다. 키보드 포커스 후 가림 입력을 다시 넣고 native password field 길이68을 확인한 뒤 두 번째 시도에서 로그인 성공/기존 삭제 UI Idle 표시를 확인했다. 첫 원인은 입력 타이밍에 의한 누락 가능성이 있으나 확정하지 않는다. 이 시험은 1실패 후 2차 통과이며 세 번째 시도는 없다.
-- 원격 내부 gate 키 없음, 서버 삭제 옵션 off, Client CustomId 신규 생성 차단 유지. 후보 업로드 시 파일 선택에서 확장 프로그램 로컬 파일 접근이 거부되어 저장/업로드하지 않았다. 사용자 파일 선택을 기다리며 권한을 임의 변경하지 않는다.
+- 사용자 직접 파일 선택 후 후보를 미게시 revision2로 한 번 업로드했다. 원본 14 handler prefix는 그대로이며 원격 전체 내용은 줄바꿈 정규화 후 로컬 후보와 일치한다. Live는 revision1이다.
+- 신규 시험 계정의 Specific revision2에서 읽기 함수 getCurrentPlayerDeletionConfigV1만 한 번 실행했다. available=false/protocol=tamer-title-deletion-v1, Error=null, APIRequestsIssued=1, HttpRequestsIssued=0을 확인했다. 삭제 함수는 호출하지 않았다.
+- 15분·한 계정 gate는 UI에 입력했으나 저장 전에 기기 연결 확인이 두 번 실패했다. 첫 .81 SDK adb devices는 무응답으로 해당 읽기 프로세스만 취소했고, 현재 서버와 같은 .25 SDK adb devices는 15초 timeout이었다. 원인은 미확정이다. 프로젝트 규칙에 따라 후속 활성화/삭제 시험을 중단하고 미저장 gate 입력을 취소했다.
+- 사용자가 공용 ADB 서버 재시작 및 연결 재확인 1회를 추가 승인했다. 통합 담당자의 ADB 작업 없음 확인 후 .25 SDK adb(34.0.5)의 kill-server를 실행했으나 20초 timeout이었다. 후속 start-server/devices는 실행하지 않았고 추가 반복, 다른 PID 강제 종료, Unity Editor 종료도 하지 않았다.
+- 브라우저 새로고침 후 서버 기준 내부 title data 비어 있음, ServerDeletePlayer off, Client CustomId 신규 생성 차단 on, Live1/미게시2를 다시 확인했다. 이 설정들은 애초 변경하지 않았으므로 원복 완료로 표현하지 않는다. 만료된 미저장 gate 값은 재사용하지 않는다.
+- 로컬 비밀 입력 helper를 정상 종료했고 ready=false/closed=true/프로세스 부재를 확인했다. 키를 파일이나 다른 저장소에서 복구하지 않는다. 재개 시 새 구체적 기기 복구 결정과 필요시 사용자 직접 키 재입력이 필요하다. 신규 계정/미게시 revision2/비공개 증거는 보존했다.
 
 ## 비공개 증거
 
@@ -46,5 +51,11 @@
 | deletion-trial/inventory-before-private.txt | e4842dec46dd5f0950487fbc7a9d6645bd0b3152c9f3e2e4db4b8da78d05203a |
 | deletion-trial/phone-login-second.png | e1592e6f86c51e05ade3f1fa1f27fb50acc6b9a6394be948f7a3de37d0d29d10 |
 | deletion-trial/candidate-gated.js | be0dbbec9085e94d4b1a0c7ced484ebcdf857f2e217e90de77d9e03070c0a36f |
+| deletion-trial/remote-revision2.js | 5d44a6014070718fa66986625bd5c3beb08b28e05d16fdb30b00d871de971099 |
+| deletion-trial/specific-config-off.txt | 1996ea335975346849a279fd2662493691522a85b0c4f50de807d15b36af1146 |
+| deletion-trial/internal-data-after-cancel.txt | 63c2d27e32a5b5cbe3741dbd650d668f697b7beb38a07ed63155fd04ca226941 |
+| deletion-trial/options-recheck.txt | e13eb7332ac3329472f8add13f2ecbf6094b8fc6eadad06736bf458953f1b283 |
+| deletion-trial/adb-approved-restart.json | deb4c58f40e993d07b8f5fb5214db324aad0268a28a2198f060558ada953e351 |
+| deletion-trial/helper-closed.json | 292f4276c4b39fc81447fd8b53cb071e45c49713134e2e15706a4f20b7011a49 |
 
-후보의 원본 prefix·기존14handler·추가gate 원문 일치는 독립 검토됐다. 정적 enabled=true/title pin 후보이지만 내부 runtime gate 미설정이면 거부한다. 미게시 후보 Specific config 선검사, 이후 현재 앱 Live→Specific 실제 연결 시험과 한 계정15분 gate/타이틀 전체 ServerDeletePlayer 허용·원복은 아직 남아 있다. 최대1분 설정 캐시와 in-flight 회수 불가, Live 복원은 Specific 폐기가 아니라는 제한은 [시험 후보 문서](cloudscript-test-candidate.ko.md)를 따른다. 이 결과는 실제 삭제 접수/완료·최종 출시 AAB·스토어 검증 증거가 아니다.
+후보의 원본 prefix·기존14handler·추가gate 원문 일치는 독립 검토됐다. 정적 enabled=true/title pin 후보이지만 내부 runtime gate 미설정이면 거부한다. 미게시 후보 Specific config 비활성 검사는 완료했다. 현재 앱 Live→Specific 실제 연결 시험과 한 계정15분 gate/타이틀 전체 ServerDeletePlayer 허용·원복은 아직 수행하지 않았다. 기기 연결 복구 승인과 준비 상태 재대조 전에는 진행하지 않는다. 최대1분 설정 캐시와 in-flight 회수 불가, Live 복원은 Specific 폐기가 아니라는 제한은 [시험 후보 문서](cloudscript-test-candidate.ko.md)를 따른다. 이 결과는 실제 삭제 접수/완료·최종 출시 AAB·스토어 검증 증거가 아니다.
