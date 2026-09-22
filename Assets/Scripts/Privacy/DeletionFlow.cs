@@ -77,6 +77,8 @@ namespace AD.Privacy
         private bool _recoveryBlocked;
         private ISessionConfirmationGateway SessionGateway => _gateway as ISessionConfirmationGateway;
         public bool UsesSessionConfirmation => SessionGateway?.UsesSessionConfirmation == true;
+        public bool UsesCloudScript => _gateway is CloudScriptDeletionGateway;
+        public bool CloudScriptSubmissionStarted => UsesCloudScript && _submissionStarted;
         public bool NeedsAuthorization => _authorization == null;
         public bool CanRecoverReceipt => _record?.ReceiptRegistered == true && _receipts != null;
         public bool CanConfirmDeletion => Request?.State == DeletionState.AwaitingConfirmation &&
@@ -110,7 +112,7 @@ namespace AD.Privacy
             _binding = binding;
             _receipts = receipts;
             _origin = origin;
-            if (UsesSessionConfirmation && (recovery == null || string.IsNullOrEmpty(binding)))
+            if ((UsesSessionConfirmation || UsesCloudScript) && (recovery == null || string.IsNullOrEmpty(binding)))
                 throw new ArgumentException("Session confirmation requires durable account-bound recovery.");
             State = gateway.IsAvailable ? DeletionState.Idle : DeletionState.Unavailable;
             if (recovery != null)
@@ -129,7 +131,7 @@ namespace AD.Privacy
                         if (record.RequestId != null)
                             Request = new DeletionSnapshot(record.RequestId, record.Revision, "title",
                                 _submissionStarted ? DeletionState.SubmissionUnknown : DeletionState.AwaitingConfirmation);
-                        State = DeletionState.RecoveryRequired;
+                        State = UsesCloudScript && _submissionStarted ? DeletionState.SubmissionUnknown : DeletionState.RecoveryRequired;
                     }
                 }
                 catch (Exception) { _recoveryBlocked = true; State = DeletionState.Unavailable; }
@@ -208,10 +210,10 @@ namespace AD.Privacy
         public Task<bool> ConfirmAsync() => !CanConfirmDeletion
             ? Task.FromResult(false) : Run(async token =>
             {
-                if (UsesSessionConfirmation || _receipts != null)
+                if (UsesSessionConfirmation || UsesCloudScript || _receipts != null)
                 {
                     if (_receipts != null) await _receipts.RegisterAsync(_authorization, _record, token);
-                    else if (!IsSynthetic) throw new InvalidOperationException("Protected receipt recovery is required.");
+                    else if (!IsSynthetic && !UsesCloudScript) throw new InvalidOperationException("Protected receipt recovery is required.");
                     if (!Current()) throw new InvalidOperationException();
                     _submissionStarted = true;
                     try { Persist(); } // A failed journal write must prevent the external submit.
@@ -223,10 +225,12 @@ namespace AD.Privacy
         public Task<bool> RefreshAsync() => CanRecoverReceipt ? RecoverReceiptAsync() : Request == null ? Task.FromResult(false)
             : Run(token => _gateway.StatusAsync(_authorization, Request.RequestId, token));
         public Task<bool> CancelAsync() => Request == null ||
+            (UsesCloudScript && _submissionStarted) ||
             (Request.State != DeletionState.AwaitingConfirmation && Request.State != DeletionState.Queued)
             ? Task.FromResult(false) : Run(token => _gateway.CancelAsync(_authorization, Request.RequestId, token));
 
         private bool CanRun() => IsAvailable && !_recoveryBlocked && !IsBusy && State != DeletionState.Accepted &&
+            !(UsesCloudScript && _submissionStarted) &&
             State != DeletionState.Completed && State != DeletionState.Cancelled && State != DeletionState.SessionChanged && State != DeletionState.UnsupportedAccount;
 
         private void Persist()

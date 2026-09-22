@@ -131,16 +131,17 @@ namespace AD
             switch (state)
             {
                 case DeletionState.Idle:
-                    text = _flow.UsesSessionConfirmation
+                    text = _flow.UsesSessionConfirmation || _flow.UsesCloudScript
                         ? "Review deletion using your current game session. Nothing is deleted by opening this screen."
                         : "Verify your identity before reviewing a deletion request. Nothing is deleted by opening this screen."; break;
                 case DeletionState.Authenticating:
-                    text = _flow.UsesSessionConfirmation ? "Checking your current game session."
+                    text = _flow.UsesSessionConfirmation || _flow.UsesCloudScript ? "Checking whether deletion is available for your current game session."
                         : "Identity verification is required. Waiting for verification to finish."; break;
                 case DeletionState.AwaitingSessionConfirmation:
                     text = "Confirm that you want to use this signed-in game account for this deletion request. This confirms your current session; it is not a new Google sign-in. No deletion is submitted by this step."; break;
                 case DeletionState.RecoveryRequired:
-                    text = "A previous deletion request was found. Check its receipt without signing in again. An uncertain submission will only be checked, not sent again."; break;
+                    text = _flow.UsesCloudScript ? "A saved deletion preview was found. Review it again before confirming. Nothing has been submitted."
+                        : "A previous deletion request was found. Check its receipt without signing in again. An uncertain submission will only be checked, not sent again."; break;
                 case DeletionState.RecoveryUnavailable:
                     text = "The receipt could not be checked. Its access may have expired or its protected device key may be unavailable. Acceptance is unknown. Your data is preserved; no request was resent. You can close this screen, retry a temporary connection failure, or use a valid existing account session to check this request."; break;
                 case DeletionState.UnsupportedAccount:
@@ -158,7 +159,9 @@ namespace AD
                         ? " Local sign-out or cleanup could not finish. Do not submit another deletion request."
                         : " You have been signed out."); break;
                 case DeletionState.SubmissionUnknown:
-                    text = "We could not confirm whether the deletion request was accepted. Your local data has not been cleared. Check this request; do not submit another."; break;
+                    text = _flow.UsesCloudScript
+                        ? "We could not confirm whether the deletion request was accepted. No request will be resent. Local data is preserved and saving is paused. Contact " + CloudScriptDeletionClient.SupportEmail + ". Do not create another account to resolve this."
+                        : "We could not confirm whether the deletion request was accepted. Your local data has not been cleared. Check this request; do not submit another."; break;
                 case DeletionState.Completed:
                     text = _flow.IsSynthetic && !string.IsNullOrEmpty(_flow.Request?.CompletionEvidence)
                         ? "Test deletion completed. No real account data was deleted."
@@ -168,7 +171,9 @@ namespace AD
                 case DeletionState.RetryableFailure:
                     text = "The last action could not be verified. Retry it, check request status, or verify your identity again. Deletion is not confirmed."; break;
                 case DeletionState.SessionChanged:
-                    text = "The account or session changed. Close this screen and start again."; break;
+                    text = _flow.CloudScriptSubmissionStarted
+                        ? "The session changed while a deletion submission was pending. Acceptance is unknown; no local cleanup or retry was performed. Contact " + CloudScriptDeletionClient.SupportEmail + "."
+                        : "The account or session changed. Close this screen and start again."; break;
                 default:
                     text = "Account deletion is currently unavailable in this app. No deletion request can be submitted here."; break;
             }
@@ -178,13 +183,14 @@ namespace AD
             Set(_view.RequestButton, state == DeletionState.Unavailable || state == DeletionState.Idle, ready && state == DeletionState.Idle);
             Set(_view.ConfirmButton, state == DeletionState.AwaitingConfirmation && _flow.CanConfirmDeletion, ready);
             Set(_view.SessionConfirmButton, state == DeletionState.AwaitingSessionConfirmation, ready);
-            Set(_view.RefreshButton, state == DeletionState.Queued || state == DeletionState.Processing || state == DeletionState.SubmissionUnknown ||
+            Set(_view.RefreshButton, !_flow.UsesCloudScript && (state == DeletionState.Queued || state == DeletionState.Processing || state == DeletionState.SubmissionUnknown ||
                 state == DeletionState.RecoveryRequired || state == DeletionState.RecoveryUnavailable ||
-                state == DeletionState.RetryableFailure && _flow.Request != null, ready && (!_flow.NeedsAuthorization || _flow.CanRecoverReceipt));
+                state == DeletionState.RetryableFailure && _flow.Request != null), ready && (!_flow.NeedsAuthorization || _flow.CanRecoverReceipt));
             Set(_view.CancelButton, state == DeletionState.AwaitingConfirmation || state == DeletionState.Queued, ready && !_flow.NeedsAuthorization);
             Set(_view.RetryButton, state == DeletionState.RetryableFailure && _retry != null, ready);
-            Set(_view.ReauthenticateButton, state == DeletionState.RetryableFailure || state == DeletionState.RecoveryRequired ||
-                state == DeletionState.RecoveryUnavailable || state == DeletionState.SubmissionUnknown || state == DeletionState.AwaitingSessionConfirmation, ready);
+            Set(_view.ReauthenticateButton, !_flow.CloudScriptSubmissionStarted && (state == DeletionState.RetryableFailure || state == DeletionState.RecoveryRequired ||
+                state == DeletionState.RecoveryUnavailable || state == DeletionState.SubmissionUnknown || state == DeletionState.AwaitingSessionConfirmation), ready);
+            Set(_view.ContactButton, true, !_flow.IsBusy);
         }
 
         private static void Set(UnityEngine.UI.Button button, bool visible, bool enabled)
