@@ -2,7 +2,7 @@
 
 ## 범위와 현재 상태
 
-사용자가 승인한 시험 타이틀의 신규 폐기 계정 한 개에 한정한다. 기존 PGS/IAP 계정과 운영 타이틀, master 삭제는 대상이 아니다. 별도 서버/DB를 배포하지 않는다. 현재 기록은 **계정 생성·기기 로그인·미게시 revision2의 비활성 config 확인까지**이며 삭제 성공 기록이 아니다. 기기 연결 확인 2회 실패 후 중단했고, 추가 승인된 ADB 서버 재시작도 종료 명령 timeout으로 실패했다. Live1·삭제 옵션 off·내부 gate 없음은 유지되며 실제 삭제 요청은 0회이다.
+사용자가 승인한 시험 타이틀의 신규 폐기 계정 한 개에 한정한다. 기존 PGS/IAP 계정과 운영 타이틀, master 삭제는 대상이 아니다. 별도 서버/DB를 배포하지 않는다. 승인된 신규 폐기 계정 한 개에서 **앱의 Live 사전 검사→Specific 삭제 확인 1회→접수·로그아웃·로컬 정리**를 완료했다. 이후 계정 페이지는 해당 플레이어를 찾을 수 없다고 응답했다. 시험 후 **Live1·ServerDeletePlayer off·내부 gate 없음**으로 원복하고 서버 UI 재조회로 확인했다. 운영 타이틀과 기존 PGS/IAP 계정에는 접근하거나 삭제를 요청하지 않았다.
 
 ## 구현과 검증 대상
 
@@ -34,7 +34,20 @@
 - 15분·한 계정 gate는 UI에 입력했으나 저장 전에 기기 연결 확인이 두 번 실패했다. 첫 .81 SDK adb devices는 무응답으로 해당 읽기 프로세스만 취소했고, 현재 서버와 같은 .25 SDK adb devices는 15초 timeout이었다. 원인은 미확정이다. 프로젝트 규칙에 따라 후속 활성화/삭제 시험을 중단하고 미저장 gate 입력을 취소했다.
 - 사용자가 공용 ADB 서버 재시작 및 연결 재확인 1회를 추가 승인했다. 통합 담당자의 ADB 작업 없음 확인 후 .25 SDK adb(34.0.5)의 kill-server를 실행했으나 20초 timeout이었다. 후속 start-server/devices는 실행하지 않았고 추가 반복, 다른 PID 강제 종료, Unity Editor 종료도 하지 않았다.
 - 브라우저 새로고침 후 서버 기준 내부 title data 비어 있음, ServerDeletePlayer off, Client CustomId 신규 생성 차단 on, Live1/미게시2를 다시 확인했다. 이 설정들은 애초 변경하지 않았으므로 원복 완료로 표현하지 않는다. 만료된 미저장 gate 값은 재사용하지 않는다.
-- 로컬 비밀 입력 helper를 정상 종료했고 ready=false/closed=true/프로세스 부재를 확인했다. 키를 파일이나 다른 저장소에서 복구하지 않는다. 재개 시 새 구체적 기기 복구 결정과 필요시 사용자 직접 키 재입력이 필요하다. 신규 계정/미게시 revision2/비공개 증거는 보존했다.
+- 로컬 비밀 입력 helper를 정상 종료했고 ready=false/closed=true/프로세스 부재를 확인했다. 키를 파일이나 다른 저장소에서 복구하지 않는다. 이 중단 시점에는 신규 계정/미게시 revision2/비공개 증거를 보존했다. 아래 추가 승인 복구·시험에서는 기존 브라우저 로그인 세션을 사용하여 키를 재입력하지 않았다.
+
+
+## 추가 승인 복구 및 실제 시험 결과
+
+- 사용자가 응답 없는 공용 ADB 서버만 식별해 강제 종료·재시작하고 연결을 한 번 확인하도록 추가 승인했다. 통합 담당자의 ADB/phone/Editor/브라우저 작업 중지를 확인했다. 실행 직전 5037 listener PID92932와 .25 SDK adb 실행 파일·생성 시각을 대조한 뒤 그 서버만 종료했다. 다른 Editor나 무관 프로세스는 종료하지 않았다.
+- 프로젝트 기준 .81 SDK adb start-server와 devices가 각각 exit0, 기기1/device로 성공했다. 설치된 trial APK를 읽어 SHA-256이 위 최종 APK와 정확히 일치함을 확인했다. 앱은 로그인 초기 상태였고 로컬 marker는 남아 있었다.
+- 이미 생성한 계정의 비공개 CustomId/expected ID를 사용해 CreateAccount=false로 재로그인했다. 키보드 완료 전에 다음 입력으로 이동하면 입력이 지워지는 동작이 있어 UI 입력 완료를 각각 확인한 후 로그인 버튼을 한 번 눌렀고 성공했다. 이 재개에서는 로그인 요청 실패가 없으며 계정을 새로 만들지 않았다.
+- 시험 title12B656의 단일 폐기 계정에만 유효한 새 gate를 2026-09-22 07:57:53.988 UTC부터 08:12:53.988 UTC까지 900000ms로 저장했다. 이전 미저장 만료값은 재사용하지 않았다. ServerDeletePlayer를 일시 허용하고 검토된 revision2를 Live로 게시했다.
+- 07:58:44.600 UTC 앱의 Request 버튼으로 읽기 전용 Live 사전 검사를 실행해 삭제 범위 확인 화면에 도달했다. 07:59:05.984 UTC 확인 버튼을 **단 한 번** 눌렀다. 기존 runtime factory의 Specific 확인 경로에서 앱이 `Your deletion request was accepted. You have been signed out.`를 표시했다. 불확실 응답이나 재전송은 없었다.
+- Back 이후 하네스가 `Local marker=False saveReady=False pending=False signedIn=False`를 표시했다. 기존 accepted 경로에서 시험 계정 로컬 저장·준비 상태·pending·로그인 상태가 정리된 결과이다.
+- 즉시 ServerDeletePlayer off, 임시 내부 gate 제거, Live revision1 재게시 순서로 원복했다. 서버 UI 재조회에서 옵션 unchecked, ClientCustomId 신규 생성 차단 checked, 내부 데이터 비어 있음, revision1 실시간/revision2 미게시를 확인했다. 처음 중단 때의 미변경 상태와 이번 실제 원복을 구분한다.
+- 해당 폐기 계정의 서버 페이지를 새로고침한 결과 `플레이어를 찾을 수 없습니다.`가 표시됐다. 이는 삭제 접수와 후속 계정 조회 부재를 확인한 것이며 서비스 내부의 모든 비동기 정리 완료를 별도로 증명하지 않는다. 같은 계정을 재생성하거나 로그인/삭제 요청을 다시 보내지 않았다.
+- 비밀키 helper는 계속 종료 상태이며 키 재입력·파일 추출·추가 API 도구가 필요하지 않았다. revision2와 비공개 원시 증거는 보존한다. 코드 변경 없는 실기기 시험이므로 기존 성공 테스트/빌드를 재실행하지 않았다. 증거 확인 후 trial 패키지만 종료하고 프로세스 부재를 확인했으며 앱 데이터나 설치 파일은 지우지 않았다.
 
 ## 비공개 증거
 
@@ -57,5 +70,20 @@
 | deletion-trial/options-recheck.txt | e13eb7332ac3329472f8add13f2ecbf6094b8fc6eadad06736bf458953f1b283 |
 | deletion-trial/adb-approved-restart.json | deb4c58f40e993d07b8f5fb5214db324aad0268a28a2198f060558ada953e351 |
 | deletion-trial/helper-closed.json | 292f4276c4b39fc81447fd8b53cb071e45c49713134e2e15706a4f20b7011a49 |
+| deletion-trial/adb-force-restart-identity.json | d8639ccce0164d50a9762764d1452a32e8419bafe21e99350c6a7be344a993ce |
+| deletion-trial/adb-force-restart-result.json | 5cb4d8d77e900abc6d228d8dd5574f50b969acab15b962ea3b559ed75b9184eb |
+| deletion-trial/phone-relogin-result.png | e1592e6f86c51e05ade3f1fa1f27fb50acc6b9a6394be948f7a3de37d0d29d10 |
+| deletion-trial/gate-active-private.json | 554149d9e19c8d27328dc5794e6d0857855e3c4f985de1afbd998fb5faee9a11 |
+| deletion-trial/live2-state.txt | e26303003626db68e3a9307372ff780a4852346039d763fa4cb6414502101c85 |
+| deletion-trial/preflight-started.json | 0d79ca2dbf662742b3a50aff92fb9c06f0507ea46cb104e3c799fafa1cc414b2 |
+| deletion-trial/phone-preflight-result.png | 501bc3bf61dc6901b686b560398fa506832afb33518f55d13d528a29f06336d3 |
+| deletion-trial/deletion-confirm-attempted.json | 0aec9d951e9bfd27fb720261cfd717220eaccf6d2af5b4ed0c8595f0c6defe3c |
+| deletion-trial/phone-deletion-result.png | 037b0ca240e2e1ca5aad303f5ebfc6010bc6752a1e5e5b82e2443bf3807aa3c6 |
+| deletion-trial/phone-local-cleanup.png | 4a9e9575d0659fc719fc7d4e0f99de03d22cf5bd13d9060f48297f0b4cc517a8 |
+| deletion-trial/options-restored.txt | e13eb7332ac3329472f8add13f2ecbf6094b8fc6eadad06736bf458953f1b283 |
+| deletion-trial/gate-removed.txt | 63c2d27e32a5b5cbe3741dbd650d668f697b7beb38a07ed63155fd04ca226941 |
+| deletion-trial/live1-restored.txt | 1f13982199b80a4ed6f80a38bcb32721c09c4d29e125301d1c80233307a6c365 |
+| deletion-trial/account-after.txt | c0b2b4ddeba7cef9028e055761810c47ce7deb67f07db363b0c293328f47d36b |
+| deletion-trial/trial-app-stopped.json | eca2affc24671d48c500d0b2fc588583836f93cb282af69c5de4880622f908bc |
 
-후보의 원본 prefix·기존14handler·추가gate 원문 일치는 독립 검토됐다. 정적 enabled=true/title pin 후보이지만 내부 runtime gate 미설정이면 거부한다. 미게시 후보 Specific config 비활성 검사는 완료했다. 현재 앱 Live→Specific 실제 연결 시험과 한 계정15분 gate/타이틀 전체 ServerDeletePlayer 허용·원복은 아직 수행하지 않았다. 기기 연결 복구 승인과 준비 상태 재대조 전에는 진행하지 않는다. 최대1분 설정 캐시와 in-flight 회수 불가, Live 복원은 Specific 폐기가 아니라는 제한은 [시험 후보 문서](cloudscript-test-candidate.ko.md)를 따른다. 이 결과는 실제 삭제 접수/완료·최종 출시 AAB·스토어 검증 증거가 아니다.
+후보의 원본 prefix·기존14handler·추가gate 원문 일치는 독립 검토됐다. 정적 enabled=true/title pin 후보이지만 내부 runtime gate 미설정이면 거부한다. 미게시 후보 Specific config 비활성 검사와 현재 앱 Live→Specific 실제 연결·삭제 접수·로컬 정리·후속 계정 조회 부재 및 시험 설정 원복을 완료했다. 최대1분 설정 캐시와 in-flight 회수 불가, Live 복원은 Specific 폐기가 아니라는 제한은 [시험 후보 문서](cloudscript-test-candidate.ko.md)를 따른다. 이 결과는 한 폐기 계정의 삭제 접수·계정 조회 부재에 대한 시험이며 최종 출시 AAB·스토어 검증이나 서비스 내부 전체 정리 완료의 증거가 아니다.
