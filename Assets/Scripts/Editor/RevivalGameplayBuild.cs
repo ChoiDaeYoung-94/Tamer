@@ -71,7 +71,8 @@ public static class RevivalGameplayBuild
             string identity = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
             if (identity != RevivalGameplayIsolation.PlayerRestoreApplicationId &&
                 identity != RevivalGameplayIsolation.AgeChoiceApplicationId &&
-                identity != RevivalGameplayIsolation.SessionApplicationId) return;
+                identity != RevivalGameplayIsolation.SessionApplicationId &&
+                identity != RevivalDeletionTrialHarness.ApplicationId) return;
             string destination = Path.Combine(path, "src/main/res/xml/tamer_playerrestore_rules.xml");
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
             File.WriteAllText(destination, PlayerRestoreExtractionRules());
