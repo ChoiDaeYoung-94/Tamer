@@ -66,3 +66,5 @@
 - checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, branch `codex/pgs-oauth-safe-classifier`, 소스 `484cbf6fb2c63ae362f823b64894144e47aa4953`; clean preflight와 설정 복원 증거는 비공개 보존.
 - Unity `6000.0.81f1` / CLI `1.0.0-beta.8`. 관련 EditMode **18/18 통과**, 1회 실행/실패0. 합성 입력만 사용해 정확값·상충·유사 문자열·미등록·장문·비밀 포함 문구의 고정 출력 경계를 확인했다.
 - APK 및 실제 로그인은 PR 독립 검토 후 별도로 진행한다. 이전 실제 로그인 실패2회를 유지하고, 승인된 다음 3차는 정확히1회만 실행한다. 재실패 시 추가 승인 전4차를 실행하지 않는다.
+- 독립 검토에서 문자열이 아닌 JSON error 값/중복 필드의 prose fallback 가능성을 발견하여 `cbbb91cba484423f8f3100c890aa29a04ea179f8`에서 보강했다. JSON 형식은 중복 필드 오류 모드로 파싱하고 비문자열·중복·미완성·escape 포함 입력은 Unknown으로 처리한다. 예외 내용은 출력하지 않는다.
+- 보강 후 해당 분류 **2/2 통과**, 실패0(나머지16건 반복 없음). XML SHA256 `643a97f20dd1560b34ea58838c6198ffc779cef00e57e26d503dee18aabb2618`. 앞선18건 XML SHA256 `ceff56f103ccda5f92871526a0a976bb1a304c7ba48fac1cd2a9675baabe6e78`.
