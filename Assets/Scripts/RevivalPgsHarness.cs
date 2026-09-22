@@ -1,5 +1,8 @@
 #if UNITY_EDITOR || TAMER_PGS_HARNESS
 using System;
+using System.Text.RegularExpressions;
+using System.Linq;
+using Newtonsoft.Json.Linq;
 using AD;
 using PlayFab;
 using UnityEngine;
@@ -17,6 +20,91 @@ public sealed class RevivalPgsHarness : MonoBehaviour
     private int _attempt;
     private float _deadline;
     private int _stage;
+
+    public enum OAuthDiagnostic { Unknown, InvalidClient, InvalidGrant, RedirectUriMismatch, AccessDenied }
+
+    // No input text escapes this boundary, including exceptions and unknown values.
+    public static OAuthDiagnostic ClassifyOAuthFailure(PlayFabError error)
+    {
+        if (error == null || error.Error != PlayFabErrorCode.GoogleOAuthError) return OAuthDiagnostic.Unknown;
+        try
+        {
+            OAuthDiagnostic structured = OAuthDiagnostic.Unknown;
+            bool hasStructured = error.ErrorDetails != null && error.ErrorDetails.ContainsKey("error");
+            if (hasStructured)
+            {
+                var values = error.ErrorDetails["error"];
+                if (values == null || values.Count == 0 || values.Count > 16) return OAuthDiagnostic.Unknown;
+                foreach (string value in values)
+                {
+                    OAuthDiagnostic next = ExactOAuthToken(value);
+                    if (next == OAuthDiagnostic.Unknown || (structured != OAuthDiagnostic.Unknown && structured != next))
+                        return OAuthDiagnostic.Unknown;
+                    structured = next;
+                }
+            }
+
+            string message = error.ErrorMessage;
+            if (message != null && message.Length > 4096) return OAuthDiagnostic.Unknown;
+            // Parse JSON-shaped payloads conservatively. Never fall back from malformed,
+            // duplicate, escaped or non-string fields to descriptive prose.
+            int jsonStart = (message ?? "").IndexOf('{');
+            bool jsonLike = jsonStart >= 0 || (message ?? "").Contains("\"error");
+            if (jsonLike)
+            {
+                int jsonEnd = message.LastIndexOf('}');
+                if (jsonStart < 0 || jsonEnd < jsonStart || message.Contains("\\")) return OAuthDiagnostic.Unknown;
+                var payload = JObject.Parse(message.Substring(jsonStart, jsonEnd - jsonStart + 1),
+                    new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+                var fields = payload.Descendants().OfType<JProperty>().Where(p => p.Name == "error").ToArray();
+                if (fields.Length == 0) return OAuthDiagnostic.Unknown;
+                foreach (var field in fields)
+                {
+                    if (field.Value.Type != JTokenType.String) return OAuthDiagnostic.Unknown;
+                    OAuthDiagnostic next = ExactOAuthToken((string)field.Value);
+                    if (next == OAuthDiagnostic.Unknown || (hasStructured && structured != next)) return OAuthDiagnostic.Unknown;
+                    structured = next;
+                    hasStructured = true;
+                }
+            }
+            OAuthDiagnostic found = OAuthDiagnostic.Unknown;
+            // URL/path/token-like neighbours are not word boundaries for diagnostics.
+            foreach (Match match in Regex.Matches(message ?? "", @"(?<![A-Za-z0-9_./:%?&=+\-])(invalid_client|invalid_grant|redirect_uri_mismatch|access_denied)(?![A-Za-z0-9_./:%?&=+\-])"))
+            {
+                OAuthDiagnostic next = ExactOAuthToken(match.Value);
+                if (found != OAuthDiagnostic.Unknown && found != next) return OAuthDiagnostic.Unknown;
+                found = next;
+            }
+            if (hasStructured)
+                return found != OAuthDiagnostic.Unknown && found != structured ? OAuthDiagnostic.Unknown : structured;
+            return found;
+        }
+        catch (Exception) { return OAuthDiagnostic.Unknown; }
+    }
+
+    private static OAuthDiagnostic ExactOAuthToken(string value)
+    {
+        switch (value)
+        {
+            case "invalid_client": return OAuthDiagnostic.InvalidClient;
+            case "invalid_grant": return OAuthDiagnostic.InvalidGrant;
+            case "redirect_uri_mismatch": return OAuthDiagnostic.RedirectUriMismatch;
+            case "access_denied": return OAuthDiagnostic.AccessDenied;
+            default: return OAuthDiagnostic.Unknown;
+        }
+    }
+
+    public static string SafeOAuthAuthenticationFailure(PlayFabError error)
+    {
+        switch (ClassifyOAuthFailure(error))
+        {
+            case OAuthDiagnostic.InvalidClient: return "Test authentication: GoogleOAuthError / invalid_client.";
+            case OAuthDiagnostic.InvalidGrant: return "Test authentication: GoogleOAuthError / invalid_grant.";
+            case OAuthDiagnostic.RedirectUriMismatch: return "Test authentication: GoogleOAuthError / redirect_uri_mismatch.";
+            case OAuthDiagnostic.AccessDenied: return "Test authentication: GoogleOAuthError / access_denied.";
+            default: return "Test authentication: GoogleOAuthError / Unknown.";
+        }
+    }
 
     // Accept only the enum: server text, details and identity data never enter the formatter.
     public static string SafeAuthenticationFailure(PlayFabErrorCode? code)
@@ -121,7 +209,11 @@ public sealed class RevivalPgsHarness : MonoBehaviour
                                 Finish(result != null && !result.NewlyCreated && !string.IsNullOrEmpty(result.PlayFabId)
                                     ? "Test authentication succeeded. Session discarded; no account data read or written."
                                     : "Unexpected response rejected. No session retained.");
-                            }, error => { if (Current(attempt, 3)) Finish(SafeAuthenticationFailure(error?.Error)); });
+                            }, error =>
+                            {
+                                if (Current(attempt, 3)) Finish(error?.Error == PlayFabErrorCode.GoogleOAuthError
+                                    ? SafeOAuthAuthenticationFailure(error) : SafeAuthenticationFailure(error?.Error));
+                            });
                         }
                         catch (Exception) { if (Current(attempt, 3)) Finish("Test authentication could not start."); }
                     });
