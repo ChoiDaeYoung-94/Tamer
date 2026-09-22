@@ -21,6 +21,17 @@ public sealed class RevivalPgsHarness : MonoBehaviour
     private float _deadline;
     private int _stage;
     private const string PreparationKey = "Revival.PgsPreparationAttempted.12B656";
+    private const string PreparedIdentityKey = "Revival.PgsPreparedIdentity.12B656";
+
+    public static string TestIdentityDigest(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return "";
+        using (var sha = System.Security.Cryptography.SHA256.Create())
+            return Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(RevivalPgsTestConfiguration.Title + ":" + id)));
+    }
+
+    public static bool MatchesPreparedIdentity(string id, string expected)
+        => !string.IsNullOrEmpty(expected) && TestIdentityDigest(id) == expected;
 
     public enum OAuthDiagnostic { Unknown, InvalidClient, InvalidGrant, RedirectUriMismatch, AccessDenied }
 
@@ -183,9 +194,11 @@ public sealed class RevivalPgsHarness : MonoBehaviour
         {
             if (!_config.allowAccountPreparation || PlayerPrefs.HasKey(PreparationKey)) return;
             // Persist before authentication: uncertain outcomes must never enable another creation attempt.
-            PlayerPrefs.SetInt(PreparationKey, 1);
-            PlayerPrefs.Save();
+            try { PlayerPrefs.SetInt(PreparationKey, 1); PlayerPrefs.Save(); }
+            catch (Exception) { _config = null; Finish("Preparation marker could not be saved. Stop."); return; }
         }
+        else if (_config.allowAccountPreparation && !PlayerPrefs.HasKey(PreparedIdentityKey))
+        { Finish("No confirmed prepared identity. Stop and review before verification."); return; }
         _busy = true; _stage = 1; int attempt = ++_attempt;
         _deadline = Time.realtimeSinceStartup + 60;
         _status = "Waiting for Google Play authentication";
@@ -215,7 +228,15 @@ public sealed class RevivalPgsHarness : MonoBehaviour
                             client.LoginWithGooglePlayGamesServices(request, result =>
                             {
                                 if (!Current(attempt, 3)) return;
-                                Finish(result != null && result.NewlyCreated == prepare && !string.IsNullOrEmpty(result.PlayFabId)
+                                bool accepted = result != null && result.NewlyCreated == prepare && !string.IsNullOrEmpty(result.PlayFabId);
+                                if (accepted && prepare)
+                                {
+                                    try { PlayerPrefs.SetString(PreparedIdentityKey, TestIdentityDigest(result.PlayFabId)); PlayerPrefs.Save(); }
+                                    catch (Exception) { _config = null; Finish("Prepared identity could not be saved. Stop; do not retry creation."); return; }
+                                }
+                                else if (accepted && _config.allowAccountPreparation)
+                                    accepted = MatchesPreparedIdentity(result.PlayFabId, PlayerPrefs.GetString(PreparedIdentityKey, ""));
+                                Finish(accepted
                                     ? (prepare ? "Test account created (NewlyCreated=true). Session discarded. Verify separately with a fresh code."
                                         : "Test authentication succeeded. Session discarded; no account data read or written.")
                                     : "Unexpected response rejected. No session retained.");

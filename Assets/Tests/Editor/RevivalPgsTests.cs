@@ -140,6 +140,19 @@ public class RevivalPgsTests
             Is.TypeOf<InvalidOperationException>());
     }
     [Test]
+    public void PreparedIdentityRejectsMissingOrDifferentAccount()
+    {
+        var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalPgsHarness")).First(t => t != null);
+        var digest = type.GetMethod("TestIdentityDigest");
+        var match = type.GetMethod("MatchesPreparedIdentity");
+        var expected = (string)digest.Invoke(null, new object[] { "synthetic-account-one" });
+        Assert.That(expected, Does.Not.Contain("synthetic-account-one"));
+        Assert.That(match.Invoke(null, new object[] { "synthetic-account-one", expected }), Is.True);
+        Assert.That(match.Invoke(null, new object[] { "synthetic-account-two", expected }), Is.False);
+        Assert.That(match.Invoke(null, new object[] { null, expected }), Is.False);
+        Assert.That(match.Invoke(null, new object[] { "synthetic-account-one", "" }), Is.False);
+    }
+    [Test]
     public void ManifestRemovesBillingAndAdsStartup()
     {
         var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalPgsBuild")).First(t => t != null);
