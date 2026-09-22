@@ -44,6 +44,24 @@ PR #212 이후 시험 연결 준비이다. 기존 `account-deletion.js`의 enabl
 
 검증 순서는 비파괴 config 확인 → 검토된 폐기 계정과 정상 접수 범위 확인 → 승인된 명시 삭제 한 번 → 정상 접수 시 로그아웃/owner 정리 및 불명확 응답 시 데이터 보존/저장 차단으로 나눈다. timeout을 이유로 재삭제하지 않는다. 응답 유실은 별도 합성 경로로 먼저 확인하고 실제 계정 삭제를 반복하지 않는다. 각 테스트 2회 실패 시 중단한다.
 
+### 클라이언트 생성 정책을 유지하는 공식 경로
+
+[서버 익명 로그인 공식 안내](https://learn.microsoft.com/en-us/xbox/playfab/identity/player-identity/platform-specific-authentication/anonymous-login)는 클라이언트 신규 생성을 막은 상태에서 서버 API로 생성하고 기존 계정만 클라이언트에서 로그인하는 흐름을 명시한다. [Server/LoginWithCustomID](https://learn.microsoft.com/en-us/rest/api/playfab/server/authentication/login-with-custom-id?view=playfab-rest)에 임의로 새로 생성한 전용 CustomId와 CreateAccount=true를 보내는 방법이 후보이다. title secret을 필요로 하며 이번 작업에서 키를 확보하거나 호출하지 않았다. Game Manager에 신규 플레이어 생성 UI가 있다고 추정하지 않는다.
+
+따라서 클라이언트 생성 차단 옵션을 완화할 필요는 없다. 권한 있는 기존 로컬 관리 환경에서 일회성 서버 API 호출을 할 수 있는지 먼저 확인하며 새 호스트는 배포하지 않는다. title secret은 앱/후보/공개 로그에 넣지 않는다. 생성 응답이 유실되면 다른 CustomId로 재생성하지 않고 동일 ID의 CreateAccount=false 조회로 상태를 확인한다. 기존 계정이 반환되거나 신규 여부가 불확실하면 삭제 대상으로 채택하지 않는다.
+
+### 총괄에 제출할 실제 시험 작업 묶음
+
+아래는 준비된 **제안 범위**이며 실행 승인 또는 실제 실행 기록이 아니다.
+
+1. 시험 타이틀·현재 revision/원본 hash·API 옵션 off를 재확인하고, Client 신규 생성 차단은 유지한다. 권한 있는 Server/LoginWithCustomID로 전용 신규 계정 한 개를 생성한다. 신규 응답과 외부연결/구매 없음 및 기존 시험 계정 불일치를 확인하고 정확한 ID를 비공개로 확정한다.
+2. 기존 원본 14개 handler를 보존한 candidate를 Publish=false로 업로드하고 다시 읽어 hash를 대조한다. title pin, 시험 gate, 기본 비활성 상태를 확인한다. 현재 로컬 후보 hash는 비활성 후보이며 활성용 변경 시 새 hash를 검토해야 한다.
+3. 격리 앱·기기·debug APK hash·expected 계정·삭제 호출 한 번의 범위를 확정한다. Server/DeletePlayer 옵션 off→on은 시험 타이틀 전체의 서버 삭제 허용 변경이다. 이 범위와 비공개 gate 한 계정/최대15분, 후보 Live 게시를 함께 검토받은 뒤에만 적용한다. 기존 PGS/IAP 계정에 로그인하거나 연결하지 않는다.
+4. 승인된 폐기 계정으로 Client CreateAccount=false 로그인 후 앱에서 명시 확인 한 번을 수행한다. 정상 접수와 불명확 응답을 구분하고, 후자의 경우 성공 선언/재삭제/새 계정 우회를 하지 않는다. account/title 검증 불일치나 예기치 않은 handler 변경이 발견되면 삭제 전 중단한다.
+5. 종료/중단 시 비공개 gate 비활성화와 만료 확인, 이전 Live 복원, 이번에 변경한 Server/DeletePlayer 옵션 on→원래 off 복원 및 읽기 확인을 수행한다. 옵션 전파 시간과 in-flight 취소는 보장하지 않는다. 생성됐지만 삭제하지 못한 계정도 별도 무단 정리하지 않고 미완료 대상으로 기록한다. 비공개 후보/원본/증거는 보존한다.
+
+신규 계정 준비 방법과 승인된 정확한 폐기 대상이 확정되기 전에는 실제 계정 삭제를 진행하지 않는다. 운영 타이틀·기존 시험 계정·master 계정은 이 작업 묶음의 대상이 아니다.
+
 ## 로컬 검증 증거
 
 ### 시험 타이틀 읽기와 비활성 결합 후보
