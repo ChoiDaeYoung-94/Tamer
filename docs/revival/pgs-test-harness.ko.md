@@ -70,3 +70,19 @@
 - 보강 후 해당 분류 **2/2 통과**, 실패0(나머지16건 반복 없음). XML SHA256 `643a97f20dd1560b34ea58838c6198ffc779cef00e57e26d503dee18aabb2618`. 앞선18건 XML SHA256 `ceff56f103ccda5f92871526a0a976bb1a304c7ba48fac1cd2a9675baabe6e78`.
 - 최종 진단 APK 1회 빌드 성공(exit0), 빌드 소스 `8adca89d160ba9b1695e4e581a989b81d26cea49`(코드 cbbb91c 이후 문서만 변경). APK **132,801,258 bytes**, SHA256 `72fb53b52cbe9400b661fd528d84bb50ce4513a2ed6e4cef84f6fa353ca19ac1`.
 - ARM64/IL2CPP/min24/target36, debug 서명·격리 패키지·version1.0.5/code26 유지. BILLING/AD_ID/MobileAdsInitProvider 없음/allowBackup=false 확인. 기존 설정·GUID·manifest 복원, 임시 config/settings/meta 잔존 없음, 해당 Editor0/clean 확인.
+
+## 2026-09-22 명시적 시험 계정 준비
+
+별도 승인된 시험 계정 준비에 한해 `TAMER_PGS_ALLOW_ACCOUNT_PREPARATION=1`로 빌드하면 별도 준비 버튼을 표시한다. 기본값은 비활성화이며 제품 로그인과 일반 검증 요청은 계속 CreateAccount=false이다. 준비 요청만 고정 시험 타이틀에서 true를 사용한다.
+
+인증 시작 전에 격리 앱의 PlayerPrefs에 시도 표시를 저장하며, 성공·실패·시간 초과 이후 재생성을 허용하지 않는다. 이 보장은 동일 설치에서 보존된 앱 데이터 범위이며 앱 데이터 삭제·재설치·다른 기기까지 전역적으로 강제하지 않는다. 이번 실행에서는 앱 데이터 삭제나 재설치를 하지 않는다. 결과가 불확실하면 추가 생성 없이 중단한다.
+
+준비 성공은 NewlyCreated=true 및 비어 있지 않은 ID를 요구한다. title:ID의 SHA256 해시만 격리 로컬 저장소에 보존하며, 별도 버튼으로 새 인증 코드를 받은 후속 false 로그인은 동일 계정 해시와 NewlyCreated=false를 모두 확인한다. ID 원문·코드·티켓은 출력하지 않는다. ForceLink 및 게임 저장·광고·구매는 실행하지 않는다. 생성 계정은 비공개 최종 정리 목록에 기록하고 현재 삭제하지 않는다.
+
+- checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, branch `codex/pgs-once-test-account`.
+- Unity `6000.0.81f1`, CLI `1.0.0-beta.8`, Android target. 에셋 4,561개 확인/복사0.
+- 소스 `f39e76c43d9d22e69e5d9b625f9c95267ee8855c`: 관련 테스트 19/19 통과. XML SHA256 `70cfd0ca6138e6c17542d8d46a6900514173f894f6068541deba94dda55994a3`.
+- 독립 검토 보강 소스 `9c2916d4db6c317ee54eb828c3073cf4b8d590e5`: 같은 계정·다른 계정·누락 식별 경계 합성 테스트 1/1 통과. XML SHA256 `15bf6c1ba62f2323e38ba4867dfe76542a59c84487b986d223fe4b189556504b`. 변경 없는 나머지 테스트는 반복하지 않았다.
+- 위 코드의 APK 빌드와 기기 실행 결과는 별도 기록한다. 과거 네 차례 로그인 실패를 성공으로 바꾸어 기록하지 않는다. 이번 승인 범위는 준비 1회와 성공 후 새 코드의 false 검증 1회이다.
+- APK 빌드 1회 성공(exit0), 소스 `9c2916d4db6c317ee54eb828c3073cf4b8d590e5`(빌드 중 문서만 작성). **132,807,489 bytes**, SHA256 `eb0cde6b595227baab38baa6590be76127012c001db02015740d2fb920aabdf9`.
+- Android min24/target36/ARM64, Build Tools36.0.0, debug 서명과 격리 패키지 유지. BILLING/AD_ID/MobileAdsInitProvider 없음, allowBackup=false 확인. 외부 스냅샷 복원 후 변경은 이 문서뿐이며 임시 설정 잔존 없음. 기기 준비·로그인은 아직 미수행.
