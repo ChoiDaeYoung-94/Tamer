@@ -61,7 +61,8 @@ public static class RevivalPgsBuild
         {
             testTitle = Environment.GetEnvironmentVariable("TAMER_PGS_TEST_TITLE"),
             webClientId = Environment.GetEnvironmentVariable("TAMER_PGS_WEB_CLIENT_ID"),
-            gameId = Environment.GetEnvironmentVariable("TAMER_PGS_GAME_ID")
+            gameId = Environment.GetEnvironmentVariable("TAMER_PGS_GAME_ID"),
+            allowAccountPreparation = Environment.GetEnvironmentVariable("TAMER_PGS_ALLOW_ACCOUNT_PREPARATION") == "1"
         };
         config.Validate(RevivalPgsTestConfiguration.ApplicationId);
         RevivalBuild.ValidateBaseline();

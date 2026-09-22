@@ -121,6 +121,25 @@ public class RevivalPgsTests
         Assert.That(error.InnerException, Is.TypeOf<ArgumentException>());
     }
     [Test]
+    public void PreparationRequiresOptInAndKeepsVerificationNonCreating()
+    {
+        var c = Config();
+        var method = ConfigType.GetMethod("CreatePreparationRequest");
+        Assert.That(Assert.Throws<TargetInvocationException>(() => method.Invoke(c, new object[] { "synthetic-create" })).InnerException,
+            Is.TypeOf<InvalidOperationException>());
+        ConfigType.GetField("allowAccountPreparation").SetValue(c, true);
+        var preparation = (LoginWithGooglePlayGamesServicesRequest)method.Invoke(c, new object[] { "synthetic-create" });
+        var verification = (LoginWithGooglePlayGamesServicesRequest)ConfigType.GetMethod("CreateRequest").Invoke(c, new object[] { "synthetic-verify" });
+        Assert.That(preparation.TitleId, Is.EqualTo("12B656"));
+        Assert.That(preparation.CreateAccount, Is.True);
+        Assert.That(verification.CreateAccount, Is.False);
+        Assert.That(verification.ServerAuthCode, Is.EqualTo("synthetic-verify"));
+        Assert.That(preparation.AuthenticationContext, Is.Not.SameAs(verification.AuthenticationContext));
+        ConfigType.GetField("testTitle").SetValue(c, "67C9A");
+        Assert.That(Assert.Throws<TargetInvocationException>(() => method.Invoke(c, new object[] { "synthetic-create" })).InnerException,
+            Is.TypeOf<InvalidOperationException>());
+    }
+    [Test]
     public void ManifestRemovesBillingAndAdsStartup()
     {
         var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalPgsBuild")).First(t => t != null);

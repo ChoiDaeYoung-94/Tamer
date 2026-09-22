@@ -20,6 +20,7 @@ public sealed class RevivalPgsHarness : MonoBehaviour
     private int _attempt;
     private float _deadline;
     private int _stage;
+    private const string PreparationKey = "Revival.PgsPreparationAttempted.12B656";
 
     public enum OAuthDiagnostic { Unknown, InvalidClient, InvalidGrant, RedirectUriMismatch, AccessDenied }
 
@@ -156,7 +157,7 @@ public sealed class RevivalPgsHarness : MonoBehaviour
             var settings = PlayGamesSettings.LoadInstance();
             if (settings == null || settings.WebClientId != _config.webClientId || settings.AppId != _config.gameId)
                 throw new InvalidOperationException();
-            _status = "Ready. Only an already linked test account can sign in. No save or purchase operations.";
+            _status = "Ready. Verification requires a linked test account. No gameplay save or purchase operations.";
 #else
             _config = null;
             _status = "Android test player required. Editor sign-in is disabled.";
@@ -171,13 +172,20 @@ public sealed class RevivalPgsHarness : MonoBehaviour
     private void Update()
     {
         if (_busy && Time.realtimeSinceStartup >= _deadline)
-            Finish("Timed out. Retry obtains a fresh authentication code.");
+            Finish("Timed out. Stop and review the result before any further action.");
     }
 
-    private void Login()
+    private void Login(bool prepare = false)
     {
         if (_config == null || _busy) return;
 #if UNITY_ANDROID && !UNITY_EDITOR
+        if (prepare)
+        {
+            if (!_config.allowAccountPreparation || PlayerPrefs.HasKey(PreparationKey)) return;
+            // Persist before authentication: uncertain outcomes must never enable another creation attempt.
+            PlayerPrefs.SetInt(PreparationKey, 1);
+            PlayerPrefs.Save();
+        }
         _busy = true; _stage = 1; int attempt = ++_attempt;
         _deadline = Time.realtimeSinceStartup + 60;
         _status = "Waiting for Google Play authentication";
@@ -203,15 +211,19 @@ public sealed class RevivalPgsHarness : MonoBehaviour
                                 DisableDeviceInfo = true, DisableFocusTimeCollection = true,
                                 ProductionEnvironmentUrl = "https://12B656.playfabapi.com"
                             }, new PlayFabAuthenticationContext());
-                            client.LoginWithGooglePlayGamesServices(_config.CreateRequest(code), result =>
+                            var request = prepare ? _config.CreatePreparationRequest(code) : _config.CreateRequest(code);
+                            client.LoginWithGooglePlayGamesServices(request, result =>
                             {
                                 if (!Current(attempt, 3)) return;
-                                Finish(result != null && !result.NewlyCreated && !string.IsNullOrEmpty(result.PlayFabId)
-                                    ? "Test authentication succeeded. Session discarded; no account data read or written."
+                                Finish(result != null && result.NewlyCreated == prepare && !string.IsNullOrEmpty(result.PlayFabId)
+                                    ? (prepare ? "Test account created (NewlyCreated=true). Session discarded. Verify separately with a fresh code."
+                                        : "Test authentication succeeded. Session discarded; no account data read or written.")
                                     : "Unexpected response rejected. No session retained.");
                             }, error =>
                             {
-                                if (Current(attempt, 3)) Finish(error?.Error == PlayFabErrorCode.GoogleOAuthError
+                                if (Current(attempt, 3)) Finish(prepare
+                                    ? "Account preparation failed or is uncertain. Stop; do not retry creation."
+                                    : error?.Error == PlayFabErrorCode.GoogleOAuthError
                                     ? SafeOAuthAuthenticationFailure(error) : SafeAuthenticationFailure(error?.Error));
                             });
                         }
@@ -229,12 +241,17 @@ public sealed class RevivalPgsHarness : MonoBehaviour
     {
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 900f, Screen.width / 900f, 1));
         GUILayout.BeginArea(new Rect(20, 20, 860, 500), GUI.skin.box);
-        GUILayout.Label("PGS TEST — title 12B656 — existing linked test account only");
+        GUILayout.Label("PGS TEST — title 12B656 — isolated test account");
         GUILayout.Label(_status);
         GUI.enabled = _config != null && !_busy;
         if (GUILayout.Button("Sign into Google Play and verify test authentication", GUILayout.Height(85))) Login();
+        if (_config != null && _config.allowAccountPreparation)
+        {
+            GUI.enabled = !_busy && !PlayerPrefs.HasKey(PreparationKey);
+            if (GUILayout.Button("Prepare ONE new test account (explicit approval required)", GUILayout.Height(85))) Login(true);
+        }
         GUI.enabled = true;
-        GUILayout.Label("No automatic login, account creation, linking, storage, advertising or purchases.");
+        GUILayout.Label("Verification never creates accounts. Preparation is explicit and attempted once per app installation. No ForceLink, gameplay saves, advertising or purchases.");
         GUILayout.EndArea();
     }
 }
