@@ -85,7 +85,7 @@
 - 독립 검토 보강 소스 `9c2916d4db6c317ee54eb828c3073cf4b8d590e5`: 같은 계정·다른 계정·누락 식별 경계 합성 테스트 1/1 통과. XML SHA256 `15bf6c1ba62f2323e38ba4867dfe76542a59c84487b986d223fe4b189556504b`. 변경 없는 나머지 테스트는 반복하지 않았다.
 - 위 코드의 APK 빌드와 기기 실행 결과는 별도 기록한다. 과거 네 차례 로그인 실패를 성공으로 바꾸어 기록하지 않는다. 이번 승인 범위는 준비 1회와 성공 후 새 코드의 false 검증 1회이다.
 - APK 빌드 1회 성공(exit0), 소스 `9c2916d4db6c317ee54eb828c3073cf4b8d590e5`(빌드 중 문서만 작성). **132,807,489 bytes**, SHA256 `eb0cde6b595227baab38baa6590be76127012c001db02015740d2fb920aabdf9`.
-- Android min24/target36/ARM64, Build Tools36.0.0, debug 서명과 격리 패키지 유지. BILLING/AD_ID/MobileAdsInitProvider 없음, allowBackup=false 확인. 외부 스냅샷 복원 후 변경은 이 문서뿐이며 임시 설정 잔존 없음. 기기 준비·로그인은 아직 미수행.
+- Android min24/target36/ARM64, Build Tools36.0.0, debug 서명과 격리 패키지 유지. BILLING/AD_ID/MobileAdsInitProvider 없음, allowBackup=false 확인. 외부 스냅샷 복원 후 변경은 이 문서뿐이며 임시 설정 잔존 없음. 이 빌드 검증 당시 기기 준비·로그인은 미수행이었으며, 이후 결과는 아래 실제 기기 결과 절에 기록한다.
 
 ## 2026-09-22 격리 PGS 실제 기기 결과
 
