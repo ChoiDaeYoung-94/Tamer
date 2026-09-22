@@ -133,8 +133,13 @@ public static class RevivalPgsBuild
                 try { action(); }
                 catch (Exception) { failures.Add(label); }
             }
-            Restore("temporary-config", () => AssetDatabase.DeleteAsset(ConfigPath));
-            if (originalSettings == null) Restore("temporary-settings", () => AssetDatabase.DeleteAsset(settingsPath));
+            void RemoveTemporary(string path)
+            {
+                AssetDatabase.DeleteAsset(path);
+                if (File.Exists(path) || File.Exists(path + ".meta")) throw new IOException();
+            }
+            Restore("temporary-config", () => RemoveTemporary(ConfigPath));
+            if (originalSettings == null) Restore("temporary-settings", () => RemoveTemporary(settingsPath));
             Restore("bundle", () => EditorUserBuildSettings.buildAppBundle = oldBundle);
             Restore("package", () => PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId));
             Restore("signing", () => PlayerSettings.Android.useCustomKeystore = oldKey);
