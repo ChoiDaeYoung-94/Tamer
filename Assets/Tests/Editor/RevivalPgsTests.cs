@@ -2,10 +2,37 @@
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using PlayFab;
 using PlayFab.ClientModels;
 
 public class RevivalPgsTests
 {
+    private static string Failure(PlayFabErrorCode? code)
+    {
+        var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalPgsHarness")).First(t => t != null);
+        return (string)type.GetMethod("SafeAuthenticationFailure").Invoke(null, new object[] { code });
+    }
+
+    [Test]
+    public void AuthenticationDiagnosticsDistinguishAccountAndOAuthFailures()
+    {
+        Assert.That(Failure(PlayFabErrorCode.AccountNotFound), Is.EqualTo("Test authentication: AccountNotFound. No account was created."));
+        Assert.That(Failure(PlayFabErrorCode.GoogleOAuthError), Is.EqualTo("Test authentication: GoogleOAuthError."));
+        Assert.That(Failure(PlayFabErrorCode.InvalidGooglePlayGamesServerAuthCode), Is.EqualTo("Test authentication: InvalidGooglePlayGamesServerAuthCode."));
+    }
+
+    [Test]
+    public void AuthenticationDiagnosticsFailClosedForMissingAndUnlistedCodes()
+    {
+        string fallback = "Test authentication failed. Diagnostic unavailable. No account was created.";
+        Assert.That(Failure(null), Is.EqualTo(fallback));
+        Assert.That(Failure((PlayFabErrorCode)int.MaxValue), Is.EqualTo(fallback));
+        Assert.That(Failure(PlayFabErrorCode.Success), Is.EqualTo(fallback));
+        Assert.That(Failure(PlayFabErrorCode.InvalidPassword), Is.EqualTo(fallback));
+        foreach (PlayFabErrorCode code in Enum.GetValues(typeof(PlayFabErrorCode)))
+            Assert.That(Failure(code), Does.StartWith("Test authentication").And.Not.Contains("\n").And.Not.Contains("\r"));
+    }
+
     private static Type ConfigType => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.RevivalPgsTestConfiguration")).First(t => t != null);
     private static object Config(string title = "12B656", string web = "123-synthetic.apps.googleusercontent.com", string game = "123")
     {

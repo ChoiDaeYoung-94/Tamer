@@ -1,11 +1,11 @@
 #if UNITY_EDITOR || TAMER_PGS_HARNESS
 using System;
 using AD;
+using PlayFab;
 using UnityEngine;
 #if UNITY_ANDROID && !UNITY_EDITOR
 using GooglePlayGames;
 using GooglePlayGames.BasicApi;
-using PlayFab;
 #endif
 
 /// <summary>Manual authentication only. Never creates managers, reads saves or starts IAP.</summary>
@@ -17,6 +17,30 @@ public sealed class RevivalPgsHarness : MonoBehaviour
     private int _attempt;
     private float _deadline;
     private int _stage;
+
+    // Accept only the enum: server text, details and identity data never enter the formatter.
+    public static string SafeAuthenticationFailure(PlayFabErrorCode? code)
+    {
+        switch (code)
+        {
+            case PlayFabErrorCode.AccountNotFound: return "Test authentication: AccountNotFound. No account was created.";
+            case PlayFabErrorCode.AccountNotLinked: return "Test authentication: AccountNotLinked. No account was created.";
+            case PlayFabErrorCode.InvalidGooglePlayGamesServerAuthCode: return "Test authentication: InvalidGooglePlayGamesServerAuthCode.";
+            case PlayFabErrorCode.InvalidGoogleToken: return "Test authentication: InvalidGoogleToken.";
+            case PlayFabErrorCode.GoogleOAuthNotConfiguredForTitle: return "Test authentication: GoogleOAuthNotConfiguredForTitle.";
+            case PlayFabErrorCode.MissingTitleGoogleProperties: return "Test authentication: MissingTitleGoogleProperties.";
+            case PlayFabErrorCode.GoogleOAuthError: return "Test authentication: GoogleOAuthError.";
+            case PlayFabErrorCode.GoogleOAuthNoIdTokenIncludedInResponse: return "Test authentication: GoogleOAuthNoIdTokenIncludedInResponse.";
+            case PlayFabErrorCode.InvalidTitleId: return "Test authentication: InvalidTitleId.";
+            case PlayFabErrorCode.NotAuthorized: return "Test authentication: NotAuthorized.";
+            case PlayFabErrorCode.NotAuthorizedByTitle: return "Test authentication: NotAuthorizedByTitle.";
+            case PlayFabErrorCode.ConnectionError: return "Test authentication: ConnectionError.";
+            case PlayFabErrorCode.ServiceUnavailable: return "Test authentication: ServiceUnavailable.";
+            case PlayFabErrorCode.DownstreamServiceUnavailable: return "Test authentication: DownstreamServiceUnavailable.";
+            case PlayFabErrorCode.APIClientRequestRateLimitExceeded: return "Test authentication: APIClientRequestRateLimitExceeded.";
+            default: return "Test authentication failed. Diagnostic unavailable. No account was created.";
+        }
+    }
 
 #if TAMER_PGS_HARNESS
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -97,7 +121,7 @@ public sealed class RevivalPgsHarness : MonoBehaviour
                                 Finish(result != null && !result.NewlyCreated && !string.IsNullOrEmpty(result.PlayFabId)
                                     ? "Test authentication succeeded. Session discarded; no account data read or written."
                                     : "Unexpected response rejected. No session retained.");
-                            }, error => { if (Current(attempt, 3)) Finish("Test authentication failed or account not linked. No account was created."); });
+                            }, error => { if (Current(attempt, 3)) Finish(SafeAuthenticationFailure(error?.Error)); });
                         }
                         catch (Exception) { if (Current(attempt, 3)) Finish("Test authentication could not start."); }
                     });
