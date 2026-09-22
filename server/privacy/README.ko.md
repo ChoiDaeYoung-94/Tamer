@@ -1,5 +1,7 @@
 # 삭제 API 단일 호스트 실행
 
+> 2026-09-22: 이 단일 호스트 구현은 미배포 대안으로 보존한다. 현재 승인 방향은 앱 내 PlayFab Classic CloudScript 자동 삭제와 앱 외부 기존 이메일 접수이며, 이 서버의 호스팅·DB·활성화는 필요 작업에 포함되지 않는다. [최신 출시 초안](../../docs/revival/privacy-policy-release-draft.ko.md)을 참고한다.
+
 `python -m server.privacy`는 기존 `session_confirmation.compose`와 `http_app.create_app`을 연결합니다. import만으로 환경 변수를 읽거나 소켓/외부 요청을 만들지 않습니다. 기본 비활성이고 실제 계정이나 PlayFab 자격 증명으로 검증하지 않았습니다.
 
 ## 실행 조건
