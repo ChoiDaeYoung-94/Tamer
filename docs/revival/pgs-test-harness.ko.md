@@ -42,3 +42,17 @@
 - 해당 checkout Editor0, 임시 config/생성 settings와 meta 없음, URP/Graphics/Smoke 씬의 줄바꿈 자동 변경 복원을 확인했다. 원본 설정·GUID·keystore·기존 앱 데이터는 보존했다.
 
 결과 APK는 준비 완료이며 **기기 설치·adb 조작·Google 인증·PlayFab 로그인은 수행하지 않았다**. 실제 인증을 진행하려면 개인폰 확인, 새 package와 실제 debug 인증서에 맞는 Android OAuth credential 생성 승인, PGS 테스터/시험 계정 및 시험 title의 기존 연결 계정 조건이 필요하다. CreateAccount=false이므로 새 계정 자동 생성이나 자동 연결로 우회하지 않는다. 이 결과는 로그인 성공, 출시 AAB, #91 스토어 검증 완료를 의미하지 않는다.
+
+## 2026-09-22 안전한 인증 오류 진단
+
+기존 하네스의 PlayFab 실패 문구는 계정 미연결과 OAuth 설정 오류를 구분하지 못했다. `PlayFabError.Error` enum만 별도 함수에 전달하고, 허용 목록에 있는 값만 고정 UI 문구로 표시한다. null·미등록 enum·그 외 오류는 공통 실패 문구로 처리한다. `ErrorMessage`·`ErrorDetails`·전체 오류 객체·인증 코드·세션 티켓·사용자 ID는 표시하거나 기록하지 않는다. 기존 CreateAccount=false, 중복 콜백 차단과 세션 격리는 유지한다.
+
+- checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, branch `codex/pgs-safe-auth-diagnostics`, 코드 `14814831305efe8890ac50cfc74ddb41b49d0423`. 테스트·빌드 시작 직전 clean 상태와 대상 커밋을 비공개 preflight에 기록했다.
+- Unity `6000.0.81f1`, CLI `1.0.0-beta.8`, Android min24/target36/ARM64/IL2CPP, SDK Build Tools `36.0.0`, NDK 기준 `27.2.12479018`.
+- 비공개 에셋 4,561개 일치/복사0. `RevivalPgsTests` 1회 **16/16 통과**, 실패/skip0. 계정 오류/OAuth 오류 구분, null·미등록·허용하지 않은 enum의 공통 문구 처리를 포함한다. XML SHA256 `4043dcda3c8dd256c765b281e1a3572533a9aa682a3a40afbb6c8a60c90d894a`.
+- 이전 APK의 개인폰 수동 인증은 총 1회 실패했다. 코드 흐름상 Google 인증과 비어 있지 않은 서버 코드 발급 후 시험 title의 PlayFab 오류 콜백에 도달했지만, 당시 고정 문구로는 정확한 enum을 확정할 수 없다. 진단 수정으로 이 실패 횟수를 초기화하지 않는다.
+- 새 APK의 실제 로그인은 별도 조율 전 실행하지 않는다. 다음 동일 로그인 시험은 누적 2차이며, 다시 실패하면 사용자 승인 전 3차 시도를 하지 않는다. 계정 신규 생성·연결·ForceLink로 우회하지 않는다.
+- 새 APK 빌드 1회 성공(exit0), 소스는 위 `1481483`이며 빌드 중 문서만 작성했다. APK `Build/revival/Tamer-pgs-test.apk`, **132,798,787 bytes**, SHA256 `df73294b7984ab062e1fd6c964027280b01fbc13ecd9b798065a0296472ee030`.
+- 패키지 `.revival.pgs`, 1.0.5/code26, debuggable/ARM64와 기존 debug 인증서 유지 확인. 최종 manifest에서 BILLING/AD_ID/MobileAdsInitProvider 없음, allowBackup=false 확인. 이전 APK는 별도 비공개 파일로 보존했다.
+- 기존 PGS asset/meta와 두 manifest는 외부 복원 전 원본 해시와 일치했다. Editor 직렬화로 변경된 ProjectSettings/Resolver/SceneTemplate/렌더링 설정은 외부 스냅샷으로 복원했다. Smoke 씬과 전역 URP 설정의 줄바꿈 변경도 복원했다. 해당 checkout Editor0, 임시 PGS config/settings 및 meta 잔존 없음.
+- 이번 새 APK의 설치·실제 로그인과 정식 출시 AAB·스토어 검증은 미수행이다. 민감한 외부 설정/계정 연결 조회의 원문은 공개 문서·PR에 포함하지 않는다.
