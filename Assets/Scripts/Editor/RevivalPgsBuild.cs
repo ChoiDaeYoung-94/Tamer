@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -79,6 +79,7 @@ public static class RevivalPgsBuild
         var originals = new[] { Manifest, PgsManifest }.ToDictionary(p => p, File.ReadAllBytes);
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
+        string oldAlias = PlayerSettings.Android.keyaliasName;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         try
@@ -115,6 +116,7 @@ public static class RevivalPgsBuild
             EditorUserBuildSettings.buildAppBundle = oldBundle;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.Android.useCustomKeystore = oldKey;
+            PlayerSettings.Android.keyaliasName = oldAlias;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
             AssetDatabase.SaveAssets();
             foreach (var entry in originals) { File.WriteAllBytes(entry.Key, entry.Value); AssetDatabase.ImportAsset(entry.Key); }

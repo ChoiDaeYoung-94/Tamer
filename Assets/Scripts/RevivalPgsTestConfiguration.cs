@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_PGS_HARNESS
+﻿#if UNITY_EDITOR || TAMER_PGS_HARNESS
 using System;
 using System.Text.RegularExpressions;
 using PlayFab;
@@ -9,7 +9,7 @@ namespace AD
     [Serializable]
     public sealed class RevivalPgsTestConfiguration
     {
-        public const string ApplicationId = "com.AeDeong.MonsterTamer.iaptest";
+        public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.pgs";
         public const string Title = "12B656";
         public string testTitle;
         public string webClientId;
