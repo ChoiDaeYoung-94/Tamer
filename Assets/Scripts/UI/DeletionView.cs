@@ -16,6 +16,7 @@ namespace AD
         public UnityEngine.UI.Button RetryButton { get; private set; }
         public UnityEngine.UI.Button ReauthenticateButton { get; private set; }
         public UnityEngine.UI.Button CloseButton { get; private set; }
+        public UnityEngine.UI.Button ContactButton { get; private set; }
 
         public void Build(TMP_FontAsset font, Action close)
         {
@@ -41,6 +42,8 @@ namespace AD
             CancelButton = Button("CancelRequest", content, "Cancel deletion request", font);
             RetryButton = Button("Retry", content, "Retry", font);
             ReauthenticateButton = Button("Reauthenticate", content, "Check current session again", font);
+            ContactButton = Button("ContactDeletionSupport", content, "Contact about account deletion", font);
+            ContactButton.onClick.AddListener(() => Application.OpenURL("mailto:" + CloudScriptDeletionClient.SupportEmail + "?subject=Monster%20Tamer%20account%20deletion"));
             CloseButton = Button("Close", content, "Back to settings", font);
             CloseButton.onClick.AddListener(() => close());
         }

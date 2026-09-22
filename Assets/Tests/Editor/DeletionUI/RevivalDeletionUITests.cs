@@ -223,6 +223,24 @@ public class RevivalDeletionUITests
         public void Clear() { record = null; }
     }
 
+    [Test] public void Revival_CloudScriptDeletionUnknownOffersContactWithoutStatusOrRetry()
+    {
+        var session = new DeletionSession(new object(), "synthetic-account", "session", "TEST1", "entity");
+        int calls = 0;
+        var gateway = new CloudScriptDeletionGateway((s, id, token) => { calls++; return Task.FromResult(false); }, true);
+        var flow = new DeletionFlow(gateway, () => session, recovery: new MemoryRecovery(), binding: new string('a', 64));
+        Call(presenter, "ConfigureSynthetic", flow);
+        Click("Request"); Click("Confirm");
+        Assert.AreEqual(DeletionState.SubmissionUnknown, flow.State);
+        foreach (var name in new[] { "Confirm", "Refresh", "Reauthenticate", "Retry", "Cancel" })
+            Assert.False(Button(name).gameObject.activeSelf, name);
+        Assert.True(Button("Contact").gameObject.activeSelf);
+        StringAssert.Contains("doeud1410@gmail.com", Message);
+        StringAssert.Contains("We could not confirm whether", Message);
+        StringAssert.DoesNotContain("Your deletion request was accepted.", Message);
+        Assert.AreEqual(1, calls);
+    }
+
     sealed class Fake : IDeletionGateway, ISessionConfirmationGateway
     {
         public bool UsesSessionConfirmation { get; set; }

@@ -9,6 +9,28 @@ using PlayFab;
 
 public class RevivalDeletionIntakeTests
 {
+    [Test] public void Revival_CloudScriptDeletionRequiresMatchingSuccessfulEnvelope()
+    {
+        var type = DataType.Assembly.GetType("AD.CloudScriptDeletionClient");
+        var method = type.GetMethod("IsAccepted");
+        const string id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        var result = new PlayFab.ClientModels.ExecuteCloudScriptResult
+        {
+            FunctionName = "requestCurrentPlayerDeletionV1", Revision = 7,
+            FunctionResult = new Dictionary<string, object> { ["accepted"] = true, ["scope"] = "title",
+                ["protocol"] = "tamer-title-deletion-v1", ["requestId"] = id }
+        };
+        bool Accepted() => (bool)method.Invoke(null, new object[] { result, id, 7 });
+        Assert.True(Accepted());
+        result.Error = new PlayFab.ClientModels.ScriptExecutionError { Error = "synthetic" }; Assert.False(Accepted()); result.Error = null;
+        result.Revision = 8; Assert.False(Accepted()); result.Revision = 7;
+        result.FunctionResultTooLarge = true; Assert.False(Accepted()); result.FunctionResultTooLarge = null;
+        var body = (Dictionary<string, object>)result.FunctionResult;
+        body["accepted"] = "true"; Assert.False(Accepted()); body["accepted"] = true;
+        body["requestId"] = new string('b', 32); Assert.False(Accepted()); body["requestId"] = id;
+        body["scope"] = "master"; Assert.False(Accepted()); body["scope"] = "title";
+        result.FunctionResult = null; Assert.False(Accepted());
+    }
     [TestCase(false,false)] [TestCase(true,false)] [TestCase(true,true)]
     public void Revival_InventoryDeletionAcceptedAndRestartRespectSession(bool restarted,bool newer)
     {

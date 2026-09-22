@@ -577,7 +577,7 @@ namespace AD
             {
                 panel.gameObject.SetActive(false);
                 if (_retryText != null) _retryText.text = _dataOwner != null && _dataOwner.DeletionInProgress
-                    ? "Deletion submission is unresolved. Retry opens the same request for recovery."
+                    ? "Deletion submission is unresolved. Open account deletion for details or contact doeud1410@gmail.com. No request will be resent."
                     : "Sign in explicitly to continue.";
                 if (_retry != null) _retry.SetActive(true);
             });
