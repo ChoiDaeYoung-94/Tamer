@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using PlayFab;
@@ -7,6 +8,37 @@ using PlayFab.ClientModels;
 
 public class RevivalPgsTests
 {
+    private static string OAuthFailure(string message, params string[] structured)
+    {
+        var error = new PlayFabError { Error = PlayFabErrorCode.GoogleOAuthError, ErrorMessage = message };
+        if (structured != null && structured.Length > 0)
+            error.ErrorDetails = new Dictionary<string, List<string>> { { "error", structured.ToList() } };
+        var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalPgsHarness")).First(t => t != null);
+        return (string)type.GetMethod("SafeOAuthAuthenticationFailure").Invoke(null, new object[] { error });
+    }
+
+    [Test]
+    public void OAuthDiagnosticsUseExactStructuredFieldsAndRejectConflicts()
+    {
+        Assert.That(OAuthFailure(null, "invalid_client"), Is.EqualTo("Test authentication: GoogleOAuthError / invalid_client."));
+        Assert.That(OAuthFailure("{\"error\":\"redirect_uri_mismatch\"}"), Is.EqualTo("Test authentication: GoogleOAuthError / redirect_uri_mismatch."));
+        string unknown = "Test authentication: GoogleOAuthError / Unknown.";
+        Assert.That(OAuthFailure("invalid_grant", "invalid_client"), Is.EqualTo(unknown));
+        Assert.That(OAuthFailure(null, "invalid_client", "access_denied"), Is.EqualTo(unknown));
+        Assert.That(OAuthFailure("{\"error\":\"future_error\",\"description\":\"invalid_client\"}"), Is.EqualTo(unknown));
+        Assert.That(OAuthFailure("invalid_client", "invalid_client_extra"), Is.EqualTo(unknown));
+    }
+
+    [Test]
+    public void OAuthDiagnosticsNeverEchoSyntheticPayloadsOrTokenLookalikes()
+    {
+        string unknown = "Test authentication: GoogleOAuthError / Unknown.";
+        foreach (string input in new[] { null, "", "future_error", "invalid_client_suffix", "prefix_invalid_grant", "https://synthetic.invalid/invalid_client", "code=access_denied", "invalid_client invalid_grant", new string('x', 4097) })
+            Assert.That(OAuthFailure(input), Is.EqualTo(unknown));
+        Assert.That(OAuthFailure("Synthetic secret=SYNTHETIC_PRIVATE_VALUE; OAuth error \"access_denied\""), Is.EqualTo("Test authentication: GoogleOAuthError / access_denied."));
+        Assert.That(OAuthFailure("OAuth error (invalid_grant) synthetic-code=SYNTHETIC_CODE"), Is.EqualTo("Test authentication: GoogleOAuthError / invalid_grant."));
+    }
+
     private static string Failure(PlayFabErrorCode? code)
     {
         var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalPgsHarness")).First(t => t != null);
