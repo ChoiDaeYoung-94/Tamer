@@ -1,6 +1,8 @@
 #if UNITY_EDITOR || TAMER_PGS_HARNESS
 using System;
 using System.Text.RegularExpressions;
+using System.Linq;
+using Newtonsoft.Json.Linq;
 using AD;
 using PlayFab;
 using UnityEngine;
@@ -44,14 +46,26 @@ public sealed class RevivalPgsHarness : MonoBehaviour
 
             string message = error.ErrorMessage;
             if (message != null && message.Length > 4096) return OAuthDiagnostic.Unknown;
-            // Embedded JSON error fields also take precedence over descriptive prose.
-            // Escaped/unknown values are deliberately not normalized into known tokens.
-            foreach (Match field in Regex.Matches(message ?? "", "\"error\"\\s*:\\s*\"([^\"]*)\""))
+            // Parse JSON-shaped payloads conservatively. Never fall back from malformed,
+            // duplicate, escaped or non-string fields to descriptive prose.
+            int jsonStart = (message ?? "").IndexOf('{');
+            bool jsonLike = jsonStart >= 0 || (message ?? "").Contains("\"error");
+            if (jsonLike)
             {
-                OAuthDiagnostic next = ExactOAuthToken(field.Groups[1].Value);
-                if (next == OAuthDiagnostic.Unknown || (hasStructured && structured != next)) return OAuthDiagnostic.Unknown;
-                structured = next;
-                hasStructured = true;
+                int jsonEnd = message.LastIndexOf('}');
+                if (jsonStart < 0 || jsonEnd < jsonStart || message.Contains("\\")) return OAuthDiagnostic.Unknown;
+                var payload = JObject.Parse(message.Substring(jsonStart, jsonEnd - jsonStart + 1),
+                    new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+                var fields = payload.Descendants().OfType<JProperty>().Where(p => p.Name == "error").ToArray();
+                if (fields.Length == 0) return OAuthDiagnostic.Unknown;
+                foreach (var field in fields)
+                {
+                    if (field.Value.Type != JTokenType.String) return OAuthDiagnostic.Unknown;
+                    OAuthDiagnostic next = ExactOAuthToken((string)field.Value);
+                    if (next == OAuthDiagnostic.Unknown || (hasStructured && structured != next)) return OAuthDiagnostic.Unknown;
+                    structured = next;
+                    hasStructured = true;
+                }
             }
             OAuthDiagnostic found = OAuthDiagnostic.Unknown;
             // URL/path/token-like neighbours are not word boundaries for diagnostics.

@@ -27,6 +27,15 @@ public class RevivalPgsTests
         Assert.That(OAuthFailure(null, "invalid_client", "access_denied"), Is.EqualTo(unknown));
         Assert.That(OAuthFailure("{\"error\":\"future_error\",\"description\":\"invalid_client\"}"), Is.EqualTo(unknown));
         Assert.That(OAuthFailure("invalid_client", "invalid_client_extra"), Is.EqualTo(unknown));
+        foreach (string input in new[]
+        {
+            "{\"error\":null,\"description\":\"invalid_client\"}",
+            "{\"error\":\"invalid_client\",\"error\":false}",
+            "{\"error\":\"invalid_client\",\"error\":\"invalid_grant\"}",
+            "{\"error\":\"invalid_\\u0063lient\"}",
+            "{\"error\":\"invalid_client\"",
+            "{\"error\":false,\"description\":\"access_denied\"}"
+        }) Assert.That(OAuthFailure(input), Is.EqualTo(unknown));
     }
 
     [Test]
