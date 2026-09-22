@@ -13,7 +13,7 @@ namespace AD
         private DeletionView _view;
         private Func<Task<bool>> _retry;
         private int _dirty;
-        // Explicit application bootstrap only. Null is the default, so builds cannot contact a deletion service accidentally.
+        // CloudScriptDeletionClient installs the runtime factory; creating it does not submit a request.
         public static Func<DeletionFlow> RuntimeFlowFactory { private get; set; }
 
         // Call during application bootstrap, before login. No endpoint or title is inferred or enabled by default.
@@ -78,7 +78,7 @@ namespace AD
             view.RetryButton.onClick.AddListener(() => Execute(_retry));
         }
 
-        // Tests own both the gateway and session; production has no adapter composition.
+        // Synthetic tests own both the gateway and session; runtime uses the bootstrap factory.
         public void ConfigureSynthetic(DeletionFlow flow)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

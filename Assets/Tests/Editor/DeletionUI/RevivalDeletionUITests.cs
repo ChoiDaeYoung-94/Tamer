@@ -236,7 +236,8 @@ public class RevivalDeletionUITests
             Assert.False(Button(name).gameObject.activeSelf, name);
         Assert.True(Button("Contact").gameObject.activeSelf);
         StringAssert.Contains("doeud1410@gmail.com", Message);
-        StringAssert.DoesNotContain("was accepted", Message);
+        StringAssert.Contains("We could not confirm whether", Message);
+        StringAssert.DoesNotContain("Your deletion request was accepted.", Message);
         Assert.AreEqual(1, calls);
     }
 
