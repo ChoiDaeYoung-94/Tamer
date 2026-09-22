@@ -56,3 +56,13 @@
 - 패키지 `.revival.pgs`, 1.0.5/code26, debuggable/ARM64와 기존 debug 인증서 유지 확인. 최종 manifest에서 BILLING/AD_ID/MobileAdsInitProvider 없음, allowBackup=false 확인. 이전 APK는 별도 비공개 파일로 보존했다.
 - 기존 PGS asset/meta와 두 manifest는 외부 복원 전 원본 해시와 일치했다. Editor 직렬화로 변경된 ProjectSettings/Resolver/SceneTemplate/렌더링 설정은 외부 스냅샷으로 복원했다. Smoke 씬과 전역 URP 설정의 줄바꿈 변경도 복원했다. 해당 checkout Editor0, 임시 PGS config/settings 및 meta 잔존 없음.
 - 이번 새 APK의 설치·실제 로그인과 정식 출시 AAB·스토어 검증은 미수행이다. 민감한 외부 설정/계정 연결 조회의 원문은 공개 문서·PR에 포함하지 않는다.
+
+## 2026-09-22 OAuth 세부 오류의 제한된 분류
+
+`GoogleOAuthError`만으로 원인을 구별할 수 없는 경우에 한해 응답 텍스트를 메모리 안에서 검사한다. `ErrorDetails`의 정확한 `error` 필드 값과 메시지의 JSON 형태 `error` 문자열 필드를 우선하며, 허용 토큰은 invalid_client / invalid_grant / redirect_uri_mismatch / access_denied 네 가지다. 일반 메시지는 URL·경로·코드 형태의 이웃 문자를 제외한 정확한 토큰 경계로 검사한다. 복수 상충·미등록 구조화 값·4,096자 초과 메시지·예외는 Unknown이다.
+
+출력은 고정 enum 문구뿐이다. 원문·키·URL·인증 코드·티켓을 UI·로그·파일·예외로 전달하지 않는다. 일반 오류 경로는 기존 enum-only 진단을 유지한다. 이 분류는 서버가 전달한 제한된 힌트이며 원인 확정이 아니다. PlayFab가 세부 오류를 주지 않거나 인식하지 못하는 형식이면 Unknown으로 끝난다. 설정 추측 변경, 비밀 재입력, 신규 계정 생성·연결은 하지 않는다.
+
+- checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, branch `codex/pgs-oauth-safe-classifier`, 소스 `484cbf6fb2c63ae362f823b64894144e47aa4953`; clean preflight와 설정 복원 증거는 비공개 보존.
+- Unity `6000.0.81f1` / CLI `1.0.0-beta.8`. 관련 EditMode **18/18 통과**, 1회 실행/실패0. 합성 입력만 사용해 정확값·상충·유사 문자열·미등록·장문·비밀 포함 문구의 고정 출력 경계를 확인했다.
+- APK 및 실제 로그인은 PR 독립 검토 후 별도로 진행한다. 이전 실제 로그인 실패2회를 유지하고, 승인된 다음 3차는 정확히1회만 실행한다. 재실패 시 추가 승인 전4차를 실행하지 않는다.
