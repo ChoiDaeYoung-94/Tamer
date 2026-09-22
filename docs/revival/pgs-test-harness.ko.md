@@ -68,3 +68,5 @@
 - APK 및 실제 로그인은 PR 독립 검토 후 별도로 진행한다. 이전 실제 로그인 실패2회를 유지하고, 승인된 다음 3차는 정확히1회만 실행한다. 재실패 시 추가 승인 전4차를 실행하지 않는다.
 - 독립 검토에서 문자열이 아닌 JSON error 값/중복 필드의 prose fallback 가능성을 발견하여 `cbbb91cba484423f8f3100c890aa29a04ea179f8`에서 보강했다. JSON 형식은 중복 필드 오류 모드로 파싱하고 비문자열·중복·미완성·escape 포함 입력은 Unknown으로 처리한다. 예외 내용은 출력하지 않는다.
 - 보강 후 해당 분류 **2/2 통과**, 실패0(나머지16건 반복 없음). XML SHA256 `643a97f20dd1560b34ea58838c6198ffc779cef00e57e26d503dee18aabb2618`. 앞선18건 XML SHA256 `ceff56f103ccda5f92871526a0a976bb1a304c7ba48fac1cd2a9675baabe6e78`.
+- 최종 진단 APK 1회 빌드 성공(exit0), 빌드 소스 `8adca89d160ba9b1695e4e581a989b81d26cea49`(코드 cbbb91c 이후 문서만 변경). APK **132,801,258 bytes**, SHA256 `72fb53b52cbe9400b661fd528d84bb50ce4513a2ed6e4cef84f6fa353ca19ac1`.
+- ARM64/IL2CPP/min24/target36, debug 서명·격리 패키지·version1.0.5/code26 유지. BILLING/AD_ID/MobileAdsInitProvider 없음/allowBackup=false 확인. 기존 설정·GUID·manifest 복원, 임시 config/settings/meta 잔존 없음, 해당 Editor0/clean 확인.
