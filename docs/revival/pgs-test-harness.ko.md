@@ -86,3 +86,20 @@
 - 위 코드의 APK 빌드와 기기 실행 결과는 별도 기록한다. 과거 네 차례 로그인 실패를 성공으로 바꾸어 기록하지 않는다. 이번 승인 범위는 준비 1회와 성공 후 새 코드의 false 검증 1회이다.
 - APK 빌드 1회 성공(exit0), 소스 `9c2916d4db6c317ee54eb828c3073cf4b8d590e5`(빌드 중 문서만 작성). **132,807,489 bytes**, SHA256 `eb0cde6b595227baab38baa6590be76127012c001db02015740d2fb920aabdf9`.
 - Android min24/target36/ARM64, Build Tools36.0.0, debug 서명과 격리 패키지 유지. BILLING/AD_ID/MobileAdsInitProvider 없음, allowBackup=false 확인. 외부 스냅샷 복원 후 변경은 이 문서뿐이며 임시 설정 잔존 없음. 기기 준비·로그인은 아직 미수행.
+
+## 2026-09-22 격리 PGS 실제 기기 결과
+
+이 절은 **시험 타이틀 `12B656`의 격리 하네스**에서 수행한 결과다. 실행 소스는 `9c2916d4db6c317ee54eb828c3073cf4b8d590e5`, APK는 앞 절의 **132,807,489 bytes / SHA256 `eb0cde6b595227baab38baa6590be76127012c001db02015740d2fb920aabdf9`**이다. 실행 checkout은 `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, 기기는 **Samsung SM-S938N / Android 16**이다. 문서 작성 기준 main `d2a2040ed0e6978e0689af9786c017c860b09780`을 새로 빌드하거나 검증한 결과가 아니다.
+
+- 앞선 네 차례 일반 로그인은 성공하지 못했다. 초기 원인 미확정 실패, `GoogleOAuthError`, 제한 진단의 `redirect_uri_mismatch`, 승인된 시험 Web redirect 수정 뒤 `AccountNotFound`를 구분해 기록했다. 실패 후에는 각 단계의 재실행 승인 전 중단했다.
+- 별도 승인된 준비 버튼 **1회**에서 `CreateAccount=true`, **NewlyCreated=true**를 확인했다. 기존 계정 연결을 변경하거나 ForceLink를 실행하지 않았다.
+- 직후 새 서버 코드를 요청한 `CreateAccount=false` 검증 **1회**는 `redirect_uri_mismatch`로 다시 실패했다. 생성 성공을 로그인 검증 성공으로 처리하지 않았으며 추가 실행을 중단했다.
+- 이후 별도 승인된 재검증 **1회**는 설정·설치 데이터·APK를 유지한 채 **CreateAccount=false / NewlyCreated=false / 준비 계정 일치 / 성공**을 확인했다. 성공 분기는 준비 시 저장한 title+계정 ID 해시와 로그인 결과가 일치해야만 표시된다. 원문 계정 ID나 계정 해시는 공개하지 않는다.
+- 마지막 재검증의 비공개 사전 기록상 설정 저장 확인 후 약 **23분**이 지났다. Google는 OAuth client 변경 반영에 5분에서 수시간이 걸릴 수 있다고 안내하지만, 이번 성공·실패의 원인이 전파 지연이었다고 확정하지 않는다. [Google 공식 안내](https://support.google.com/cloud/answer/15549257?hl=en). 앱은 매번 새 서버 코드 요청 경로를 호출했으며 실제 코드 문자열을 수집·비교하지 않았다.
+- 성공 후 격리 앱을 종료했다. 추가 계정 생성·설정 변경·자동 재시도·계정 삭제는 하지 않았다. 신규 시험 계정과 앱 데이터, 비공개 최종 정리 기록을 보존한다.
+
+**완료 범위는 격리 시험 계정 생성과 동일 계정의 후속 PGS 로그인이다.** 제품 앱의 운영 로그인·기존 계정 이전·게임 저장 및 복원·IAP/No Ads·광고·실제 계정 삭제·출시 AAB/스토어 검증은 이 결과로 완료 처리하지 않는다.
+
+문서 작성 시 기존 비공개 결과 파일의 성공/시도 횟수 등 필요한 필드만 대조하고, 파일 존재와 SHA256 및 결과에 기록된 스크린샷 해시 일치를 확인했다. 원시 계정 정보·메일·secret·로그·계정 식별 해시는 게시하지 않는다. 증거는 실행 checkout의 `Logs/revival/pgs-account-preparation-device-result-private.json`, `pgs-post-wait-preflight-private.json`, `pgs-post-wait-result-private.json`, `pgs-post-wait-result-private.png`에 보존한다. 완료된 테스트·APK 빌드·기기 인증은 재실행하지 않았다.
+
+최종 정리 목록도 별도 비공개 `pgs-final-cleanup-inventory-private.json`에 보완했다. 시험용 Android OAuth·PGS Android 연결·생성 PlayFab 계정은 최종 승인 시 정리 검토 대상이며 현재 삭제하지 않았다. 게임서버 credential·Web client·PlayFab addon·redirect는 후속 사용 의존성을 먼저 검토하므로 자동 폐기 대상으로 취급하지 않는다. 기존 운영/IAP 계정·권한·저장·OAuth/PGS 설정, 키, worktree·앱 데이터·증거는 보존한다.
