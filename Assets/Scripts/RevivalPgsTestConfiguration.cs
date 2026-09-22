@@ -14,6 +14,15 @@ namespace AD
         public string testTitle;
         public string webClientId;
         public string gameId;
+        public bool allowAccountPreparation;
+
+        public LoginWithGooglePlayGamesServicesRequest CreatePreparationRequest(string code)
+        {
+            if (!allowAccountPreparation) throw new InvalidOperationException("Account preparation is disabled.");
+            var request = CreateRequest(code);
+            request.CreateAccount = true;
+            return request;
+        }
 
         public void Validate(string package)
         {
