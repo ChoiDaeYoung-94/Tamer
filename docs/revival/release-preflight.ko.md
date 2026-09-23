@@ -39,9 +39,9 @@ big-endian ARM64 오인 문제도 수정했다. 같은 경로·hardlink는 검�
 split ZIP 정렬·실제 ARM64 16KB·정책·운영 인증/진행도 쓰기/구매 복원·트랙 승인도 별도다.
 현재는 운영 release 인증서나 신규 후보 AAB를 사용하지 않았다. 정적 RELRO 실패는 실행 중 crash 증명이 아니다.
 
-## 16KB 호스트 점검 이력과 가속 진단 대기
+## 16KB 호스트 점검 이력과 가속 진단
 
-현재 상태(2026-09-21): 사용자의 재부팅은 완료됐지만 9월 14일 후속 확인에서 HypervisorPresent=false, 가속 검사 exit6이었다. BCD 읽기는 접근 거절로 미확인이다. 아래 활성화 당시의 재부팅 대기를 현재 요청으로 반복하지 않는다. [전체 실행 목록](recovery-execution-backlog.ko.md)의 후속 상태를 따른다.
+2026-09-21까지의 상태: 사용자의 재부팅은 완료됐지만 9월 14일 후속 확인에서 HypervisorPresent=false, 가속 검사 exit6이었다. BCD 읽기는 접근 거절로 미확인이다. 아래 활성화 당시의 재부팅 대기를 현재 요청으로 반복하지 않는다. [전체 실행 목록](recovery-execution-backlog.ko.md)의 후속 상태를 따른다. 9월 23일 새 관측은 아래에 구분한다.
 
 ### 일반 안내 기한과 개별 앱 요건
 
@@ -81,11 +81,19 @@ Enable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -All -NoRe
 다시 관찰해야 하며 ARM64 직접 실행과 같다고 보지 않는다. 기존 software 부팅 timeout/crash를 반복하지 않았다.
 WHPX 활성화만 실행했고 재부팅·BCD 변경·다른 Windows 기능 활성화는 수행하지 않았다. 2026-09-12 작업 재개를 재부팅 승인으로 해석하지 않는다.
 
+### 2026-09-23 가속 및 격리 게스트 관측
+
+checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, 기준 `origin/main` `a6aaaac22237aba5577a5fd20423604ad422a645`, Unity `6000.0.81f1`, 별도 SDK Emulator `37.1.11` / API36 `google_apis_ps16k` x86_64 이미지 revision 7이다. 새 읽기 점검에서 `HypervisorPresent=true`, `HypervisorPlatform` 활성화, `emulator -accel-check` exit0 및 `WHPX(10.0.26200) is installed and usable`을 확인했다. BCD 읽기는 여전히 권한 부족으로 실패해 `hypervisorlaunchtype`을 추정하지 않는다. 이번 점검에서 OS 기능·BCD·재부팅은 변경하지 않았다. 비공개 결과 `Logs/revival/host-16kb-readiness-20260923-sdk.json` SHA-256 `56361f579f90c31b4f9a6ea4e7c879ade4d1b346f75aed28edaa1fcf03a2f8d8`.
+
+기존 AVD를 보존하고 새 격리 `Tamer_16KB_Audit_20260923`을 한 번 부팅했다. AVD 이름과 API36, `sys.boot_completed=1`, `adb shell getconf PAGE_SIZE=16384`를 직접 확인했다. ABI 목록은 `x86_64,arm64-v8a`이며 native bridge는 `libndk_translation.so`다. 따라서 **16KB x86_64 게스트의 부팅 증거**이고 ARM64 네이티브 라이브러리 실행 성공이나 앱 호환성·스토어 승인 증거가 아니다. 앱은 설치하지 않았다. 자기 AVD만 종료했고 ADB 기기 목록과 emulator/qemu 프로세스는 0으로 확인했다. 비공개 직접 관측은 `Logs/revival/16kb-audit-avd-observation-private.json`(SHA-256 `6a2cbece6e589af2c9f3ff4428f94386fdb90d6a536357c9017f3dc8a3a30008`)에 있다.
+
+이번 비공개 자동 probe 복사본은 새 ADB serial `5582`를 기다리면서 기동 포트 `5580`을 그대로 사용해 거짓 실패를 기록했다. 실제 연결 포트의 AVD 이름과 부팅 완료를 별도로 확인했고 AVD를 다시 부팅하지 않았다. 저장소의 원래 도구는 serial에서 기동 포트를 산출하도록 보강하고 합성 테스트만 실행했다. [Android 16KB 게스트 확인 절차](https://developer.android.com/guide/practices/page-sizes#test), [Android WHPX 및 호스트와 이미지 ABI 조건](https://developer.android.com/studio/run/emulator-acceleration), [Unity의 에뮬레이터 지원 범위](https://docs.unity3d.com/6000.0/Documentation/Manual/android-requirements-and-compatibility.html)를 따른다. ARM64 네이티브 16KB 실행은 적합한 실기기나 ARM64 호스트·원격 기기에서 별도로 확인해야 한다.
+
 ## 사용자가 결정해야 하는 최소 항목
 
 기존 [공개 개인정보처리방침](../../README.md#개인정보처리방침)에 운영자 **AeDeong**, 일반 문의 **doeud1410@gmail.com**, 시행일 **2024년 9월 30일**이 명시되어 있다. 이 값은 이미 게시된 사실로 재사용하며 같은 정보를 다시 묻지 않는다. README와 기존 GitHub 정책 URL은 출시 때 사용한 공개 정책 페이지로 보존한다. 기존 정책 URL을 개발 문서로 대체하거나 링크를 깨뜨리지 않는다. 일반 문의 주소가 있다는 사실을 실제 삭제 접수 서비스가 구현됐다는 뜻으로 확대하지 않는다.
 
-1. 재부팅은 완료됐다. 관리자 PowerShell에서 `bcdedit /enum`, `Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform | Select-Object FeatureName,State`, `Get-CimInstance Win32_ComputerSystem | Select-Object HypervisorPresent`의 읽기 결과가 필요하다. 미조회 BCD 값을 추정하지 않으며, 결과를 검토하기 전에 추가 재부팅·BCD 쓰기·OS 기능 변경을 요청하지 않는다.
+1. 재부팅은 완료됐고 2026-09-23 읽기 점검에서 WHPX 사용 가능 및 16KB 격리 x86_64 게스트 부팅을 확인했다. BCD 값은 권한 부족으로 계속 미조회이나 현재 에뮬레이터 가속의 차단 요인은 아니다. 추가 재부팅·BCD 쓰기·OS 기능 변경을 요청하지 않는다. ARM64 네이티브 16KB 기기에서의 실행 확인은 별도로 남아 있다.
 2. 업로드 키의 암호화 보관 위치·비밀번호 보관소·별도 기기 백업 위치 및 키 reset 신청 승인.
 3. 기존 정책에 없는 실제 삭제 접수 경로, 보관 기간·삭제 범위와 기존 No Ads 복원·재가입 방침.
 4. 전용 PlayFab 타이틀·미공개 Google 테스트 앱·catalog·Google add-on·테스터·상품·업로드와 수동 계정 연결은 완료됐다. 격리 앱의 로그인·무료 구매·동일 설치 복원은 [실제 IAP 결과](iap-test-bundle.ko.md#무료-테스트-구매복원재시작-검증-완료)를 따른다. 과거 PlayerCreationDisabled는 현재 차단 요인이 아니다. 남은 독립 acknowledgment 조회에는 해당 앱에 접근 가능한 Android Publisher 인증이, 취소/실패 결제에는 승인된 미구매 테스트 조건이 필요하다. 기존 구매 권한을 삭제하거나 초기화해 조건을 만들지 않는다. 다른 기기·삭제 후 복원은 별도 미검증이다. PlayFab 내장 영수증 검증을 위해 VPS를 새로 요구하지 않는다.

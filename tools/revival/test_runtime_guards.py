@@ -5,9 +5,17 @@ import unittest
 from pathlib import Path
 
 from verify_emulator_runtime import APP_ID, require_offline_results, validate_provenance
+from run_16kb_emulator import port_for_serial
 
 
 class RuntimeGuardTests(unittest.TestCase):
+    def test_emulator_launch_port_tracks_adb_serial(self):
+        self.assertEqual(port_for_serial('emulator-5580'), '5580')
+        self.assertEqual(port_for_serial('emulator-5582'), '5582')
+        for serial in ('emulator-5581', 'emulator-other', 'device-5580'):
+            with self.subTest(serial=serial), self.assertRaises(ValueError):
+                port_for_serial(serial)
+
     def test_only_observed_loopback_is_offline(self):
         require_offline_results([subprocess.CompletedProcess([], 0, ''), subprocess.CompletedProcess([], 0, ''),
                                 subprocess.CompletedProcess([], 0, '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536')])
