@@ -54,3 +54,9 @@ Android는 NDK r27 이하에 max-page-size와 common-page-size를 모두16384로
 검토 가능한 실험 입력은 동일 소스·동일6000.0.81f1/r27c·동일 테스트 빌드에서 기존 링크 인자를 보존하고 common-page-size=16384만 추가하는 것이다. 기대 효과는 생성되는 libil2cpp의 RELRO 끝 정렬 변화다. 실제 rsp에 옵션이 들어갔는지와 새 readelf/LOAD/RELRO를 다시 확인해야 한다. libmain/libc++ 실패까지 사라질 것으로 기대해서는 안 된다. 변경 시 추가 IL2CPP 인자도 finally 복원하고 별도 산출물로 원본을 보존해야 한다. 현재는 실험 구현·실행을 하지 않았다.
 
 휴대폰은 사용자님께서9월14일 이후 사용 가능하다고 알려주실 때까지 조작하지 않는다. 이후에도 실제 PAGE_SIZE와 호환 모드 조건을 확인한 별도16KB 검증이 필요하며, 보류 중인 잠금 해제나 계정 입력을 완료로 추정하지 않는다.
+
+## 2026-09-23 재감사
+
+위 3건은 9월 12일의 특정 AAB에서 **모두 존재하는 GNU_RELRO의 끝 주소 불일치**다. Android 공식 안내는 불일치가 16KB 환경에서 충돌한다고 설명하므로 strict 실패를 유지한다. 다만 세 RELRO가 각각 쓰기 가능 LOAD 전체와 일치하고 추가 writable 영역과 겹치지 않는다는 이 AAB의 배치, Android 16 Bionic의 whole-LOAD 처리 경로를 근거로 실제 충돌 여부는 해당 바이너리의 ARM64 네이티브 16KB 실행으로 확정해야 한다. RELRO가 **없는** 라이브러리는 공식 안내에서 이 정렬 항목에 적합하다고 보지만, 이 3건에는 해당하지 않는다. [Android RELRO 검사](https://developer.android.com/guide/practices/page-sizes#check-the-relro-security-flag), [Bionic 16KB 호환 경로](https://android.googlesource.com/platform/bionic/+/android16-qpr2-release/linker/linker_phdr_16kib_compat.cpp).
+
+현재 고정 NDK r27c의 `libc++_shared.so`와 Unity의 `libmain.so`는 사전 빌드 파일이다. `libil2cpp.so`에 `common-page-size=16384`를 더하는 실험이 성공해도 앞의 두 파일과 최종 AAB의 strict 실패가 함께 해결되지는 않는다. 공급자 호환 바이너리와 승인된 후반 Unity LTS 전환 뒤 새 AAB로 각 파일을 재검사해야 한다. 9월 23일 x86_64 16KB 게스트 부팅은 확인했으나 ARM64 코드는 번역 계층으로 표시됐고 앱을 설치하지 않았으므로, 위 세 라이브러리의 실제 실행 판정에는 사용하지 않는다. [호스트 재점검](release-preflight.ko.md#2026-09-23-가속-및-격리-게스트-관측)을 참조한다.
