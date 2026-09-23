@@ -17,6 +17,7 @@ namespace AD
         public UnityEngine.UI.Button ReauthenticateButton { get; private set; }
         public UnityEngine.UI.Button CloseButton { get; private set; }
         public UnityEngine.UI.Button ContactButton { get; private set; }
+        public bool ExitOnClose { get; set; }
 
         public void Build(TMP_FontAsset font, Action close)
         {
@@ -45,7 +46,11 @@ namespace AD
             ContactButton = Button("ContactDeletionSupport", content, "Contact about account deletion", font);
             ContactButton.onClick.AddListener(() => Application.OpenURL("mailto:" + CloudScriptDeletionClient.SupportEmail + "?subject=Monster%20Tamer%20account%20deletion"));
             CloseButton = Button("Close", content, "Back to settings", font);
-            CloseButton.onClick.AddListener(() => close());
+            CloseButton.onClick.AddListener(() =>
+            {
+                if (ExitOnClose) Application.Quit();
+                else close();
+            });
         }
 
         internal static RectTransform Rect(string name, Transform parent)
