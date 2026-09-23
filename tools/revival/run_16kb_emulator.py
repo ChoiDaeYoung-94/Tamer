@@ -16,6 +16,16 @@ AVD = 'Tamer_16KB_API36'
 SERIAL = 'emulator-5580'
 
 
+def port_for_serial(serial):
+    """Keep the launched console port and ADB identity bound to one value."""
+    if not serial.startswith('emulator-') or not serial[9:].isdigit():
+        raise ValueError('Expected an emulator serial with a numeric console port')
+    port = int(serial[9:])
+    if port < 5554 or port > 5682 or port % 2:
+        raise ValueError('Expected an even Android Emulator console port')
+    return str(port)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--timeout', type=int, default=600)
@@ -43,7 +53,7 @@ def main():
     if SERIAL in devices:
         raise ValueError('Reserved emulator port is occupied; existing device preserved')
     acceleration = call([emulator, '-accel-check'])
-    command = [str(emulator), '-avd', AVD, '-port', '5580', '-no-window', '-no-audio',
+    command = [str(emulator), '-avd', AVD, '-port', port_for_serial(SERIAL), '-no-window', '-no-audio',
                '-no-snapshot', '-no-boot-anim', '-gpu', 'software', '-accel', args.accel,
                '-memory', '2048', '-cores', '2']
     if args.gles_only:
