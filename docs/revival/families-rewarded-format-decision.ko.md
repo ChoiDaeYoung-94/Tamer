@@ -66,6 +66,20 @@ lockfile에는 Unity Ads SDK/adapter가 없으므로 버전이나 Game ID를 임
 추정해 설치하지 않았다. 현재 AdMob만 연동된 상태의 No Ads 경로와
 보상 완료/건너뛰기 구분을 어댑터 설계에서 그대로 보존해야 한다.
 
+LevelPlay를 채택할 때의 구현 단위도 확인했다. [Unity 패키지 통합 문서](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/package-integration)는
+`com.unity.services.levelplay` 경로와 Unity Ads adapter를 설명하지만 현재
+프로젝트의 Unity `6000.0.81f1`, 고정 AdMob/Android 의존성 및 16KB 조건에
+맞는 실제 패키지 조합은 격리 브랜치에서 확인해야 한다. 아동/미상 처리와 지역별
+동의는 [LevelPlay 연령·규제 설정](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/regulation-advanced-settings)에
+따라 **SDK 초기화 전에** 설정하고, UMP 결과를 다른 공급자의 동의로 임의
+간주하지 않는다. [Rewarded ad unit API](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/migrate-rewarded-ad-unit-api)는
+`OnAdRewarded`와 `OnAdClosed`를 별도 이벤트로 제공하므로 기존 세션의 보상 1회,
+닫힘 완료 1회, BGM 복구 및 No Ads 선행 처리를 연결할 수 있다. 실제 연결 전에는
+가짜 콜백으로 취소·실패·중복 보상·씬 변경을 검증한다. [Unity 통합 테스트
+안내](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/test-integration-index)는
+공급원별 테스트 도구를 제공하지만 그것만으로 첫 픽셀→X 5초를 판정할 수 없으므로
+공용 기기의 실제 영상과 터치가 필수다.
+
 ## 이번 변경의 검증
 
 기준 `origin/main`은 `f8ea3093d997bf2389d4cac29fab428bcb58f589`이다.
