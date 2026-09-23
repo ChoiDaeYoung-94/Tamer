@@ -85,6 +85,105 @@ public class RevivalDeletionIntakeTests
     private static object PrivateCall(object target, string name, params object[] args) =>
         target.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, args);
 
+    [TestCase(false)] [TestCase(true)]
+    public void Revival_OwnerBackupsDeleteOnlyMatchingProgressAndPreserveNoAds(bool receipt)
+    {
+        var root = new GameObject("Owner backup cleanup fixture"); root.SetActive(false);
+        string directory = Path.Combine(Path.GetTempPath(), "owner-backup-" + Guid.NewGuid().ToString("N"));
+        string backupDirectory = Path.Combine(directory, "PlayerDataBackups"); Directory.CreateDirectory(backupDirectory);
+        string path = Path.Combine(directory, "PlayerData.json");
+        string Backup() => Path.Combine(backupDirectory, "PlayerData-" + Guid.NewGuid().ToString("N") + ".json");
+        string owned = Backup(), foreign = Backup(), legacy = Backup(), malformed = Backup();
+        string current = "{\"__TamerAccountOwner\":\"synthetic-owner\",\"Gold\":\"9\"}";
+        string foreignText = "{\"__TamerAccountOwner\":\"synthetic-other\",\"GooglePlay\":\"ForeignPurchase\"}";
+        string legacyText = "{\"GooglePlay\":\"LegacyPurchase\"}";
+        string malformedText = "{bad-json";
+        File.WriteAllText(path, current);
+        File.WriteAllText(owned, "{\"__TamerAccountOwner\":\"synthetic-owner\",\"GooglePlay\":\"ProductNoAds\",\"Gold\":\"10\"}");
+        File.WriteAllText(foreign, foreignText); File.WriteAllText(legacy, legacyText); File.WriteAllText(malformed, malformedText);
+        string evidence = path + ".deletion-entitlement-existing"; File.WriteAllText(evidence, "existing-evidence");
+        var credentials = new PlayFabAuthenticationContext(); credentials.CopyFrom(PlayFabSettings.staticPlayer);
+        string title = PlayFabSettings.TitleId;
+        const string pauseKey = "AD_DeletionAcceptedNeedsLogin";
+        bool hadPause = PlayerPrefs.HasKey(pauseKey); int pause = PlayerPrefs.GetInt(pauseKey);
+        try
+        {
+            PlayFabSettings.TitleId = "TEST1"; PlayFabSettings.staticPlayer.ForgetAllCredentials();
+            var data = root.AddComponent(DataType); Set(data, "_playerDataPath", path);
+            if (receipt)
+            {
+                var recordType = AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(assembly => assembly.GetType("AD.Privacy.DeletionRecovery")).First(type => type != null);
+                var record = Activator.CreateInstance(recordType);
+                recordType.GetField("Origin").SetValue(record, "https://example.invalid/");
+                recordType.GetField("Title").SetValue(record, "TEST1");
+                var hash = recordType.GetMethod("Hash");
+                recordType.GetField("OwnerHash").SetValue(record, hash.Invoke(null,
+                    new object[] { new[] { "https://example.invalid/", "TEST1", "synthetic-owner" } }));
+                Call(data, "ApplyDeletionReceipt", record, true);
+            }
+            else
+            {
+                Set(data, "<PlayFabId>k__BackingField", "synthetic-owner");
+                Call(data, "FinishAcceptedDeletion", Call(data, "DeletionSession"));
+            }
+            Assert.That(File.Exists(path), Is.False); Assert.That(File.Exists(owned), Is.False);
+            Assert.That(File.ReadAllText(foreign), Is.EqualTo(foreignText));
+            Assert.That(File.ReadAllText(legacy), Is.EqualTo(legacyText));
+            Assert.That(File.ReadAllText(malformed), Is.EqualTo(malformedText));
+            Assert.That(File.ReadAllText(evidence), Is.EqualTo("existing-evidence"));
+            var newEvidence = Directory.GetFiles(directory, "*.deletion-entitlement-*")
+                .Single(file => file != evidence);
+            string saved = File.ReadAllText(newEvidence);
+            Assert.That(saved, Does.Contain("synthetic-owner").And.Contain("ProductNoAds"));
+            Assert.That(saved, Does.Not.Contain("Gold").And.Not.Contain("ForeignPurchase").And.Not.Contain("LegacyPurchase"));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root); Directory.Delete(directory, true);
+            PlayFabSettings.TitleId = title; PlayFabSettings.staticPlayer.CopyFrom(credentials);
+            if (hadPause) PlayerPrefs.SetInt(pauseKey, pause); else PlayerPrefs.DeleteKey(pauseKey); PlayerPrefs.Save();
+        }
+    }
+
+    [Test] public void Revival_OwnerBackupReadFailureKeepsProgressForAcceptedCleanupRetry()
+    {
+        var root = new GameObject("Owner backup read failure fixture"); root.SetActive(false);
+        string directory = Path.Combine(Path.GetTempPath(), "owner-backup-io-" + Guid.NewGuid().ToString("N"));
+        string backups = Path.Combine(directory, "PlayerDataBackups"); Directory.CreateDirectory(backups);
+        string path = Path.Combine(directory, "PlayerData.json");
+        string backup = Path.Combine(backups, "PlayerData-" + Guid.NewGuid().ToString("N") + ".json");
+        string progress = "{\"__TamerAccountOwner\":\"synthetic-owner\",\"Gold\":\"9\"}";
+        File.WriteAllText(path, progress);
+        File.WriteAllText(backup, "{\"__TamerAccountOwner\":\"synthetic-owner\",\"GooglePlay\":\"ProductNoAds\"}");
+        var credentials = new PlayFabAuthenticationContext(); credentials.CopyFrom(PlayFabSettings.staticPlayer);
+        string title = PlayFabSettings.TitleId;
+        const string pauseKey = "AD_DeletionAcceptedNeedsLogin";
+        bool hadPause = PlayerPrefs.HasKey(pauseKey); int pause = PlayerPrefs.GetInt(pauseKey);
+        try
+        {
+            PlayFabSettings.TitleId = "TEST1"; PlayFabSettings.staticPlayer.ForgetAllCredentials();
+            var data = root.AddComponent(DataType); Set(data, "_playerDataPath", path);
+            Set(data, "_defaults", new Dictionary<string, string>());
+            Set(data, "<PlayFabId>k__BackingField", "synthetic-owner");
+            using (var blocked = new FileStream(backup, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                var error = Assert.Throws<TargetInvocationException>(() =>
+                    Call(data, "FinishAcceptedDeletion", Call(data, "DeletionSession")));
+                Assert.That(error.InnerException, Is.InstanceOf<IOException>());
+            }
+            Assert.That(File.ReadAllText(path), Is.EqualTo(progress));
+            Assert.That(File.Exists(backup), Is.True);
+            Assert.That(Directory.GetFiles(directory, "*.deletion-entitlement-*").Length, Is.Zero);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root); Directory.Delete(directory, true);
+            PlayFabSettings.TitleId = title; PlayFabSettings.staticPlayer.CopyFrom(credentials);
+            if (hadPause) PlayerPrefs.SetInt(pauseKey, pause); else PlayerPrefs.DeleteKey(pauseKey); PlayerPrefs.Save();
+        }
+    }
+
     [TestCase(1)] [TestCase(2)]
     public void Revival_DeletionReceiptBootstrapOpensBeforeLoginAndDoesNotChooseMultipleAccounts(int count)
     {

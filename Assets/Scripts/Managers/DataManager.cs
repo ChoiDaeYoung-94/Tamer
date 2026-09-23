@@ -115,21 +115,14 @@ namespace AD
                 PlayFab.PlayFabSettings.staticPlayer.ForgetAllCredentials(); // Only the matching account passed the binding guard above.
             PlayerPrefs.SetInt(DeletionLoginPauseKey, 1); PlayerPrefs.Save();
             DeleteReceiptInventory(record);
-            var stored = ReadDeletionProgress();
-            if (stored != null)
+            DeleteOwnedProgressAndBackups(owner =>
+                AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, owner) == record.OwnerHash);
+            if (ReadDeletionProgress() == null)
             {
-                if (stored.TryGetValue(OwnerKey, out var owner) && !string.IsNullOrEmpty(owner) &&
-                    AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, owner) == record.OwnerHash)
-                {
-                    if (stored.TryGetValue("GooglePlay", out var entitlement) && !string.IsNullOrEmpty(entitlement))
-                        WriteAtomically(_playerDataPath + ".deletion-entitlement-" + Guid.NewGuid().ToString("N"),
-                            Utility.SerializeToJson(new Dictionary<string, string> { [OwnerKey] = owner, ["GooglePlay"] = entitlement }));
-                    File.Delete(_playerDataPath);
-                    _localOwner = string.Empty;
-                    LocalPlayerData = _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
-                    _changes = new PlayerDataChanges();
-                    PlayFabPlayerData = null;
-                }
+                _localOwner = string.Empty;
+                LocalPlayerData = _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
+                _changes = new PlayerDataChanges();
+                PlayFabPlayerData = null;
             }
             DeletionInProgress = false;
             // Foreign/legacy data remains untouched, including its owner fence and entitlement evidence.
@@ -147,6 +140,65 @@ namespace AD
             try { return ParseData(File.ReadAllText(_playerDataPath)); }
             catch (FileNotFoundException) { return null; }
             catch (DirectoryNotFoundException) { return null; }
+        }
+
+        private void DeleteOwnedProgressAndBackups(Func<string, bool> matchesOwner)
+        {
+            if (matchesOwner == null || string.IsNullOrEmpty(_playerDataPath))
+                throw new InvalidOperationException("Local save binding is unavailable.");
+
+            var owned = new List<(string path, string owner, string entitlement)>();
+            void AddIfOwned(string path, Dictionary<string, string> data)
+            {
+                if (data == null || !data.TryGetValue(OwnerKey, out var owner) ||
+                    string.IsNullOrWhiteSpace(owner) || owner == "null" || !matchesOwner(owner)) return;
+                data.TryGetValue("GooglePlay", out var entitlement);
+                owned.Add((path, owner, entitlement));
+            }
+
+            AddIfOwned(_playerDataPath, ReadDeletionProgress());
+            var directory = Path.Combine(Path.GetDirectoryName(_playerDataPath), "PlayerDataBackups");
+            string[] candidates;
+            try
+            {
+                if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidDataException("Backup directory binding is not trustworthy.");
+                candidates = Directory.GetFiles(directory, "PlayerData-*.json", SearchOption.TopDirectoryOnly);
+            }
+            catch (DirectoryNotFoundException) { candidates = Array.Empty<string>(); }
+            catch (FileNotFoundException) { candidates = Array.Empty<string>(); }
+            foreach (var path in candidates)
+            {
+                if (!IsGeneratedPlayerBackup(Path.GetFileName(path))) continue;
+                if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidDataException("Backup file binding is not trustworthy.");
+                var contents = File.ReadAllText(path); // I/O failures must keep the deletion journal.
+                Dictionary<string, string> data;
+                try { data = ParseData(contents); }
+                catch (Exception error) when (error is InvalidDataException || error is ArgumentException || error is FormatException)
+                { continue; } // A malformed backup has no trustworthy owner and remains untouched.
+                AddIfOwned(path, data);
+            }
+
+            string entitlementEvidence = null;
+            foreach (var file in owned)
+                entitlementEvidence = PlayerDataSyncPolicy.UnionEntitlements(entitlementEvidence, file.entitlement);
+            if (!string.IsNullOrEmpty(entitlementEvidence))
+                WriteAtomically(_playerDataPath + ".deletion-entitlement-" + Guid.NewGuid().ToString("N"),
+                    Utility.SerializeToJson(new Dictionary<string, string>
+                    { [OwnerKey] = owned[0].owner, ["GooglePlay"] = entitlementEvidence }));
+            foreach (var file in owned) File.Delete(file.path);
+        }
+
+        private static bool IsGeneratedPlayerBackup(string name)
+        {
+            const string prefix = "PlayerData-";
+            const string suffix = ".json";
+            if (name == null || name.Length != prefix.Length + 32 + suffix.Length ||
+                !name.StartsWith(prefix, StringComparison.Ordinal) || !name.EndsWith(suffix, StringComparison.Ordinal)) return false;
+            for (int index = prefix.Length; index < prefix.Length + 32; index++)
+                if (!(name[index] >= '0' && name[index] <= '9') && !(name[index] >= 'a' && name[index] <= 'f')) return false;
+            return true;
         }
 
         private void DeleteReceiptInventory(AD.Privacy.DeletionRecovery record)
@@ -213,20 +265,7 @@ namespace AD
                 if (!string.IsNullOrEmpty(_playerDataPath))
                     PlayerInventoryStore.DeleteBound(_playerDataPath + ".inventory", PlayerInventoryStore.OwnerKey(session.AccountId),
                         session.InventorySession, owner => owner == session.AccountId);
-                var stored = ReadDeletionProgress();
-                if (stored != null)
-                {
-                    if (stored.TryGetValue(OwnerKey, out var owner) && owner == session.AccountId)
-                    {
-                        // Keep account-bound entitlement evidence outside active progress; never grant it to a new account.
-                        if (stored.TryGetValue("GooglePlay", out var entitlement) && !string.IsNullOrEmpty(entitlement))
-                        {
-                            var evidence = new Dictionary<string, string> { [OwnerKey] = owner, ["GooglePlay"] = entitlement };
-                            WriteAtomically(_playerDataPath + ".deletion-entitlement-" + Guid.NewGuid().ToString("N"), Utility.SerializeToJson(evidence));
-                        }
-                        File.Delete(_playerDataPath);
-                    }
-                }
+                DeleteOwnedProgressAndBackups(owner => string.Equals(owner, session.AccountId, StringComparison.Ordinal));
             }
             finally
             {
