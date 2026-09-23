@@ -63,6 +63,8 @@ min SDK 24/target SDK 36/ARM64 조건에서 `RevivalAdManagerTests` EditMode
 APK 메타데이터를 확인했다. 기본 네이티브 LOAD/ZIP 16KB 정적 검사는 통과했다.
 별도 GNU_RELRO 끝 정렬 검사는 통과하지 않았으며 16KB 기기 실행, UMP 실제 폼,
 광고 수신, 첫 픽셀과 X 표시·터치, 운영 소재 및 스토어 판정은 검증하지 않았다.
+이후 같은 APK의 공용 테스트폰 샘플 한 회 측정 결과는
+[실기기 닫기 기록](rewarded-close-device-result.ko.md)에 별도로 기록했다.
 
 ## 출시 연결 전에 남는 조건
 
