@@ -150,8 +150,14 @@ namespace AD
         }
 
         // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
+        private bool CanUseRewardedFormat =>
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+            IsSampleHarness ||
+#endif
+            AgeTreatmentPolicy.AllowsFullscreenRewarded(ConsentAge);
+
         public bool CanRequestAds =>
-            HasConsentAge && (AgeTreatmentPolicy.IsReviewed(ConsentAge)
+            HasConsentAge && CanUseRewardedFormat && (AgeTreatmentPolicy.IsReviewed(ConsentAge)
 #if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
                 || IsSampleHarness
 #endif

@@ -22,6 +22,12 @@ namespace AD.Advertising
         public static bool IsReviewed(AgeChoice choice) =>
             RegionalConsentReviewed && TryCreatePlan(choice, out _);
 
+        // An age-only candidate, not permission to advertise: the current Play target
+        // audience is 9-17, and regional, consent and release review all remain closed.
+        // The SDK controls the native X; no five-second close guarantee exists here.
+        public static bool AllowsFullscreenRewarded(AgeChoice choice) =>
+            choice == AgeChoice.Adult;
+
         // Proposed protections only. A plan is neither regional approval nor consent.
         public static bool TryCreatePlan(AgeChoice choice, out AgeTreatmentPlan plan)
         {
