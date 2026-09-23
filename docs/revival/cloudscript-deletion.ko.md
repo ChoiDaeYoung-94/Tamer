@@ -2,7 +2,7 @@
 
 ## 구현 범위
 
-별도 유료 서버나 SQLite 영수증 서비스를 배포하지 않고 기존 PlayFab Classic CloudScript를 사용한다. `server/cloudscript/account-deletion.js`는 **기본 비활성화된 배포 후보**이며 현재 운영 타이틀에 업로드하거나 활성화하지 않았다.
+별도 유료 서버나 SQLite 영수증 서비스를 배포하지 않고 기존 PlayFab Classic CloudScript를 사용한다. 저장소의 `server/cloudscript/account-deletion.js`는 재사용을 위해 기본 비활성으로 남겨 두었다. 2026-09-23 운영 타이틀에는 기존 handler를 보존한 삭제 handler 후보를 배포하고 필요한 API 설정을 적용·재조회했다. [운영 설정 검증](cloudscript-operating-activation.ko.md)은 실제 계정의 삭제 요청·처리 완료 검증과 구분한다.
 
 앱에서 사용자가 삭제를 선택하면 읽기 전용 `getCurrentPlayerDeletionConfigV1`을 Live revision으로 호출한다. 활성 여부와 프로토콜을 확인한 뒤 최종 확인 시 해당 Specific revision의 `requestCurrentPlayerDeletionV1`을 한 번 호출한다. 인증 context는 복사하고 호출 전후 현재 세션을 확인한다. 새 인증을 수행했다고 표현하지 않는다.
 
@@ -20,13 +20,11 @@
 - [Client/ExecuteCloudScript](https://learn.microsoft.com/en-us/rest/api/playfab/client/server-side-cloud-script/execute-cloud-script?view=playfab-rest): 인증된 플레이어, Live/Specific revision과 별도의 실행 오류.
 - [Server/DeletePlayer](https://learn.microsoft.com/en-us/rest/api/playfab/server/account-management/delete-player?view=playfab-rest): 기본 비활성 API 옵션, 비동기 삭제 접수 및 빈 결과 객체. 타이틀 데이터가 삭제 대상이며 publisher/master 계정·연결·이메일·친구·PlayStream 기록까지 전부 삭제한다고 설명하지 않는다.
 
-## 배포 전 남은 검증
+## 운영 연결 후 남은 검증
 
-1. 승인된 폐기 가능한 **테스트 타이틀/테스트 계정**을 확정한다. 기존 CloudScript revision을 비공개로 백업하고 후보의 두 handler를 기존 handler와 병합한다. 전체 스크립트를 교체하지 않는다.
-2. 후속 배포 승인 범위에서만 테스트 titleId를 고정하고 enabled를 켠 후보 revision을 게시한다. 해당 테스트 타이틀의 Server/DeletePlayer 옵션도 확인한다. 운영 설정·자격 증명을 이 저장소에 넣지 않는다.
-3. 실제 Client 호출에서 preflight revision 고정, 인증된 본인만 삭제, 타인 target 인수 거부, 정상 접수 및 바깥 ExecuteCloudScript 오류/응답 유실을 확인한다. 서버 삭제 접수 이후에도 외부 응답 전달이 보장된다고 가정하지 않는다.
-4. 실제 기기에서 timeout 후 재시작·재로그인·저장 차단·재전송 없음, 정상 접수 후 owner 한정 정리·No Ads 보존, AccountDeleted 처리 및 문의 버튼을 확인한다. 운영 계정으로 자동 검증하지 않는다.
-5. 실제 APK/AAB·기기·스토어 검증은 별도이며 이 문서의 Editor 결과로 대체하지 않는다. #92 기준 빌드와 #91 정책/기기/스토어 검증을 구분한다.
+1. 운영 배포 상태와 API 설정의 서버 읽기 확인은 완료했다. 운영 인증 계정 없이 `currentPlayerId`가 필요한 config 함수를 실행할 수 없어 실제 Client Live preflight는 미검증이다. 운영 계정으로 자동 로그인하거나 삭제 요청을 보내지 않는다.
+2. 인증된 본인만 삭제하는 실제 요청, 응답 유실·외부 오류, 제공자 비동기 삭제 완료는 운영에서 검증하지 않았다. 시험 타이틀의 폐기 계정 한 건 결과를 운영 결과로 대신하지 않는다.
+3. 실제 배포 APK/AAB·기기·스토어에서 timeout 후 journal·재로그인 차단, 정상 접수 후 owner 한정 정리와 구매 복원 동작을 별도로 확인해야 한다. #92 기준 빌드와 #91 정책/기기/스토어 검증을 구분한다.
 
 ## 2026-09-22 로컬 검증
 
