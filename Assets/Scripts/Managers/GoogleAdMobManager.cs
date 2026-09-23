@@ -45,24 +45,25 @@ namespace AD
         private DebugGeography _sampleHarnessGeography;
         private string _sampleHarnessDeviceHash;
 
-        // Only the isolated sample scene and its debug-signed package may opt in.
+        // Only the isolated Android sample scene and its debug-signed package may opt in.
+        // The Editor may use the publisher's tracked App ID, so it cannot request a sample.
         private bool IsSampleHarness => _sampleHarnessConfigured && !_destroyed &&
             SampleHarnessContextAllowed(Application.isEditor,
                 Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
-                Application.isBatchMode, Application.identifier, gameObject.scene.path,
+                Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
                 Managers.Instance != null);
 
         internal static bool SampleHarnessContextAllowed(bool editor, bool android, bool development,
             bool batch, string package, string scenePath, bool hasManagers) =>
-            !batch && !hasManagers && scenePath == SampleHarnessScenePath &&
-            (editor || android && development && package == SampleHarnessPackage);
+            !editor && !batch && !hasManagers && scenePath == SampleHarnessScenePath &&
+            android && development && package == SampleHarnessPackage;
 
         public bool ConfigureSampleHarness(AgeChoice age, DebugGeography geography, string testDeviceHash)
         {
             if (_destroyed || IsInProgress || IsConsentBusy ||
                 !SampleHarnessContextAllowed(Application.isEditor,
                     Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
-                    Application.isBatchMode, Application.identifier, gameObject.scene.path,
+                    Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
                     Managers.Instance != null) ||
                 !AgeTreatmentPolicy.TryCreatePlan(age, out _)) return false;
             if (_sampleHarnessConfigured)

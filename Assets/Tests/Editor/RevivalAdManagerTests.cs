@@ -52,7 +52,8 @@ public class RevivalAdManagerTests
         public void ShowPrivacyOptions(Action<bool> done) => Assert.Fail("Not required.");
     }
 
-    [TestCase(true, false, false, false, "com.other", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, true)]
+    [TestCase(true, false, false, false, "com.other", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
+    [TestCase(true, true, true, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
     [TestCase(false, true, true, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, true)]
     [TestCase(false, true, false, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
     [TestCase(false, true, true, false, "com.AeDeong.MonsterTamer", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
