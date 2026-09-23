@@ -8,10 +8,12 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4' // Assets/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:12
     implementation 'androidx.fragment:fragment:1.7.1' // Assets/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:22
     implementation 'androidx.lifecycle:lifecycle-process:2.6.2' // Assets/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:17
+    implementation 'com.google.ads.mediation:unity:4.20.0.1' // Assets/GoogleMobileAds/Mediation/UnityAds/Editor/Dependencies.xml:25
     implementation 'com.google.android.gms:play-services-ads:25.4.0' // Assets/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:7
     implementation 'com.google.android.gms:play-services-games-v2:22.0.0' // Assets/GooglePlayGames/com.google.play.games/Editor/GooglePlayGamesPluginDependencies.xml:9
     implementation 'com.google.android.gms:play-services-nearby:18.5.0' // Assets/GooglePlayGames/com.google.play.games/Editor/GooglePlayGamesPluginDependencies.xml:14
     implementation 'com.google.android.ump:user-messaging-platform:4.0.0' // Assets/GoogleMobileAds/Editor/GoogleUmpDependencies.xml:7
+    implementation 'com.unity3d.ads:unity-ads:4.20.0' // Assets/GoogleMobileAds/Mediation/UnityAds/Editor/Dependencies.xml:33
 // Android Resolver Dependencies End
 **DEPS**}
 
