@@ -2,6 +2,10 @@ using System;
 using System.IO;
 using System.Collections;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 using UnityEngine;
 using UnityEditor;
@@ -20,6 +24,9 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     // 환경 변수가 없으면 에디터(Player Settings)에 입력된 값을 그대로 사용한다.
     private const string ENV_KEYSTORE_PASS = "TAMER_KEYSTORE_PASS";
     private const string ENV_KEYALIAS_PASS = "TAMER_KEYALIAS_PASS";
+    private const string ENV_UPLOAD_KEYSTORE_PATH = "TAMER_UPLOAD_KEYSTORE_PATH";
+    private const string ENV_UPLOAD_KEY_ALIAS = "TAMER_UPLOAD_KEY_ALIAS";
+    private const string ENV_UPLOAD_CERT_SHA256 = "TAMER_UPLOAD_CERT_SHA256";
     private static string[] DEFINESYMBOLS_APK = { "DEBUG" };
     private static string[] DEFINESYMBOLS_AAB = { "" };
 
@@ -52,13 +59,16 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     /// <param name="form"></param>
     static void SetAOS(string form)
     {
+        bool isAAB = form.Equals(CHECK_AOS_SETTING_AAB);
+        // 입력이 잘못됐다면 빌드 표시 파일이나 PlayerSettings를 바꾸기 전에 중단한다.
+        if (isAAB)
+            ValidateReleaseUploadSigning();
+
         if (!Directory.Exists("Build"))
             Directory.CreateDirectory("Build");
 
         StreamWriter file = File.CreateText(form);
         file.Close();
-
-        bool isAAB = form.Equals(CHECK_AOS_SETTING_AAB) ? true : false;
 
         if (isAAB)
             PlayerSettings.SetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android, DEFINESYMBOLS_AAB);
@@ -74,6 +84,9 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     /// <param name="isAAB"></param>
     static void BuildAOS(bool isAAB)
     {
+        // 메뉴 선택과 실제 빌드 사이에 환경 변수나 키 파일이 바뀌었을 수 있다.
+        UploadSigningInput uploadSigning = isAAB ? ValidateReleaseUploadSigning() : null;
+
         EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
 
         EditorUserBuildSettings.buildAppBundle = isAAB;
@@ -92,9 +105,12 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 
         PlayerSettings.Android.bundleVersionCode = Convert.ToInt32(_str_buildInfo[2]);
 
-        PlayerSettings.Android.keystoreName = KEYSTORE_NAME;
-        PlayerSettings.Android.keyaliasName = KEYALIAS_NAME;
-        ApplyKeystorePassword();
+        if (!isAAB)
+        {
+            PlayerSettings.Android.keystoreName = KEYSTORE_NAME;
+            PlayerSettings.Android.keyaliasName = KEYALIAS_NAME;
+            ApplyKeystorePassword();
+        }
 
         PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Android, ApiCompatibilityLevel.NET_4_6);
@@ -121,7 +137,35 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
         buildPlayerOptions.target = BuildTarget.Android;
         buildPlayerOptions.targetGroup = BuildTargetGroup.Android;
 
-        BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+        BuildReport report;
+        if (isAAB)
+        {
+            // 외부 키 경로와 비밀번호가 Editor 설정에 남지 않도록 빌드 동안만 적용한다.
+            bool previousCustom = PlayerSettings.Android.useCustomKeystore;
+            string previousKeystore = PlayerSettings.Android.keystoreName;
+            string previousAlias = PlayerSettings.Android.keyaliasName;
+            string previousStorePassword = PlayerSettings.Android.keystorePass;
+            string previousAliasPassword = PlayerSettings.Android.keyaliasPass;
+            try
+            {
+                PlayerSettings.Android.useCustomKeystore = true;
+                PlayerSettings.Android.keystoreName = uploadSigning.KeystorePath;
+                PlayerSettings.Android.keyaliasName = uploadSigning.Alias;
+                PlayerSettings.Android.keystorePass = uploadSigning.KeystorePassword;
+                PlayerSettings.Android.keyaliasPass = uploadSigning.AliasPassword;
+                report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            }
+            finally
+            {
+                PlayerSettings.Android.useCustomKeystore = previousCustom;
+                PlayerSettings.Android.keystoreName = previousKeystore;
+                PlayerSettings.Android.keyaliasName = previousAlias;
+                PlayerSettings.Android.keystorePass = previousStorePassword;
+                PlayerSettings.Android.keyaliasPass = previousAliasPassword;
+            }
+        }
+        else
+            report = BuildPipeline.BuildPlayer(buildPlayerOptions);
         BuildSummary summary = report.summary;
 
         if (summary.result == BuildResult.Succeeded)
@@ -155,6 +199,139 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
             throw new BuildFailedException(
                 $"keystore 비밀번호가 설정되지 않았습니다. 환경 변수 {ENV_KEYSTORE_PASS}, {ENV_KEYALIAS_PASS}를 설정하거나 " +
                 "Player Settings > Publishing Settings에 비밀번호를 입력한 뒤 다시 빌드해 주세요.");
+        }
+    }
+
+    private sealed class UploadSigningInput
+    {
+        public string KeystorePath;
+        public string Alias;
+        public string KeystorePassword;
+        public string AliasPassword;
+    }
+
+    // AAB 서명용 입력은 기존 Git 추적 키와 Editor에 남은 비밀번호를 재사용하지 않는다.
+    // 기대 지문은 소유자가 Play Console의 활성 업로드 인증서와 별도로 대조해야 한다.
+    private static UploadSigningInput ValidateReleaseUploadSigning()
+    {
+        string rawPath = Environment.GetEnvironmentVariable(ENV_UPLOAD_KEYSTORE_PATH);
+        string alias = Environment.GetEnvironmentVariable(ENV_UPLOAD_KEY_ALIAS);
+        string expected = Environment.GetEnvironmentVariable(ENV_UPLOAD_CERT_SHA256);
+        string storePassword = Environment.GetEnvironmentVariable(ENV_KEYSTORE_PASS);
+        string aliasPassword = Environment.GetEnvironmentVariable(ENV_KEYALIAS_PASS);
+        if (string.IsNullOrWhiteSpace(rawPath) || string.IsNullOrWhiteSpace(alias)
+            || string.IsNullOrWhiteSpace(expected) || string.IsNullOrEmpty(storePassword)
+            || string.IsNullOrEmpty(aliasPassword))
+            throw new BuildFailedException(
+                "AAB 서명에는 TAMER_UPLOAD_KEYSTORE_PATH, TAMER_UPLOAD_KEY_ALIAS, " +
+                "TAMER_UPLOAD_CERT_SHA256, TAMER_KEYSTORE_PASS, TAMER_KEYALIAS_PASS가 모두 필요합니다.");
+
+        if (!Regex.IsMatch(alias, @"\A[A-Za-z0-9._-]+\z")
+            || !(Regex.IsMatch(expected, @"\A[0-9A-Fa-f]{64}\z")
+                 || Regex.IsMatch(expected, @"\A[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){31}\z")))
+            throw new BuildFailedException("업로드 키 alias 또는 기대 인증서 SHA-256 형식이 잘못되었습니다.");
+
+        try
+        {
+            string path = Path.GetFullPath(rawPath);
+            string pathRoot = Path.GetPathRoot(rawPath);
+            if (!Path.IsPathRooted(rawPath) || string.IsNullOrEmpty(pathRoot)
+                || !(pathRoot.EndsWith("/") || pathRoot.EndsWith("\\"))
+                || rawPath.IndexOf('"') >= 0 || !File.Exists(path)
+                || IsInsideGitOrReparsePoint(path))
+                throw new BuildFailedException("업로드 키는 Git 작업 폴더 밖의 기존 절대 경로에 있어야 합니다.");
+
+            string jdkRoot = UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath;
+            if (string.IsNullOrEmpty(jdkRoot))
+                jdkRoot = Path.Combine(EditorApplication.applicationContentsPath,
+                    "PlaybackEngines", "AndroidPlayer", "OpenJDK");
+            string keytool = Path.Combine(jdkRoot, "bin",
+                Application.platform == RuntimePlatform.WindowsEditor ? "keytool.exe" : "keytool");
+            if (!File.Exists(keytool))
+                throw new BuildFailedException("Unity가 사용하는 JDK의 keytool을 찾지 못했습니다.");
+
+            string actual = ReadCertificateSha256(keytool, path, alias);
+            if (!string.Equals(actual, expected.Replace(":", ""), StringComparison.OrdinalIgnoreCase))
+                throw new BuildFailedException("업로드 키의 공개 인증서가 기대 SHA-256과 다릅니다.");
+
+            return new UploadSigningInput
+            {
+                KeystorePath = path, Alias = alias,
+                KeystorePassword = storePassword, AliasPassword = aliasPassword
+            };
+        }
+        catch (BuildFailedException) { throw; }
+        catch (Exception)
+        {
+            // 원래 예외에 포함될 수 있는 키 경로·alias·도구 출력을 로그에 남기지 않는다.
+            throw new BuildFailedException("업로드 키의 경로 또는 공개 인증서를 확인하지 못했습니다.");
+        }
+    }
+
+    private static bool IsInsideGitOrReparsePoint(string path)
+    {
+        string projectRoot = Path.GetFullPath(Path.GetDirectoryName(Application.dataPath));
+        StringComparison comparison = Application.platform == RuntimePlatform.WindowsEditor
+            ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (path.Equals(projectRoot, comparison)
+            || path.StartsWith(projectRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar, comparison))
+            return true;
+
+        string current = path;
+        while (!string.IsNullOrEmpty(current))
+        {
+            if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                return true;
+            if (Directory.Exists(current)
+                && (File.Exists(Path.Combine(current, ".git"))
+                    || Directory.Exists(Path.Combine(current, ".git"))))
+                return true;
+            string parent = Path.GetDirectoryName(current);
+            if (parent == current)
+                break;
+            current = parent;
+        }
+        return false;
+    }
+
+    private static string ReadCertificateSha256(string keytool, string path, string alias)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = keytool,
+            Arguments = "-exportcert -keystore \"" + path + "\" -alias " + alias
+                + " -storepass:env " + ENV_KEYSTORE_PASS,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        using (var process = new System.Diagnostics.Process { StartInfo = start })
+        using (var certificateBytes = new MemoryStream())
+        {
+            if (!process.Start())
+                throw new BuildFailedException("업로드 키 인증서 확인 도구를 시작하지 못했습니다.");
+            Task output = process.StandardOutput.BaseStream.CopyToAsync(certificateBytes);
+            Task errors = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(30000))
+            {
+                process.Kill();
+                throw new BuildFailedException("업로드 키 인증서 확인 시간이 초과됐습니다.");
+            }
+            if (!Task.WaitAll(new[] { output, errors }, 5000)
+                || process.ExitCode != 0 || certificateBytes.Length == 0)
+                throw new BuildFailedException("업로드 키의 공개 인증서를 확인하지 못했습니다.");
+
+            using (var certificate = new X509Certificate2(certificateBytes.ToArray()))
+            using (var sha256 = SHA256.Create())
+            {
+                DateTime now = DateTime.UtcNow;
+                if (now < certificate.NotBefore.ToUniversalTime()
+                    || now > certificate.NotAfter.ToUniversalTime())
+                    throw new BuildFailedException("업로드 키 인증서의 유효 기간이 아닙니다.");
+                return BitConverter.ToString(sha256.ComputeHash(certificate.RawData)).Replace("-", "");
+            }
         }
     }
     #endregion
