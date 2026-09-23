@@ -43,6 +43,27 @@ AdMob 고참여 설정의 보상 skip 30/60초도 5초 X 보증이 아니다.
 [일반 광고 정책](https://support.google.com/googleplay/android-developer/answer/9857753?hl=en),
 [고참여 광고 설정](https://support.google.com/admob/answer/15525707?hl=en-GB).
 
+## 로컬 검증 (2026-09-23)
+
+검증 checkout은 `codex/rewarded-close-review`의 `a6aaaac` 기반 작업 트리이며,
+검증한 광고 코드 내용은 후속 커밋 `a23399b`에 담겼다. 최신 `main` `8b8d211`로
+재기반화한 코드 커밋은 `1a891e5`, 문서 커밋은 `419c00b`이다. 재기반화 전후의
+파일 차이는 광고 빌드 입력과 무관한 문서 2개와 `run_16kb_emulator.py`,
+`test_runtime_guards.py`뿐이다. 재기반화된 HEAD로 빌드를 다시 실행한 결과로
+표현하지 않는다.
+
+Unity `6000.0.81f1`, Unity CLI `1.0.0-beta.8`, Android build-tools `36.0.0`,
+min SDK 24/target SDK 36/ARM64 조건에서 `RevivalAdManagerTests` EditMode
+51/51 통과(실패·건너뜀 0, XML SHA-256
+`b8d640244a70022f7ce2f2a4ddbca76f117bcdf55fd99923b0b7f23aa5f2d444`)를
+확인했다. 격리 샘플 APK `Build/revival/Tamer-ads-sample.apk`는
+132,829,986바이트, SHA-256
+`e46ec083667060e831a429e284c16acc2557924b86612f78e9543da87a05977c`이다.
+검증 스크립트는 별도 패키지·debug 서명·공식 샘플 AdMob App ID와 ARM64만 포함된
+APK 메타데이터를 확인했다. 기본 네이티브 LOAD/ZIP 16KB 정적 검사는 통과했다.
+별도 GNU_RELRO 끝 정렬 검사는 통과하지 않았으며 16KB 기기 실행, UMP 실제 폼,
+광고 수신, 첫 픽셀과 X 표시·터치, 운영 소재 및 스토어 판정은 검증하지 않았다.
+
 ## 출시 연결 전에 남는 조건
 
 현재 `RegionalConsentReviewed=false`이고 비개발 릴리스에는 운영 광고 요청 경로가 없다.
