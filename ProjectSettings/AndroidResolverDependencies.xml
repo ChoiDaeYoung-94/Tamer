@@ -3,12 +3,10 @@
     <package>androidx.constraintlayout:constraintlayout:2.1.4</package>
     <package>androidx.fragment:fragment:1.7.1</package>
     <package>androidx.lifecycle:lifecycle-process:2.6.2</package>
-    <package>com.google.ads.mediation:unity:4.20.0.1</package>
     <package>com.google.android.gms:play-services-ads:25.4.0</package>
     <package>com.google.android.gms:play-services-games-v2:22.0.0</package>
     <package>com.google.android.gms:play-services-nearby:18.5.0</package>
     <package>com.google.android.ump:user-messaging-platform:4.0.0</package>
-    <package>com.unity3d.ads:unity-ads:4.20.0</package>
   </packages>
   <files />
   <settings>
