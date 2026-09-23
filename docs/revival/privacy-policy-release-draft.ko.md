@@ -2,6 +2,26 @@
 
 2026-09-22 결정 반영 (초판 2026-09-21). 이 문서는 공개 정책 교체본이나 현재 운영 기능 안내가 아니다. README·Play Console·AdMob 설정은 변경하지 않았다. 아래 미확정 사항을 해결하고 실제 제공 버전과 대조한 뒤 게시 문구와 시행일을 확정한다.
 
+## 2026-09-23 통합 상태 대조
+
+아래의 `fbe6625` 기준 문구는 작성 당시의 근거로 보존한다. 현재 main
+`410884e`에는 Classic CloudScript 런타임 연결과 설정의 삭제 진입점이 있지만,
+운영 타이틀의 삭제 기능 게시·실계정 접수는 확인하지 않았다. 캐릭터 생성 전 진입,
+비가용 안내, 접수 후 화면 잠금 보완은 [draft PR #222](https://github.com/ChoiDaeYoung-94/Tamer/pull/222)에만 있으며
+컴파일 단계 두 차례 실패 후 수정본의 Unity 검증이 보류됐다. 따라서 그 동작을
+게시된 앱 기능으로 안내하지 않는다.
+
+소유가 확인된 현재 진행 정리만으로 백업·구매 권한 증거의 보관/파기가 끝나지 않는다.
+`PlayerDataBackups`와 No Ads 권한 보존·정리는 [#220](https://github.com/ChoiDaeYoung-94/Tamer/issues/220)의
+별도 출시 차단 항목이다. 아래 보관 표의 목적·기간·기산점은 아직 확정하지 않았다.
+광고는 [공식 샘플 실기기 한 회](rewarded-close-device-result.ko.md)에서 합성
+Under13·EEA의 첫 픽셀부터 X까지 약 8초를 관측했다. 운영 광고 gate는 계속
+비활성이며 이 관측은 운영 소재 전체의 판정이 아니다. 광고·No Ads를 함께 지원한다는
+[확정 방향](ad-recovery-decision.ko.md)과 별도로, 5초 조건을 충족하는 실제 공급 경로가 필요하다.
+
+이 대조는 출시 초안의 근거 시점을 구분할 뿐 README 정책, 외부 삭제 안내,
+Data safety 답안 또는 시행일을 확정하지 않는다.
+
 ## 기준과 기존 URL 보존
 
 - checkout: `C:/Users/pc_17/.codex/worktrees/deletion-email-guidance/Tamer`
