@@ -73,6 +73,20 @@ public class RevivalAgeChoiceTests
         Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.False);
     }
 
+    [TestCase(AgeChoice.Unknown, false)]
+    [TestCase(AgeChoice.Under13, false)]
+    [TestCase(AgeChoice.From13To15, false)]
+    [TestCase(AgeChoice.From16To17, false)]
+    [TestCase(AgeChoice.Adult, true)]
+    [TestCase(AgeChoice.Declined, false)]
+    public void Revival_FullscreenRewardedAgeGuardRequiresAdultAndDoesNotOpenReleaseGate(
+        AgeChoice age, bool candidate)
+    {
+        Assert.That(AgeTreatmentPolicy.AllowsFullscreenRewarded(age), Is.EqualTo(candidate));
+        Assert.That(AgeTreatmentPolicy.IsReviewed(age), Is.False);
+        Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.False);
+    }
+
     [TestCase(AgeChoice.Under13, AdAgeTreatment.Child, true)]
     [TestCase(AgeChoice.From13To15, AdAgeTreatment.Child, true)]
     [TestCase(AgeChoice.From16To17, AdAgeTreatment.Teen, false)]
