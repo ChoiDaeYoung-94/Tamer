@@ -67,7 +67,7 @@ public class RevivalDeletionIntakeTests
             else Call(data,"FinishAcceptedDeletion",Call(data,"DeletionSession"));
             Assert.That(File.Exists(own),Is.EqualTo(newer)); Assert.That(File.Exists(path),Is.EqualTo(newer));
             Assert.That(File.Exists(other),Is.True);
-            if(!newer) Assert.That(File.ReadAllText(Directory.GetFiles(directory,"*.deletion-entitlement-*").Single()),Does.Contain("ProductNoAds"));
+            Assert.That(Directory.GetFiles(directory,"*.deletion-entitlement-*"), Is.Empty);
         }
         finally
         {
@@ -86,7 +86,7 @@ public class RevivalDeletionIntakeTests
         target.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(target, args);
 
     [TestCase(false)] [TestCase(true)]
-    public void Revival_OwnerBackupsDeleteOnlyMatchingProgressAndPreserveNoAds(bool receipt)
+    public void Revival_OwnerBackupsDeleteOnlyMatchingProgressAndArchivalEvidence(bool receipt)
     {
         var root = new GameObject("Owner backup cleanup fixture"); root.SetActive(false);
         string directory = Path.Combine(Path.GetTempPath(), "owner-backup-" + Guid.NewGuid().ToString("N"));
@@ -101,7 +101,16 @@ public class RevivalDeletionIntakeTests
         File.WriteAllText(path, current);
         File.WriteAllText(owned, "{\"__TamerAccountOwner\":\"synthetic-owner\",\"GooglePlay\":\"ProductNoAds\",\"Gold\":\"10\"}");
         File.WriteAllText(foreign, foreignText); File.WriteAllText(legacy, legacyText); File.WriteAllText(malformed, malformedText);
-        string evidence = path + ".deletion-entitlement-existing"; File.WriteAllText(evidence, "existing-evidence");
+        string archived = path + ".deletion-entitlement-" + Guid.NewGuid().ToString("N");
+        string foreignArchive = path + ".deletion-entitlement-" + Guid.NewGuid().ToString("N");
+        string legacyArchive = path + ".deletion-entitlement-" + Guid.NewGuid().ToString("N");
+        string malformedArchive = path + ".deletion-entitlement-" + Guid.NewGuid().ToString("N");
+        string irregularArchive = path + ".deletion-entitlement-existing";
+        File.WriteAllText(archived, "{\"__TamerAccountOwner\":\"synthetic-owner\",\"GooglePlay\":\"ProductNoAds\"}");
+        File.WriteAllText(foreignArchive, "{\"__TamerAccountOwner\":\"synthetic-other\",\"GooglePlay\":\"ForeignPurchase\"}");
+        File.WriteAllText(legacyArchive, "{\"GooglePlay\":\"LegacyPurchase\"}");
+        File.WriteAllText(malformedArchive, "{bad-json");
+        File.WriteAllText(irregularArchive, "existing-evidence");
         var credentials = new PlayFabAuthenticationContext(); credentials.CopyFrom(PlayFabSettings.staticPlayer);
         string title = PlayFabSettings.TitleId;
         const string pauseKey = "AD_DeletionAcceptedNeedsLogin";
@@ -131,12 +140,12 @@ public class RevivalDeletionIntakeTests
             Assert.That(File.ReadAllText(foreign), Is.EqualTo(foreignText));
             Assert.That(File.ReadAllText(legacy), Is.EqualTo(legacyText));
             Assert.That(File.ReadAllText(malformed), Is.EqualTo(malformedText));
-            Assert.That(File.ReadAllText(evidence), Is.EqualTo("existing-evidence"));
-            var newEvidence = Directory.GetFiles(directory, "*.deletion-entitlement-*")
-                .Single(file => file != evidence);
-            string saved = File.ReadAllText(newEvidence);
-            Assert.That(saved, Does.Contain("synthetic-owner").And.Contain("ProductNoAds"));
-            Assert.That(saved, Does.Not.Contain("Gold").And.Not.Contain("ForeignPurchase").And.Not.Contain("LegacyPurchase"));
+            Assert.That(File.Exists(archived), Is.False);
+            Assert.That(File.ReadAllText(foreignArchive), Does.Contain("ForeignPurchase"));
+            Assert.That(File.ReadAllText(legacyArchive), Does.Contain("LegacyPurchase"));
+            Assert.That(File.ReadAllText(malformedArchive), Is.EqualTo("{bad-json"));
+            Assert.That(File.ReadAllText(irregularArchive), Is.EqualTo("existing-evidence"));
+            Assert.That(Directory.GetFiles(directory, "*.deletion-entitlement-*").Length, Is.EqualTo(4));
         }
         finally
         {
@@ -270,7 +279,7 @@ public class RevivalDeletionIntakeTests
             else Call(data, "ApplyDeletionReceipt", record, true);
             Assert.That(File.Exists(path), Is.EqualTo(!removed));
             if (!removed) Assert.That(File.ReadAllText(path), Is.EqualTo(original));
-            else Assert.That(File.ReadAllText(Directory.GetFiles(directory, "*.deletion-entitlement-*").Single()), Does.Contain("ProductNoAds").And.Not.Contain("Gold"));
+            else Assert.That(Directory.GetFiles(directory, "*.deletion-entitlement-*"), Is.Empty);
         }
         finally
         {
@@ -410,7 +419,7 @@ public class RevivalDeletionIntakeTests
     [TestCase("synthetic-a", true)]
     [TestCase("synthetic-other", false)]
     [TestCase("", false)]
-    public void Revival_DeletionIntakeCleanupRequiresDiskOwnerAndPreservesEntitlements(string diskOwner, bool removes)
+    public void Revival_DeletionIntakeCleanupRequiresDiskOwnerWithoutArchivingEntitlements(string diskOwner, bool removes)
     {
         var directory = Path.Combine(Path.GetTempPath(), "tamer-deletion-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -453,13 +462,8 @@ public class RevivalDeletionIntakeTests
             Assert.That((bool)DataType.GetProperty("DeletionInProgress").GetValue(data), Is.False);
             Assert.That(File.Exists(path), Is.EqualTo(!removes));
             var evidence = Directory.GetFiles(directory, "*.deletion-entitlement-*");
-            Assert.That(evidence.Length, Is.EqualTo(removes ? 1 : 0));
-            if (removes)
-            {
-                Assert.That(File.ReadAllText(evidence[0]), Does.Contain("ProductNoAds"));
-                Assert.That(File.ReadAllText(evidence[0]), Does.Not.Contain("Gold"));
-            }
-            else Assert.That(File.ReadAllText(path), Is.EqualTo(original));
+            Assert.That(evidence, Is.Empty);
+            if (!removes) Assert.That(File.ReadAllText(path), Is.EqualTo(original));
             Assert.Throws<TargetInvocationException>(() => Call(data, "FinishAcceptedDeletion", session));
             var late = new PlayFabAuthenticationContext { PlayFabId = "synthetic-a", ClientSessionTicket = "synthetic-only" };
             PrivateCall(login, "OnLoggedIn", "synthetic-a", false, "late", late, null);

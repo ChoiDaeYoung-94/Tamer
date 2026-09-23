@@ -8,7 +8,7 @@
 
 서버는 인증된 `currentPlayerId`만 `Server/DeletePlayer`에 전달한다. 클라이언트 인수는 `confirmed: true`와 임의 requestId 두 필드뿐이며 다른 계정·타이틀 지정은 거부한다. 설정된 titleId와 `script.titleId`가 일치해야 한다. Admin/DeleteMasterPlayerAccount를 호출하지 않는다.
 
-정상 envelope의 함수명·revision·프로토콜·requestId·title scope·boolean accepted가 모두 일치해야 접수로 인정한다. 접수는 삭제 완료가 아니다. 접수 후 기존 owner/session 검증을 거쳐 로그아웃하고 해당 계정의 로컬 저장을 정리하며 다른 계정 데이터와 No Ads 권한 증거를 보존한다.
+정상 envelope의 함수명·revision·프로토콜·requestId·title scope·boolean accepted가 모두 일치해야 접수로 인정한다. 접수는 삭제 완료가 아니다. 접수 후 기존 owner/session 검증을 거쳐 로그아웃하고 해당 계정의 로컬 저장·소유가 확인된 백업과 과거 구매 권한 보관 사본을 정리한다. 새 구매 권한 보관 사본은 만들지 않는다. 다른 계정·소유 불명 파일과 Google Play의 구매 권한 자체는 변경하지 않는다. 앱에는 비소모성 구매 재조회·복원 경로가 있지만 삭제 후 새 게임 계정에서 No Ads가 실제로 복원되는지는 검증하지 않았다.
 
 요청 직전 account/title에 결합된 로컬 journal을 영속화한다. 저장 실패 시 서버 요청을 보내지 않는다. timeout·응답 유실·CloudScript 오류·불명확한 응답은 접수 성공으로 간주하지 않는다. 데이터는 보존하고 저장을 중단하며 자동 재전송·상태 조회·재확인 버튼을 제공하지 않는다. 동일 설치에서 다시 열거나 로그인해도 pending 상태로 차단한다. 문의 버튼은 `doeud1410@gmail.com`으로 연결하며 계정 식별자나 토큰을 자동 첨부하지 않는다.
 
