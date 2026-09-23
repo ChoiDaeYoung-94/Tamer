@@ -6,6 +6,8 @@
 
 **[▶ 기존 플레이 영상 보기](https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd)** · **[Google Play 페이지 열기](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)** · [개발 시작하기](docs/development.ko.md)
 
+**[앱 삭제 후에도 계정 및 관련 데이터 삭제 요청하기](docs/account-deletion.ko.md)** — Monster Tamer 이용자는 기존 문의 이메일로 삭제를 요청할 수 있습니다.
+
 ## 플레이
 
 <p align="center">
@@ -104,6 +106,8 @@ if ($LASTEXITCODE -ne 0) { throw 'CLI 설치 실패' }
 ## 개인정보처리방침
 
 아래는 기존에 게시된 정책입니다. 복구 중인 코드와 Play Console/AdMob/PlayFab의 실제 설정, 보관·삭제 방식 및 Data safety 대조는 남아 있습니다. 이 문서 개편은 그 검증을 완료했다는 의미가 아닙니다.
+
+앱을 사용할 수 없는 경우를 포함한 [Monster Tamer 계정 및 관련 데이터 삭제 요청 방법](docs/account-deletion.ko.md)을 안내합니다. 이메일 발송이나 접수가 삭제 완료를 뜻하지는 않습니다.
 
 **AeDeong**는 [Monster Tamer]를 운영합니다. 이 내용는 귀하가 앱을 사용할 때 개인 데이터의 수집, 사용 및 공개에 대한 정책을 알려주기 위해 만들어졌습니다.
 
