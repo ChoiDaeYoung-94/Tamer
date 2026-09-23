@@ -42,7 +42,7 @@ JKS의 공개 인증서 1개를 읽을 수 있었으며 비밀번호 조회, 개
 1. 소유자의 비공개 보관소에 기존 키의 복구 가능한 사본과 현재 인증서 관계 기록을 보존한다. 이 단계에서 기존 키를 삭제하지 않는다.
 2. 새 업로드키는 Git 밖의 접근 제한·암호화된 위치에 생성하고 비밀번호는 별도 안전한 경로로 관리한다. 새 키 생성·등록은 이 초안의 실행 승인 이후 수행한다.
 3. Play Console에서 새 **업로드 인증서**의 reset을 요청하고 실제 활성 시점·승인 결과를 확인한다. 기존 **앱 서명키 업그레이드**를 대신 누르지 않는다.
-4. 기존 빌드는 `BuildScript`의 고정 `src/AeDeong.keystore` 경로와 alias를 사용한다. 후속 구현에서는 외부 경로/alias를 명시적으로 입력받고 누락·잘못된 인증서에 실패하도록 변경한다. 기존 비밀번호 환경변수는 유지하되 값은 로그·코드·커밋에 남기지 않는다.
+4. 기존 빌드는 `BuildScript`의 고정 `src/AeDeong.keystore` 경로와 alias를 사용했다. AAB 메뉴는 아래의 외부 경로·alias·기대 공개 인증서 지문을 명시적으로 받도록 준비한다. 기존 비밀번호 환경변수는 유지하되 값은 로그·코드·커밋에 남기지 않는다.
 5. 새 업로드 인증서가 활성화된 뒤 로컬 서명과 허용된 비운영 검증을 수행한다. 별도 제출 승인 전에는 AAB 업로드·트랙 배포를 하지 않는다. reset 활성화 후에는 과거 업로드키로 되돌려도 업로드가 가능하다고 가정하지 않는다.
 6. 새 경로로 빌드·복구할 수 있음을 확인한 뒤 추적 제외와 공개 이력 대응 범위를 통합 담당이 정한다. 이력 재작성은 열린 작업·fork·clone에 영향을 주므로 별도 계획과 조율 없이 실행하지 않는다.
 
@@ -52,6 +52,39 @@ JKS의 공개 인증서 1개를 읽을 수 있었으며 비밀번호 조회, 개
 GPGS·OAuth·App Links 등 인증서에 묶인 연동은 실제 배포 인증서별로 대조해야 한다.
 근거: [Android 앱 서명](https://developer.android.com/studio/publish/app-signing),
 [Google Play 앱 서명 관리](https://support.google.com/googleplay/android-developer/answer/9842756?hl=en).
+
+### AAB 빌드 입력 준비
+
+`Build/AOS/AAB` 메뉴는 다음 환경 변수가 모두 있을 때만 운영 앱 ID의 AAB 빌드를 시작한다.
+이 코드는 새 키를 만들거나 Play Console에 인증서를 등록하지 않는다.
+
+| 환경 변수 | 내용 |
+| --- | --- |
+| `TAMER_UPLOAD_KEYSTORE_PATH` | Git 작업 폴더 밖에 있는 기존 키 저장소의 절대 경로 |
+| `TAMER_UPLOAD_KEY_ALIAS` | 해당 저장소의 alias (`A-Z`, `a-z`, 숫자, `.`, `_`, `-`만 허용) |
+| `TAMER_UPLOAD_CERT_SHA256` | 별도로 검토한 업로드 공개 인증서의 SHA-256 지문(64자리 16진수 또는 콜론 표기) |
+| `TAMER_KEYSTORE_PASS`, `TAMER_KEYALIAS_PASS` | 기존 이름을 유지한 비밀번호 환경 변수. 실제 값은 문서·로그·커밋에 기록하지 않음 |
+
+메뉴 선택과 실제 빌드 시작 시 각각 입력을 확인한다. 없는 파일, 상대 경로, Git 폴더 안의 경로,
+심볼릭 링크·정션 경유 경로, 잘못된 alias·지문·저장소 비밀번호 또는 기대 지문과 다른 인증서라면 버전 파일이나
+Player Settings를 변경하기 전에 메뉴 진입을 중단한다. 첫 검사를 통과한 뒤 입력이 바뀌어 두 번째 검사에서
+실패하면 빌드 단계의 버전·서명 설정 변경 전에 중단되지만, 메뉴가 이미 변경한 scripting defines는 남을 수 있다.
+Unity가 사용하는 JDK의 `keytool -exportcert`로
+alias의 **공개 DER만** 읽어 지문을 비교하며 개인키를 내보내지 않는다. 빌드 중 적용한
+키 경로·alias·비밀번호는 완료 또는 실패 후 이전 Editor 설정으로 복원한다.
+
+기대 지문은 운영자가 Play Console의 **현재 활성 업로드 인증서**와 직접 대조해야 한다.
+환경 변수 두 값을 서로 맞게 입력했다는 사실만으로 Play의 reset 활성화·업로드 허용을
+증명하지 않는다. 기존 `Build/AOS/APK` 개발 메뉴와 격리 `Revival*` 빌드 경로,
+추적된 기존 `src/AeDeong.keystore`는 이 변경에서 유지한다.
+
+검증 기준은 `3f155f9a0cd391886d6355cd2759a117cf737818`에서 분기한
+`codex/upload-key-config-94` 작업본이다. Unity `6000.0.81f1`, Android Editor 대상,
+Unity CLI `1.0.0-beta.8`에서 복원 에셋 4,561개를 검증한 뒤
+`RevivalUploadSigningTests` 4개를 통과했다. 첫 실행은 신규 테스트의 Editor assembly 참조 오류로
+컴파일에 실패했고, 기존 테스트와 같은 reflection 방식으로 고쳐 두 번째 실행에서 4개 모두 통과했다.
+검사 전후 `ProjectSettings`는 원본 바이트로 복원했다. 검증에는 일회용 합성 JKS만 사용했으며,
+운영 키 서명·APK/AAB 생성·Play Console 제출 또는 reset 활성화 검사는 수행하지 않았다.
 
 ## 기존 OAuth 연결의 필요성
 
