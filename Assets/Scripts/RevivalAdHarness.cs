@@ -23,6 +23,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private Scene _initialScene, _alternateScene;
     private string _armedAction = "none";
     private double _actionAt = double.PositiveInfinity;
+    private double _showAt = double.NaN, _openedAt = double.NaN;
 #if TAMER_UMP_ONLY_HARNESS
     private static bool UmpOnly => true;
 #else
@@ -34,6 +35,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private AgeChoice _testAge = AgeChoice.Unknown;
     private DebugGeography _testGeography = DebugGeography.EEA;
     private string _testDeviceHash = "";
+    private bool _sampleConfigured;
     private double _umpStartedAt;
     private static double Now => (double)System.Diagnostics.Stopwatch.GetTimestamp() /
         System.Diagnostics.Stopwatch.Frequency;
@@ -54,7 +56,6 @@ public sealed class RevivalAdHarness : MonoBehaviour
         _alternateScene = SceneManager.CreateScene("AdHarnessEmpty");
         Ads.ConfigureHarnessAudio(Sound);
         Ads.HarnessEvent += OnAdEvent;
-        Ads.Init(); // Consent and SDK work remain subject to the manager's release policy.
         NewOwner();
         _tone = AudioClip.Create("Harness tone", 44100, 1, 44100, false);
         var samples = new float[44100];
@@ -66,10 +67,18 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void OnAdEvent(string name, double timestamp)
     {
+        if (name == "show_call") { _showAt = timestamp; _openedAt = double.NaN; }
+        if (name == "opened_callback") _openedAt = timestamp;
         Record(name + " callback_monotonic=" + timestamp.ToString("F3", CultureInfo.InvariantCulture)
+            + (name == "closed_callback" || name == "earned_callback"
+                ? " since_show=" + Elapsed(timestamp, _showAt) + " since_open_callback=" + Elapsed(timestamp, _openedAt)
+                : "")
             + " bgm_playing=" + Bgm.isPlaying + " sample=" + Bgm.timeSamples);
         if (name == "opened_callback" && _armedAction != "none") _actionAt = Now + 2;
     }
+
+    private static string Elapsed(double timestamp, double origin) => double.IsNaN(origin)
+        ? "unknown" : (timestamp - origin).ToString("F3", CultureInfo.InvariantCulture);
 
     private void Record(string value)
     {
@@ -137,9 +146,41 @@ public sealed class RevivalAdHarness : MonoBehaviour
             GUILayout.Label("SAMPLE ADS ONLY - isolated account/save/billing-free harness");
             GUILayout.Label("Rewards: " + _rewards + " / finishes: " + _finishes + " / owner: " + _ownerId);
             GUILayout.Label("BGM playing: " + Bgm.isPlaying + " / sample: " + Bgm.timeSamples);
-            GUILayout.Label("Opened callback is not native first pixel. Record native close UI separately.");
+            GUILayout.Label("SDK callbacks are not native first pixel/X. Capture screen video and actual X tap separately.");
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+            GUILayout.Label("Synthetic sample age and UMP region; test-device hash is never saved or logged.");
+#if UNITY_EDITOR
+            GUILayout.Label("Editor preview only. Network sample requests require the isolated Android APK.");
+#endif
+            GUI.enabled = Ads != null && !_sampleConfigured;
+            foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice)))
+                if (GUILayout.Button("Sample age: " + age + (_testAge == age ? " [selected]" : ""))) _testAge = age;
+            foreach (var geography in new[] { DebugGeography.EEA, DebugGeography.RegulatedUSState, DebugGeography.Other })
+                if (GUILayout.Button("Sample region: " + geography + (_testGeography == geography ? " [selected]" : "")))
+                    _testGeography = geography;
+            GUILayout.Label("Local UMP test-device hash (32 hex):");
+            _testDeviceHash = GUILayout.PasswordField(_testDeviceHash, '*', 32);
+            GUI.enabled = true;
+            GUILayout.Label(_sampleConfigured
+                ? "Sample case locked. Clear app data and relaunch before a different age/region case."
+                : "Select a sample case before the first Load. Clear app data between cases.");
+#endif
+            GUI.enabled = Ads != null && !Application.isEditor;
+            if (GUILayout.Button("Load sample (explicit UMP + SDK initialization)", GUILayout.Height(52)))
+            {
+                Record("load_button");
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+                if (Ads.ConfigureSampleHarness(_testAge, _testGeography, _testDeviceHash))
+                {
+                    _sampleConfigured = true;
+                    Ads.LoadRewardedAd();
+                }
+                else Record("sample_configuration_blocked");
+#else
+                Ads.LoadRewardedAd();
+#endif
+            }
             GUI.enabled = Ads != null;
-            if (GUILayout.Button("Load sample (explicit SDK initialization)", GUILayout.Height(52))) { Record("load_button"); Ads.LoadRewardedAd(); }
             if (GUILayout.Button("Show sample / policy-block control", GUILayout.Height(52))) Show();
             if (Ads != null && Ads.PrivacyOptionsRequired &&
                 GUILayout.Button("Privacy options", GUILayout.Height(44))) Ads.ShowPrivacyOptions();

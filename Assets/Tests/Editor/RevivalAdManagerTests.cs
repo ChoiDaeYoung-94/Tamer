@@ -52,6 +52,23 @@ public class RevivalAdManagerTests
         public void ShowPrivacyOptions(Action<bool> done) => Assert.Fail("Not required.");
     }
 
+    [TestCase(true, false, false, false, "com.other", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
+    [TestCase(true, true, true, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
+    [TestCase(false, true, true, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, true)]
+    [TestCase(false, true, false, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
+    [TestCase(false, true, true, false, "com.AeDeong.MonsterTamer", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
+    [TestCase(false, true, true, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Scenes/Game.unity", false, false)]
+    [TestCase(false, true, true, false, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", true, false)]
+    [TestCase(false, true, true, true, "com.AeDeong.MonsterTamer.revival.ads", "Assets/Tests/Scenes/RevivalAdHarness.unity", false, false)]
+    public void Revival_SampleAdOverrideRequiresIsolatedIdentityAndScene(bool editor, bool android,
+        bool development, bool batch, string package, string scene, bool hasManagers, bool expected)
+    {
+        var allowed = managerType.GetMethod("SampleHarnessContextAllowed", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(allowed, Is.Not.Null);
+        Assert.That(allowed.Invoke(null, new object[] { editor, android, development, batch, package, scene, hasManagers }),
+            Is.EqualTo(expected));
+    }
+
     [TestCase("EEA")]
     [TestCase("RegulatedUSState")]
     [TestCase("Other")]

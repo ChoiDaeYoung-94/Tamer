@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using AD.Advertising;
 using GoogleMobileAds.Api;
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+using GoogleMobileAds.Ump.Api;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
@@ -34,6 +37,57 @@ namespace AD
         private int _sceneVersion;
         private float _loadDeadline;
         private LocalAgeChoice _ageSelection;
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+        private const string SampleHarnessScenePath = "Assets/Tests/Scenes/RevivalAdHarness.unity";
+        private const string SampleHarnessPackage = "com.AeDeong.MonsterTamer.revival.ads";
+        private bool _sampleHarnessConfigured;
+        private AgeChoice _sampleHarnessAge;
+        private DebugGeography _sampleHarnessGeography;
+        private string _sampleHarnessDeviceHash;
+
+        // Only the isolated Android sample scene and its debug-signed package may opt in.
+        // The Editor may use the publisher's tracked App ID, so it cannot request a sample.
+        private bool IsSampleHarness => _sampleHarnessConfigured && !_destroyed &&
+            SampleHarnessContextAllowed(Application.isEditor,
+                Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
+                Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
+                Managers.Instance != null);
+
+        internal static bool SampleHarnessContextAllowed(bool editor, bool android, bool development,
+            bool batch, string package, string scenePath, bool hasManagers) =>
+            !editor && !batch && !hasManagers && scenePath == SampleHarnessScenePath &&
+            android && development && package == SampleHarnessPackage;
+
+        public bool ConfigureSampleHarness(AgeChoice age, DebugGeography geography, string testDeviceHash)
+        {
+            if (_destroyed || IsInProgress || IsConsentBusy ||
+                !SampleHarnessContextAllowed(Application.isEditor,
+                    Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
+                    Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
+                    Managers.Instance != null) ||
+                !AgeTreatmentPolicy.TryCreatePlan(age, out _)) return false;
+            if (_sampleHarnessConfigured)
+                return _sampleHarnessAge == age && _sampleHarnessGeography == geography &&
+                    _sampleHarnessDeviceHash == testDeviceHash;
+            try { GoogleUmpConsentClient.CreateDebugSettings(geography, testDeviceHash); }
+            catch (ArgumentException) { return false; }
+            _sampleHarnessAge = age;
+            _sampleHarnessGeography = geography;
+            _sampleHarnessDeviceHash = testDeviceHash;
+            _sampleHarnessConfigured = true;
+            return true;
+        }
+#endif
+        private AgeChoice ConsentAge =>
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+            IsSampleHarness ? _sampleHarnessAge :
+#endif
+            AgeSelection.Value;
+        private bool HasConsentAge =>
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+            IsSampleHarness ||
+#endif
+            AgeSelection.HasAge;
         public const string AgeChoicePreferenceKey = "Tamer.Privacy.AgeChoice";
         public LocalAgeChoice AgeSelection
         {
@@ -82,12 +136,12 @@ namespace AD
 
         public bool IsInProgress => _session != null;
         public bool IsConsentBusy => _consent != null && _consent.IsBusy;
-        public bool PrivacyOptionsRequired => AgeSelection.HasAge &&
+        public bool PrivacyOptionsRequired => HasConsentAge &&
             _consent != null && _consent.PrivacyOptionsRequired;
 
         public void ShowPrivacyOptions()
         {
-            if (_destroyed || !AgeSelection.HasAge || IsInProgress || _loading || _initializing || _consent == null) return;
+            if (_destroyed || !HasConsentAge || IsInProgress || _loading || _initializing || _consent == null) return;
             if (!PrivacyOptionsRequired || IsConsentBusy) return;
             ++_loadVersion;
             ++_sceneVersion; // Withdrawn choices also invalidate delayed reward receipts.
@@ -97,7 +151,11 @@ namespace AD
 
         // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
         public bool CanRequestAds =>
-            AgeSelection.HasAge && AgeTreatmentPolicy.IsReviewed(AgeSelection.Value) &&
+            HasConsentAge && (AgeTreatmentPolicy.IsReviewed(ConsentAge)
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+                || IsSampleHarness
+#endif
+            ) &&
             (Application.isEditor || Application.platform == RuntimePlatform.Android) &&
             AdRequestPolicy.CanRequestTestAds(
             Application.isEditor, Debug.isDebugBuild,
@@ -198,7 +256,7 @@ namespace AD
         private void BeginConsent(bool loadAfterConsent)
         {
             if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy ||
-                !AgeTreatmentPolicy.TryCreatePlan(AgeSelection.Value, out var plan)) return;
+                !AgeTreatmentPolicy.TryCreatePlan(ConsentAge, out var plan)) return;
             int version = ++_loadVersion;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
             _initializing = true;
@@ -209,7 +267,12 @@ namespace AD
                     // Apply protection before UMP and Mobile Ads initialization, including age changes.
                     MobileAds.SetRequestConfiguration(CreateRequestConfiguration(plan));
                     TraceHarness("request_flags_set");
-                    _consent = new AdConsentGate(new GoogleUmpConsentClient(), plan.UmpUnderAgeOfConsent,
+                    IAdConsentClient client = new GoogleUmpConsentClient();
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+                    if (IsSampleHarness)
+                        client = new GoogleUmpConsentClient(_sampleHarnessGeography, _sampleHarnessDeviceHash);
+#endif
+                    _consent = new AdConsentGate(client, plan.UmpUnderAgeOfConsent,
                         callback => Enqueue(callback), name => TraceHarness(name));
                 }
                 catch (Exception)
