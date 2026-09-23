@@ -26,6 +26,23 @@ public class RevivalCloudScriptDeletionTests
         => new DeletionFlow(new CloudScriptDeletionGateway((s, id, token) => { calls++; return submit(); }, true),
             () => current, s => fence++, s => cleanup++, recovery: journal, binding: new string('a', 64));
 
+    [Test] public async Task Revival_CloudScriptDisabledPreflightShowsUnavailableWithoutSubmission()
+    {
+        using (var flow = new DeletionFlow(new CloudScriptDeletionGateway(
+            (session, id, token) => { calls++; return Task.FromResult(true); },
+            prepare: (session, token) => Task.FromResult(false)), () => current,
+            s => fence++, s => cleanup++, recovery: journal, binding: new string('a', 64)))
+        {
+            Assert.False(await flow.RequestAsync());
+            Assert.AreEqual(DeletionState.Unavailable, flow.State);
+            Assert.False(flow.IsAvailable);
+            Assert.IsNull(flow.Request);
+            Assert.False(await flow.ConfirmAsync());
+            Assert.AreEqual(0, calls); Assert.AreEqual(0, fence); Assert.AreEqual(0, cleanup);
+            Assert.False(journal.Record.SubmissionStarted);
+        }
+    }
+
     [Test] public async Task Revival_CloudScriptDeletionAcceptedOnlyAfterExplicitConfirm()
     {
         using (var flow = Flow(() => Task.FromResult(true)))

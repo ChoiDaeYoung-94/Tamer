@@ -4,8 +4,10 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
+using PlayFab;
+using UnityEngine;
 
-/// <summary>Account selection and callback tests without PlayFab, GPGS, PlayerPrefs or scenes.</summary>
+/// <summary>Account selection and callback tests without live PlayFab, GPGS, PlayerPrefs or scenes.</summary>
 public class RevivalLoginContinuityTests
 {
     [Test]
@@ -182,6 +184,50 @@ public class RevivalLoginContinuityTests
             Assert.That(awaiter.GetType().GetMethod("GetResult").Invoke(awaiter, null), Is.False);
             Assert.That(predicateCalled, Is.False);
         }
+    }
+
+    [Test]
+    public void Revival_DeletedAccountStopsAutomaticRetryAndOffersSupport()
+    {
+        var error = new PlayFabError { Error = PlayFabErrorCode.AccountDeleted, HttpCode = 0 };
+        Assert.That(Call(RuntimeType("Login"), "IsTransient", error), Is.False);
+
+        var root = new GameObject("DeletedAccountLoginTest");
+        root.SetActive(false);
+        try
+        {
+            var login = root.AddComponent(RuntimeType("Login"));
+            var textType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType("TMPro.TextMeshProUGUI")).First(t => t != null);
+            var imageType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType("UnityEngine.UI.Image")).First(t => t != null);
+            var buttonType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType("UnityEngine.UI.Button")).First(t => t != null);
+            var panel = new GameObject("RetryPanel", typeof(RectTransform));
+            panel.transform.SetParent(root.transform, false);
+            var button = new GameObject("Retry", typeof(RectTransform));
+            button.transform.SetParent(panel.transform, false);
+            button.AddComponent(imageType);
+            button.AddComponent(buttonType);
+            var caption = new GameObject("Caption", typeof(RectTransform));
+            caption.transform.SetParent(button.transform, false);
+            var captionText = caption.AddComponent(textType);
+            textType.GetProperty("text").SetValue(captionText, "Retry");
+            RuntimeType("Login").GetField("_retry", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(login, panel);
+
+            Call(login, "NoteLoginError", error);
+            Call(login, "ShowDeletedAccountNotice");
+            var notice = panel.transform.Find("RetryMessage").GetComponent(textType);
+            var message = (string)textType.GetProperty("text").GetValue(notice);
+            var support = (string)RuntimeType("CloudScriptDeletionClient")
+                .GetField("SupportEmail").GetRawConstantValue();
+            Assert.That(message, Does.Contain(support));
+            Assert.That(message, Does.Contain("Do not retry or create another account"));
+            Assert.That(textType.GetProperty("text").GetValue(captionText), Is.EqualTo("Contact support"));
+            Assert.DoesNotThrow(() => Call(login, "RetryConnection"));
+        }
+        finally { UnityEngine.Object.DestroyImmediate(root); }
     }
 
 }

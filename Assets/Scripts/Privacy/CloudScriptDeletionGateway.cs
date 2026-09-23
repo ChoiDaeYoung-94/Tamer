@@ -15,7 +15,8 @@ namespace AD.Privacy
         private DeletionAuthorization _authorization;
         private DeletionSnapshot _request;
         private bool _attempted;
-        public bool IsAvailable => true;
+        private bool _available = true;
+        public bool IsAvailable => _available;
         public bool IsSynthetic { get; }
 
         public CloudScriptDeletionGateway(Func<DeletionSession, string, CancellationToken, Task<bool>> submit,
@@ -26,9 +27,13 @@ namespace AD.Privacy
         public async Task<DeletionAuthorization> ReauthenticateAsync(DeletionSession session, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            if (_attempted || session == null || !session.HasEntityBinding) throw new InvalidOperationException();
+            if (_attempted || !_available || session == null || !session.HasEntityBinding) throw new InvalidOperationException();
             _session = session;
-            if (_prepare != null && !await _prepare(session, token)) throw new InvalidOperationException("Deletion is unavailable.");
+            if (_prepare != null && !await _prepare(session, token))
+            {
+                _available = false; // The preflight did not establish a usable deletion service.
+                throw new InvalidOperationException("Deletion is unavailable.");
+            }
             _authorization = new DeletionAuthorization(session.AccountId, Guid.NewGuid().ToString("N"));
             return _authorization;
         }

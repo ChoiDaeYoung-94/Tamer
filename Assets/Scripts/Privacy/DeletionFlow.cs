@@ -327,7 +327,9 @@ namespace AD.Privacy
             }
             catch (Exception)
             {
-                if (!_disposed) State = Current() ? (_submissionStarted ? DeletionState.SubmissionUnknown : DeletionState.RetryableFailure) : DeletionState.SessionChanged;
+                if (!_disposed) State = !Current() ? DeletionState.SessionChanged
+                    : !_gateway.IsAvailable && !_submissionStarted ? DeletionState.Unavailable
+                    : _submissionStarted ? DeletionState.SubmissionUnknown : DeletionState.RetryableFailure;
                 return false;
             }
             finally { IsBusy = false; if (!_disposed) Notify(); }

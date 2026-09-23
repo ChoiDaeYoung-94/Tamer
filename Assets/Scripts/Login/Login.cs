@@ -65,6 +65,8 @@ namespace AD
         private readonly LoginOperationGate _operations = new LoginOperationGate();
         private string _selectedGpgsId;
         private string _loginFailureMessage;
+        private bool _accountDeleted;
+        private bool _accountDeletedContactBound;
         private int _loginGeneration;
         private int _loginDeletionEpoch;
         private bool _loginCaptured;
@@ -150,6 +152,7 @@ namespace AD
 
         private void StartLogin()
         {
+            if (_accountDeleted) return;
             if (AD.Managers.DataM != null && AD.Managers.DataM.DeletionInProgress) return;
 #if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
             return;
@@ -170,6 +173,7 @@ namespace AD
         /// </summary>
         public void RetryConnection()
         {
+            if (_accountDeleted) return;
             if (_dataOwner != null && _dataOwner.DeletionInProgress)
             {
                 ShowDeletionRecovery();
@@ -413,7 +417,12 @@ namespace AD
                         AndroidDevice = SystemInfo.deviceModel,
                         CreateAccount = allowCreate && !_receiptRecoverySignIn
                     }, onOk, onError), "LoginWithAndroidDeviceID", token);
-                if (!device.IsSuccess || LoginCancelled(token)) return false;
+                if (LoginCancelled(token)) return false;
+                if (!device.IsSuccess)
+                {
+                    NoteLoginError(device.Error);
+                    return false;
+                }
                 OnLoggedIn(device.Result.PlayFabId, device.Result.NewlyCreated,
                     "AndroidDeviceID", device.Result.AuthenticationContext, LoginModeAndroid);
                 return true;
@@ -427,7 +436,12 @@ namespace AD
                     CustomId = customId,
                     CreateAccount = allowCreate && !_receiptRecoverySignIn
                 }, onOk, onError), "LoginWithCustomID", token);
-            if (!custom.IsSuccess || LoginCancelled(token)) return false;
+            if (LoginCancelled(token)) return false;
+            if (!custom.IsSuccess)
+            {
+                NoteLoginError(custom.Error);
+                return false;
+            }
             OnLoggedIn(custom.Result.PlayFabId, custom.Result.NewlyCreated,
                 "CustomID", custom.Result.AuthenticationContext, LoginModeCustom);
             return true;
@@ -465,8 +479,12 @@ namespace AD
             var login = await CallAsync<LoginResult>((onOk, onError) =>
                 PlayFabClientAPI.LoginWithGooglePlayGamesServices(request, onOk, onError),
                 "LoginWithGooglePlayGamesServices", token);
-            if (!login.IsSuccess || LoginCancelled(token) || login.Result == null
-                || login.Result.NewlyCreated) return false;
+            if (LoginCancelled(token)) return false;
+            if (!login.IsSuccess || login.Result == null || login.Result.NewlyCreated)
+            {
+                NoteLoginError(login.Error);
+                return false;
+            }
             if (!LoginContinuityPolicy.MatchesKnownPlayFabAccount(_dataOwner.PlayFabId, login.Result.PlayFabId))
             {
                 _loginFailureMessage = "The linked account differs from your saved account. Contact support for account recovery.";
@@ -808,6 +826,7 @@ namespace AD
         /// </summary>
         private static bool IsTransient(PlayFabError error)
         {
+            if (error.Error == PlayFabErrorCode.AccountDeleted) return false;
             switch (error.Error)
             {
                 case PlayFabErrorCode.ConnectionError:
@@ -898,6 +917,7 @@ namespace AD
         private void ShowRetry(string message)
         {
             if (_loginCaptured && !LoginCurrent()) return;
+            if (_accountDeleted) message = _loginFailureMessage;
             AD.Managers.DataM.SuspendAccountSession();
             if (_loginCaptured) _loginGeneration = _dataOwner.AccountGeneration;
             _operations.ResetForRetry();
@@ -906,7 +926,49 @@ namespace AD
             if (_loading != null) _loading.SetActive(false);
             if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
             if (_retry != null) _retry.SetActive(true);
+            EnsureRetryMessage();
+            if (_accountDeleted) ShowDeletedAccountNotice();
             if (_retryText != null) _retryText.text = message;
+        }
+
+        private void NoteLoginError(PlayFabError error)
+        {
+            if (error == null || error.Error != PlayFabErrorCode.AccountDeleted) return;
+            _accountDeleted = true;
+            _loginFailureMessage = "This game account is being deleted or has been deleted. Do not retry or create another account. Contact "
+                + CloudScriptDeletionClient.SupportEmail + " for help.";
+        }
+
+        private void EnsureRetryMessage()
+        {
+            if (_retry == null || _retryText != null) return;
+            var rect = DeletionView.Rect("RetryMessage", _retry.transform);
+            rect.anchorMin = new Vector2(.1f, .35f);
+            rect.anchorMax = new Vector2(.9f, .95f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var label = rect.gameObject.AddComponent<TMPro.TextMeshProUGUI>();
+            if (_loadingText != null) label.font = _loadingText.font;
+            label.fontSize = 30;
+            label.color = Color.white;
+            label.alignment = TMPro.TextAlignmentOptions.Center;
+            label.raycastTarget = false;
+            label.textWrappingMode = TMPro.TextWrappingModes.Normal;
+            _retryText = label;
+        }
+
+        private void ShowDeletedAccountNotice()
+        {
+            if (_retry == null) return;
+            EnsureRetryMessage();
+            _retryText.text = _loginFailureMessage;
+
+            var contact = _retry.GetComponentInChildren<UnityEngine.UI.Button>(true);
+            if (contact == null || _accountDeletedContactBound) return;
+            foreach (var caption in contact.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                caption.text = "Contact support";
+            contact.onClick.AddListener(() => Application.OpenURL("mailto:" + CloudScriptDeletionClient.SupportEmail
+                + "?subject=Monster%20Tamer%20account%20deletion"));
+            _accountDeletedContactBound = true;
         }
 
         private void ShowNicknamePanel()

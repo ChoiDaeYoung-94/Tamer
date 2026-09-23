@@ -107,6 +107,7 @@ namespace AD
                 GameObject popup = _popupStack.Pop();
                 AD.DebugLogger.Log("PopupManager", $"_popupStack.Count: {_popupStack.Count} 팝업 스택에서 팝업 제거됨");
                 popup.SetActive(false);
+                if (popup == _popupSetting) ClosePopupSetting();
             }
             else
             {

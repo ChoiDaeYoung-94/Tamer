@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 
 using UnityEngine;
+using TMPro;
 
 using Cysharp.Threading.Tasks;
 
@@ -21,11 +22,36 @@ public class CanvasSelectCharacter : MonoBehaviour
     private void Start()
     {
         AD.Managers.PopupM.ReleaseException();
+        EnsureAccountPrivacyEntry();
+    }
+
+    private void EnsureAccountPrivacyEntry()
+    {
+        var safeArea = transform.Find("PanelSafeArea");
+        if (safeArea == null || safeArea.Find("AccountPrivacyEntry") != null) return;
+        var font = GetComponentInChildren<TMP_Text>(true)?.font;
+        var button = AD.DeletionView.Button("AccountPrivacyEntry", safeArea, "Account & privacy", font);
+        var rect = (RectTransform)button.transform;
+        rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0);
+        rect.anchoredPosition = new Vector2(0, 320);
+        rect.sizeDelta = new Vector2(620, 80);
+        button.transform.SetAsLastSibling(); // The character direction controls cover the safe area.
+        button.onClick.AddListener(() =>
+        {
+            if (!_isSaving && !_isMoving) AD.Managers.PopupM.PopupSetting();
+        });
+    }
+
+    private static bool HasWritableSession()
+    {
+        var data = AD.Managers.DataM;
+        return data != null && data.IsServerDataReady && !data.DeletionInProgress &&
+            !string.IsNullOrEmpty(data.PlayFabId);
     }
 
     public void ButtonPlay()
     {
-        if (_isSaving || _isMoving) return;
+        if (_isSaving || _isMoving || !HasWritableSession()) return;
         _isSaving = true;
         AD.Managers.PopupM.SetException();
         AD.Managers.SoundM.UI_Ok();
@@ -35,7 +61,7 @@ public class CanvasSelectCharacter : MonoBehaviour
 
     public void ButtonDirection(string direction)
     {
-        if (_isSaving || _isMoving)
+        if (_isSaving || _isMoving || !HasWritableSession())
             return;
 
         AD.Managers.SoundM.UI_Click();
@@ -93,7 +119,7 @@ public class CanvasSelectCharacter : MonoBehaviour
             _femaleAnimator.CrossFade("Select", 0.1f);
             if (await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress,
                 cancellationToken: this.GetCancellationTokenOnDestroy()).SuppressCancellationThrow()) return;
-            if (AD.Managers.ServerM.HasFailed || !AD.Managers.DataM.IsServerDataReady ||
+            if (AD.Managers.ServerM.HasFailed || !HasWritableSession() ||
                 !AD.Managers.DataM.LocalPlayerData.TryGetValue("Sex", out var savedGender) || savedGender != selectedGender)
             {
                 Debug.LogWarning("[Tamer/Character] Character save was not confirmed. Please retry.");
