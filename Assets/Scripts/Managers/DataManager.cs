@@ -125,7 +125,7 @@ namespace AD
                 PlayFabPlayerData = null;
             }
             DeletionInProgress = false;
-            // Foreign/legacy data remains untouched, including its owner fence and entitlement evidence.
+            // Foreign/legacy data remains untouched, including its owner fence.
         }
 
         public AD.Privacy.DeletionSession DeletionSession() => string.IsNullOrEmpty(PlayFabId) ? null
@@ -147,13 +147,12 @@ namespace AD
             if (matchesOwner == null || string.IsNullOrEmpty(_playerDataPath))
                 throw new InvalidOperationException("Local save binding is unavailable.");
 
-            var owned = new List<(string path, string owner, string entitlement)>();
+            var owned = new List<string>();
             void AddIfOwned(string path, Dictionary<string, string> data)
             {
                 if (data == null || !data.TryGetValue(OwnerKey, out var owner) ||
                     string.IsNullOrWhiteSpace(owner) || owner == "null" || !matchesOwner(owner)) return;
-                data.TryGetValue("GooglePlay", out var entitlement);
-                owned.Add((path, owner, entitlement));
+                owned.Add(path);
             }
 
             AddIfOwned(_playerDataPath, ReadDeletionProgress());
@@ -180,20 +179,36 @@ namespace AD
                 AddIfOwned(path, data);
             }
 
-            string entitlementEvidence = null;
-            foreach (var file in owned)
-                entitlementEvidence = PlayerDataSyncPolicy.UnionEntitlements(entitlementEvidence, file.entitlement);
-            if (!string.IsNullOrEmpty(entitlementEvidence))
-                WriteAtomically(_playerDataPath + ".deletion-entitlement-" + Guid.NewGuid().ToString("N"),
-                    Utility.SerializeToJson(new Dictionary<string, string>
-                    { [OwnerKey] = owned[0].owner, ["GooglePlay"] = entitlementEvidence }));
-            foreach (var file in owned) File.Delete(file.path);
+            // Earlier builds wrote owner-bound archival copies. Only the exact generated shape
+            // and matching owner may be removed; unknown files are never inferred to be ours.
+            var archival = new List<string>();
+            var prefix = Path.GetFileName(_playerDataPath) + ".deletion-entitlement-";
+            string[] archives;
+            try { archives = Directory.GetFiles(Path.GetDirectoryName(_playerDataPath), prefix + "*", SearchOption.TopDirectoryOnly); }
+            catch (DirectoryNotFoundException) { archives = Array.Empty<string>(); }
+            foreach (var path in archives)
+            {
+                if (!HasGeneratedGuidName(Path.GetFileName(path), prefix, "") ||
+                    (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
+                Dictionary<string, string> data;
+                try { data = ParseData(File.ReadAllText(path)); }
+                catch (Exception error) when (error is InvalidDataException || error is ArgumentException || error is FormatException)
+                { continue; }
+                if (data.Count == 2 && data.ContainsKey("GooglePlay") &&
+                    data.TryGetValue(OwnerKey, out var owner) && !string.IsNullOrWhiteSpace(owner) &&
+                    owner != "null" && matchesOwner(owner)) archival.Add(path);
+            }
+            foreach (var path in archival) File.Delete(path);
+            foreach (var path in owned) File.Delete(path);
         }
 
         private static bool IsGeneratedPlayerBackup(string name)
         {
-            const string prefix = "PlayerData-";
-            const string suffix = ".json";
+            return HasGeneratedGuidName(name, "PlayerData-", ".json");
+        }
+
+        private static bool HasGeneratedGuidName(string name, string prefix, string suffix)
+        {
             if (name == null || name.Length != prefix.Length + 32 + suffix.Length ||
                 !name.StartsWith(prefix, StringComparison.Ordinal) || !name.EndsWith(suffix, StringComparison.Ordinal)) return false;
             for (int index = prefix.Length; index < prefix.Length + 32; index++)
