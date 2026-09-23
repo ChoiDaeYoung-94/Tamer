@@ -183,12 +183,18 @@ namespace AD
         public void Init()
         {
             if (_subscribed || _destroyed) return;
-            _subscribed = true;
-            UnitySceneManager.activeSceneChanged += OnSceneChanged;
+            SubscribeToSceneChanges();
             // Each app-owned manager starts with a fresh gate, never saved consent.
             // Regional review currently blocks this before any SDK operation.
             // Consent completion alone never initializes Mobile Ads or loads an ad.
             BeginConsent(false);
+        }
+
+        private void SubscribeToSceneChanges()
+        {
+            if (_subscribed || _destroyed) return;
+            _subscribed = true;
+            UnitySceneManager.activeSceneChanged += OnSceneChanged;
         }
 
         private void Update()
@@ -249,7 +255,7 @@ namespace AD
         public void LoadRewardedAd()
         {
             if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy) return;
-            Init();
+            SubscribeToSceneChanges();
             BeginConsent(true);
         }
 
