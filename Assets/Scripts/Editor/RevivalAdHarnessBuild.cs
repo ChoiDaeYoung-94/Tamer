@@ -92,7 +92,9 @@ public static class RevivalAdHarnessBuild
                 options = development ? BuildOptions.Development | BuildOptions.CompressWithLz4 : BuildOptions.None,
                 extraScriptingDefines = umpOnly
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS" }
-                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS" }
+                    : development
+                        ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_AD_SAMPLE_CLOSE_HARNESS" }
+                        : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS" }
             });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Ad harness build failed.");
             Debug.Log("AD_HARNESS_BUILD_OK variant=" + variant);
