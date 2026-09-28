@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "baseline": "4a2d55e81a960e98c4d12e8c6996f121d4655eed",
+  "codeCommit": "2230dba",
+  "scope": "TAMER_INVENTORY_RESTORE isolated harness only",
+  "pureCSharpChecks": {
+    "passed": 5,
+    "failed": 0,
+    "runtime": "dotnet SDK9.0.301/net9.0",
+    "actualPureClassSourceUsed": true
+  },
+  "privateOperatorChecks": {
+    "passed": 5,
+    "failed": 0,
+    "seconds": 0.058,
+    "deviceUsed": false
+  },
+  "operatorDeadlineSeconds": 300,
+  "readinessActiveBudgetSeconds": 40,
+  "productAgeSelectionChanged": false,
+  "productTimeScaleChanged": false,
+  "unityFullCompilationPerformed": false,
+  "newApkBuilt": false,
+  "fourthDeviceAttemptExecuted": false,
+  "unverified": [
+    "Unity compilation of modified harness",
+    "actual age modal gate integration",
+    "full operator/device workflow",
+    "character/equipment/HUD rendering",
+    "inventory write/restart"
+  ],
+  "evidenceHashes": {
+    "lts-readiness-budget-check-output.txt": "f77fb57009dc9c99b660992899417e6e1e40641aa714bc1ce14562d8abcf3423",
+    "lts-operator-prepared-tests.txt": "5fb247b902df1829594f9dc99396b18d28a4a909b30ac9f0d3529c1dce29d952"
+  }
+}

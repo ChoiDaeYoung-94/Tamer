@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+﻿#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
 using System;
 using System.Collections;
 using System.IO;
