@@ -1,4 +1,4 @@
-param([string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path)
+param([string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path, [switch]$Online)
 $ErrorActionPreference = 'Stop'
 $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path
 function Get-ReceiptEditors {
@@ -25,10 +25,12 @@ New-Item -ItemType Directory -Force -Path $receiptEvidence | Out-Null
 $receiptSettings | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $receiptEvidence 'deletion-trial-build-settings.json')
 Push-Location $ProjectPath
 try {
+    $trialMethod = if ($Online) { 'RevivalDeletionTrialBuild.BuildOnlineAndroid' } else { 'RevivalDeletionTrialBuild.BuildAndroid' }
     & tools/.local/unity-cli/1.0.0-beta.8/unity.exe build $ProjectPath --editor-version 6000.0.81f1 --target Android `
-        --execute-method RevivalDeletionTrialBuild.BuildAndroid --log-file (Join-Path $receiptEvidence 'deletion-trial-build.log') --no-tail --non-interactive
+        --execute-method $trialMethod --log-file (Join-Path $receiptEvidence 'deletion-trial-build.log') --no-tail --non-interactive
     if ($LASTEXITCODE -ne 0) { throw "Deletion trial harness build failed: $LASTEXITCODE" }
-    python tools/revival/verify_deletion_trial_apk.py
+    if ($Online) { python tools/revival/verify_deletion_trial_apk.py --online }
+    else { python tools/revival/verify_deletion_trial_apk.py }
     if ($LASTEXITCODE -ne 0) { throw 'Deletion trial APK verification failed.' }
 }
 finally {

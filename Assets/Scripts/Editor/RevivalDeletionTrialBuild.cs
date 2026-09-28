@@ -24,7 +24,10 @@ public static class RevivalDeletionTrialBuild
         return document.ToString();
     }
 
-    public static void BuildAndroid()
+    public static void BuildAndroid() => BuildAndroidCore(false);
+    public static void BuildOnlineAndroid() => BuildAndroidCore(true);
+
+    private static void BuildAndroidCore(bool online)
     {
         if (PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android).Split(';')
             .Any(d => d.StartsWith("TAMER_", StringComparison.Ordinal)))
@@ -48,15 +51,19 @@ public static class RevivalDeletionTrialBuild
             var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(ads));
             settings.FindProperty("adMobAndroidAppId").stringValue = RevivalAdHarnessBuild.SampleAppId;
             settings.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssets();
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, RevivalDeletionTrialHarness.ApplicationId);
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, online
+                ? RevivalDeletionTrialHarness.OnlineApplicationId : RevivalDeletionTrialHarness.ApplicationId);
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
             Directory.CreateDirectory("Build/revival");
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions { scenes = new[] { RevivalBuild.SmokeScene },
-                target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android, locationPathName = "Build/revival/Tamer-deletion-trial.apk",
+                target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android, locationPathName = online
+                    ? "Build/revival/Tamer-deletion-online-trial.apk" : "Build/revival/Tamer-deletion-trial.apk",
                 options = BuildOptions.Development | BuildOptions.CompressWithLz4,
-                extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_DELETION_HARNESS" } });
+                extraScriptingDefines = online
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_DELETION_HARNESS", "TAMER_DELETION_ONLINE_TRIAL" }
+                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_DELETION_HARNESS" } });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Deletion trial harness build failed.");
             Debug.Log("DELETION_TRIAL_BUILD_OK manualAuthentication=true isolated-smoke-only=true"); code = 0;
         }

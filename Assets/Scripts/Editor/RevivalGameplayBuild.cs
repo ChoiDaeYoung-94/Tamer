@@ -72,7 +72,8 @@ public static class RevivalGameplayBuild
             if (identity != RevivalGameplayIsolation.PlayerRestoreApplicationId &&
                 identity != RevivalGameplayIsolation.AgeChoiceApplicationId &&
                 identity != RevivalGameplayIsolation.SessionApplicationId &&
-                identity != RevivalDeletionTrialHarness.ApplicationId) return;
+                identity != RevivalDeletionTrialHarness.ApplicationId &&
+                identity != RevivalDeletionTrialHarness.OnlineApplicationId) return;
             string destination = Path.Combine(path, "src/main/res/xml/tamer_playerrestore_rules.xml");
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
             File.WriteAllText(destination, PlayerRestoreExtractionRules());

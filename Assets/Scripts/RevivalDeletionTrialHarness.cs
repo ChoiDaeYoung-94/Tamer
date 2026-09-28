@@ -15,7 +15,12 @@ using UnityEngine.UI;
 
 public sealed class RevivalDeletionTrialHarness : MonoBehaviour
 {
+    public const string OnlineApplicationId = "com.AeDeong.MonsterTamer.deletiontrial.online";
+#if TAMER_DELETION_ONLINE_TRIAL
+    public const string ApplicationId = OnlineApplicationId;
+#else
     public const string ApplicationId = "com.AeDeong.MonsterTamer.deletiontrial";
+#endif
     public const string Title = "12B656";
     private string _custom = "", _expected = "", _status = "Manual disposable-account login only";
     private bool _busy, _attempted;
@@ -118,8 +123,10 @@ public sealed class RevivalDeletionTrialHarness : MonoBehaviour
             GUILayout.Label("Expected PlayFabId"); _expected = GUILayout.TextField(_expected, 32, GUILayout.Height(70));
             if (GUILayout.Button("Login existing disposable account", GUILayout.Height(90))) Login();
         }
+#if !TAMER_DELETION_ONLINE_TRIAL
         if (!_attempted && !_busy && GUILayout.Button("Run offline deletion checks (no server)", GUILayout.Height(90)))
             RunOffline();
+#endif
         if (_panel != null && GUILayout.Button("Open account deletion panel", GUILayout.Height(90))) OpenPanel();
         if (Managers.DataM != null)
             GUILayout.Label("Local marker=" + Managers.DataM.DeletionTrialLocalExists + " saveReady=" + Managers.DataM.IsServerDataReady +

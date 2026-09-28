@@ -78,6 +78,13 @@ class Trial:
 
 
 def main():
+    import argparse
+    global PRIVATE
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--online-followup', action='store_true')
+    args = parser.parse_args()
+    if args.online_followup:
+        PRIVATE = ROOT / 'Logs' / 'revival' / 'deletion-online-trial-20260928'
     import tkinter as tk
     PRIVATE.mkdir(parents=True, exist_ok=True)
     ready = PRIVATE / 'status.json'
