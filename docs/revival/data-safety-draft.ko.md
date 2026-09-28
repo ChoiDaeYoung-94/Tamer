@@ -62,8 +62,8 @@ No Ads 영수증 검증 클래스를 추가했다는 사실만으로 출시 comp
 | 계정 생성 방식 | 기존 Google 계정 연동 인증과 기기/custom 조건부 자동 생성 경로를 UI 선택지에 맞춰 분류. 게임이 사용자 비밀번호를 받는 계정 생성으로 입력하지 않음 | GPGS 기존 계정 `CreateAccount=false`와 신규 기기/custom 조건을 구분해 최종 Console 선택지 대조 |
 | 계정 삭제 요청 제공 | 앱 설정 진입점 + 외부 이메일 요청 안내를 입력 후보로 준비 | 수정된 새 LTS 제품 UI/실제 계정 흐름과 메일 운영 확인. 접수 뒤 전체 소거 완료를 약속하지 않음 |
 | 계정 삭제 웹 URL | `https://github.com/ChoiDaeYoung-94/Tamer/blob/main/docs/account-deletion.ko.md` | 공개 접근·게임/개발자·재설치 없는 이메일 요청 안내 확인. 현재 Console 등록 증거는 없으며 저장/게시하지 않음 |
-| 계정을 지우지 않는 일부 데이터 삭제 요청 | **보류** | 현재 계정 삭제 경로만으로 별도 일부 삭제 서비스를 제공한다고 답하지 않음 |
-| 모든 수집 데이터 전송 암호화 | **보류** | SDK HTTPS/TLS 설명은 있으나 최종 AAB의 모든 활성 endpoint·설정에 대한 앱 전체 근거 필요. 로컬 JSON 암호화와 별개 |
+| 계정을 지우지 않는 일부 데이터 삭제 요청 | 현재 후보는 **제공하지 않음 / 아니요 제안** | 제품 UI와 공개 지원 안내는 계정 삭제 요청이며 별도 일부 삭제 흐름은 발견되지 않았다. `ServerManager.DeleteData`는 키를 null로 쓰는 도구이고 제품 호출부가 없어 사용자 제공 기능의 근거가 아니다. 실제 제공 24의 UI까지 확인한 뒤 패키지 전체 답안 확정 |
+| 모든 수집 데이터 전송 암호화 | **최종 AAB 전체 답안 보류**. 현재 제품 PlayFab/선택형 HTTP 어댑터의 HTTPS 소스·설정 근거 확인 | 아래 전송 설정 표와 SDK HTTPS/TLS 설명을 대조. 최종 AAB의 native SDK·복원 설정까지 합산 필요. 로컬 JSON 암호화와 별개 |
 | 삭제 후 보관 예외 | 별도 게임 계정/진행 보관 사본 없음. 요청 이메일/확인 자료도 처리 종료 후 삭제 원칙 | 실제 공급자·메일·로그/백업 잔존 항목/사유/기간은 미확정. 임의 기간이나 전체 즉시 삭제를 약속하지 않음 |
 | 독립 보안 검토·인증 배지 | 입증 자료 없으면 제공한다고 답하지 않음 | 기능 테스트를 독립 보안 인증으로 대체하지 않음 |
 
@@ -75,6 +75,23 @@ No Ads 영수증 검증 클래스를 추가했다는 사실만으로 출시 comp
 
 이 표의 빈 근거는 새 사용자 질문을 늘리는 대신 SDK/최종 AAB/기존 운영 자료로 먼저 보완한다.
 운영 식별자·서명 값·인증코드·메일 원문·원시 로그·비공개 Console 감사는 이 문서에 넣지 않는다.
+
+### 사용자 결정 없이 좁힌 전송 설정과 일부 삭제 범위
+
+소스는 위 기준이며 9월 28일 SDK 담당의 `unity-lts-transition` checkout에서 복원된
+`PlayFabSharedSettings.asset`을 읽기 전용으로 대조했다. 공개 기록에는 endpoint 값이나
+타이틀 식별자를 넣지 않고 URL 구성 방식과 transport 선택만 기록한다. 실행 중 Editor의
+설정·소스는 변경하지 않았으며 새 패킷 시험이나 서비스 생성은 수행하지 않았다.
+
+| 경로 | 소스·설정에서 확인한 사실 | 결론의 경계 |
+| --- | --- | --- |
+| 제품 로그인·저장·Classic CloudScript 삭제 | `PlayFabSettings.GetFullUrl`은 scheme 없는 환경 호스트 앞에 `https://`를 붙인다. 읽은 복원 설정은 scheme 없는 호스트이며 Unity 6에서 `RequestType=0`은 `UnityWebRequest`다. 제품 스크립트에서 HTTP 환경 override 쓰기는 발견되지 않았다 | 해당 구성의 PlayFab URL은 HTTPS다. SDK는 명시적인 `http` override도 허용하므로 최종 빌드 설정이 같은지는 산출물에서 확인해야 한다 |
+| 인증서 검증 | 제품 스크립트에 `SkipCertificateValidation`/custom `CertificateHandler`/검증 callback 지정 호출이 없다. 선택된 PlayFab Unity transport에 별도 certificate handler를 붙이지 않는다 | 다른 SDK나 최종 native transport 전체의 인증서 동작까지 시험한 결과는 아니다. SDK의 미사용 `HttpWebRequest` 선택지에 인증서 우회 API가 존재한다는 사실을 실제 호출로 오해하지 않음 |
+| 선택형 영수증 HTTP verifier | `IapReceiptHttpVerifier` 생성자는 HTTPS와 고정 경로를 요구하고 redirectLimit=0이다. 현재 기본 IAP 생성은 verifier 미주입 | HTTPS 제한은 구현됐으나 운영 endpoint 연결·실제 서버 검증 완료는 아님 |
+| 선택형 삭제 HTTP gateway | `HttpDeletionGateway`는 명시적 HTTPS origin만 허용하며 리다이렉트/ambient proxy 사용을 막는다. 기본 제품 composition은 Classic CloudScript | 별도 HTTPS 서버가 출시 필수라는 뜻이 아니며 선택 어댑터 존재를 운영 사용으로 신고하지 않음 |
+| 오프라인 합성 gateway | `SyntheticLoopbackDeletionGateway`의 HTTP는 숫자 `127.0.0.1` origin만 허용한다 | 합성 시험 경로를 운영의 평문 외부 수집 endpoint로 분류하지 않음 |
+| Android 설정 | 기준 `ProjectSettings.asset`의 `insecureHttpOption=0`, 추적 Android manifest에서 cleartext/networkSecurityConfig 허용 override는 발견되지 않음 | Unity 설정·추적 manifest의 사실이다. 최종 merged manifest와 native SDK의 전체 endpoint 검증을 대체하지 않음 |
+| 계정 유지 일부 삭제 | `Assets/Scripts`와 `Assets/Tests`의 `DeleteData(` 검색은 정의 1개만 반환했다. 설정 UI에는 계정 삭제·지원·연령·광고 개인정보 옵션만 있다 | 임의 진행 reset, 내부 키 제거 도구, 광고 ID 재설정은 별도 사용자 데이터 삭제 서비스가 아니다. 현재 후보의 일부 삭제 제공 질문은 사용자 결정 없이 아니요 방향으로 좁힐 수 있음 |
 
 ## 초기 감사 이력
 
