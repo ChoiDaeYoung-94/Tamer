@@ -32,6 +32,17 @@
 
 PR #235가 계정에 귀속된 로컬 진행을 정리할 때 `.deletion-entitlement-*` 권한 확인 파일을 새로 생성하지 않도록 변경했다. 과거 사본은 생성 파일명·두 필드 형식·삭제 대상 소유자가 모두 확인될 때만 정리한다. 타인·소유 불명 파일이나 접근할 수 없는 기기의 자료는 삭제했다고 표시하지 않는다. Google Play가 관리하는 구매 기록과 앱의 구매 재조회 경로는 유지하지만 삭제 후 새 게임 계정에서 No Ads가 실제 복원되는지는 검증되지 않았다. 앱의 정상 접수 이후 로컬 정리와 PlayFab·처리자 전체 데이터 소거 완료를 구분한다.
 
+## 공급자·메일 정리 절차 보완 (2026-09-28)
+
+현재 승인된 원칙은 별도 보관용 게임 계정·진행 사본을 만들지 않고 요청 처리 종료 후 이메일 원문과 소유 확인 자료를 삭제하는 것이다. 아래는 운영자 AeDeong이 기존 접수 경로에서 적용할 절차이며, 실제 고객 데이터 조회·삭제·메일 발송이나 공급자 처리 완료를 검증한 결과가 아니다. 별도 서버·완료 대기 worker·자동 완료 통지를 추가하지 않는다.
+
+1. 소유가 확인된 Monster Tamer 대상만 기존 권한 있는 경로로 처리하고 접수와 완료를 구분한다. 현재 Classic CloudScript의 `server.DeletePlayer`는 title 데이터 삭제를 큐에 넣으며 PlayStream 이벤트와 publisher 계정·연결 정보는 포함하지 않는다. 남는 범위를 확인하고 필요한 공급자 처리 경로를 검토한다. 다른 title에 영향을 주는 master 삭제로 자동 확대하거나 접수 응답만으로 전부 삭제됐다고 회신하지 않는다. [PlayFab Server DeletePlayer 공식 범위](https://learn.microsoft.com/en-us/rest/api/playfab/server/account-management/delete-player?view=playfab-rest)는 수 분 이상 지연될 수 있음을 안내하지만 최대 완료 기간을 보장하지 않는다.
+2. Unity IAP 데이터 중 Unity가 처리자인 범위는 AeDeong이 요청 대상·소유를 확인한 뒤 `unity-iap-contact@unity3d.com`으로 필요한 최소 정보의 수동 처리 지시를 준비한다. 실제 전달은 권한 있는 별도 실행에서 한다. Unity 자체 목적으로 처리하는 controller 데이터는 이용자가 Unity에 직접 요청하는 범위와 구분한다. [Unity IAP 5.4 이상 공식 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)는 self-serve 기능 부재, 서비스 로그 90일, orders/configs/OAuth token의 삭제 선택까지 보관을 설명한다. 이 조건을 게임 전체·Google Play 구매 기록·미사용 Webshop/CodaPay의 보관기간이나 수집 사실로 확장하지 않는다. 실제 사용하는 기록과 요청 후 남는 범위·처리 상태를 확인한다.
+3. 접수 처리 종료 후 Gmail에서 관련 받은편지·보낸편지·대화 및 별도 저장한 확인 자료를 함께 정리한다. 보관함 이동이나 IMAP 클라이언트의 삭제 표시는 삭제 완료로 기록하지 않는다. 휴지통에 남는 사본, 외부 메일 클라이언트·다운로드·전달 사본의 존재와 정리 필요 여부를 확인한다. 실제 정리와 완전 삭제는 별도 권한 범위에서 수행한다. [Gmail 공식 안내](https://support.google.com/mail/answer/7401?hl=ko)의 휴지통 30일과 [Google 일반 보관 안내](https://policies.google.com/technologies/retention?hl=ko)의 삭제 절차 보통 약 2개월·암호화 백업 최대 6개월 및 지연·예외는 공급자 시스템 설명이며 운영자가 요청 자료를 별도 보관하는 기간이 아니다. 발신자 측 삭제로 수신자 사본이 지워지지 않는다.
+4. 이용자에게는 실제 확인한 접수·처리 상태와 남는 공급자 범위·필요한 후속 조치만 안내한다. 타이틀 계정 수가 0명이거나 메일이 화면에서 사라진 것을 모든 공급자·백업 소거 완료로 표현하지 않는다. 실제 소유 확인 수단, 공급자 잔존 데이터 처리 범위, 수신·회신 가능성 및 지연 안내는 출시 전 검증 대상으로 남긴다.
+
+이번 보완 checkout은 `C:/Users/pc_17/.codex/worktrees/completion-state-refresh/Tamer`, 기반 main `38a284fdd0b54ccae36e6c96b314c23285d3f3ba`다. Unity `6000.3.25f1`·CLI `1.0.0-beta.8`·Android min25/target36 기준 설정을 변경하지 않았다. 문서 링크·README 불변 범위만 확인하며 새 Unity·테스트·APK 실행과 SHA-256은 없다. 지원 계정의 실제 설정 관측은 비공개 근거에만 보존한다.
+
 ## 공개 페이지와 앱의 역할
 
 - 앱 내: Classic CloudScript를 통한 현재 계정 자동 삭제 요청을 별도 구현·검증한다. 명시적 정상 접수 후 로그아웃·소유 확인된 로컬 진행 정리, unknown에서는 자동 재제출하지 않고 이메일 확인을 안내하는 방향이다. 아직 운영 배포 완료로 표현하지 않는다.
