@@ -1,7 +1,11 @@
 #if UNITY_EDITOR || TAMER_DELETION_HARNESS
 using System;
 using System.Text.RegularExpressions;
+using System.IO;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using AD;
+using AD.Privacy;
 using PlayFab;
 using PlayFab.ClientModels;
 using TMPro;
@@ -19,6 +23,13 @@ public sealed class RevivalDeletionTrialHarness : MonoBehaviour
     private Canvas _canvas;
     private GraphicRaycaster _raycaster;
     private float _deadline;
+    private bool _offline;
+
+    private void Start()
+    {
+        if (File.Exists(Path.Combine(Application.persistentDataPath, "OfflineDeletionChecks", "unknown", "pending.json")))
+            _offline = true;
+    }
 
     public static LoginWithCustomIDRequest LoginRequest(string custom, string expected)
     {
@@ -43,7 +54,7 @@ public sealed class RevivalDeletionTrialHarness : MonoBehaviour
 
     private void Login()
     {
-        if (_attempted || _busy || Application.identifier != ApplicationId) return;
+        if (_offline || _attempted || _busy || Application.identifier != ApplicationId) return;
         LoginWithCustomIDRequest request;
         try { request = LoginRequest(_custom, _expected); }
         catch { _status = "Invalid disposable-account input"; return; }
@@ -101,17 +112,111 @@ public sealed class RevivalDeletionTrialHarness : MonoBehaviour
         GUILayout.BeginArea(new Rect(30,40,840,1200));
         GUILayout.Label("ISOLATED DISPOSABLE ACCOUNT DELETION TRIAL");
         GUILayout.Label(_status);
-        if (!_attempted)
+        if (!_attempted && !_offline)
         {
             GUILayout.Label("Disposable CustomId (masked)"); _custom = GUILayout.PasswordField(_custom, '*', 100, GUILayout.Height(70));
             GUILayout.Label("Expected PlayFabId"); _expected = GUILayout.TextField(_expected, 32, GUILayout.Height(70));
             if (GUILayout.Button("Login existing disposable account", GUILayout.Height(90))) Login();
         }
+        if (!_attempted && !_busy && GUILayout.Button("Run offline deletion checks (no server)", GUILayout.Height(90)))
+            RunOffline();
         if (_panel != null && GUILayout.Button("Open account deletion panel", GUILayout.Height(90))) OpenPanel();
         if (Managers.DataM != null)
             GUILayout.Label("Local marker=" + Managers.DataM.DeletionTrialLocalExists + " saveReady=" + Managers.DataM.IsServerDataReady +
                 " pending=" + Managers.DataM.DeletionInProgress + " signedIn=" + !string.IsNullOrEmpty(Managers.DataM.PlayFabId));
         GUILayout.EndArea();
+    }
+
+    private static void Require(bool condition)
+    { if (!condition) throw new InvalidOperationException("Offline deletion assertion failed."); }
+
+    private static void SyntheticIdentity(string account)
+    {
+        // No ticket or token: this context cannot authenticate an SDK request.
+        PlayFabSettings.staticPlayer.CopyFrom(new PlayFabAuthenticationContext(null, null, account,
+            "synthetic-entity", "title_player_account"));
+    }
+
+    private async void RunOffline()
+    {
+        _offline = _busy = true;
+        try
+        {
+            Require(Application.identifier == ApplicationId && Debug.isDebugBuild &&
+                string.IsNullOrEmpty(PlayFabSettings.staticPlayer.ClientSessionTicket));
+            var data = Managers.DataM;
+            string root = Path.Combine(Application.persistentDataPath, "OfflineDeletionChecks");
+            string unknownDirectory = Path.Combine(root, "unknown");
+            var journal = new FileDeletionRecoveryStore(Path.Combine(unknownDirectory, "pending.json"));
+            bool restart = journal.Load() != null;
+            if (!restart)
+            {
+                Require(!Directory.Exists(root)); // Preserve prior/uncertain evidence; never silently rerun.
+                string directory = data.BindOfflineDeletionTrial("accepted", "synthetic-accepted");
+                string backups = Path.Combine(directory, "PlayerDataBackups"); Directory.CreateDirectory(backups);
+                string own = Path.Combine(backups, "PlayerData-" + Guid.NewGuid().ToString("N") + ".json");
+                string foreign = Path.Combine(backups, "PlayerData-" + Guid.NewGuid().ToString("N") + ".json");
+                string legacy = Path.Combine(backups, "PlayerData-" + Guid.NewGuid().ToString("N") + ".json");
+                string malformed = Path.Combine(backups, "PlayerData-" + Guid.NewGuid().ToString("N") + ".json");
+                string foreignText = "{\"__TamerAccountOwner\":\"synthetic-other\",\"Gold\":\"8\"}";
+                string legacyText = "{\"Gold\":\"7\"}";
+                File.WriteAllText(own, "{\"__TamerAccountOwner\":\"synthetic-accepted\",\"GooglePlay\":\"SyntheticNoAds\"}");
+                File.WriteAllText(foreign, foreignText); File.WriteAllText(legacy, legacyText); File.WriteAllText(malformed, "{bad-json");
+                string archive = Path.Combine(directory, "PlayerData.json.deletion-entitlement-" + Guid.NewGuid().ToString("N"));
+                File.WriteAllText(archive, "{\"__TamerAccountOwner\":\"synthetic-accepted\",\"GooglePlay\":\"SyntheticNoAds\"}");
+                string inventory = data.BindOfflineTrialInventory("synthetic-accepted");
+                SyntheticIdentity("synthetic-accepted");
+                int acceptedCalls = 0;
+                using (var flow = new DeletionFlow(new CloudScriptDeletionGateway((s, id, t) =>
+                    { acceptedCalls++; return Task.FromResult(true); }, true), data.DeletionSession,
+                    data.BeginDeletionSubmission, data.FinishAcceptedDeletion, data.FinishCancelledDeletion,
+                    new FileDeletionRecoveryStore(Path.Combine(directory, "pending.json")), new string('a', 64)))
+                {
+                    Require(await flow.RequestAsync() && flow.State == DeletionState.AwaitingConfirmation && acceptedCalls == 0);
+                    Require(await flow.ConfirmAsync() && flow.State == DeletionState.Accepted && !flow.AcceptedCleanupFailed && acceptedCalls == 1);
+                }
+                Require(!data.DeletionTrialLocalExists && !File.Exists(own) && !File.Exists(inventory) && !File.Exists(archive));
+                Require(File.ReadAllText(foreign) == foreignText && File.ReadAllText(legacy) == legacyText && File.ReadAllText(malformed) == "{bad-json");
+                Require(Directory.GetFiles(directory, "*.deletion-entitlement-*").Length == 0 &&
+                    !data.IsServerDataReady && !data.DeletionInProgress && string.IsNullOrEmpty(data.PlayFabId) &&
+                    string.IsNullOrEmpty(PlayFabSettings.staticPlayer.PlayFabId));
+                File.WriteAllText(Path.Combine(root, "accepted.txt"), "owner-progress-backup-inventory-old-archive-removed foreign-legacy-malformed-preserved signed-out no-new-archive synthetic-submits=1 server-deletes=0");
+            }
+            DeletionRecoveryGuard.HasPendingSubmission = account => account == "synthetic-unknown" && journal.Load()?.SubmissionStarted == true;
+            PlayFabSettings.staticPlayer.ForgetAllCredentials();
+            data.BindOfflineDeletionTrial("unknown", "synthetic-unknown");
+            SyntheticIdentity("synthetic-unknown");
+            int calls = 0;
+            using (var flow = new DeletionFlow(new CloudScriptDeletionGateway((s, id, t) =>
+                { calls++; return Task.FromResult(false); }, true), data.DeletionSession,
+                data.BeginDeletionSubmission, data.FinishAcceptedDeletion, data.FinishCancelledDeletion, journal, new string('b', 64)))
+            {
+                if (!restart)
+                {
+                    Require(await flow.RequestAsync() && flow.State == DeletionState.AwaitingConfirmation && calls == 0);
+                    Require(await flow.ConfirmAsync() && flow.State == DeletionState.SubmissionUnknown && calls == 1);
+                }
+                Require(flow.State == DeletionState.SubmissionUnknown && !flow.CanConfirmDeletion &&
+                    !await flow.RequestAsync() && !await flow.ConfirmAsync() && !await flow.RefreshAsync());
+                Require(calls == (restart ? 0 : 1) && journal.Load()?.SubmissionStarted == true &&
+                    data.DeletionTrialLocalExists && data.DeletionInProgress && !data.IsServerDataReady &&
+                    !data.TryUpdateLocalData("Gold", "99"));
+                bool blocked = false;
+                try { data.BeginAccountSession("synthetic-unknown"); } catch (InvalidOperationException) { blocked = true; }
+                Require(blocked);
+            }
+            PlayFabSettings.staticPlayer.ForgetAllCredentials();
+            _status = restart ? "OFFLINE PASS: unknown survives process restart; relogin/write/resubmit blocked; server calls=0"
+                : "OFFLINE PASS: owned cleanup/foreign preservation; unknown journal retained. Restart app then run checks again.";
+            File.WriteAllText(Path.Combine(root, restart ? "restart.txt" : "phase1.txt"), _status);
+            Debug.Log("DELETION_OFFLINE_CHECK " + _status);
+        }
+        catch (Exception error)
+        {
+            _status = "OFFLINE FAIL: " + error.GetType().Name + "; evidence preserved; no automatic retry";
+            Debug.LogError("DELETION_OFFLINE_CHECK " + _status);
+        }
+        finally { _busy = false; }
     }
 }
 #endif

@@ -38,6 +38,37 @@ namespace AD
         }
 
         public bool DeletionTrialLocalExists => File.Exists(_playerDataPath);
+
+        // Only synthetic files below this debug app's private scenario directory are selected.
+        public string BindOfflineDeletionTrial(string phase, string account)
+        {
+            if (Application.identifier != RevivalDeletionTrialHarness.ApplicationId || !Debug.isDebugBuild ||
+                (phase != "accepted" && phase != "unknown") || account != "synthetic-" + phase ||
+                !string.IsNullOrEmpty(PlayFab.PlayFabSettings.staticPlayer.ClientSessionTicket))
+                throw new InvalidOperationException("Offline isolated scenario required.");
+            string directory = Path.Combine(Application.persistentDataPath, "OfflineDeletionChecks", phase);
+            Directory.CreateDirectory(directory);
+            _playerDataPath = Path.Combine(directory, "PlayerData.json");
+            _localOwner = "";
+            if (File.Exists(_playerDataPath))
+            {
+                var stored = ParseData(File.ReadAllText(_playerDataPath));
+                if (!stored.TryGetValue(OwnerKey, out _localOwner)) throw new InvalidDataException();
+            }
+            BindDeletionTrial(account);
+            return directory;
+        }
+
+        public string BindOfflineTrialInventory(string account)
+        {
+            if (Application.identifier != RevivalDeletionTrialHarness.ApplicationId || !Debug.isDebugBuild ||
+                account != "synthetic-accepted" || PlayFabId != account || !IsServerDataReady)
+                throw new InvalidOperationException();
+            var inventory = new PlayerInventoryStore(_playerDataPath + ".inventory", new[] { "Bat" },
+                new Dictionary<string, string> { { "SimpleSword", "Sword" } });
+            inventory.BindSession(account, _inventorySession);
+            return inventory.PathFor(account);
+        }
     }
 }
 #endif

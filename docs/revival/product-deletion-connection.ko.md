@@ -4,6 +4,8 @@
 
 ## PR #222 당시 구현 및 검증 이력
 
+최신 격리 debug APK의 소유 파일 정리와 불확실 응답 후 프로세스 재시작 차단은 [2026-09-28 기기 검증](deletion-device-followup.ko.md)을 따른다. 합성 결과 대역을 사용한 로컬 검증이며 제품 화면의 운영 인증·서버 삭제 시험을 대신하지 않는다.
+
 - 작업 checkout: `C:\Users\pc_17\.codex\worktrees\product-deletion-connection\Tamer`
 - 작업 브랜치: `codex/product-deletion-connection`
 - 검증 시작 시 HEAD/대상 기준 커밋: `8b8d211c25527e2fa872aa1e1cffc264771186d8` (`origin/main`에서 fast-forward)
