@@ -1,4 +1,7 @@
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
+#if TAMER_UMP_PUBLISHER_HARNESS && !TAMER_UMP_ONLY_HARNESS
+#error Publisher UMP harness requires the UMP-only path.
+#endif
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -36,6 +39,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private DebugGeography _testGeography = DebugGeography.EEA;
     private string _testDeviceHash = "";
     private bool _sampleConfigured;
+#if TAMER_UMP_PUBLISHER_HARNESS
+    private bool _publisherContextAllowed;
+#endif
     private double _umpStartedAt;
     private static double Now => (double)System.Diagnostics.Stopwatch.GetTimestamp() /
         System.Diagnostics.Stopwatch.Frequency;
@@ -49,7 +55,17 @@ public sealed class RevivalAdHarness : MonoBehaviour
         clearCamera.cullingMask = 0;
         if (UmpOnly)
         {
+#if TAMER_UMP_PUBLISHER_HARNESS
+            if (Application.isEditor || Application.platform != RuntimePlatform.Android ||
+                !Debug.isDebugBuild || Application.identifier != "com.AeDeong.MonsterTamer.revival.umppublisher" ||
+                SceneManager.GetActiveScene().path != "Assets/Tests/Scenes/RevivalAdHarness.unity" ||
+                AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed)
+                throw new InvalidOperationException("Isolated disabled publisher UMP context required.");
+            _publisherContextAllowed = true;
+            Record("ump_only_boot no_ad_manager_init publisher_app_identity");
+#else
             Record("ump_only_boot no_ad_manager_init sample_app_identity");
+#endif
             return;
         }
         _initialScene = SceneManager.GetActiveScene();
@@ -198,11 +214,19 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void DrawUmpOnly()
     {
+#if TAMER_UMP_PUBLISHER_HARNESS
+        GUILayout.Label("UMP ONLY / PUBLISHER APP / no managed Mobile Ads initialize, load or show");
+        GUILayout.Label("Explicit Update contacts the publisher's UMP service; this is not an ad activation.");
+#else
         GUILayout.Label("UMP ONLY / SAMPLE APP ID / no Mobile Ads initialize, load or show");
-        GUILayout.Label("Synthetic age case; proposed TFUA mapping is not regional approval.");
         GUILayout.Label("This sample build cannot verify the publisher's own messages.");
+#endif
+        GUILayout.Label("Synthetic age case; proposed TFUA mapping is not regional approval.");
         bool previousEnabled = GUI.enabled;
         GUI.enabled = previousEnabled && (_ump == null || !_ump.IsBusy);
+#if TAMER_UMP_PUBLISHER_HARNESS
+        GUI.enabled = GUI.enabled && _publisherContextAllowed;
+#endif
         foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice)))
             if (GUILayout.Button("Test age: " + age + (_testAge == age ? " [selected]" : "")))
             { DisposeUmp(); _testAge = age; }
@@ -224,6 +248,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private void StartUmpOnly()
     {
         if (!UmpOnly || (_ump != null && _ump.IsBusy)) return;
+#if TAMER_UMP_PUBLISHER_HARNESS
+        if (!_publisherContextAllowed) { Record("ump_blocked publisher_context"); return; }
+#endif
         DisposeUmp();
         if (!AgeTreatmentPolicy.TryCreatePlan(_testAge, out var plan))
         { Record("ump_blocked unknown_or_declined_age"); return; }
