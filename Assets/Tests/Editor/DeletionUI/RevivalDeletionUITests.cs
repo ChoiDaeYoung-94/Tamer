@@ -241,6 +241,60 @@ public class RevivalDeletionUITests
         Assert.AreEqual(1, calls);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_DeletionAcceptedFinishesRenderingWithOptionalPopupManager(bool hasPopupManager)
+    {
+        var managerType = Find("AD.Managers");
+        var singleton = managerType.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static);
+        var previousManager = singleton.GetValue(null);
+        var factory = presenter.GetType().GetProperty("RuntimeFlowFactory", BindingFlags.Public | BindingFlags.Static);
+        var previousFactory = factory.GetValue(null);
+        var ownerObject = new GameObject("Inactive isolated owner");
+        ownerObject.SetActive(false); // Avoid gameplay, login, ads and purchase initialization.
+        SceneManager.MoveGameObjectToScene(ownerObject, preview);
+        var gateway = new Fake { IsSynthetic = false, ConfirmedState = DeletionState.Accepted };
+        var session = new DeletionSession(new object(), "offline-account", "offline-session");
+        int cleanups = 0;
+        var flow = new DeletionFlow(gateway, () => session, accepted: s => cleanups++);
+        try
+        {
+            var manager = ownerObject.AddComponent(managerType);
+            var popup = hasPopupManager ? ownerObject.AddComponent(Find("AD.PopupManager")) : null;
+            managerType.GetField("_popupM", Flags).SetValue(manager, popup);
+            singleton.SetValue(null, manager);
+            Assert.True(flow.RequestAsync().GetAwaiter().GetResult());
+            Assert.True(flow.ConfirmAsync().GetAwaiter().GetResult());
+            Call(presenter, "OnDisable");
+            factory.SetValue(null, (Func<DeletionFlow>)(() => flow));
+            Assert.DoesNotThrow(() => Call(presenter, "OnEnable"));
+            Assert.DoesNotThrow(Render);
+            StringAssert.Contains("Your deletion request was accepted.", Message);
+            Assert.True((bool)Property(view, "ExitOnClose"));
+            var closeLabel = Button("Close").GetComponentsInChildren<Component>(true)
+                .First(component => component.GetType().FullName == "TMPro.TextMeshProUGUI");
+            Assert.AreEqual("Exit game", Property(closeLabel, "text"));
+            foreach (var name in new[] { "Request", "Confirm", "SessionConfirm", "Refresh", "Cancel", "Retry", "Reauthenticate" })
+                Assert.False(Button(name).gameObject.activeSelf, name);
+            Assert.True(Button("Contact").interactable);
+            Assert.AreEqual(1, gateway.ConfirmCalls);
+            Assert.AreEqual(1, cleanups);
+            if (popup != null)
+            {
+                var blockers = popup.GetType().GetField("_flowOwners", Flags).GetValue(popup);
+                Assert.True((bool)Call(blockers, "Contains", panel));
+            }
+        }
+        finally
+        {
+            Call(presenter, "OnDisable");
+            flow.Dispose();
+            UnityEngine.Object.DestroyImmediate(ownerObject);
+            singleton.SetValue(null, previousManager);
+            factory.SetValue(null, previousFactory);
+        }
+    }
+
     sealed class Fake : IDeletionGateway, ISessionConfirmationGateway
     {
         public bool UsesSessionConfirmation { get; set; }
@@ -250,11 +304,12 @@ public class RevivalDeletionUITests
         public Task<DeletionAuthorization> ConfirmSessionAsync(DeletionSession session, DeletionSessionChallenge challenge, CancellationToken token) =>
             Task.FromResult(new DeletionAuthorization(session.AccountId, "synthetic-proof"));
         public bool IsAvailable => true;
-        public bool IsSynthetic => true;
+        public bool IsSynthetic { get; set; } = true;
         public bool Fail;
         public int AuthCalls, RequestCalls, ConfirmCalls, CancelCalls;
         public string Evidence = "synthetic-only-evidence";
         public DeletionState Next = DeletionState.Processing;
+        public DeletionState ConfirmedState = DeletionState.Queued;
         public TaskCompletionSource<DeletionAuthorization> PendingAuth;
         Task<DeletionSnapshot> Result(DeletionState state) => Fail
             ? Task.FromException<DeletionSnapshot>(new Exception("synthetic failure"))
@@ -262,7 +317,7 @@ public class RevivalDeletionUITests
         public Task<DeletionAuthorization> ReauthenticateAsync(DeletionSession s, CancellationToken t)
         { AuthCalls++; return PendingAuth != null ? PendingAuth.Task : Task.FromResult(new DeletionAuthorization(s.AccountId, "test-proof")); }
         public Task<DeletionSnapshot> RequestAsync(DeletionAuthorization a, string key, CancellationToken t) { RequestCalls++; return Result(DeletionState.AwaitingConfirmation); }
-        public Task<DeletionSnapshot> ConfirmAsync(DeletionAuthorization a, DeletionSnapshot r, CancellationToken t) { ConfirmCalls++; return Result(DeletionState.Queued); }
+        public Task<DeletionSnapshot> ConfirmAsync(DeletionAuthorization a, DeletionSnapshot r, CancellationToken t) { ConfirmCalls++; return Result(ConfirmedState); }
         public Task<DeletionSnapshot> StatusAsync(DeletionAuthorization a, string id, CancellationToken t) => Result(Next);
         public Task<DeletionSnapshot> CancelAsync(DeletionAuthorization a, string id, CancellationToken t) { CancelCalls++; return Result(DeletionState.Cancelled); }
     }

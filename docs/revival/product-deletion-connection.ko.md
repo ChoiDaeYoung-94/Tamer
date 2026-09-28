@@ -6,6 +6,8 @@
 
 최신 격리 debug APK의 소유 파일 정리와 불확실 응답 후 프로세스 재시작 차단은 [2026-09-28 기기 검증](deletion-device-followup.ko.md)을 따른다. 합성 결과 대역을 사용한 로컬 검증이며 제품 화면의 운영 인증·서버 삭제 시험을 대신하지 않는다.
 
+별도 앱의 신규 폐기 계정 1개로 수행한 접수·타이틀 조회·원복 관측과 접수 화면의 선택적 PopupManager 참조 수정은 [온라인 시험 및 UI 수정 기록](deletion-online-followup.ko.md)을 따른다. 그 시험에서 발견된 렌더링 예외를 전체 온라인 PASS로 표현하지 않으며, 수정은 별도 오프라인 UI 테스트로 검증했다.
+
 - 작업 checkout: `C:\Users\pc_17\.codex\worktrees\product-deletion-connection\Tamer`
 - 작업 브랜치: `codex/product-deletion-connection`
 - 검증 시작 시 HEAD/대상 기준 커밋: `8b8d211c25527e2fa872aa1e1cffc264771186d8` (`origin/main`에서 fast-forward)

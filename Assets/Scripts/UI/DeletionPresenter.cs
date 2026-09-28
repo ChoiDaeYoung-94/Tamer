@@ -184,7 +184,8 @@ namespace AD
             _view.ExitOnClose = accepted;
             var closeCaption = _view.CloseButton.GetComponentInChildren<TMPro.TMP_Text>(true);
             if (closeCaption != null) closeCaption.text = accepted ? "Exit game" : "Back to settings";
-            if (accepted && Managers.Instance != null) Managers.PopupM.RegisterBlocker(_view.gameObject, true);
+            var popupManager = Managers.PopupM;
+            if (accepted && popupManager != null) popupManager.RegisterBlocker(_view.gameObject, true);
             Set(_view.RequestButton, state == DeletionState.Unavailable || state == DeletionState.Idle, ready && state == DeletionState.Idle);
             Set(_view.ConfirmButton, state == DeletionState.AwaitingConfirmation && _flow.CanConfirmDeletion, ready);
             Set(_view.SessionConfirmButton, state == DeletionState.AwaitingSessionConfirmation, ready);
