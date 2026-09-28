@@ -14,4 +14,6 @@
 
 Google 계정, 다른 게임의 계정과 Google Play 구매 기록 자체는 이 요청의 삭제 대상이 아닙니다. 앱에서 삭제 요청이 정상 접수되면 소유가 확인된 해당 계정의 기기 내 진행 데이터와 과거에 남긴 권한 확인용 사본을 정리하며, 새 보관 사본은 만들지 않습니다. 소유자를 확인할 수 없거나 다른 계정에 속한 파일은 임의로 삭제하지 않습니다. 앱을 이미 삭제했거나 기기에 접근할 수 없다면 이메일 요청만으로 남은 파일을 원격 삭제할 수 없습니다. 구매 복원 기능은 유지되지만 삭제 후 새 게임 계정에서 실제로 복원되는지는 아직 확인되지 않았습니다.
 
+게임 계정 삭제를 접수하는 PlayFab 기능에는 이벤트 이력과 서비스 계정 연결 정보의 삭제가 포함되지 않아 추가 처리 범위를 확인해야 합니다. Unity IAP 관련 자료도 처리 역할에 따라 운영자가 삭제 요청을 전달하거나 이용자가 Unity에 직접 요청하는 범위가 다릅니다. 담당자는 확인된 상태와 필요한 후속 조치를 안내하며, 이러한 자료까지 즉시 모두 삭제됐다고 알리지 않습니다. 자세한 공급자 범위는 [PlayFab 삭제 안내](https://learn.microsoft.com/en-us/rest/api/playfab/server/account-management/delete-player?view=playfab-rest)와 [Unity IAP 개인정보 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)에서 확인하실 수 있습니다.
+
 [Monster Tamer 개인정보처리방침](../README.md#개인정보처리방침) · [Google Play 계정 삭제 안내](https://support.google.com/googleplay/android-developer/answer/13327111?hl=ko)
