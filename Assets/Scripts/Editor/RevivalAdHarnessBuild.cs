@@ -66,6 +66,9 @@ public static class RevivalAdHarnessBuild
         foreach (string field in new[] { "checkout", "androidAppId", "productionActivationApproved", "regionalReviewApproved" })
             if (Regex.Matches(json, "\"" + field + "\"\\s*:").Count != 1)
                 throw new BuildFailedException("Private publisher configuration must be complete and unambiguous.");
+        foreach (string field in new[] { "productionActivationApproved", "regionalReviewApproved" })
+            if (!Regex.IsMatch(json, "\"" + field + "\"\\s*:\\s*false\\s*(?=[,}])"))
+                throw new BuildFailedException("Private publisher approvals must be explicit JSON false.");
         var config = JsonUtility.FromJson<PublisherConfig>(json);
         if (config == null || string.IsNullOrEmpty(config.checkout) ||
             !string.Equals(Path.GetFullPath(config.checkout), root, StringComparison.OrdinalIgnoreCase) ||
