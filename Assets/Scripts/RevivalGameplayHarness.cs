@@ -257,9 +257,16 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield return gameObject.AddComponent<RevivalSessionGameplayHarness>().Run();
         yield break;
 #endif
-        // Keep the real lobby available for visual inspection before the automatic round trip.
+#if TAMER_GAMEPLAY_PHOTO
+        // Keep the existing photo variant's automatic round trip.
         yield return new WaitForSecondsRealtime(8);
         yield return RoundTrip();
+#else
+        // Development inspection waits for the existing original-scene controls.
+        // A model/tool screenshot round trip must not race an eight-second auto transition.
+        Mark("MAIN_READY manual inspection; use Enter Game and Return to Main controls");
+        yield break;
+#endif
     }
 
     private bool Ready(string scene) => UnitySceneManager.GetActiveScene().name == scene &&
@@ -359,7 +366,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             collider != null && collider.enabled && collider.gameObject.activeInHierarchy;
     }
 
-#if TAMER_INVENTORY_RESTORE
+#if TAMER_GAMEPLAY_HARNESS && !TAMER_AGE_CHOICE
     private static bool OriginalAgeModalOwnsInput()
     {
         var popups = Managers.PopupM;
@@ -389,14 +396,14 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 
     private IEnumerator WaitForScene(string scene)
     {
-#if TAMER_INVENTORY_RESTORE
+#if TAMER_GAMEPLAY_HARNESS && !TAMER_AGE_CHOICE
         var budget = new RevivalGameplayReadyBudget(40);
         double previous = Time.realtimeSinceStartupAsDouble;
         bool ageWaitReported = false;
         while (!Ready(scene))
         {
             double now = Time.realtimeSinceStartupAsDouble;
-            bool ageQuestionOwnsInput = scene == "Main" &&
+            bool ageQuestionOwnsInput = (scene == "Main" || scene == "Game") &&
                 UnitySceneManager.GetActiveScene().name == scene &&
                 Managers.Instance == _originalManagers && Managers.SceneM != null &&
                 !Managers.SceneM.IsTransitioning && Player.Instance != null &&
@@ -511,7 +518,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     }
 }
 
-// Pure budget used only by the isolated inventory harness; never changes consent or timeScale.
+// Pure budget used only by isolated gameplay harnesses; never changes consent or timeScale.
 public sealed class RevivalGameplayReadyBudget
 {
     private readonly double _limit;
