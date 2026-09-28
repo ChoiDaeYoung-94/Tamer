@@ -85,7 +85,7 @@ No Ads 영수증 검증 클래스를 추가했다는 사실만으로 출시 comp
 
 | 경로 | 소스·설정에서 확인한 사실 | 결론의 경계 |
 | --- | --- | --- |
-| 제품 로그인·저장·Classic CloudScript 삭제 | `PlayFabSettings.GetFullUrl`은 scheme 없는 환경 호스트 앞에 `https://`를 붙인다. 읽은 복원 설정은 scheme 없는 호스트이며 Unity 6에서 `RequestType=0`은 `UnityWebRequest`다. 제품 스크립트에서 HTTP 환경 override 쓰기는 발견되지 않았다 | 해당 구성의 PlayFab URL은 HTTPS다. SDK는 명시적인 `http` override도 허용하므로 최종 빌드 설정이 같은지는 산출물에서 확인해야 한다 |
+| 제품 로그인·저장·Classic CloudScript 삭제 | `PlayFabSettings.GetFullUrl`은 scheme 없는 환경 호스트 앞에 `https://`를 붙인다. 읽은 복원 설정의 환경 override는 비어 있어 SDK 기본 호스트를 사용하며 Unity 6에서 `RequestType=0`은 `UnityWebRequest`다. 제품 스크립트에서 HTTP 환경 override 쓰기는 발견되지 않았다 | 해당 기본 구성의 PlayFab URL은 HTTPS다. SDK는 명시적인 `http` override도 허용하므로 최종 빌드 설정이 같은지는 산출물에서 확인해야 한다 |
 | 인증서 검증 | 제품 스크립트에 `SkipCertificateValidation`/custom `CertificateHandler`/검증 callback 지정 호출이 없다. 선택된 PlayFab Unity transport에 별도 certificate handler를 붙이지 않는다 | 다른 SDK나 최종 native transport 전체의 인증서 동작까지 시험한 결과는 아니다. SDK의 미사용 `HttpWebRequest` 선택지에 인증서 우회 API가 존재한다는 사실을 실제 호출로 오해하지 않음 |
 | 선택형 영수증 HTTP verifier | `IapReceiptHttpVerifier` 생성자는 HTTPS와 고정 경로를 요구하고 redirectLimit=0이다. 현재 기본 IAP 생성은 verifier 미주입 | HTTPS 제한은 구현됐으나 운영 endpoint 연결·실제 서버 검증 완료는 아님 |
 | 선택형 삭제 HTTP gateway | `HttpDeletionGateway`는 명시적 HTTPS origin만 허용하며 리다이렉트/ambient proxy 사용을 막는다. 기본 제품 composition은 Classic CloudScript | 별도 HTTPS 서버가 출시 필수라는 뜻이 아니며 선택 어댑터 존재를 운영 사용으로 신고하지 않음 |
