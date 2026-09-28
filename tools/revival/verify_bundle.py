@@ -32,10 +32,10 @@ def validate_manifest(xml):
     app = manifest.find('application')
     if (manifest.get('package') != APP_ID or manifest.get(ANDROID + 'versionCode') != '26'
             or manifest.get(ANDROID + 'versionName') != '1.0.5'
-            or sdk is None or sdk.get(ANDROID + 'minSdkVersion') != '24'
+            or sdk is None or sdk.get(ANDROID + 'minSdkVersion') != '25'
             or sdk.get(ANDROID + 'targetSdkVersion') != '36'
             or app is None or app.get(ANDROID + 'debuggable') != 'true'):
-        raise ValueError('Expected isolated debug application, unchanged version and min24/target36')
+        raise ValueError('Expected isolated debug application, unchanged version and min25/target36')
 
 
 def main():

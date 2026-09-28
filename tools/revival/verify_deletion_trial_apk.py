@@ -20,8 +20,8 @@ def verify(apk, android, application_id='com.AeDeong.MonsterTamer.deletiontrial'
     for required in ("name='" + application_id + "'", "versionCode='26'", "versionName='1.0.5'",
                      "targetSdkVersion:'36'", 'application-debuggable', "native-code: 'arm64-v8a'"):
         if required not in badging: raise ValueError('Isolated deletion trial metadata mismatch')
-    if not re.search(r"(?:minS|s)dkVersion:'24'", badging) or 'CN=Android Debug' not in signing:
-        raise ValueError('Expected min24 and debug signing')
+    if not re.search(r"(?:minS|s)dkVersion:'25'", badging) or 'CN=Android Debug' not in signing:
+        raise ValueError('Expected min25 and debug signing')
     for required in ('android.permission.INTERNET','android.permission.ACCESS_NETWORK_STATE'):
         if required not in manifest: raise ValueError('Network permission missing')
     for forbidden in ('com.android.vending.BILLING','com.google.android.gms.permission.AD_ID',

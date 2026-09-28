@@ -21,8 +21,8 @@ def verify(apk, android, variant='development'):
             raise ValueError('Gameplay APK metadata mismatch: ' + expected)
     if ('application-debuggable' in badging) != (variant != 'photo'):
         raise ValueError('Gameplay development/photo variant mismatch')
-    if not re.search(r"(?:minS|s)dkVersion:'24'", badging):
-        raise ValueError('Expected min SDK 24')
+    if not re.search(r"(?:minS|s)dkVersion:'25'", badging):
+        raise ValueError('Expected min SDK 25')
     abi = next(line for line in badging.splitlines() if line.startswith('native-code:'))
     if re.findall(r"'([^']+)'", abi) != ['arm64-v8a'] or 'CN=Android Debug' not in signing:
         raise ValueError('Expected ARM64 and debug signing')
@@ -44,7 +44,7 @@ def verify(apk, android, variant='development'):
     with apk.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     return dict(variant=variant, applicationId=identity, bytes=apk.stat().st_size, sha256=digest,
-                minSdk=24, targetSdk=36, versionCode=26, version='1.0.5', abi=['arm64-v8a'],
+                minSdk=25, targetSdk=36, versionCode=26, version='1.0.5', abi=['arm64-v8a'],
                 debuggable=variant != 'photo', debugSignatureVerified=True, internetPermission=False,
                 billingPermission=False, adIdPermission=False, mobileAdsInitProvider=False)
 

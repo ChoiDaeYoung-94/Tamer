@@ -68,7 +68,7 @@ def source_checks(root):
     checks = {
         'unityPinned': 'm_EditorVersion: 6000.3.25f1' in (root/'ProjectSettings/ProjectVersion.txt').read_text(),
         'productionIdPreserved': android_value('applicationIdentifier') == APP_ID,
-        'min24': scalar('AndroidMinSdkVersion') == '24',
+        'min25': scalar('AndroidMinSdkVersion') == '25',
         'target36': scalar('AndroidTargetSdkVersion') == '36',
         'arm64Only': scalar('AndroidTargetArchitectures') == '2',
         'il2cpp': android_value('scriptingBackend') == '1',
@@ -89,11 +89,11 @@ def validate_manifest(xml, version_code, published_max):
     manifest = ET.fromstring(xml)
     sdk, app = manifest.find('uses-sdk'), manifest.find('application')
     if (manifest.get('package') != APP_ID or manifest.get(ANDROID+'versionCode') != str(version_code)
-            or sdk is None or sdk.get(ANDROID+'minSdkVersion') != '24' or sdk.get(ANDROID+'targetSdkVersion') != '36'
+            or sdk is None or sdk.get(ANDROID+'minSdkVersion') != '25' or sdk.get(ANDROID+'targetSdkVersion') != '36'
             or app is None or app.get(ANDROID+'debuggable', 'false') != 'false'
             or app.get(ANDROID+'testOnly', 'false') != 'false'):
-        raise ValueError('Expected production package, reviewed version, min24/target36 and non-debug/non-test application')
-    return {'versionCode':version_code,'minSdk':24,'targetSdk':36,'debuggable':False,'testOnly':False}
+        raise ValueError('Expected production package, reviewed version, min25/target36 and non-debug/non-test application')
+    return {'versionCode':version_code,'minSdk':25,'targetSdk':36,'debuggable':False,'testOnly':False}
 
 
 def candidate_checks(aab, version_code, published_max, certificate, bundletool, java):
