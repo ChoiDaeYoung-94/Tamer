@@ -2,7 +2,7 @@
 
 2026-09-28 사용자가 신규 구매 없는 폐기 계정 1개와 그 계정에 한정한 짧은 시험 gate, 시험 타이틀 API 일시 허용·검토 revision 게시·삭제 요청 1회·시험 후 원복 범위를 승인했다. 이 문서는 독립 앱 준비 결과다. 새 계정 생성·앱 인증 preflight·삭제 접수·원격 설정 변경은 아직 실행하지 않았다.
 
-checkout `C:\Users\pc_17\.codex\worktrees\7299\Tamer`, 브랜치 `codex/deletion-online-followup`, 시작 HEAD/검증 기준 `ad2e89ae3ed84b6e244951f21765e133297d2949`와 미커밋 하네스·도구 6개 파일이다. 앞선 `b1085a7` 이후 차이는 문서 2개뿐이며 런타임 코드는 같다. 소스 커밋 `ebb60137aa2ccc25dbad78ac2c5b86a4ff3dc8cb`의 6개 Git blob을 빌드 전 해시와 대조했다.
+checkout `C:\Users\pc_17\.codex\worktrees\7299\Tamer`, 브랜치 `codex/deletion-online-followup`, 시작 HEAD/검증 기준 `ad2e89ae3ed84b6e244951f21765e133297d2949`와 미커밋 하네스·도구 6개 파일이다. 앞선 `b1085a7` 이후 차이는 문서 2개뿐이며 런타임 코드는 같다. 빌드 전 원시 해시가 6개 파일에 그대로 유지됐음을 확인하고, 줄바꿈을 정규화한 내용이 소스 커밋 `ebb60137aa2ccc25dbad78ac2c5b86a4ff3dc8cb`의 Git blob과 모두 일치함을 확인했다. 첫 직접 blob 해시 비교에서는 한 파일의 혼합 줄바꿈 때문에 불일치가 발생했으며 내용 변경은 없었다.
 
 Unity `6000.0.81f1`, CLI `1.0.0-beta.8`, Android min24 / target36 / ARM64, build-tools `36.0.0`를 유지했다. 복원 verified4561/copied0, 서비스 설정 제외를 확인했다. 기존 원본과 다른 프로젝트 Editor는 변경하지 않았다. 해당 checkout Editor가 없는 상태에서 시작했고 빌드 wrapper의 설정·manifest·씬 snapshot 복원 후 코드 6개 파일만 변경됨을 확인했다.
 
