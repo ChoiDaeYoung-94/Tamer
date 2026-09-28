@@ -8,6 +8,12 @@
 
 최신 격리 앱의 [소유 파일 정리와 불확실 응답의 프로세스 재시작 검증](deletion-device-followup.ko.md)은 합성 결과 대역을 사용한 로컬 기기 검증이다. 첫 빌드 메모리 부족 실패 후 프로세스 범위의 Java 제한을 적용한 두 번째 빌드가 성공했으며, 기기 두 단계는 각각 첫 실행에 통과했다. 실제 서버 삭제·제품 화면의 운영 인증·삭제 후 구매 복원 결과로 확대하지 않는다.
 
+후속 PR [#248](https://github.com/ChoiDaeYoung-94/Tamer/pull/248)의 [온라인 삭제 시험](deletion-online-followup.ko.md)은 신규 폐기 계정 1개의 실제 접수·로그아웃 안내, 소유 로컬 파일 제거와 타이틀 검색 결과 0명을 확인했다. API·내부 gate·Live 원복과 기존 오프라인 파일 8개의 해시 보존도 확인했다. 기존 APK에서 접수 후 화면 예외가 발생했고, 후속 코드 `8e1bf5c`는 Editor UI 테스트 12/12 통과로 검증했다. 수정 APK·기기 재검증, 운영 계정·삭제 후 구매 복원과 제공자 로그·백업 전체 소거는 미검증이다.
+
+PR [#247](https://github.com/ChoiDaeYoung-94/Tamer/pull/247)의 [UMP 전용 실기기 검증](ump-only-device-validation.ko.md)은 소스 `31fb40b`의 샘플 APK에서 Unknown/Declined 요청 차단, 성인 EEA 폼 거절·개인정보 옵션 재진입·선택 변경, Under13 TFUA=true 완료를 확인했다. Update 3회에는 bootstrap이 포함되며 managed 광고 초기화/load/show는 0이었다. 모든 native 트래픽 차단, 게시자 실제 메시지·지역 연령 계약·운영 광고의 검증 결과로 확대하지 않는다. 최신 main 전체 빌드나 전체 회귀를 다시 실행한 결과도 아니다.
+
+이번 상태 정리의 기준은 `a6e52139b9490a615c100b7609794216a8479734`이며 clean 격리 checkout `C:/Users/pc_17/.codex/worktrees/completion-state-refresh/Tamer`에서 문서만 변경했다. README의 기존 [Google Play 주소](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)는 2026-09-28 공개 페이지와 설치 표시를 조회했고, 그 페이지의 개인정보처리방침 링크가 [기존 GitHub README](https://github.com/ChoiDaeYoung-94/Tamer)로 연결됨을 확인했다. README 정책과 [외부 삭제 안내](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/docs/account-deletion.ko.md)도 공개 열람됐다. 링크 열람은 복구 빌드의 공개 배포·기기 설치 가능·정책 적합성·메일 처리 검증이 아니다. README 개편·다운로드·설치·메일 발송은 수행하지 않았다.
+
 광고는 AdMob 유지·Unity Ads 철회 상태이며 2026-09-28 사용자가 기존 광고 완료 후 보상과 No Ads 즉시 혜택 유지(A)를 확정했다. [광고 결정과 조기 닫기 조사](admob-product-options.ko.md)의 B안은 미채택 이력이다. 기존 No Ads 혜택과 구매·복원 보존 원칙을 유지하며, 5초 뒤 닫기를 보상 지급으로 간주하거나 앱 타이머로 지급하는 변경은 승인되지 않았다. 운영 계정의 실제 삭제·메일 처리·삭제 후 구매 복원과 광고 운영, ARM64 네이티브 16KB 실행, 후반 LTS 전환 및 최종 출시 AAB·스토어 검증은 각 후속 근거가 필요하다. [최신 실행 목록](recovery-execution-backlog.ko.md)과 [출시 사전 검사](release-preflight.ko.md)에서 완료·미검증·결정 대기를 구분한다. 이번 정리는 문서 변경이며 새 Unity 실행·테스트·APK 빌드 결과를 추가하지 않는다.
 
 ## 2026-09-21 삭제 접수 복구 후속 통합
