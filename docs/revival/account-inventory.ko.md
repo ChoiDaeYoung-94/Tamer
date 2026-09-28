@@ -25,3 +25,5 @@
 독립 리뷰에서 발견한 전환 전 몬스터 알림의 도감 오염 경로를 소스 `c87acf6c3c40af914e3804f7ec39c7354c6b6632`로 보완했다. 변경 경로의 추가 시험 `Revival_InventoryTransitionClearsTargetsAndRejectsOldCollectionCallback`만 **1/1 통과, 0.12초**, 실패·skip·재시도 0. 앞의 21건을 반복하지 않았다. 실행 직전 같은 checkout/branch에서 source가 HEAD와 일치했고 dirty는 이 결과 문서뿐이었다. `Logs/revival/account-inventory-callback-tests.json` SHA-256: `0d9e1161a8446804724c508e557a573ac4ab5d2bbfb194a7f9c2281b687c4dc5`. 별도 callback-preflight/console 기록을 보존했다. console16개 모두 Log, 해당 Editor PID23184 정상 종료·alias 복원 완료.
 
 운영 계정·외부 서버 호출·기기 시험·APK 생성은 없으며 새 APK SHA-256은 없다. 실제 제품 계정 전환 UI·장시간 gameplay·Android 파일시스템/IL2CPP 동작은 이번 검증에 포함되지 않는다. 기존 서버 저장과 구매 거래 전체의 원자성을 새로 보장하는 변경도 아니다.
+
+2026-09-28 후속 [원본 Player와 Android 재시작 복원](inventory-restore-device.ko.md)에서 격리 합성 계정의 보유 아이템·장비 슬롯·실제 모델/능력치 및 별도 프로세스 복원을 확인했다. 위 Editor 시험의 시점·소스·범위는 그대로이며 실제 상점 구매/Gold 차감·비어 있지 않은 도감·실제 인증/클라우드 통합까지 확인한 것은 아니다.
