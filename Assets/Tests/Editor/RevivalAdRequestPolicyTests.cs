@@ -7,6 +7,41 @@ public class RevivalAdRequestPolicyTests
     public void Revival_ProductionAdvertisingRemainsDisabled()
     {
         Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.False);
+        for (int flags = 0; flags < 32; flags++)
+            Assert.That(AdRequestPolicy.CanRequestProductionAds((flags & 1) != 0,
+                (flags & 2) != 0, (flags & 4) != 0, (flags & 8) != 0, (flags & 16) != 0), Is.False);
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("ca-app-pub-3940256099942544/5224354917")]
+    [TestCase("ca-app-pub-3940256099942544/9999999999")]
+    [TestCase(" ca-app-pub-0123456789012345/0123456789")]
+    [TestCase("ca-app-pub-0123456789012345~0123456789")]
+    public void Revival_ProductionInventoryRejectsMissingInvalidAndSampleUnits(string configured)
+    {
+        Assert.That(AdRequestPolicy.TrySelectRewardedAdUnit(false, true, false, configured, out var unit), Is.False);
+        Assert.That(unit, Is.Null);
+    }
+
+    [Test]
+    public void Revival_TestInventoryNeverUsesConfiguredProductionUnit()
+    {
+        const string syntheticUnit = "ca-app-pub-0123456789012345/0123456789";
+        Assert.That(AdRequestPolicy.TrySelectRewardedAdUnit(true, false, false, syntheticUnit, out var unit), Is.True);
+        Assert.That(unit, Is.EqualTo(AdRequestPolicy.TestRewardedAdUnit(false)));
+        Assert.That(AdRequestPolicy.TrySelectRewardedAdUnit(false, true, false, syntheticUnit, out unit), Is.True);
+        Assert.That(unit, Is.EqualTo(syntheticUnit));
+        Assert.That(AdRequestPolicy.TrySelectRewardedAdUnit(false, true, true, syntheticUnit, out unit), Is.False);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_AmbiguousOrBlockedInventoryHasNoUnit(bool bothAllowed)
+    {
+        Assert.That(AdRequestPolicy.TrySelectRewardedAdUnit(bothAllowed, bothAllowed, false,
+            "ca-app-pub-0123456789012345/0123456789", out var unit), Is.False);
+        Assert.That(unit, Is.Null);
     }
 
     [TestCase(true, false)]
