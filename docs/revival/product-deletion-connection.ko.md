@@ -1,5 +1,9 @@
 # 제품 계정 삭제 화면 연결 및 검증
 
+2026-09-28 현재 상태 대조: 아래 내용은 PR #222의 제품 화면 연결 및 당시 검증 기록이다. 이후 PR #235에서 소유·형식이 확인된 로컬 구매 권한 사본을 정리하고 신규 보관 사본 생성을 중단했으며, PR #238에서 운영 CloudScript 배포·설정 재조회 상태를 기록했다. 최신 연결 상태는 [CloudScript 삭제 연결](cloudscript-deletion.ko.md), [운영 연결 검증](cloudscript-operating-activation.ko.md), [로컬 보관 사본 정리](deletion-no-archive.ko.md)를 따른다. 아래의 운영 미적용·No Ads 권한 증거 보존·#220 잔여 작업 표현은 당시 이력이며 현재 상태를 대신하지 않는다. 삭제 접수와 전체 소거 완료는 계속 구분하고, 삭제 후 새 계정의 실제 구매 복원과 기기·스토어 검증은 이 기록으로 보증하지 않는다.
+
+## PR #222 당시 구현 및 검증 이력
+
 - 작업 checkout: `C:\Users\pc_17\.codex\worktrees\product-deletion-connection\Tamer`
 - 작업 브랜치: `codex/product-deletion-connection`
 - 검증 시작 시 HEAD/대상 기준 커밋: `8b8d211c25527e2fa872aa1e1cffc264771186d8` (`origin/main`에서 fast-forward)
