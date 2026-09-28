@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,6 +15,7 @@ MANIFEST = ROOT / 'docs/revival/assets-manifest.json'
 ROOTS = ('Assets/ThirdParty', 'Assets/ThirdPartyAssets', 'Assets/Tests')
 SETTINGS = 'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset'
 PRIVATE_CONFIG_NAMES = {'PlayFabSharedSettings.asset', 'PlayFabEditorPrefsSO.asset'}
+SDK_META_MIGRATIONS = ROOT / 'docs/revival/sdk-meta-migrations.json'
 
 
 def digest(path):
@@ -25,6 +27,45 @@ def contained(root, relative):
     if not path.is_relative_to(root.resolve()):
         raise ValueError('Path escapes project: ' + relative)
     return path
+
+
+def reviewed_sdk_meta(entry, dest):
+    """Accept only an explicit migration with unchanged GUID and clean Git provenance."""
+    if entry['disposition'] != 'git-sdk' or dest.suffix != '.meta':
+        return False
+    if not SDK_META_MIGRATIONS.is_file():
+        return False
+    ledger = json.loads(SDK_META_MIGRATIONS.read_text(encoding='utf-8'))
+    if ledger.get('schema') != 1:
+        raise ValueError('Unsupported SDK meta migration ledger')
+    records = ledger['entries']
+    if len({row['path'] for row in records}) != len(records):
+        raise ValueError('Duplicate SDK meta migration path')
+    row = next((row for row in records if row['path'] == entry['path']), None)
+    if row is None or row['old'] != {key: entry.get(key) for key in ('sha256', 'bytes', 'guid')}:
+        return False
+    data = dest.read_bytes()
+    guid = re.search(r'^guid: ([0-9a-f]{32})$', data.decode('utf-8-sig'), re.M)
+    if not guid or guid[1] != entry.get('guid') or row['new'] != {
+            'sha256': hashlib.sha256(data).hexdigest(), 'bytes': len(data), 'guid': guid[1]}:
+        return False
+    commit = row['migrationCommit']
+    if not re.fullmatch(r'[0-9a-f]{40}', commit):
+        return False
+    try:
+        # Index/HEAD equality rejects staged edits; raw byte equality rejects dirty,
+        # untracked and unresolved paths. Never bless arbitrary current Git content.
+        def blob(revision):
+            return subprocess.check_output(['git', '-C', str(ROOT), 'show', revision],
+                                           stderr=subprocess.PIPE)
+        if blob('HEAD:' + entry['path']) != data or blob(':' + entry['path']) != data:
+            return False
+        if blob(commit + ':' + entry['path']) != data:
+            return False
+        return subprocess.run(['git', '-C', str(ROOT), 'merge-base', '--is-ancestor', commit, 'HEAD'],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode == 0
+    except (OSError, subprocess.CalledProcessError):
+        return False
 
 
 def inventory(source):
@@ -59,7 +100,7 @@ def inventory(source):
 
 def restore(source, verify=False):
     entries = json.loads(MANIFEST.read_text(encoding='utf-8'))['entries']
-    copied = checked = 0
+    copied = checked = migrations = 0
     # Validate all sources and existing destinations before the first copy.
     pending = []
     for entry in entries:
@@ -74,7 +115,9 @@ def restore(source, verify=False):
         dest = contained(ROOT, relative)
         if dest.is_file():
             if digest(dest) != entry['sha256']:
-                raise ValueError('Existing file differs; preserving it: ' + relative)
+                if not reviewed_sdk_meta(entry, dest):
+                    raise ValueError('Existing file differs; preserving it: ' + relative)
+                migrations += 1
             checked += 1
             continue
         if verify:
@@ -93,7 +136,8 @@ def restore(source, verify=False):
         if digest(dest) != expected:
             raise ValueError('Copy hash mismatch: ' + str(dest))
         copied += 1
-    print(json.dumps(dict(verified=checked, copied=copied, serviceSettings='excluded')))
+    print(json.dumps(dict(verified=checked, copied=copied, serviceSettings='excluded',
+                          sdkMetaMigrations=migrations)))
 
 
 if __name__ == '__main__':
