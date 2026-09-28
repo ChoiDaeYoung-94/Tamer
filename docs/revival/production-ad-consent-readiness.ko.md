@@ -116,6 +116,27 @@ tracked 설정 3개만 private patch 보존 후 복원했다. 다른 프로젝�
 슬롯을 반환했다. 통과한 117건은 재실행하지 않는다. SDK checkout의 별도 복원 실패와
 광고 fixture의 assertion 실패를 같은 원인으로 표시하지 않는다.
 
-미검증: 수정한 실패 1건의 Unity 재검증, IL2CPP 실행, 실제 게시자 메시지·지역 법적 연령 계약,
+### 승인된 복원 검사와 실패 1건의 2차 결과
+
+PR #262 병합 `b963e366ceabbbd4a94a2a0ae52e08f9a5455bff`를 반영한 실제 시험 source는
+`b8714014ab7631aeebf1f081f6e7caa6d21231f5`다. 이 checkout 전용 비공개 승인 기록과
+원본/현재 메타 보존 자료를 독립 검토한 후, 명시 배정된 현재 상태 복원 검사를 **1회**
+실행했다. 결과는 **verified4561 / copied0 / SDK 메타 예외7 / 비공개 메타 예외1**이다.
+원본 및 현재 메타를 덮어쓰지 않았고 공개 manifest도 변경하지 않았다. SDK checkout의
+승인된 3차 실행과 이 checkout의 필수 검사 1회를 구분한다.
+
+SDK 미니맵 작업 종료와 Editor·기기 슬롯 반환 후 같은 Unity/CLI/Android 기준에서
+`Revival_EditorSelectionIgnoresConfiguredProductionInventoryWithoutStartingSdk` **1건만 2차 실행**했다.
+실제 XML은 **1 PASS / 0 FAIL / skip0**, UTC 2026-09-28 08:44:50이며 CLI 종료값은 0이다.
+앞선 통과 117건은 재실행하지 않았다. 두 결과를 한 번의 118건 전부 통과로 표시하지 않는다.
+대화형 Editor 분기의 실제 실행은 이 batch 결과로 대신하지 않는다.
+
+XML은 `Logs/revival/ad-production-lts-single-20260928.xml`, SHA-256
+`b7c8e507f5c703b2bbff4fcddf2ab7020c17dad774da7f80ec005c383548bbc4`다.
+자체 Editor 종료/ProjectSettings 복원을 확인했고 own import가 만든 tracked 설정 2개만
+private patch 보존 후 복원했다. 비공개 현재 메타/GUID와 원본/PSD 본문 일치 근거를 유지했다.
+추가 복원·테스트·APK 실행은 하지 않았다.
+
+미검증: 대화형 Editor 분기, IL2CPP 실행, 실제 게시자 메시지·지역 법적 연령 계약,
 운영 설정 주입/요청·동의 후 재시작, 네이티브 전체 트래픽, 최종 출시 AAB/스토어.
 새 APK SHA-256은 해당 없음이다. 이후 검증은 실제 source head와 슬롯 결과를 별도 기록한다.
