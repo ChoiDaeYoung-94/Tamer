@@ -1,6 +1,6 @@
 param(
     [string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path,
-    [string]$EditorPath = 'C:\Program Files\Unity\Hub\Editor\6000.0.81f1\Editor\Unity.exe',
+    [string]$EditorPath = 'C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe',
     [switch]$TestsOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -24,7 +24,7 @@ try {
     if (!(Test-Path -LiteralPath $cli)) { throw 'Run python tools/revival/install_cli.py first.' }
     # Unity can clear the signing alias before the C# build entry point runs.
     $settingsSnapshot = Save-RevivalProjectSettings -ProjectPath $ProjectPath
-    & $cli test $ProjectPath --editor-version 6000.0.81f1 --mode EditMode --filter Revival --timeout 1200 --output "$logDir\editmode.xml" -- -buildTarget Android -logFile "$logDir\editmode.log"
+    & $cli test $ProjectPath --editor-version 6000.3.25f1 --mode EditMode --filter Revival --timeout 1200 --output "$logDir\editmode.xml" -- -buildTarget Android -logFile "$logDir\editmode.log"
     if ($LASTEXITCODE -ne 0) { throw "Unity tests failed or produced no verdict (exit $LASTEXITCODE)." }
     if (!$TestsOnly) {
         & $cli build $ProjectPath --editor-path $EditorPath --target Android --execute-method RevivalBuild.BuildAndroidDevelopment --log-file "$logDir\android-build.log" --no-tail --non-interactive

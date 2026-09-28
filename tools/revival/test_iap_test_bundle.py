@@ -11,7 +11,7 @@ from test_verify_native_alignment import elf_fixture
 from verify_iap_test_bundle import validate_manifest
 
 class IapBundleManifestTests(unittest.TestCase):
-    xml = """<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.AeDeong.MonsterTamer.iaptest"><uses-sdk android:minSdkVersion="24" android:targetSdkVersion="36"/><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="com.android.vending.BILLING"/><application android:debuggable="false"/></manifest>"""
+    xml = """<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.AeDeong.MonsterTamer.iaptest"><uses-sdk android:minSdkVersion="25" android:targetSdkVersion="36"/><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="com.android.vending.BILLING"/><application android:debuggable="false"/></manifest>"""
     def test_isolated_release_manifest_is_accepted(self):
         self.assertIn("com.android.vending.BILLING", validate_manifest(self.xml))
     def test_operational_package_is_rejected(self):

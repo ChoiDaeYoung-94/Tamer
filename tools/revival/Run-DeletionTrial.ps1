@@ -26,7 +26,7 @@ $receiptSettings | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $receiptEvid
 Push-Location $ProjectPath
 try {
     $trialMethod = if ($Online) { 'RevivalDeletionTrialBuild.BuildOnlineAndroid' } else { 'RevivalDeletionTrialBuild.BuildAndroid' }
-    & tools/.local/unity-cli/1.0.0-beta.8/unity.exe build $ProjectPath --editor-version 6000.0.81f1 --target Android `
+    & tools/.local/unity-cli/1.0.0-beta.8/unity.exe build $ProjectPath --editor-version 6000.3.25f1 --target Android `
         --execute-method $trialMethod --log-file (Join-Path $receiptEvidence 'deletion-trial-build.log') --no-tail --non-interactive
     if ($LASTEXITCODE -ne 0) { throw "Deletion trial harness build failed: $LASTEXITCODE" }
     if ($Online) { python tools/revival/verify_deletion_trial_apk.py --online }

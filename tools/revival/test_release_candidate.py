@@ -11,7 +11,7 @@ from test_verify_native_alignment import elf_fixture
 
 
 class ReleaseCandidateTests(unittest.TestCase):
-    manifest='''<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.AeDeong.MonsterTamer" android:versionCode="27"><uses-sdk android:minSdkVersion="24" android:targetSdkVersion="36"/><application/></manifest>'''
+    manifest='''<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.AeDeong.MonsterTamer" android:versionCode="27"><uses-sdk android:minSdkVersion="25" android:targetSdkVersion="36"/><application/></manifest>'''
 
     def test_reviewed_candidate_manifest(self):
         self.assertEqual(validate_manifest(self.manifest,27,26)['versionCode'],27)
@@ -19,7 +19,7 @@ class ReleaseCandidateTests(unittest.TestCase):
     def test_wrong_identity_debug_test_or_sdk_is_rejected(self):
         for old,new in [('MonsterTamer"','MonsterTamer.revival"'),('<application/>','<application android:debuggable="true"/>'),
                         ('<application/>','<application android:testOnly="true"/>'),('targetSdkVersion="36"','targetSdkVersion="35"'),
-                        ('minSdkVersion="24"','minSdkVersion="23"'),('versionCode="27"','versionCode="28"'),('<application/>','')]:
+                        ('minSdkVersion="25"','minSdkVersion="23"'),('versionCode="27"','versionCode="28"'),('<application/>','')]:
             with self.subTest(new=new), self.assertRaises(ValueError):
                 validate_manifest(self.manifest.replace(old,new),27,26)
 
@@ -36,7 +36,7 @@ class ReleaseCandidateTests(unittest.TestCase):
             settings=root/'ProjectSettings/ProjectSettings.asset'
             settings.write_text('''  applicationIdentifier:
     Android: com.AeDeong.MonsterTamer
-  AndroidMinSdkVersion: 24
+  AndroidMinSdkVersion: 25
   AndroidTargetSdkVersion: 36
   AndroidTargetArchitectures: 2
   AndroidBundleVersionCode: 26
@@ -45,7 +45,7 @@ class ReleaseCandidateTests(unittest.TestCase):
   scriptingDefineSymbols:
     Android: DOTWEEN
 ''')
-            (root/'ProjectSettings/ProjectVersion.txt').write_text('m_EditorVersion: 6000.0.81f1')
+            (root/'ProjectSettings/ProjectVersion.txt').write_text('m_EditorVersion: 6000.3.25f1')
             scenes=root/'ProjectSettings/EditorBuildSettings.asset'
             scenes.write_text('  - enabled: 1\n    path: Assets/Scenes/Login.unity\n')
             (root/'Assets/Resources/IAPProductCatalog.json').write_text(json.dumps({'enableCodelessAutoInitialization':False,'enableUnityGamingServicesAutoInitialization':False}))

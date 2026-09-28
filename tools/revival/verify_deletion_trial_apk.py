@@ -20,8 +20,8 @@ def verify(apk, android, application_id='com.AeDeong.MonsterTamer.deletiontrial'
     for required in ("name='" + application_id + "'", "versionCode='26'", "versionName='1.0.5'",
                      "targetSdkVersion:'36'", 'application-debuggable', "native-code: 'arm64-v8a'"):
         if required not in badging: raise ValueError('Isolated deletion trial metadata mismatch')
-    if not re.search(r"(?:minS|s)dkVersion:'24'", badging) or 'CN=Android Debug' not in signing:
-        raise ValueError('Expected min24 and debug signing')
+    if not re.search(r"(?:minS|s)dkVersion:'25'", badging) or 'CN=Android Debug' not in signing:
+        raise ValueError('Expected min25 and debug signing')
     for required in ('android.permission.INTERNET','android.permission.ACCESS_NETWORK_STATE'):
         if required not in manifest: raise ValueError('Network permission missing')
     for forbidden in ('com.android.vending.BILLING','com.google.android.gms.permission.AD_ID',
@@ -46,6 +46,6 @@ if __name__ == '__main__':
     name = 'deletion-online-trial' if args.online else 'deletion-trial'
     identity = 'com.AeDeong.MonsterTamer.deletiontrial' + ('.online' if args.online else '')
     result=verify(root/('Build/revival/Tamer-' + name + '.apk'),Path(
-        'C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer'),identity)
+        'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer'),identity)
     (root/('Logs/revival/' + name + '-apk-verification.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result))

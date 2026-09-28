@@ -8,7 +8,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-JDK = Path('C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin')
+JDK = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin')
 VERIFIER = Path(__file__).with_name('VerifyAabSignature.java')
 
 

@@ -20,7 +20,7 @@ def validate_manifest(xml):
     app, sdk = root.find("application"), root.find("uses-sdk")
     if root.get("package") != "com.AeDeong.MonsterTamer.iaptest" or app is None or sdk is None:
         raise ValueError("Dedicated IAP test application required")
-    if app.get(ANDROID + "testOnly", "false") != "false" or app.get(ANDROID + "debuggable", "false") != "false" or sdk.get(ANDROID + "targetSdkVersion") != "36" or sdk.get(ANDROID + "minSdkVersion") != "24":
+    if app.get(ANDROID + "testOnly", "false") != "false" or app.get(ANDROID + "debuggable", "false") != "false" or sdk.get(ANDROID + "targetSdkVersion") != "36" or sdk.get(ANDROID + "minSdkVersion") != "25":
         raise ValueError("Non-debug target36 test bundle required")
     permissions = {p.get(ANDROID + "name") for p in root.findall("uses-permission")}
     if not {"android.permission.INTERNET", "com.android.vending.BILLING"} <= permissions:
@@ -36,7 +36,7 @@ def main():
         raise ValueError("Pinned bundletool changed")
     aab = ROOT / "Build/revival/Tamer-iap-test.aab"
     cert = ROOT / ".revival-local/iap-signing/test-upload.der"
-    java = Path("C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe")
+    java = Path("C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe")
     def run(*args):
         return subprocess.check_output([str(java), *map(str,args)], text=True, encoding="utf-8", stderr=subprocess.PIPE)
     run("-jar", DEST, "validate", "--bundle=" + str(aab))
@@ -51,7 +51,7 @@ def main():
     if abis != ["arm64-v8a"]:
         raise ValueError("ARM64 only required")
     result = dict(sha256=digest(aab), bytes=aab.stat().st_size, applicationId="com.AeDeong.MonsterTamer.iaptest",
-                  debuggable=False, minSdk=24, targetSdk=36, abi=abis, bundletool=VERSION, dedicatedTestSignatureVerified=True,
+                  debuggable=False, minSdk=25, targetSdk=36, abi=abis, bundletool=VERSION, dedicatedTestSignatureVerified=True,
                   verifiedPayloadEntries=verified["verifiedPayloadEntries"], internetPermission=True, billingPermission=True,
                   gmsAdIdPermission=False, mobileAdsInitProvider=False,
                   adServicesPermissionsRemain=any("ACCESS_ADSERVICES" in p for p in permissions), uploaded=False,

@@ -20,8 +20,8 @@ def verify(apk: Path, android_player: Path, variant: str) -> dict:
     for expected in [f"name='{identity}'", "versionCode='26'", "versionName='1.0.5'", "targetSdkVersion:'36'"]:
         if expected not in badging:
             raise ValueError('Harness metadata mismatch: ' + expected)
-    if not re.search(r"(?:minS|s)dkVersion:'24'", badging):
-        raise ValueError('Harness minSdk must be 24')
+    if not re.search(r"(?:minS|s)dkVersion:'25'", badging):
+        raise ValueError('Harness minSdk must be 25')
     abi = next(line for line in badging.splitlines() if line.startswith('native-code:'))
     if re.findall(r"'([^']+)'", abi) != ['arm64-v8a']:
         raise ValueError('Harness must remain ARM64 only')
@@ -38,7 +38,7 @@ def verify(apk: Path, android_player: Path, variant: str) -> dict:
     with apk.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     return dict(variant=variant, bytes=apk.stat().st_size, sha256=digest, applicationId=identity,
-                minSdk=24, targetSdk=36, versionCode=26, version='1.0.5', abi=['arm64-v8a'],
+                minSdk=25, targetSdk=36, versionCode=26, version='1.0.5', abi=['arm64-v8a'],
                 debuggable=variant == 'sample', debugSignatureVerified=True, sampleAppIdVerified=True,
                 mobileAdsInitProviderPresent='com.google.android.gms.ads.MobileAdsInitProvider' in manifest,
                 adIdPermissionPresent='com.google.android.gms.permission.AD_ID' in manifest)
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--variant', choices=['sample', 'control'], required=True)
     parser.add_argument('--android-player', type=Path, default=Path(
-        'C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
+        'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     result = verify(root / f'Build/revival/Tamer-ads-{args.variant}.apk', args.android_player, args.variant)

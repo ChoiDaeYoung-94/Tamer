@@ -30,7 +30,7 @@ try {
     $adHarnessCli = Join-Path $ProjectPath 'tools/.local/unity-cli/1.0.0-beta.8/unity.exe'
     $adHarnessLog = Join-Path $ProjectPath "Logs/revival/ads-$Variant-build.log"
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $adHarnessLog) | Out-Null
-    & $adHarnessCli build $ProjectPath --editor-version 6000.0.81f1 --target Android --execute-method $adHarnessMethod --log-file $adHarnessLog --no-tail --non-interactive
+    & $adHarnessCli build $ProjectPath --editor-version 6000.3.25f1 --target Android --execute-method $adHarnessMethod --log-file $adHarnessLog --no-tail --non-interactive
     if ($LASTEXITCODE -ne 0) { throw "Harness build failed (exit $LASTEXITCODE)." }
     python tools/revival/verify_ad_harness.py --variant $Variant
     if ($LASTEXITCODE -ne 0) { throw 'Harness APK identity/signature verification failed.' }

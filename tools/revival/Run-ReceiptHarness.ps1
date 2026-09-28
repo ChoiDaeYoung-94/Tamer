@@ -25,7 +25,7 @@ New-Item -ItemType Directory -Force -Path $receiptEvidence | Out-Null
 $receiptSettings | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $receiptEvidence 'receipt-build-settings.json')
 Push-Location $ProjectPath
 try {
-    & tools/.local/unity-cli/1.0.0-beta.8/unity.exe build $ProjectPath --editor-version 6000.0.81f1 --target Android `
+    & tools/.local/unity-cli/1.0.0-beta.8/unity.exe build $ProjectPath --editor-version 6000.3.25f1 --target Android `
         --execute-method RevivalDeletionReceiptBuild.BuildAndroid --log-file (Join-Path $receiptEvidence 'receipt-build.log') --no-tail --non-interactive
     if ($LASTEXITCODE -ne 0) { throw "Receipt harness build failed: $LASTEXITCODE" }
     python tools/revival/verify_gameplay_harness.py --variant receipt
