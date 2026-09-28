@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using AD;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -241,6 +242,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
+#if TAMER_INVENTORY_RESTORE
+        VerifyInventoryRestore();
+        yield break;
+#endif
 #if TAMER_PLAYER_RESTORE
         VerifyPlayerRestore();
         yield break; // Keep the original Main scene available; no combat or automatic round trip.
@@ -262,6 +267,48 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         Player.Instance != null && Player.Instance.gameObject.activeInHierarchy &&
         CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
         CanTransitionPlayer();
+
+#if TAMER_INVENTORY_RESTORE
+    private void VerifyInventoryRestore()
+    {
+        try
+        {
+            var data = Managers.DataM;
+            var shop = ShopMan.Instance;
+            var player = Player.Instance;
+            var before = data.ReadInventory();
+            bool firstProcess = before.OwnedItems.Count == 0;
+            if (firstProcess)
+            {
+                if (before.Collection.Count != 0 || before.Equipped.Values.Any(value => value != null))
+                    throw new InvalidOperationException("Unexpected existing inventory; preserve and stop.");
+                // Exercise the real durable ownership and equipment paths, without purchasing or changing Gold.
+                shop.SaveItem("SimpleSword");
+                Managers.EquipmentM.Equip("SimpleSword");
+                shop.SaveItem("MasterSword");
+                Managers.EquipmentM.Equip("MasterSword");
+                shop.SaveItem("SimpleShield");
+                Managers.EquipmentM.Equip("SimpleShield");
+            }
+            var saved = data.ReadInventory();
+            var owned = new[] { "SimpleSword", "MasterSword", "SimpleShield" };
+            if (saved.Owner != RevivalGameplayIsolation.AccountId || saved.Collection.Count != 0 ||
+                saved.OwnedItems.Count != 3 || owned.Any(item => !saved.OwnedItems.Contains(item) || !shop.CurrentItemsList.Contains(item)) ||
+                shop.CurrentItemsList.Count != 3 || saved.Equipped["Sword"] != "MasterSword" ||
+                saved.Equipped["Shield"] != "SimpleShield" || player.PlayerEquippedItems.Count != 2 ||
+                !player.PlayerEquippedItems.Contains("MasterSword") || !player.PlayerEquippedItems.Contains("SimpleShield") ||
+                player.SimpleSword.activeSelf || !player.MasterSword.activeSelf || !player.Simpleshield.activeSelf ||
+                player.Mastershield.activeSelf || player.Gold != 1000 || !Mathf.Approximately(player.Hp, 150) ||
+                !Mathf.Approximately(player.Power, 60) || !Mathf.Approximately(player.AttackSpeed, 1.5f) ||
+                !Mathf.Approximately(player.MoveSpeed, 3) || _errors != 0 || Managers.GoogleAdMobM.CanRequestAds ||
+                Managers.IAPM.Status != IAPStatus.Unavailable)
+                throw new InvalidOperationException("Inventory/player/model/stats/service mismatch.");
+            Mark("INVENTORY_RESTORE_PASS phase=" + (firstProcess ? "write" : "restart") +
+                " owned=3 equipped=MasterSword,SimpleShield collection=empty gold=1000 hp=150 power=60 attack=1.5 move=3 errors=0");
+        }
+        catch (Exception error) { Mark("INVENTORY_RESTORE_FAIL " + error.Message); }
+    }
+#endif
 
 #if TAMER_PLAYER_RESTORE
     private void VerifyPlayerRestore()
@@ -366,7 +413,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
         GUILayout.Label(_status + " | errors=" + _errors);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
-#if TAMER_PLAYER_RESTORE
+#if TAMER_PLAYER_RESTORE || TAMER_INVENTORY_RESTORE
         GUILayout.Label("Restore inspection only — no automatic round trip; preserve this app and its evidence");
         GUILayout.EndArea();
         return;
