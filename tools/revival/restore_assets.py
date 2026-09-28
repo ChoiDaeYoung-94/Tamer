@@ -98,9 +98,69 @@ def inventory(source):
         entries=entries), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
-def restore(source, verify=False):
+def load_private_meta_approval(path, source, entries):
+    """Explicit local approval for exactly one preserved private importer migration."""
+    path = Path(path).resolve()
+    private_root = (ROOT / 'Logs/revival').resolve()
+    if not path.is_relative_to(private_root):
+        raise ValueError('Private approval must stay in ignored local Logs/revival')
+    relative = path.relative_to(ROOT.resolve()).as_posix()
+    tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '--', relative])
+    ignored = subprocess.run(['git', '-C', str(ROOT), 'check-ignore', '-q', '--', relative],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if tracked or ignored.returncode != 0:
+        raise ValueError('Private approval must be untracked and ignored')
+    approval = json.loads(path.read_text(encoding='utf-8-sig'))
+    if approval.get('schema') != 1 or approval.get('approval') != 'explicit-user-one-private-meta-migration':
+        raise ValueError('Invalid explicit private approval')
+    if Path(approval['checkout']).resolve() != ROOT.resolve() or Path(approval['source']).resolve() != source.resolve():
+        raise ValueError('Private approval checkout/source mismatch')
+    unity = json.loads((ROOT / 'tools/revival/toolchain.json').read_text(encoding='utf-8'))['unityEditor']
+    editor = re.search(r'^m_EditorVersion: (.+)$',
+                       (ROOT / 'ProjectSettings/ProjectVersion.txt').read_text(encoding='utf-8'), re.M)
+    if not editor or approval.get('unity') != unity or editor[1].strip() != unity:
+        raise ValueError('Private approval Unity version mismatch')
+    rows = approval.get('entries', [])
+    if len(rows) != 1:
+        raise ValueError('Private approval requires exactly one meta')
+    row = rows[0]
+    entry = next((entry for entry in entries if entry['path'] == row['path']), None)
+    if not entry or entry['disposition'] != 'private-restore' or not row['path'].endswith('.meta'):
+        raise ValueError('Private approval must name a manifest private meta')
+    def meta_info(file):
+        data = file.read_bytes()
+        guid = re.search(r'^guid: ([0-9a-f]{32})$', data.decode('utf-8-sig'), re.M)
+        return dict(sha256=hashlib.sha256(data).hexdigest(), bytes=len(data), guid=guid[1] if guid else None)
+    original = contained(source, row['path'])
+    current = contained(ROOT, row['path'])
+    old = {key: entry.get(key) for key in ('sha256', 'bytes', 'guid')}
+    if row.get('old') != old or meta_info(original) != old or meta_info(current) != row.get('new'):
+        raise ValueError('Private approval old/new meta bytes mismatch')
+    if row['new']['guid'] != old['guid'] or not old['guid'] or row['new']['sha256'] == old['sha256']:
+        raise ValueError('Private approval GUID or migration mismatch')
+    for label, expected in [('preservedOriginal', old), ('preservedCurrent', row['new'])]:
+        backup = contained(ROOT, row[label])
+        if not backup.is_relative_to(private_root) or meta_info(backup) != expected:
+            raise ValueError('Private approval preserved evidence mismatch')
+    asset_path = row['path'][:-5]
+    asset = next((entry for entry in entries if entry['path'] == asset_path), None)
+    if not asset or asset['disposition'] != 'private-restore':
+        raise ValueError('Private approval asset provenance missing')
+    expected_asset = {key: asset[key] for key in ('sha256', 'bytes')}
+    if row.get('asset') != expected_asset:
+        raise ValueError('Private approval asset manifest mismatch')
+    for root in (ROOT, source):
+        file = contained(root, asset_path)
+        if digest(file) != asset['sha256'] or file.stat().st_size != asset['bytes']:
+            raise ValueError('Private approval asset contents mismatch')
+    return row
+
+
+def restore(source, verify=False, private_meta_approval=None):
     entries = json.loads(MANIFEST.read_text(encoding='utf-8'))['entries']
-    copied = checked = migrations = 0
+    approved_private = (load_private_meta_approval(private_meta_approval, source, entries)
+                        if private_meta_approval is not None else None)
+    copied = checked = migrations = private_migrations = 0
     # Validate all sources and existing destinations before the first copy.
     pending = []
     for entry in entries:
@@ -115,9 +175,14 @@ def restore(source, verify=False):
         dest = contained(ROOT, relative)
         if dest.is_file():
             if digest(dest) != entry['sha256']:
-                if not reviewed_sdk_meta(entry, dest):
+                if (approved_private and relative == approved_private['path'] and
+                        digest(dest) == approved_private['new']['sha256'] and
+                        dest.stat().st_size == approved_private['new']['bytes']):
+                    private_migrations += 1
+                elif reviewed_sdk_meta(entry, dest):
+                    migrations += 1
+                else:
                     raise ValueError('Existing file differs; preserving it: ' + relative)
-                migrations += 1
             checked += 1
             continue
         if verify:
@@ -137,7 +202,7 @@ def restore(source, verify=False):
             raise ValueError('Copy hash mismatch: ' + str(dest))
         copied += 1
     print(json.dumps(dict(verified=checked, copied=copied, serviceSettings='excluded',
-                          sdkMetaMigrations=migrations)))
+                          sdkMetaMigrations=migrations, privateMetaMigrations=private_migrations)))
 
 
 if __name__ == '__main__':
@@ -145,11 +210,15 @@ if __name__ == '__main__':
     parser.add_argument('--source', type=Path)
     parser.add_argument('--inventory', action='store_true')
     parser.add_argument('--verify', action='store_true')
+    parser.add_argument('--private-meta-approval', type=Path,
+                        help='Explicit ignored local ledger for one approved private meta migration')
     args = parser.parse_args()
+    if args.private_meta_approval and (not args.source or args.inventory):
+        parser.error('Private approval requires --source and cannot regenerate inventory')
     if (args.inventory or not args.verify) and not args.source:
         parser.error('--source is required to restore or inventory')
     if args.source and args.source.resolve() == ROOT:
         parser.error('Source must be a separate original/archive directory')
     if args.inventory:
         inventory(args.source.resolve())
-    restore(args.source.resolve() if args.source else ROOT, args.verify)
+    restore(args.source.resolve() if args.source else ROOT, args.verify, args.private_meta_approval)
