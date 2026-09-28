@@ -35,7 +35,7 @@ Editor가 URP/Core/ShaderGraph `17.0.4→17.3.0`, SpriteShape `10.1.1→13.0.0`,
 
 두 번째 APK 빌드는 source `fc176d630837d1931985bbfd2a68af746ec19592`에서 성공했습니다. 빌드 전 dirty 항목은 문서였으며 빌드 중 Editor가 DefaultVolumeProfile의 기본 URP Volume 컴포넌트와 URP global runtime 설정 참조를 추가 직렬화했습니다. 이 자동 결과도 후속 커밋에 보존했습니다. Editor 종료 후 서식만 정리했으며 이 기록 커밋을 빌드 직전 source로 표현하지 않습니다.
 
-APK는 `Build/revival/Tamer-development.apk`, 110,897,768바이트, SHA-256 `9f7cd0be899f436daea7d045e59e3950756d25a3a8936ca3ebe02c0cf516b068`입니다. 실제 manifest min25/target36/ARM64 전용·별도 앱 ID·debug 서명·version1.0.5/code26 검사에 통과했습니다. 네이티브 6개 라이브러리의 기본 LOAD/ZIP 검사도 통과했습니다(6개 모두 압축 저장). 추가 strict RELRO 조건 1회는 `libc++_shared.so`, `libil2cpp.so`, `libmain.so`, `libswappywrapper.so`의 끝주소 modulo16384 조건 4개 실패이며 재실행하지 않았습니다. 기본 성공과 추가 실패를 구분합니다.
+APK는 `Build/revival/Tamer-development.apk`, 110,897,768바이트, SHA-256 `9f7cd0be899f436daea7d045e59e3950756d25a3a8936ca3ebe02c0cf516b068`입니다. 실제 manifest min25/target36/ARM64 전용·별도 앱 ID·debug 서명·version1.0.5/code26 검사에 통과했습니다. 네이티브 6개 라이브러리의 기본 LOAD/ZIP 검사도 통과했습니다. 6개 `.so` 모두 압축 저장되어 ZIP mmap offset 정렬 검사 대상은 없었으며, 이 결과를 비압축 라이브러리의 ZIP offset 검증으로 표현하지 않습니다. 추가 strict RELRO 조건 1회는 `libc++_shared.so`, `libil2cpp.so`, `libmain.so`, `libswappywrapper.so`의 끝주소 modulo16384 조건 4개 실패이며 재실행하지 않았습니다. 기본 성공과 추가 실패를 구분합니다.
 
 Android13/API33·ARM64·PAGE_SIZE4096 물리 기기에 격리 debug 앱만 새 설치하여 30초 실행했습니다. Unity/IL2CPP native mapping·전면 실행·Unity 시작 로그를 확인했고 native translation 및 fatal signal은 없었습니다. 스크린샷에서 회색 큐브·하늘이 보이며 검은 화면이나 magenta는 없었습니다. 새로 설치한 격리 앱만 삭제 완료했습니다. 기존 앱·운영 계정·저장·광고·구매·기기 네트워크 설정은 변경하지 않았습니다. 이는 격리 씬 시각 관찰이며 실제 게임 전체 렌더링이나 16KB 실행 검증이 아닙니다.
 
