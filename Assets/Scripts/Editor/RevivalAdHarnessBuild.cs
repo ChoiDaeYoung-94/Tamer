@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using AD;
 using UnityEditor;
 using UnityEditor.Build;
@@ -53,8 +54,33 @@ public static class RevivalAdHarnessBuild
     public static void BuildReleaseControl() => Build(false);
     // Sample identity only. This cannot validate this publisher's configured messages.
     public static void BuildUmpSample() => Build(true, true);
+    public static void BuildUmpPublisher() => Build(true, true, true);
 
-    private static void Build(bool development, bool umpOnly = false)
+    private static string ReadPrivatePublisherAppId()
+    {
+        if (Environment.GetEnvironmentVariable("TAMER_UMP_PUBLISHER_BUILD_OPT_IN") != "1")
+            throw new BuildFailedException("Publisher UMP build requires explicit private opt-in.");
+        string root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        string path = Path.Combine(root, "Logs/revival/production-ads-prepared/production-ads.private.json");
+        string json = File.ReadAllText(path);
+        foreach (string field in new[] { "checkout", "androidAppId", "productionActivationApproved", "regionalReviewApproved" })
+            if (Regex.Matches(json, "\"" + field + "\"\\s*:").Count != 1)
+                throw new BuildFailedException("Private publisher configuration must be complete and unambiguous.");
+        var config = JsonUtility.FromJson<PublisherConfig>(json);
+        if (config == null || string.IsNullOrEmpty(config.checkout) ||
+            !string.Equals(Path.GetFullPath(config.checkout), root, StringComparison.OrdinalIgnoreCase) ||
+            !Regex.IsMatch(config.androidAppId ?? "", @"\Aca-app-pub-[0-9]{16}~[0-9]{10}\z") ||
+            config.androidAppId.StartsWith("ca-app-pub-3940256099942544~", StringComparison.Ordinal) ||
+            config.productionActivationApproved || config.regionalReviewApproved ||
+            AD.Advertising.AdRequestPolicy.ProductionAdsEnabled || AD.Advertising.AgeTreatmentPolicy.RegionalConsentReviewed)
+            throw new BuildFailedException("Private publisher configuration is missing or outside disabled scope.");
+        var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(SettingsPath));
+        if (settings.FindProperty("adMobAndroidAppId").stringValue.Trim() != config.androidAppId)
+            throw new BuildFailedException("Private publisher App ID must match the existing app settings.");
+        return config.androidAppId;
+    }
+
+    private static void Build(bool development, bool umpOnly = false, bool publisher = false)
     {
         int exitCode = 1;
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
@@ -63,8 +89,9 @@ public static class RevivalAdHarnessBuild
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         byte[] settingsBytes = File.ReadAllBytes(SettingsPath), manifestBytes = File.ReadAllBytes(ManifestPath);
-        string variant = umpOnly ? "ump-sample" : development ? "sample" : "control";
-        string applicationId = umpOnly ? "com.AeDeong.MonsterTamer.revival.ump" :
+        byte[] publisherSceneBytes = null, publisherSceneMetaBytes = null;
+        string variant = publisher ? "ump-publisher" : umpOnly ? "ump-sample" : development ? "sample" : "control";
+        string applicationId = publisher ? "com.AeDeong.MonsterTamer.revival.umppublisher" : umpOnly ? "com.AeDeong.MonsterTamer.revival.ump" :
             development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";
         try
         {
@@ -76,9 +103,17 @@ public static class RevivalAdHarnessBuild
                 throw new BuildFailedException("Launch with -buildTarget Android.");
             if (PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android).Split(';').Contains("TAMER_TEST_ADS"))
                 throw new BuildFailedException("Remove global TAMER_TEST_ADS: control must retain ordinary release policy.");
+            string appId = publisher ? ReadPrivatePublisherAppId() : SampleAppId;
+            if (publisher)
+            {
+                if (!File.Exists(ScenePath) || !File.Exists(ScenePath + ".meta"))
+                    throw new BuildFailedException("Publisher UMP requires the existing restored harness scene.");
+                publisherSceneBytes = File.ReadAllBytes(ScenePath);
+                publisherSceneMetaBytes = File.ReadAllBytes(ScenePath + ".meta");
+            }
             PrepareScene();
             var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(SettingsPath));
-            settings.FindProperty("adMobAndroidAppId").stringValue = SampleAppId;
+            settings.FindProperty("adMobAndroidAppId").stringValue = appId;
             settings.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, applicationId);
@@ -90,7 +125,9 @@ public static class RevivalAdHarnessBuild
                 scenes = new[] { ScenePath }, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
                 locationPathName = "Build/revival/Tamer-ads-" + variant + ".apk",
                 options = development ? BuildOptions.Development | BuildOptions.CompressWithLz4 : BuildOptions.None,
-                extraScriptingDefines = umpOnly
+                extraScriptingDefines = publisher
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS", "TAMER_UMP_PUBLISHER_HARNESS" }
+                    : umpOnly
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS" }
                     : development
                         ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_AD_SAMPLE_CLOSE_HARNESS" }
@@ -100,7 +137,11 @@ public static class RevivalAdHarnessBuild
             Debug.Log("AD_HARNESS_BUILD_OK variant=" + variant);
             exitCode = 0;
         }
-        catch (Exception error) { Debug.LogException(error); }
+        catch (Exception error)
+        {
+            if (publisher) Debug.LogError("Publisher UMP build failed; private details suppressed.");
+            else Debug.LogException(error);
+        }
         finally
         {
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
@@ -111,10 +152,18 @@ public static class RevivalAdHarnessBuild
             AssetDatabase.SaveAssets();
             File.WriteAllBytes(SettingsPath, settingsBytes);
             File.WriteAllBytes(ManifestPath, manifestBytes);
+            if (publisherSceneBytes != null)
+            {
+                File.WriteAllBytes(ScenePath, publisherSceneBytes);
+                File.WriteAllBytes(ScenePath + ".meta", publisherSceneMetaBytes);
+            }
             AssetDatabase.ImportAsset(SettingsPath, ImportAssetOptions.ForceUpdate);
             AssetDatabase.ImportAsset(ManifestPath, ImportAssetOptions.ForceUpdate);
             if (!File.ReadAllBytes(SettingsPath).SequenceEqual(settingsBytes) || !File.ReadAllBytes(ManifestPath).SequenceEqual(manifestBytes))
                 throw new BuildFailedException("Sample identity restoration failed.");
+            if (publisherSceneBytes != null && (!File.ReadAllBytes(ScenePath).SequenceEqual(publisherSceneBytes) ||
+                !File.ReadAllBytes(ScenePath + ".meta").SequenceEqual(publisherSceneMetaBytes)))
+                throw new BuildFailedException("Publisher harness scene restoration failed.");
             Debug.Log("AD_HARNESS_IDENTITY_RESTORED");
         }
         if (Application.isBatchMode) EditorApplication.Exit(exitCode);
@@ -125,5 +174,10 @@ public static class RevivalAdHarnessBuild
     {
         public bool enableCodelessAutoInitialization;
         public bool enableUnityGamingServicesAutoInitialization;
+    }
+    [Serializable] private class PublisherConfig
+    {
+        public string checkout, androidAppId;
+        public bool productionActivationApproved, regionalReviewApproved;
     }
 }
