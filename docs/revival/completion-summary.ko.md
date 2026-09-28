@@ -1,5 +1,13 @@
 # Tamer 복구 구현·통합 검증 결과
 
+## 2026-09-28 현재 상태와 과거 검증의 구분
+
+이 문서의 아래 결과는 각 기록에 명시된 소스·산출물의 검증 이력이며 최신 `main` 전체를 다시 검증한 결과가 아니다. 현재 삭제 경로는 [Classic CloudScript 제품 연결](product-deletion-connection.ko.md)과 [앱 삭제 후 이메일 안내](../account-deletion.ko.md)다. [운영 연결의 설정 읽기 검증](cloudscript-operating-activation.ko.md)은 실제 계정의 처리 완료와 구분하며, [별도 보관 사본 생성 중단과 소유 확인 정리](deletion-no-archive.ko.md)가 후속 통합됐다. 아래 9월 21일 endpoint·호스팅·조회 영수증 설명은 해당 시점의 구현 이력이다.
+
+최신 격리 앱의 [소유 파일 정리와 불확실 응답의 프로세스 재시작 검증](deletion-device-followup.ko.md)은 합성 결과 대역을 사용한 로컬 기기 검증이다. 첫 빌드 메모리 부족 실패 후 프로세스 범위의 Java 제한을 적용한 두 번째 빌드가 성공했으며, 기기 두 단계는 각각 첫 실행에 통과했다. 실제 서버 삭제·제품 화면의 운영 인증·삭제 후 구매 복원 결과로 확대하지 않는다.
+
+광고는 AdMob 유지·Unity Ads 철회 상태이며 [광고와 보상 설계 비교](admob-product-options.ko.md)는 미승인 제안이다. 기존 No Ads 혜택과 구매·복원 보존 원칙은 유지한다. 운영 계정의 실제 삭제·메일 처리·삭제 후 구매 복원과 광고 운영, ARM64 네이티브 16KB 실행, 후반 LTS 전환 및 최종 출시 AAB·스토어 검증은 각 후속 근거가 필요하다. [최신 실행 목록](recovery-execution-backlog.ko.md)과 [출시 사전 검사](release-preflight.ko.md)에서 완료·미검증·결정 대기를 구분한다. 이번 정리는 문서 변경이며 새 Unity 실행·테스트·APK 빌드 결과를 추가하지 않는다.
+
 ## 2026-09-21 삭제 접수 복구 후속 통합
 
 PR [#197](https://github.com/ChoiDaeYoung-94/Tamer/pull/197)을 `953b7b6878188e5adc990f491e8ca97f2bf63862`에 병합했다. 삭제 접수 응답 유실 뒤 로그인 티켓이 무효화되어도 AndroidKeyStore로 보호한 해당 요청의 조회 권한을 재생성하여 접수 상태를 확인한다. 로컬 처리 결과를 안전하게 저장한 후 조회 권한을 폐기하며, 복구 파일 삭제가 실패하면 보호 키를 유지한다. 접수 확인은 최종 소거 완료 확인이 아니다.
