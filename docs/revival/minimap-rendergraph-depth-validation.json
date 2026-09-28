@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "checkout": "C:\\Users\\pc_17\\.codex\\worktrees\\unity-lts-transition\\Tamer",
+  "branch": "codex/minimap-rendergraph-depth",
+  "editorSource": "b963e366ceabbbd4a94a2a0ae52e08f9a5455bff",
+  "buildCodeCommit": "c5abefbdd5e1b1ffb1e7ac969cf422efca0f694c",
+  "unity": "6000.3.25f1",
+  "unityRevision": "e1dba0a9aba4",
+  "cli": "1.0.0-beta.8",
+  "pipeline": "0.6.0-exp.1",
+  "jdk": "17.0.18+8",
+  "ndk": "27.2.12479018",
+  "gradle": "9.3.1",
+  "androidBuildTools": "36.0.0",
+  "assetApi": {
+    "unity": "6000.3.25f1",
+    "path": "Assets/Scripts/MiniMap/minimapRenderTexture.renderTexture",
+    "guid": "1b3b360c665b4c7438ead554d27a61ee",
+    "depth": "D24_UNorm_S8_UInt",
+    "color": "R8G8B8A8_UNorm",
+    "width": 300,
+    "height": 300,
+    "msaa": 1
+  },
+  "editorNonPlayCameraSmoke": {
+    "camera": "Camera_MiniMap",
+    "renderEvents": 1,
+    "targetWarnings": 0,
+    "errors": 0,
+    "actualDepth": "D24_UNorm_S8_UInt",
+    "graphicsApi": "Direct3D11",
+    "actualGameCameraTarget": true,
+    "renderGraphEnabled": true,
+    "sceneSaved": false,
+    "playerOrOperatingServicesStarted": false
+  },
+  "apk": {
+    "variant": "development",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gameplay",
+    "bytes": 133569033,
+    "sha256": "5beb09f228efea4556dfd7ac3680f66df62a5b20ac1866e599d2ed54d1379c3e",
+    "minSdk": 25,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "buildAttempts": 1,
+  "deviceAttempts": 1,
+  "device": {
+    "schemaVersion": 1,
+    "newDefect": "Game minimap RenderGraph missing output depth",
+    "attempt": 1,
+    "buildCodeCommit": "c5abefbdd5e1b1ffb1e7ac969cf422efca0f694c",
+    "artifactSha256": "5beb09f228efea4556dfd7ac3680f66df62a5b20ac1866e599d2ed54d1379c3e",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gameplay",
+    "installed": true,
+    "ownFreshInstallRemoved": true,
+    "operatingServicesExecuted": false,
+    "healthOrSpawnModified": false,
+    "manualReturnCriterionRetested": false,
+    "inventoryRestartRetested": false,
+    "runtime16KBVerified": false,
+    "setupCompleted": true,
+    "gameObservationCompleted": true,
+    "gameSceneSamples": [
+      {
+        "seconds": 3.11,
+        "scene": "Game",
+        "playerHp": 100.0
+      },
+      {
+        "seconds": 4.667,
+        "scene": "Game",
+        "playerHp": 100.0
+      },
+      {
+        "seconds": 6.216,
+        "scene": "Game",
+        "playerHp": 100.0
+      },
+      {
+        "seconds": 7.757,
+        "scene": "Game",
+        "playerHp": 100.0
+      },
+      {
+        "seconds": 9.295,
+        "scene": "Game",
+        "playerHp": 100.0
+      }
+    ],
+    "pageSize": 4096,
+    "androidApi": 33,
+    "gameObservationSeconds": 11.185,
+    "gameSceneMaintainedDuringObservation": true,
+    "targetDepthWarningCount": 0,
+    "gameCombatObservationCount": 27,
+    "unityNativeLibrariesMapped": true,
+    "nativeTranslationMapped": false,
+    "processPid": 15998,
+    "automatedDepthObservationPassed": true,
+    "visualReviewCompleted": false
+  },
+  "visualReview": {
+    "visualReviewCompleted": true,
+    "mainReviewed": true,
+    "gameStartAndEndReviewed": true,
+    "minimapVisibleBoth": true,
+    "gameWorldAndEnemiesVisibleBoth": true,
+    "enemyPositionsDifferAcrossScreens": true,
+    "blackOrMagentaObserved": false,
+    "gameOverObserved": false,
+    "targetDepthWarningCount": 0,
+    "unityErrorMessages": [
+      "Socket: Failed to set blocking mode",
+      "Socket: Failed to set blocking mode",
+      "Unable to setup multicast socket for player connection."
+    ],
+    "unityWarningLineCount": 0,
+    "fatalEventObserved": false,
+    "harnessFailObserved": false,
+    "manualReturnRetested": false
+  },
+  "metadataBytesPreserved": true,
+  "renderGraphCompatibilityEnabled": false,
+  "temporaryHarnessSnapshotsRestored": true,
+  "ownedEditorsAfter": 0,
+  "dirtyAfter": false,
+  "editorPhoneSlotReturned": true,
+  "actualRuntimeGpuDepthIntrospection": false,
+  "scopeLimitations": [
+    "previous manualReturn failure not retested",
+    "no inventory restart repeat",
+    "no HP/invincibility/spawn modification",
+    "no operating services",
+    "no runtime16KB or strictRELRO rerun",
+    "no final release AAB/store or full gameplay/performance guarantee"
+  ],
+  "evidenceHashes": [
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-api-result.json",
+      "sha256": "2246b684097b2dece542eb9dd69f8e3e1cf7d2eaf310d4fda62cbeb329bf35bf"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-apk-provenance.json",
+      "sha256": "23989a2baa836a7b90ed1bc6c9290be56ff8db30cfd4992736f28dc134f0a503"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-autotick.json",
+      "sha256": "4c935ffacbf41d2c5208aa703a47a4d96338a51d0698f791a314ff63096512c6"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-build-preflight.json",
+      "sha256": "edcaf7949da0ae0244521589eb27a9fb660340a8e599f4ffd2cdcc1278d4acc7"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-camera-smoke.json",
+      "sha256": "ab4bfa6612141ce77046a26c56e4b57df3651574905e6e2e469c145978376da1"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-console.json",
+      "sha256": "097b0d4732bba0ee3b3ce597bc27d0e0c14fb37ead7868d433119bf80396fbe1"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-editor-approved-preflight.json",
+      "sha256": "1738aa17a09ceda28bee877338ec445bf8cd3ab5af9026dc4a0abba0f473ed61"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-editor-exit.json",
+      "sha256": "00378e3ed8f07cecc227a1f2003e2b88a146a9ecb63abace48f8de9b3e3cf28a"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-editor-launch.json",
+      "sha256": "3cad5975edbd7cc3df540e9c5dc42547ddf0e21f191956473e0a2831057ec981"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-editor-preflight.json",
+      "sha256": "7fa5a8b4539ab6c776483101c3bb7e130d396a7cea09588f7847afeaf3e80db5"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-editor-status-ready.json",
+      "sha256": "eb11f5ea79b10a0585684445bbb9d1fa0e268175dc6a2a96073c7b56ec06cc72"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-editor-status.json",
+      "sha256": "38e27169efc4a4130afbefd3e6d28e127cafca5063bf25d09f623c9cff490bba"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-final-slot-return.json",
+      "sha256": "59d7712930f1f2c4450e0e90fa584f4673497d7136ca1d386c96909272481895"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-main-ff-preflight.json",
+      "sha256": "c382a17c61050fd0587a5ab629033c881697b5b129fd0fa687a0060450a18265"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-open-scenes.json",
+      "sha256": "09b3d9b7302c258533addf33a644b53dc7533c6ec736559e5943e041e4d28cf5"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-restore-blocked-state.json",
+      "sha256": "79fb3b3bba2f1a6aad036d2538cdd9ad7c5f5bfa601fc27ea7b490ac72c49b32"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-slot-return.json",
+      "sha256": "90b094fc9e06b9447d867edd9dfe43ae89a50e08c514217b841c9f2342249a9e"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-build-whitespace.diff",
+      "sha256": "9dfad428f3629fd4cb4b8a0b56c535d8875bfd0948d80f32558a7e017f6797e9"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-urp-import-delta.diff",
+      "sha256": "6dba7047d82281a21fd65a7adc9109aeadca1e6cdc3e911efd2bcd883dc19739"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-build-wrapper.txt",
+      "sha256": "c8cd01eec39ae4acc455f4cb0d968a8dee73eb90e49bcefdeade681ad8e1c688"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-editor.log",
+      "sha256": "4d6f7f4ba6919e2dd19738585dad8153d72d9e22f7eb36f77c949aca70462ade"
+    },
+    {
+      "localRelativePath": "Logs/revival/gameplay-build.log",
+      "sha256": "6614fe76811ef53466deb983a39fceb91e3dbbcf5e85e03f904ae700db39d524"
+    },
+    {
+      "localRelativePath": "Logs/revival/gameplay-apk-verification.json",
+      "sha256": "f6780d92901dd0f6991d258e4c15405ddf4ad098328df0c82e90761adee47d12"
+    },
+    {
+      "localRelativePath": "Logs/revival/FixMinimapDepth.cs",
+      "sha256": "a27411ef919f34770b6b878efae22281e71a747b8be53677c8f4476f40f5f572"
+    },
+    {
+      "localRelativePath": "Logs/revival/SmokeMinimapDepth.cs",
+      "sha256": "f3cef1f3068110949ac9c30fd777f2375f1c76e4aced97388124530ecad831d8"
+    },
+    {
+      "localRelativePath": "Logs/revival/MinimapDepthDevice.py",
+      "sha256": "7461fb49db9a9b45f1a3393b3c94af0d78a3b44cff21a6531a1a1e8ad1fc41cf"
+    },
+    {
+      "localRelativePath": "Logs/revival/MinimapDepthSignal.py",
+      "sha256": "c57dea2a9b3e5da56ba9f33584fc70c9188b8d1ffec2a9c2fc505fb9032cea5c"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/age-operator-ready.json",
+      "sha256": "573fcacc478743a6895823025f7964c50fffc5b5a6a3fc309bbbab99ba087d23"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/age-resume.json",
+      "sha256": "353776257154cd6e55a4d19cc6bb97d49530437cada05e780579f9997771d192"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/age-screen.png",
+      "sha256": "df2a43ddb0abbd9f79aa0cab009d80d1d2175075ce9a265c2ad4fec2eb56077b"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/game-end-screen.png",
+      "sha256": "e6883bbd89552242fb9ee835b0aeb5db4e8f6544a9fa0666ae6cb96e3fbfd56a"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/game-start-screen.png",
+      "sha256": "acc103d038f8fae79ebcacb290fc3df33439d3b11fc686d773c80124b181f435"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/latest-app-logcat.txt",
+      "sha256": "0f49f48e7121d26971a5af6b36487ce74829a725d1152cb99faab5cc11890d0a"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/main-start-operator-ready.json",
+      "sha256": "5a83856256aa0ca8509f6a810cebf68a4393cc60f8bd464cf36221875362ed55"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/main-start-resume.json",
+      "sha256": "2f10c4dcfe42a66963b3aa9a64a370b14155e98313c2c3d10f2c89e8f396c840"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/main-start-screen.png",
+      "sha256": "d5a3c60daac0f04d5ed0e1d10d487e367d96cec28f5af87f47b14a2c8fdf15fa"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/minimap-depth-device.json",
+      "sha256": "786f8a1dfe706685a98606eebd613c548aeb0eb344cd5a000e01dc3559331e75"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/process-maps.txt",
+      "sha256": "d96c2ac809720a4be23abff758a122c4a6b20bead964a9647c8a17aedbb5890e"
+    },
+    {
+      "localRelativePath": "Logs/revival/minimap-depth-device-1/visual-log-review.json",
+      "sha256": "b4ae55116508a1ad41b0569e89a908644763dd786c0ba100be4ca07df02558df"
+    }
+  ]
+}
