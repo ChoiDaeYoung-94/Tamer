@@ -236,16 +236,16 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (UnitySceneManager.GetActiveScene().name != "Main" || Player.Instance == null || Managers.SceneM.IsTransitioning)
         { Mark("AGE_UI_FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
-#if TAMER_INVENTORY_RESTORE
-        VerifyInventoryRestore();
-        yield break;
-#endif
         Mark("AGE_UI_READY original settings and age UI; no automatic gameplay");
         yield break;
 #endif
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
+#if TAMER_INVENTORY_RESTORE
+        VerifyInventoryRestore();
+        yield break;
+#endif
 #if TAMER_PLAYER_RESTORE
         VerifyPlayerRestore();
         yield break; // Keep the original Main scene available; no combat or automatic round trip.
