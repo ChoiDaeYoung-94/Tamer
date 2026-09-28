@@ -9,3 +9,9 @@
 구현 checkout `C:/Users/pc_17/.codex/worktrees/unity-lts-transition/Tamer`, branch `codex/private-meta-restore-approval`, 기반 `a153f9e8fb30f0108c3f6078d839dd686ab84b2b`, Editor0 상태에서 도구와 합성 테스트만 수정했습니다. 최종 단위검사5/5 PASS는 정상 exact 승인/바이트 보존, 경로·버전·레코드 거절, source/current/asset/backup 변조 거절, 공개/추적 ledger 거절, 다른 private 충돌의 복사 전 중단을 확인합니다. 승인 레코드를 반환해 restore 본 검사 시점에 new 해시·크기를 다시 대조하도록 수정한 뒤 필요한5개를 다시 검증했습니다. 이전 SDK migration10개 검사를 반복하지 않았습니다.
 
 이 문서는 실제 복원3차 결과가 아닙니다. 독립 리뷰 이후 해당 checkout에서 승인된3차1회를 수행하고 결과를 별도로 기록합니다. 다른 checkout은 같은 파일명이나 해시만으로 승인된 것으로 간주하지 않으며 그 checkout 경로/상태/원본/current 보존 근거를 새로 확인해야 합니다. 도구 구현 중 Unity/API/APK/기기 실행0이고, 미니맵 경고 수정 검증도 아직 시작하지 않았습니다.
+
+## 승인된 실제 복원3차 결과
+
+이후 독립 리뷰가 검토한 head `4f9a13b35d01f3ad0f8b8a182a9af93f1da31a11`에서 checkout/branch/target 일치·dirty0·해당 Editor0를 기록하고 명시 local approval 옵션으로 승인된3차1회만 실행했습니다. 결과는 exit0, `verified=4561, copied=0, sdkMetaMigrations=7, privateMetaMigrations=1, serviceSettings=excluded`입니다. public manifest/SDK ledger·현재 파일·권한 있는 원본·보존 원본/current 메타를 덮어쓰지 않았습니다. 네 번째 복원/Unity/API/APK/기기 실행0입니다. 앞 절의 도구 구현·리뷰 시점 미실행과 실제3차 완료 시점을 구분하며 이 후속 문서 커밋을 실행 source로 표현하지 않습니다.
+
+preflight/result/exit·단위검사와 명시 승인 ledger·보존 메타는 ignored `Logs/revival/private-meta-*`에 비공개로 보존합니다. 다른 checkout의 승인이나 실제 검사 성공으로 확대하지 않습니다.
