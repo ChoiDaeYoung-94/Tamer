@@ -37,6 +37,8 @@ namespace AD
         private int _sceneVersion;
         private float _loadDeadline;
         private LocalAgeChoice _ageSelection;
+        // Blank in tracked scenes. Populate only through the reviewed private release build.
+        [SerializeField] private string _productionRewardedAdUnit = "";
 #if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
         private const string SampleHarnessScenePath = "Assets/Tests/Scenes/RevivalAdHarness.unity";
         private const string SampleHarnessPackage = "com.AeDeong.MonsterTamer.revival.ads";
@@ -156,14 +158,7 @@ namespace AD
 #endif
             AgeTreatmentPolicy.AllowsFullscreenRewarded(ConsentAge);
 
-        public bool CanRequestAds =>
-            HasConsentAge && CanUseRewardedFormat && (AgeTreatmentPolicy.IsReviewed(ConsentAge)
-#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
-                || IsSampleHarness
-#endif
-            ) &&
-            (Application.isEditor || Application.platform == RuntimePlatform.Android) &&
-            AdRequestPolicy.CanRequestTestAds(
+        private bool IsTestAdEnvironment => AdRequestPolicy.CanRequestTestAds(
             Application.isEditor, Debug.isDebugBuild,
 #if TAMER_TEST_ADS
             true,
@@ -171,8 +166,32 @@ namespace AD
             false,
 #endif
             Application.platform == RuntimePlatform.Android,
-            Application.platform == RuntimePlatform.IPhonePlayer,
-            Application.isBatchMode);
+            Application.platform == RuntimePlatform.IPhonePlayer, Application.isBatchMode);
+
+        private bool IsProductionAdEnvironment => AdRequestPolicy.CanRequestProductionAds(
+            Application.isEditor, Debug.isDebugBuild,
+#if TAMER_TEST_ADS
+            true,
+#else
+            false,
+#endif
+            Application.platform == RuntimePlatform.Android, Application.isBatchMode);
+
+        private bool CanBeginConsent =>
+            HasConsentAge && (AgeTreatmentPolicy.IsReviewed(ConsentAge)
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+                || IsSampleHarness
+#endif
+            ) &&
+            (Application.isEditor || Application.platform == RuntimePlatform.Android) &&
+            (IsTestAdEnvironment || IsProductionAdEnvironment);
+
+        private bool TryGetRewardedAdUnit(out string adUnit) =>
+            AdRequestPolicy.TrySelectRewardedAdUnit(IsTestAdEnvironment, IsProductionAdEnvironment,
+                Application.platform == RuntimePlatform.IPhonePlayer, _productionRewardedAdUnit, out adUnit);
+
+        public bool CanRequestAds => CanBeginConsent && CanUseRewardedFormat &&
+            TryGetRewardedAdUnit(out _);
 
         public bool HasNoAds
         {
@@ -257,7 +276,7 @@ namespace AD
             discarded?.Invoke();
         }
 
-        /// <summary>On-demand sample ads only. Production requests remain blocked.</summary>
+        /// <summary>Explicit requests only. The reviewed release environment remains disabled.</summary>
         public void LoadRewardedAd()
         {
             if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy) return;
@@ -267,7 +286,7 @@ namespace AD
 
         private void BeginConsent(bool loadAfterConsent)
         {
-            if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy ||
+            if (_destroyed || !CanBeginConsent || IsInProgress || _loading || _initializing || IsConsentBusy ||
                 !AgeTreatmentPolicy.TryCreatePlan(ConsentAge, out var plan)) return;
             int version = ++_loadVersion;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
@@ -301,9 +320,9 @@ namespace AD
                 if (_initialized)
                 {
                     _initializing = false;
-                    LoadSampleAd(version);
+                    LoadConfiguredAd(version);
                 }
-                else InitializeSampleSdk(version);
+                else InitializeConfiguredSdk(version);
             });
         }
 
@@ -322,7 +341,7 @@ namespace AD
             return new RequestConfiguration { AgeRestrictedTreatment = treatment, MaxAdContentRating = MaxAdContentRating.G };
         }
 
-        private void InitializeSampleSdk(int version)
+        private void InitializeConfiguredSdk(int version)
         {
             try
             {
@@ -335,27 +354,28 @@ namespace AD
                         if (version != _loadVersion) return;
                         _initializing = false;
                         _initialized = status != null;
-                        if (_initialized && _consent.CanRequestAds) LoadSampleAd(version);
+                        if (_initialized && _consent.CanRequestAds && CanRequestAds) LoadConfiguredAd(version);
                     });
                 });
             }
             catch (Exception)
             {
                 _initializing = false;
-                DebugLogger.LogError("GoogleAdMobManager", "Test ad initialization failed.");
+                DebugLogger.LogError("GoogleAdMobManager", "Ad initialization failed.");
             }
         }
 
-        private void LoadSampleAd(int version)
+        private void LoadConfiguredAd(int version)
         {
+            if (!CanRequestAds || !TryGetRewardedAdUnit(out var adUnit))
+            { _initializing = false; return; }
             _loading = true;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
             DestroyLoadedAd();
             try
             {
                 TraceHarness("load_call");
-                RewardedAd.Load(AdRequestPolicy.TestRewardedAdUnit(
-                    Application.platform == RuntimePlatform.IPhonePlayer), new AdRequest(), (ad, error) =>
+                RewardedAd.Load(adUnit, new AdRequest(), (ad, error) =>
                 {
                     TraceHarness(error == null && ad != null ? "load_callback_ok" : "load_callback_failed");
                     Enqueue(() =>
@@ -369,7 +389,7 @@ namespace AD
                         if (error != null || ad == null)
                         {
                             ad?.Destroy();
-                            DebugLogger.LogError("GoogleAdMobManager", "Test rewarded ad unavailable; retry manually.");
+                            DebugLogger.LogError("GoogleAdMobManager", "Rewarded ad unavailable; retry manually.");
                             return;
                         }
                         _rewardedAd = ad;
@@ -379,7 +399,7 @@ namespace AD
             catch (Exception)
             {
                 _loading = false;
-                DebugLogger.LogError("GoogleAdMobManager", "Test ad load failed.");
+                DebugLogger.LogError("GoogleAdMobManager", "Ad load failed.");
             }
         }
 

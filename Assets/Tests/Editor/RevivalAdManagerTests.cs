@@ -155,10 +155,32 @@ public class RevivalAdManagerTests
     }
 
     [Test]
-    public void Revival_RequiredPrivacyRemainsAccessibleWhenAdsBlockedAndInvalidatesLateReward()
+    public void Revival_EditorSelectionIgnoresConfiguredProductionInventoryWithoutStartingSdk()
+    {
+        managerType.GetField("_productionRewardedAdUnit", InstanceMembers).SetValue(manager,
+            "ca-app-pub-0123456789012345/0123456789");
+        // Keep the positive test-inventory assertion even in Unity's batch runner.
+        // This pure selection cannot request an ad or bypass the manager's batch gate.
+        Assert.That(AdRequestPolicy.TrySelectRewardedAdUnit(true, false, false,
+            Get<string>("_productionRewardedAdUnit"), out var testUnit), Is.True);
+        Assert.That(testUnit, Is.EqualTo(AdRequestPolicy.TestRewardedAdUnit(false)));
+        object[] arguments = { null };
+        var select = managerType.GetMethod("TryGetRewardedAdUnit", InstanceMembers);
+        Assert.That(select.Invoke(manager, arguments), Is.EqualTo(!Application.isBatchMode));
+        Assert.That(arguments[0], Is.EqualTo(Application.isBatchMode
+            ? null : AdRequestPolicy.TestRewardedAdUnit(false)));
+        Assert.That(Property<bool>("CanRequestAds"), Is.False);
+        AssertNoSdkActivity();
+    }
+
+    [TestCase("1|under13")]
+    [TestCase("1|13to15")]
+    [TestCase("1|16to17")]
+    [TestCase("1|18plus")]
+    public void Revival_RequiredPrivacyRemainsAccessibleWhenAdsBlockedAndInvalidatesLateReward(string age)
     {
         managerType.GetField("_ageSelection", InstanceMembers).SetValue(manager,
-            new LocalAgeChoice(() => "1|18plus", _ => { }));
+            new LocalAgeChoice(() => age, _ => { }));
         var client = new PrivacyClient();
         var gate = new AdConsentGate(client, false, action => action());
         gate.Request(_ => { });
