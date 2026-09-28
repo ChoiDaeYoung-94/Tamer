@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/unity-lts-transition/Tamer",
+  "branch": "codex/lts-inventory-visual",
+  "buildCodeCommit": "a5c1bb77de819358bad6001caf8dc6fc514d98c5",
+  "unity": "6000.3.25f1",
+  "unityRevision": "e1dba0a9aba4",
+  "cli": "1.0.0-beta.8",
+  "pipeline": "0.6.0-exp.1",
+  "jdk": "17.0.18+8",
+  "ndk": "27.2.12479018",
+  "gradle": "9.3.1",
+  "buildTools": "36.0.0",
+  "apk": {
+    "variant": "inventoryrestore",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.inventoryrestore",
+    "bytes": 110603451,
+    "sha256": "ff0ef16b1368082ecf8f0a317968b4f1886f4f55d68ab3fc35947d1dd388f313",
+    "minSdk": 25,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "buildAttempts": 1,
+  "buildResult": "passed",
+  "deviceAttempts": 2,
+  "deviceResult": "stopped_after_two_failures",
+  "firstFailure": {
+    "marker": "GAMEPLAY_HARNESS FAIL Main entry",
+    "cause": "Fresh app age modal left unanswered; Main loaded but Ready requires timeScale=1",
+    "failureLogRecovered": true,
+    "screenshotCaptured": false,
+    "ownFreshInstallRemoved": true
+  },
+  "secondFailure": {
+    "cause": "Private automation input() raised EOFError under plain pipe execution",
+    "ageModalScreenshotCaptured": true,
+    "declinedClicked": false,
+    "writePhaseObserved": false,
+    "restartPhaseObserved": false,
+    "ownFreshInstallRemoved": true
+  },
+  "physicalDevice": {
+    "androidApi": 33,
+    "pageSize": 4096
+  },
+  "additionalBuilds": 0,
+  "strictRelroRechecks": 0,
+  "runtime16KBVerified": false,
+  "existingAppsModified": false,
+  "operatingAccountPurchasesAdsExecuted": false,
+  "unverified": [
+    "Main character/equipment/HUD visuals after modal dismissal",
+    "inventory write/restart markers",
+    "inventory files across restart",
+    "actual ARM64 16KB runtime",
+    "release AAB/store validation"
+  ],
+  "privateEvidence": "Logs/revival/lts-inventory-*; private automation only, raw logs/screenshots excluded",
+  "nextStepRequiresUserApproval": "Third attempt of the same device verification; no APK rebuild required",
+  "evidenceHashes": {
+    "lts-inventory-preflight.json": "91988b6116319d1d3b90377239964dfc72cd3790c1ba1f4883da97e378919769",
+    "inventoryrestore-apk-verification.json": "eb49dc3a152e6f1f869f46e040c0291fbc740d9cd0185d35db73730e9f60e717",
+    "lts-inventory-device/failure-app-logcat.txt": "04e5d820de249716bf61c28f2fa0f53448670ebbea7f0415f43272c08c6d7169",
+    "lts-inventory-device-2/initial-age-screen.png": "f77ac6dd4fff74ad34eac6106a1cd38d85f3bbcb23851635a78b83015c84a0ef",
+    "lts-inventory-device-2/inventory-device.json": "3367018b1b7f065d04dd79feb9ef60ed7ad76e5e5e590b4c71bd7ab65224d159",
+    "lts-local-resume-tests.txt": "34d8b37f178addb74bfc339aa9783062606ef8edee6e9aa9acb76204a46682b0"
+  },
+  "independentAutomationChecks": {
+    "passed": 3,
+    "failed": 0,
+    "seconds": 0.058,
+    "deviceUsed": false,
+    "checks": [
+      "missing resume times out",
+      "wrong identity/action rejected",
+      "valid signal with stdin DEVNULL succeeds"
+    ]
+  }
+}
