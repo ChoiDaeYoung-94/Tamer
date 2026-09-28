@@ -12,9 +12,12 @@ namespace AD
         public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.gameplay";
         public const string PlayerRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.playerrestore";
         public const string SessionApplicationId = "com.AeDeong.MonsterTamer.revival.sessionguard";
+        public const string InventoryRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.inventoryrestore";
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
         public static string RuntimeApplicationId =>
-#if TAMER_SESSION_HARNESS
+#if TAMER_INVENTORY_RESTORE
+            InventoryRestoreApplicationId;
+#elif TAMER_SESSION_HARNESS
             SessionApplicationId;
 #elif TAMER_AGE_CHOICE
             AgeChoiceApplicationId;
@@ -65,7 +68,14 @@ namespace AD
 
         public static string CreateSavePath(string persistentRoot)
         {
+#if TAMER_INVENTORY_RESTORE
+            ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
+                UnityEngine.PlayerPrefs.HasKey, InventoryRestoreApplicationId);
+            // Only this separate offline application reopens its own previous process's inventory.
+            string directory = Path.Combine(persistentRoot, "RevivalInventoryRestore");
+#else
             string directory = Path.Combine(persistentRoot, "RevivalGameplay", Guid.NewGuid().ToString("N"));
+#endif
             Directory.CreateDirectory(directory);
             SavePath = Path.Combine(directory, "PlayerData.json");
             return SavePath;
