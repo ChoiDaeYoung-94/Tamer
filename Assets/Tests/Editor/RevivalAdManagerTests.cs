@@ -159,10 +159,16 @@ public class RevivalAdManagerTests
     {
         managerType.GetField("_productionRewardedAdUnit", InstanceMembers).SetValue(manager,
             "ca-app-pub-0123456789012345/0123456789");
+        // Keep the positive test-inventory assertion even in Unity's batch runner.
+        // This pure selection cannot request an ad or bypass the manager's batch gate.
+        Assert.That(AdRequestPolicy.TrySelectRewardedAdUnit(true, false, false,
+            Get<string>("_productionRewardedAdUnit"), out var testUnit), Is.True);
+        Assert.That(testUnit, Is.EqualTo(AdRequestPolicy.TestRewardedAdUnit(false)));
         object[] arguments = { null };
         var select = managerType.GetMethod("TryGetRewardedAdUnit", InstanceMembers);
-        Assert.That(select.Invoke(manager, arguments), Is.True);
-        Assert.That(arguments[0], Is.EqualTo(AdRequestPolicy.TestRewardedAdUnit(false)));
+        Assert.That(select.Invoke(manager, arguments), Is.EqualTo(!Application.isBatchMode));
+        Assert.That(arguments[0], Is.EqualTo(Application.isBatchMode
+            ? null : AdRequestPolicy.TestRewardedAdUnit(false)));
         Assert.That(Property<bool>("CanRequestAds"), Is.False);
         AssertNoSdkActivity();
     }

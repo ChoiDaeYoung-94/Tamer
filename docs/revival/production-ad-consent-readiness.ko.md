@@ -84,11 +84,38 @@ TFUA 폼 생략은 동의 획득이 아니며, CanRequestAds는 개인화 동의
 - 신규 검사: 모든 환경 조합에서 production false 차단, 운영 단위 누락/형식/샘플 거절,
   테스트에서 운영 값 무시, 운영 선택에서 샘플 대체 없음, 모호한 환경과 iOS 차단.
 - Required 옵션과 늦은 보상 무효화 manager 테스트를 네 유효 연령으로 확장했다.
-  Unity 컴파일/manager·consent fixture는 SDK 슬롯 이후 검증할 준비 상태다.
+  Unity 실행 결과는 아래와 같이 별도로 기록한다.
 - 원시 Console 관찰은 `Logs/revival/production-consent-audit-private.ko.md`,
   .NET runner는 `Logs/revival/ad-production-policy-check/`에 비공개 보존한다.
 - 새 Chrome 탭 0. 기존 AdMob 탭은 원래 광고 단위 목록으로 복귀해 보존했다.
 
-미검증: 이 변경의 Unity/IL2CPP 실행, 실제 게시자 메시지·지역 법적 연령 계약,
+### 새 LTS Unity 1차 결과와 중단
+
+검토된 SDK 복원 도구 PR #261 반영 후 실제 시험 head
+`6ae65e5e94b1c0bf689b863c7ab293db16f7f16a`를 clean 상태로 확인했다.
+앞선 복원 검사 4561/복사0/migration7와 이후 비공개 항목 4204개의 mtime 변경0 근거를
+재사용했으며 변경 없는 전체 복원 검사를 반복하지 않았다. SDK가 슬롯을 반환한 뒤
+Unity `6000.3.25f1` / CLI `1.0.0-beta.8`에서 지정 4개 fixture를 **한 번** 실행했다.
+
+- 필터: `RevivalAdRequestPolicyTests;RevivalAdManagerTests;RevivalAdConsentTests;RevivalAdEntitlementTests`
+- 실제 XML: **118건 중 117 PASS / 1 FAIL / skip0**, UTC 2026-09-28 08:14:30.
+- 실패: `Revival_EditorSelectionIgnoresConfiguredProductionInventoryWithoutStartingSdk`가
+  batch에서도 단위 선택 True를 기대한 테스트 작성 오류. 정책은 batch를 정상 차단했다.
+- 수정안: 합성 운영 필드를 넣어도 순수 테스트 선택은 공식 샘플이라는 양성 검사를 유지하고,
+  실제 manager는 batch에서 False/null, 대화형 Editor에서는 공식 샘플을 선택하도록 검사한다.
+  제품 코드는 추가 변경하지 않았다. 이 수정안의 후속 Unity 실행은 아직 하지 않았다.
+- 로그의 LicensingClient validation 경고와 실제 assertion 실패를 구분한다.
+- XML: `Logs/revival/ad-production-lts-20260928.xml`, SHA-256
+  `6dee305974db6e9a3a3b46a557141e594d5cfb70ff0960adf229c2030959eea2`.
+
+자체 Editor 종료와 ProjectSettings 복원을 확인했다. 기존 clean 근거와 비교해 own import의
+tracked 설정 3개만 private patch 보존 후 복원했다. 다른 프로젝트 Editor는 유지했다.
+한편 import 후 비공개 `.meta` 1개가 원본 기준 해시와 달라졌고 GUID는 보존됐다.
+복원 도구의 public SDK 목록을 비공개 항목으로 확대하지 않고 해당 파일도 덮어쓰지 않았다.
+따라서 지시된 충돌 중단 경계에 따라 실패 1건의 후속 Unity/복원 실행은 보류하고
+슬롯을 반환했다. 통과한 117건은 재실행하지 않는다. SDK checkout의 별도 복원 실패와
+광고 fixture의 assertion 실패를 같은 원인으로 표시하지 않는다.
+
+미검증: 수정한 실패 1건의 Unity 재검증, IL2CPP 실행, 실제 게시자 메시지·지역 법적 연령 계약,
 운영 설정 주입/요청·동의 후 재시작, 네이티브 전체 트래픽, 최종 출시 AAB/스토어.
 새 APK SHA-256은 해당 없음이다. 이후 검증은 실제 source head와 슬롯 결과를 별도 기록한다.
