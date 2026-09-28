@@ -86,4 +86,42 @@ raw 로그/response/설정 백업은 ignored 경로에 보존하며 운영 값�
 
 이 결과는 Editor의 원래 어셈블리 compile 검증이다. Android player/IL2CPP, private App ID
 읽기 및 빌드 finally, 실제 merged manifest/signature, 네이티브 SDK, publisher UMP
-기기/게시·운영 광고 활성 검증을 대신하지 않는다. 별도 범위 확인 전 빌드·기기 실행하지 않는다.
+기기/게시·운영 광고 활성 검증을 대신하지 않는다. 아래 별도 승인된 APK 단계와 구분한다.
+
+### 후속 승인된 게시자 격리 APK 1회와 오프라인 검사
+
+사용자 작업 계속 지시와 총괄의 구체 배정에 따라 실제 main source
+`7f5e24723a2f955b19aad26f18c2f8dddb83131f`를 새 검증 브랜치에 clean/own Editor0으로
+반영했다. 기존 승인 복원 자료를 재사용하고 추가 private 충돌/누락 없음을 확인했다.
+위와 같은 Unity/CLI/Android 기준에서 `Run-AdHarness.ps1 -Variant ump-publisher
+-PrivatePublisherOptIn`을 절대 프로젝트 경로와 함께 **1회** 실행했다.
+
+결과: **build exit0 / IL2CPP Android APK 성공 / 오프라인 APK verifier PASS**.
+`AD_HARNESS_BUILD_OK variant=ump-publisher`와 `AD_HARNESS_IDENTITY_RESTORED`를 실제
+로그에서 확인했다. player `Assembly-CSharp.rsp`에는 `TAMER_REVIVAL_SMOKE`,
+`TAMER_AD_TEST_HARNESS`, `TAMER_UMP_ONLY_HARNESS`, `TAMER_UMP_PUBLISHER_HARNESS`가
+포함됐다. C# compiler error0이며 앞선 컴파일 전용 1회 검사를 반복한 결과로 표시하지 않는다.
+
+APK `Build/revival/Tamer-ads-ump-publisher.apk`는 98,520,264 bytes, SHA-256
+`570bc882e52b23a2ff0549e90b4557b9ad02d49187cbb9a21cbe1ea1314167a4`다.
+실제 merged manifest의 App ID 정확1개/private config 일치/비샘플 게시자,
+`com.AeDeong.MonsterTamer.revival.umppublisher`/debuggable/debug certificate,
+version1.0.5/code26/min25/target36/ARM64-only를 확인했다. 운영 App ID는 출력하지 않는다.
+실제 manifest에는 **MobileAdsInitProvider와 AD_ID 권한이 존재**한다.
+managed 광고 Init/Load/Show를 실행하지 않는 소스 경로와 이 네이티브 초기화/권한을 구분한다.
+
+wrapper 백업 7개(ProjectSettings 3개, Settings/manifest, harness scene/.meta)의 현재 바이트가
+각 백업과 모두 일치했다. 원래 package/signing/backend/bundle/defines 설정과 씬/GUID를
+보존했다. opt-in 환경변수는 wrapper finally 복원 후 프로세스가 종료됐으며 별도 환경값
+readback receipt는 수집하지 않았다. own import가 변경한 tracked 파일 6개는 기존 clean과
+비교해 private patch로 보존 후 정확히 복원했다. own Editor0/clean 및 private 승인 자료
+유지를 확인했고 슬롯을 반환했다.
+
+private 검사 결과는 `Logs/revival/ads-ump-publisher-verification.json`과
+`Logs/revival/publisher-ump-apk-summary.json`, raw 로그는
+`Logs/revival/ads-ump-publisher-build.log`에 보존한다. 로그 SHA-256은
+`d064c05e4266ef149f88c1e4ff05228a2b10bfe120201eff3adc90bf1d8db6fb`다.
+
+실제 APK를 설치/실행하지 않았으며 publisher UMP 네트워크·폼 표시·거절/옵션/재시작,
+네이티브 전체 트래픽, 이 APK의 LOAD/ZIP/strict RELRO, AAB/스토어는 미검증이다.
+메시지 Publish OFF/운영 및 지역 flags false를 유지한다. 별도 범위 확인 전 기기/게시 실행하지 않는다.
