@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "reason": "Reviewed Unity 6000.3.25f1 importer migration; original restoration inventory is preserved",
+  "entries": [
+    {
+      "path": "Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Images/checkmark.png.meta",
+      "old": {
+        "sha256": "bad14e90d654ada5ec00a6ec037b2485b562661381962ea17fbd1dc859d07e9a",
+        "bytes": 3337,
+        "guid": "1f806a850e4ff264eafc4935f65793b8"
+      },
+      "new": {
+        "sha256": "5e31fb053bbd11ec13821f07635322f94fdac75c50ed4c16b6b208789d75bce6",
+        "bytes": 3949,
+        "guid": "1f806a850e4ff264eafc4935f65793b8"
+      },
+      "migrationCommit": "c8b248c966729a28e3058e73aef0cef622cecb64"
+    },
+    {
+      "path": "Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Images/checkmark_off.png.meta",
+      "old": {
+        "sha256": "507cb93f7dc65972c9bb9250756b81de58b0b3646a15276272c64c27faa254ac",
+        "bytes": 3337,
+        "guid": "d20c53c8cad21024091aeed0b9bf2a0e"
+      },
+      "new": {
+        "sha256": "1d56987daab1ff1c41e3e013a220872b56394a7547e1c60d6e84a823ff947b05",
+        "bytes": 3957,
+        "guid": "d20c53c8cad21024091aeed0b9bf2a0e"
+      },
+      "migrationCommit": "c8b248c966729a28e3058e73aef0cef622cecb64"
+    },
+    {
+      "path": "Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Images/checkmark_on.png.meta",
+      "old": {
+        "sha256": "4d71420fb45d0187e9d36f48000072628f3d6ffd9d3fb3388315db1eb64fb9de",
+        "bytes": 3337,
+        "guid": "a2f13c216f2649d49b892cade7f4e5f0"
+      },
+      "new": {
+        "sha256": "c5a79f52fe2deef1b2612a58ee8d65896c2c52df9b345c483e722dcce0146534",
+        "bytes": 3957,
+        "guid": "a2f13c216f2649d49b892cade7f4e5f0"
+      },
+      "migrationCommit": "c8b248c966729a28e3058e73aef0cef622cecb64"
+    },
+    {
+      "path": "Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Images/dashboardIcon.png.meta",
+      "old": {
+        "sha256": "10cfef55bbe8d2eaa7efb27b138af8d475b5c878b767576dc7032cb8931d7ccf",
+        "bytes": 3337,
+        "guid": "4f1db872b2efa324c806fcbb54e19e1c"
+      },
+      "new": {
+        "sha256": "57a17e8e15cfab24c3145b3575ac88b68ca79ce953932a55653a299f330497d6",
+        "bytes": 3959,
+        "guid": "4f1db872b2efa324c806fcbb54e19e1c"
+      },
+      "migrationCommit": "c8b248c966729a28e3058e73aef0cef622cecb64"
+    },
+    {
+      "path": "Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Images/dashboardIconHover.png.meta",
+      "old": {
+        "sha256": "f9c49d32d3075f02212719b4c4235c536aa231889b6549bae93df60141cc6eb0",
+        "bytes": 3337,
+        "guid": "b43817ee9dda16c41a628a705526a021"
+      },
+      "new": {
+        "sha256": "fb9da977db4c0381e38e46ae9c6752c0da9d5ce9394755309d7ceee8ceb59832",
+        "bytes": 3969,
+        "guid": "b43817ee9dda16c41a628a705526a021"
+      },
+      "migrationCommit": "c8b248c966729a28e3058e73aef0cef622cecb64"
+    },
+    {
+      "path": "Assets/ThirdParty/PlayFabEditorExtensions/Editor/UI/Images/playfablogo.png.meta",
+      "old": {
+        "sha256": "2af72970588274787ef052a7ab8b2da4d7b2bba6ff6b9bdf0f20ddbd46939af8",
+        "bytes": 3337,
+        "guid": "77e37f7fe73c7db4d9a1702eb4ad411b"
+      },
+      "new": {
+        "sha256": "bdd38c8613326e000cf2b17d29cb9a39598f3ff6929f257fea6f71babc0647d2",
+        "bytes": 3951,
+        "guid": "77e37f7fe73c7db4d9a1702eb4ad411b"
+      },
+      "migrationCommit": "c8b248c966729a28e3058e73aef0cef622cecb64"
+    },
+    {
+      "path": "Assets/ThirdParty/PlayFabSDK/Shared/Editor/PlayFablogo.png.meta",
+      "old": {
+        "sha256": "61dffb53ed523aec397e7dfce21a921bce404959ca44ab80a895d91dc2e2ab92",
+        "bytes": 2057,
+        "guid": "ec8f5065b10fb4f04bebf82a992c442e"
+      },
+      "new": {
+        "sha256": "f371e4f87a025db4437df1df22f81e5474bc902f81f8d75cdc0a74d4a38ac88d",
+        "bytes": 3599,
+        "guid": "ec8f5065b10fb4f04bebf82a992c442e"
+      },
+      "migrationCommit": "c8b248c966729a28e3058e73aef0cef622cecb64"
+    }
+  ]
+}
