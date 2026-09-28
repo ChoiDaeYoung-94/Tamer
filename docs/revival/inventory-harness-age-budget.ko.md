@@ -1,6 +1,6 @@
 # 격리 인벤토리 하네스의 연령 확인 대기와 준비 시간 분리
 
-세 번째 기기 시도의 private operator20초와 하네스 Main Ready40초가 모두 연령 창 확인/입력에 소비될 수 있었습니다. 단순 timeout 확대 대신 두 시간을 분리하는 준비 변경입니다. 새 Editor/APK/기기 실행 없이 작성했습니다. 실제 인벤토리 검증 완료 또는 다음 기기 실행 승인으로 표현하지 않습니다.
+세 번째 기기 시도의 private operator20초와 하네스 Main Ready40초가 모두 연령 창 확인/입력에 소비될 수 있었습니다. 단순 timeout 확대 대신 두 시간을 분리하는 준비 변경입니다. 아래 설계·독립 시험은 새 Editor/APK/기기 실행 전에 작성한 준비 기록입니다. 이후 사용자가 새 빌드1회·네 번째 기기1회를 승인했고 [후속 검증 결과](inventory-harness-fourth-attempt.ko.md)에 source와 실제 결과를 별도로 기록했습니다.
 
 ## 하네스 source 변경
 
@@ -25,6 +25,6 @@ private 실제 신호 helper의 독립 경계 5/5 통과(0.058초): 신호 부�
 - source checkout `C:/Users/pc_17/.codex/worktrees/unity-lts-transition/Tamer`, branch `codex/inventory-harness-age-budget`, 기준 main `4a2d55e81a960e98c4d12e8c6996f121d4655eed`.
 - 하네스 코드 커밋 `2230dba`. pure source 검증 및 private operator5경계 결과는 `Logs/revival/lts-readiness-budget-check*`와 `lts-operator-prepared-tests.txt`에 비공개 보존합니다.
 - 기존meta/GUID·원본checkout·계정/서명·설정·실행된 APK와 이전1/2/3차 증거를 보존했습니다.
-- 이번 변경의 Unity 전체 컴파일0·새 APK0·기기 설치0·네 번째 시도0·추가 RELRO 검사0입니다. 순수 로직 시험 성공을 실제 게임 렌더링/write/restart 성공으로 대체하지 않습니다.
+- 준비 단계 당시 Unity 전체 컴파일0·새 APK0·기기 설치0·네 번째 시도0·추가 RELRO 검사0이었습니다. 승인된 후속 실행은 별도 결과의 실제 source/SHA로만 확인합니다. 순수 로직 시험 성공을 실제 게임 렌더링/write/restart 성공으로 대체하지 않습니다.
 
-앞의 기기 실패 중단 규칙은 그대로입니다. 다음 APK/기기 통합 검증은 이 수정의 리뷰와 구체적인 실행 범위 승인 후 수행해야 하며, 준비 변경만으로 추가 실행을 승인된 것으로 취급하지 않습니다.
+앞의 기기 실패 기록과 중단 규칙은 보존합니다. 준비 변경만으로 추가 실행을 승인된 것으로 취급하지 않았으며, 이후 명시 승인된 빌드1회·기기1회만 별도 수행했습니다. 그 밖의 기기 재실행이나 영향 범위 확대는 이 기록의 승인에 포함되지 않습니다.

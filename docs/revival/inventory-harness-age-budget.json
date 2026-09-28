@@ -20,15 +20,15 @@
   "readinessActiveBudgetSeconds": 40,
   "productAgeSelectionChanged": false,
   "productTimeScaleChanged": false,
-  "unityFullCompilationPerformed": false,
-  "newApkBuilt": false,
-  "fourthDeviceAttemptExecuted": false,
+  "unityFullCompilationPerformed": true,
+  "newApkBuilt": true,
+  "fourthDeviceAttemptExecuted": true,
   "unverified": [
-    "Unity compilation of modified harness",
-    "actual age modal gate integration",
-    "full operator/device workflow",
-    "character/equipment/HUD rendering",
-    "inventory write/restart"
+    "negative Unity predicate scenarios (missing/inactive modal, unrelated popup, different owner/scene)",
+    "complete Game scene/combat/collection flow",
+    "actual native ARM64 16KB runtime",
+    "final release AAB and store",
+    "real account/purchase/ad/save service integration"
   ],
   "evidenceHashes": {
     "lts-readiness-budget-check-output.txt": "f77fb57009dc9c99b660992899417e6e1e40641aa714bc1ce14562d8abcf3423",
@@ -56,5 +56,8 @@
       "timely valid signal accepted"
     ]
   },
-  "operatorDeadlineRecheckedBeforeAcceptance": true
+  "operatorDeadlineRecheckedBeforeAcceptance": true,
+  "preparationResultsHistorical": true,
+  "actualValidationSummary": "inventory-harness-fourth-attempt.json",
+  "actualValidationCodeCommit": "4b6726fbd5016bcd782d864296d97f8c810e5a2c"
 }
