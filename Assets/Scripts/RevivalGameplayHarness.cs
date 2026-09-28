@@ -18,6 +18,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private Player _originalPlayer;
     private Managers _originalManagers;
     private string _lastObservation;
+    private string _lastCombatObservation;
     private float _nextObservation;
     private string _observedScene;
     private MonsterGenerator _previousGenerator;
@@ -78,6 +79,9 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (player == null || Managers.Instance != _originalManagers) return;
         ObserveSceneLifetime();
         ObserveCaptures(player);
+#if TAMER_GAMEPLAY_HARNESS && !TAMER_GAMEPLAY_PHOTO && !TAMER_AGE_CHOICE && !TAMER_SESSION_HARNESS && !TAMER_PLAYER_RESTORE && !TAMER_INVENTORY_RESTORE
+        ObserveCombat(player);
+#endif
         string observation = "scene=" + UnitySceneManager.GetActiveScene().name +
             " hp=" + player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " gold=" + player.Gold + " allies=" + player.GetCurMonsterCount() +
@@ -86,6 +90,27 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         _lastObservation = observation;
         Debug.Log("GAMEPLAY_OBSERVATION " + observation);
     }
+
+#if TAMER_GAMEPLAY_HARNESS && !TAMER_GAMEPLAY_PHOTO && !TAMER_AGE_CHOICE && !TAMER_SESSION_HARNESS && !TAMER_PLAYER_RESTORE && !TAMER_INVENTORY_RESTORE
+    private void ObserveCombat(Player player)
+    {
+        if (UnitySceneManager.GetActiveScene().name != "Game" || Managers.SceneM.IsTransitioning) return;
+        var enemies = FindObjectsByType<Monster>(FindObjectsSortMode.None)
+            .Where(monster => monster.isActiveAndEnabled && monster.CompareTag("Monster"))
+            .OrderBy(monster => Vector3.Distance(player.transform.position, monster.transform.position)).Take(4);
+        var text = new System.Text.StringBuilder("playerHp=" +
+            player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+        foreach (Monster enemy in enemies)
+            text.Append(" | enemyId=").Append(enemy.GetInstanceID()).Append(" type=").Append(enemy.CreatureType)
+                .Append(" hp=").Append(enemy.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(" distance=").Append(Vector3.Distance(player.transform.position, enemy.transform.position)
+                    .ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+        string observation = text.ToString();
+        if (observation == _lastCombatObservation) return;
+        _lastCombatObservation = observation;
+        Debug.Log("GAMEPLAY_COMBAT_OBSERVATION " + observation);
+    }
+#endif
 
     private void ObserveCaptures(Player player)
     {
