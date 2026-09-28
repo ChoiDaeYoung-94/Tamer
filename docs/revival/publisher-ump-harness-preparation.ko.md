@@ -54,8 +54,36 @@ Unity compile/build 및 APK manifest/signature 검사. 이것은 게시자 폼 �
   중복 형식, 이를 제외한 2차 UnityEditor와 CoreModule 중복 및 기존 internal
   GoogleUmpConsentClient의 외부 assembly 접근 오류다. 실제 두 소스를 링크했지만
   제품의 Unity compile 성공/실패 판정 근거가 아니다. 지시대로 3차나 유사 우회 실행을 하지 않는다.
-- Unity Editor/runner·IL2CPP/APK/AAB·원복 finally 실실행·게시자 네트워크/기기·메시지 게시는
+- IL2CPP/APK/AAB·빌드 경로의 finally 실실행·게시자 네트워크/기기·메시지 게시는
   **미실행/미검증**이다. 새 APK SHA-256은 해당 없음. raw 구성 결과는 ignored 로컬 경로에 보존한다.
 - production/지역 false, 기존 연령별 fullscreen 제한, 보상/No Ads 계약은 변경하지 않았다.
 
-기능 코드 리뷰와 위 참조 구성 실패에 대한 다음 실행 범위 판단이 끝나기 전 빌드하지 않는다.
+### 사용자 승인 후 실제 Unity 컴파일 1회
+
+두 .NET 참조 구성 실패를 보고한 후 사용자가 실제 Unity 컴파일만 **1회** 승인했다.
+이는 .NET 검사 3차나 이름 변경 우회가 아니다. 실제 source
+`7976b2ecec61a83e8f41a1418eb6fd1068294286`를 clean/own Editor0으로 확인했다.
+이 checkout의 앞선 승인 복원 PASS 근거를 재사용했고, 승인된 메타/보존 복사본 일치 및
+이후 다른 비공개 충돌·누락 없음을 확인하여 복원 명령을 반복하지 않았다.
+
+Unity `6000.3.25f1` / revision `e1dba0a9aba4` / CLI `1.0.0-beta.8`의 `run`을
+절대 프로젝트 경로와 Android 대상으로 실행했다. 임시 dirty 범위는 ProjectSettings의
+Android defines뿐이며 원래 `DOTWEEN`에 `TAMER_AD_TEST_HARNESS`, `TAMER_UMP_ONLY_HARNESS`,
+`TAMER_UMP_PUBLISHER_HARNESS`를 추가했다. Play/test/build/executeMethod는 사용하지 않았다.
+
+결과: **CLI exit0 / C# compiler error0**, script compilation 14.225301초.
+`Assembly-CSharp`와 `Assembly-CSharp-Editor`의 실제 Bee response에 해당 세 define와
+변경 소스가 모두 들어갔고, UTC 2026-09-28 09:36:44에 각 DLL이 생성됐다.
+Main DLL에 publisher-only boot 문자열이 포함된 것도 읽기로 확인하여 기존 캐시만의
+성공으로 표시하지 않는다. 기존 소스의 obsolete 경고는 compile error와 구분한다.
+
+정상 종료 후 설정 전체 바이트를 원래 백업 SHA와 대조해 복원했고 Android define는 다시
+`DOTWEEN`이다. own Editor0/clean을 확인했으며 추가 import tracked 변경은 없었다.
+비공개 현재 메타와 보존 자료도 유지됐다. 코드 후속 변경은 없고 이 결과 문서만 추가한다.
+raw 로그/response/설정 백업은 ignored 경로에 보존하며 운영 값을 공개하지 않는다.
+로그 `Logs/revival/publisher-ump-compile/unity-compile.log` SHA-256은
+`770bda1f490dfdbee331efd6a361acfb4a07fac4a92738377c38abc3e63ac2e0`이다.
+
+이 결과는 Editor의 원래 어셈블리 compile 검증이다. Android player/IL2CPP, private App ID
+읽기 및 빌드 finally, 실제 merged manifest/signature, 네이티브 SDK, publisher UMP
+기기/게시·운영 광고 활성 검증을 대신하지 않는다. 별도 범위 확인 전 빌드·기기 실행하지 않는다.
