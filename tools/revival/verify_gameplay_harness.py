@@ -57,7 +57,7 @@ if __name__ == '__main__':
     suffix = '-photo' if args.variant == 'photo' else ''
     stem = args.variant if args.variant in ('playerrestore', 'agechoice', 'receipt', 'sessionguard', 'inventoryrestore') else f'gameplay{suffix}'
     result = verify(root / f'Build/revival/Tamer-{stem}.apk', Path(
-        'C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer'), args.variant)
+        'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer'), args.variant)
     output = root / f'Logs/revival/{stem}-apk-verification.json'
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')

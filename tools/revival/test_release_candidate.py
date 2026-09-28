@@ -45,7 +45,7 @@ class ReleaseCandidateTests(unittest.TestCase):
   scriptingDefineSymbols:
     Android: DOTWEEN
 ''')
-            (root/'ProjectSettings/ProjectVersion.txt').write_text('m_EditorVersion: 6000.0.81f1')
+            (root/'ProjectSettings/ProjectVersion.txt').write_text('m_EditorVersion: 6000.3.25f1')
             scenes=root/'ProjectSettings/EditorBuildSettings.asset'
             scenes.write_text('  - enabled: 1\n    path: Assets/Scenes/Login.unity\n')
             (root/'Assets/Resources/IAPProductCatalog.json').write_text(json.dumps({'enableCodelessAutoInitialization':False,'enableUnityGamingServicesAutoInitialization':False}))

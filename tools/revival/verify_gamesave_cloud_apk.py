@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-android = Path('C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer')
+android = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer')
 sdk = android / 'SDK/build-tools/36.0.0'
 apk = root / 'Build/revival/Tamer-gamesave-cloud.apk'
 

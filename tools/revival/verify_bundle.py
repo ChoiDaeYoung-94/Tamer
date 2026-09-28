@@ -43,7 +43,7 @@ def main():
     parser.add_argument('--aab', type=Path, default=ROOT / 'Build/revival/Tamer-development.aab')
     parser.add_argument('--output', type=Path, default=ROOT / 'Build/revival/bundle-check')
     parser.add_argument('--device-spec', type=Path, help='Optional bundletool device JSON; default is synthetic ARM64 API36')
-    parser.add_argument('--android-player', type=Path, default=Path('C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
+    parser.add_argument('--android-player', type=Path, default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
     args = parser.parse_args()
     if not DEST.exists() or digest(DEST) != SHA256:
         raise ValueError('Run install_bundletool.py; pinned bundletool is missing or changed')

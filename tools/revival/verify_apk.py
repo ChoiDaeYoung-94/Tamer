@@ -8,7 +8,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--android-player', type=Path, default=Path('C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
+parser.add_argument('--android-player', type=Path, default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
 args = parser.parse_args()
 apk = root / 'Build/revival/Tamer-development.apk'
 tools = args.android_player / 'SDK/build-tools/36.0.0'

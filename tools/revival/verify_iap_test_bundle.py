@@ -36,7 +36,7 @@ def main():
         raise ValueError("Pinned bundletool changed")
     aab = ROOT / "Build/revival/Tamer-iap-test.aab"
     cert = ROOT / ".revival-local/iap-signing/test-upload.der"
-    java = Path("C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe")
+    java = Path("C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe")
     def run(*args):
         return subprocess.check_output([str(java), *map(str,args)], text=True, encoding="utf-8", stderr=subprocess.PIPE)
     run("-jar", DEST, "validate", "--bundle=" + str(aab))

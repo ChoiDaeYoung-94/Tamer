@@ -62,7 +62,7 @@ public static class RevivalBuild
 
     public static void ValidateBaseline()
     {
-        if (Application.unityVersion != "6000.0.81f1") throw new BuildFailedException("Expected Unity 6000.0.81f1.");
+        if (Application.unityVersion != "6000.3.25f1") throw new BuildFailedException("Expected Unity 6000.3.25f1.");
         foreach (var file in new[] { "Build/AOSSettingAPK.txt", "Build/AOSSettingAAB.txt", "Build/checkedBuilding.txt" })
             if (File.Exists(file)) throw new BuildFailedException("Legacy build marker exists: " + file);
         if (PlayerSettings.bundleVersion != "1.0.5" || PlayerSettings.Android.bundleVersionCode != 26)

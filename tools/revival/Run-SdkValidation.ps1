@@ -1,6 +1,6 @@
 param(
     [string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path,
-    [string]$EditorPath = 'C:\Program Files\Unity\Hub\Editor\6000.0.81f1\Editor\Unity.exe'
+    [string]$EditorPath = 'C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe'
 )
 $ErrorActionPreference = 'Stop'
 $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path

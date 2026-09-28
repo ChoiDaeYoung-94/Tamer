@@ -46,6 +46,6 @@ if __name__ == '__main__':
     name = 'deletion-online-trial' if args.online else 'deletion-trial'
     identity = 'com.AeDeong.MonsterTamer.deletiontrial' + ('.online' if args.online else '')
     result=verify(root/('Build/revival/Tamer-' + name + '.apk'),Path(
-        'C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer'),identity)
+        'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer'),identity)
     (root/('Logs/revival/' + name + '-apk-verification.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result))

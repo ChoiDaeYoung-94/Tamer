@@ -48,7 +48,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--variant', choices=['sample', 'control'], required=True)
     parser.add_argument('--android-player', type=Path, default=Path(
-        'C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
+        'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     result = verify(root / f'Build/revival/Tamer-ads-{args.variant}.apk', args.android_player, args.variant)

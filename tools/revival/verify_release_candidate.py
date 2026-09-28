@@ -66,7 +66,7 @@ def source_checks(root):
     scenes = re.findall(r'^  - enabled: 1\r?\n    path: (.+)$', (root / 'ProjectSettings/EditorBuildSettings.asset').read_text(), re.M)
     defines = set((android_value('scriptingDefineSymbols') or '').split(';'))
     checks = {
-        'unityPinned': 'm_EditorVersion: 6000.0.81f1' in (root/'ProjectSettings/ProjectVersion.txt').read_text(),
+        'unityPinned': 'm_EditorVersion: 6000.3.25f1' in (root/'ProjectSettings/ProjectVersion.txt').read_text(),
         'productionIdPreserved': android_value('applicationIdentifier') == APP_ID,
         'min24': scalar('AndroidMinSdkVersion') == '24',
         'target36': scalar('AndroidTargetSdkVersion') == '36',
@@ -125,7 +125,7 @@ def main():
     candidate.add_argument('--published-max-code',type=int,required=True)
     candidate.add_argument('--upload-cert-sha256',required=True)
     candidate.add_argument('--bundletool',type=Path,default=DEST)
-    candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
+    candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
     args=parser.parse_args()
     inputs=[ROOT/path for path in SOURCE_INPUTS]+[Path(__file__),ROOT/'tools/revival/VerifyAabSignature.java',
         ROOT/'tools/revival/install_bundletool.py',ROOT/'tools/revival/verify_native_alignment.py']

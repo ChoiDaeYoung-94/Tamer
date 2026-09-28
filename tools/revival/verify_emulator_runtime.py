@@ -55,7 +55,7 @@ def main():
         raise ValueError('Use a new evidence directory')
     args.output.mkdir(parents=True)
     adb = ROOT / 'tools/.local/android-sdk/platform-tools/adb.exe'
-    player = Path('C:/Program Files/Unity/Hub/Editor/6000.0.81f1/Editor/Data/PlaybackEngines/AndroidPlayer')
+    player = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer')
     build_tools = player / 'SDK/build-tools/36.0.0'
 
     def run(command, timeout=30):
