@@ -23,3 +23,7 @@ private 보조 스크립트의 stdin 대기를 로컬 resume 파일 대기로 �
 [프로젝트 규칙](../../AGENTS.md)의 “같은 테스트가 2회 이상 실패하면 해당 테스트와 그 결과에 의존하는 작업을 중단한다”에 따라 종속 검증을 중단했습니다. 원시 로그·화면·기기 식별자·private 보조 스크립트는 비공개 `Logs/revival/lts-inventory-*`에 보존했습니다. [공개 요약](lts-inventory-visual-validation.json)은 APK/증거 해시와 실패·미검증 범위만 기록합니다.
 
 strict RELRO 재실행0, 실제 16KB 실행·출시 AAB·스토어 검증0입니다. [LTS 전환 APK의 별도 결과](lts-transition-validation.ko.md)는 그대로 보존하며 이번 inventory APK의 정렬 성공으로 바꾸어 표현하지 않습니다. 다음 사용자 결정은 준비한 입력 방식으로 같은 기기 검증을 세 번째 실행할지 여부입니다.
+
+## 승인된 후속 시도 기록
+
+이 문서의 1·2차 실패와 독립 경계 시험은 당시 기록으로 보존합니다. 이후 사용자가 세 번째1회를 승인했고, [세 번째 시도 기록](lts-inventory-third-attempt.ko.md)에 실제 결과와 중단 상태를 별도로 기록했습니다.
