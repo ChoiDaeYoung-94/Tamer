@@ -359,6 +359,34 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             collider != null && collider.enabled && collider.gameObject.activeInHierarchy;
     }
 
+#if TAMER_INVENTORY_RESTORE
+    private static bool OriginalAgeModalOwnsInput()
+    {
+        var popups = Managers.PopupM;
+        if (popups == null || !popups.isActiveAndEnabled) return false;
+        var presenter = popups.GetComponent<AgeChoicePresenter>();
+        if (presenter == null || !presenter.isActiveAndEnabled) return false;
+        const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic;
+        var type = typeof(AgeChoicePresenter);
+        var open = type.GetField("_open", fields);
+        var modalField = type.GetField("_modal", fields);
+        var scene = type.GetField("_scene", fields);
+        var popupOwner = type.GetField("_popups", fields);
+        var adsOwner = type.GetField("_ads", fields);
+        if (open == null || modalField == null || scene == null || popupOwner == null || adsOwner == null)
+            return false;
+        var modal = modalField.GetValue(presenter) as GameObject;
+        if (!(open.GetValue(presenter) is bool isOpen) || !isOpen || modal == null || !modal.activeInHierarchy ||
+            !(scene.GetValue(presenter) is int ownerScene) || ownerScene != UnitySceneManager.GetActiveScene().handle ||
+            !ReferenceEquals(popupOwner.GetValue(presenter), popups) ||
+            !ReferenceEquals(adsOwner.GetValue(presenter), Managers.GoogleAdMobM)) return false;
+        var ownersField = typeof(PopupManager).GetField("_flowOwners", fields);
+        var owners = ownersField?.GetValue(popups) as System.Collections.Generic.HashSet<GameObject>;
+        return owners != null && owners.Contains(modal);
+    }
+#endif
+
     private IEnumerator WaitForScene(string scene)
     {
 #if TAMER_INVENTORY_RESTORE
@@ -375,7 +403,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
                 Player.Instance.isActiveAndEnabled && Player.Instance.Hp > 0 &&
                 CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
                 Time.timeScale == 0 && Managers.GoogleAdMobM != null &&
-                Managers.GoogleAdMobM.AgeSelection.NeedsQuestion;
+                Managers.GoogleAdMobM.AgeSelection.NeedsQuestion && OriginalAgeModalOwnsInput();
             if (ageQuestionOwnsInput && !ageWaitReported)
             {
                 Mark("WAIT_AGE_CHOICE original modal; choose Declined manually; Ready budget paused");

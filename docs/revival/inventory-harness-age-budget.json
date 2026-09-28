@@ -33,5 +33,16 @@
   "evidenceHashes": {
     "lts-readiness-budget-check-output.txt": "f77fb57009dc9c99b660992899417e6e1e40641aa714bc1ce14562d8abcf3423",
     "lts-operator-prepared-tests.txt": "5fb247b902df1829594f9dc99396b18d28a4a909b30ac9f0d3529c1dce29d952"
-  }
+  },
+  "readOnlyAgePredicate": [
+    "original PopupManager presenter active",
+    "presenter _open",
+    "modal activeInHierarchy",
+    "presenter scene handle equals current scene",
+    "bound popup and ads owners match",
+    "modal registered in PopupManager _flowOwners"
+  ],
+  "missingPrivateObservationFailsClosed": true,
+  "privateOwnershipCaptureFailureCleanup": "explicit unconfirmed/refused, no inferred deletion",
+  "predicateUnityValidationPerformed": false
 }
