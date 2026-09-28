@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "checkout": "C:\\Users\\pc_17\\.codex\\worktrees\\unity-lts-transition\\Tamer",
+  "branch": "codex/lts-gameplay-roundtrip",
+  "buildCodeCommit": "579649515de43d34cfe88e1ae200af4e756d5171",
+  "integrationBase": "34f2aea5ec673168e0f17af17eb2f80a1feac9e2",
+  "unity": "6000.3.25f1",
+  "unityRevision": "e1dba0a9aba4",
+  "cli": "1.0.0-beta.8",
+  "pipeline": "0.6.0-exp.1",
+  "jdk": "17.0.18+8",
+  "ndk": "27.2.12479018",
+  "gradle": "9.3.1",
+  "androidBuildTools": "36.0.0",
+  "apk": {
+    "variant": "development",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.gameplay",
+    "bytes": 110624443,
+    "sha256": "375b48b7df6dfe0a5759f9554fb33fadad2e5495c4be0788a08cbb30b52249b9",
+    "minSdk": 25,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "buildAttempts": 1,
+  "deviceAttempts": 1,
+  "androidApi": 33,
+  "pageSize": 4096,
+  "staticReviewCompleted": true,
+  "operatorActionRoutingUnitCases": 2,
+  "naturalCombatDamageObserved": true,
+  "playerHpSequence": [
+    100,
+    90,
+    80,
+    70,
+    60,
+    50,
+    40,
+    30,
+    20,
+    10,
+    0
+  ],
+  "sameEnemyHpSequence": [
+    70,
+    60,
+    50,
+    40,
+    30
+  ],
+  "originalGameOverOkMainReturnObserved": true,
+  "mainReturnHp": 100,
+  "gold": 1000,
+  "isolatedSaveBytesSame": true,
+  "isolatedSaveSha256": "14c559b2c5d6a1c327c274a845cd3e09f66b8182bd4e0bad95ff5287dc67ac12",
+  "reads": [
+    2,
+    3,
+    4
+  ],
+  "writes": 0,
+  "automatedCoordinatorPassed": false,
+  "automatedCoordinatorFailure": "Missing marker: MANUAL_READY Main",
+  "harnessFailMarkers": 0,
+  "fatalEventsObserved": false,
+  "preHarnessPlayerConnectionUnityErrors": 3,
+  "renderGraphDepthWarningCountInPreservedReturnLog": 3104,
+  "renderGraphDepthFixValidated": false,
+  "originalMainGameMainScreensReviewed": true,
+  "unityNativeLibrariesMapped": true,
+  "nativeTranslationMapped": false,
+  "captureAssistUsed": false,
+  "healthOrInvincibilityModifiedByTest": false,
+  "swipeOccurredAfterPlayerDeath": true,
+  "aliveJoystickMovementVerified": false,
+  "enemyKillRewardVerified": false,
+  "liveManualReturnButtonVerified": false,
+  "ownFreshInstallRemoved": true,
+  "ownedEditorsAfter": 0,
+  "editorPhoneSlotReturned": true,
+  "runtime16KBVerified": false,
+  "strictRelroRerunCount": 0,
+  "finalReleaseAabStoreVerified": false,
+  "operatingServicesExecuted": false,
+  "evidenceHashes": [
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-preflight.json",
+      "sha256": "ec7b0dfe93af4d164cefdfd9c19cd7afa40265443f267ad18178e2c62d98b49c"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-apk-provenance.json",
+      "sha256": "d3e2617803a1643b5b61fc446c8438ac13250031b1b93c672e529c2bb200d8e2"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-build-wrapper.txt",
+      "sha256": "5ea6f5ae8899ae27a294abf59b85237d01c619a9b0e6e2e67b1bf5e5f7b22368"
+    },
+    {
+      "localRelativePath": "Logs/revival/gameplay-build.log",
+      "sha256": "6ba97519344d5ea0f6a82530fa90bbcfcbfcc1471733128fe6bf45af63ff26b3"
+    },
+    {
+      "localRelativePath": "Logs/revival/gameplay-apk-verification.json",
+      "sha256": "f2ff3ccd9ccb29a3dcdba96d5a996a6680d60e5ed3da3b65e9225fe2d932def1"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-slot-return.json",
+      "sha256": "05b83e5150bb8c47b61d4c34b8c52d94d9fae96a29bbaeab43fc15c0b20f80c6"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-build-whitespace.diff",
+      "sha256": "9dfad428f3629fd4cb4b8a0b56c535d8875bfd0948d80f32558a7e017f6797e9"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-operator-tests.txt",
+      "sha256": "ccb9ef45947a389372965209f8bab28d196c094ca4068877db8b1e55d6853929"
+    },
+    {
+      "localRelativePath": "Logs/revival/LtsGameplayDevice.py",
+      "sha256": "d04ce7a413e2ee7515c77aefbfe9d55c7d4ae45f657b10af5a637f25c3949c07"
+    },
+    {
+      "localRelativePath": "Logs/revival/LtsGameplayOperator.py",
+      "sha256": "6655af2ec2b11a54424e53175a0e86a1eda998b6a4d1bc375a51066a43194353"
+    },
+    {
+      "localRelativePath": "Logs/revival/LtsGameplaySignal.py",
+      "sha256": "52b266c73c9c193518a327e803a0c2b26074eda892a9c80d3dc0ce58eb857db6"
+    },
+    {
+      "localRelativePath": "Logs/revival/LtsGameplayOriginalReturn.py",
+      "sha256": "3c00eb8b7312436873e963f7bba125ce40926238061c8b27f2aca90b6db6020d"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/age-operator-ready.json",
+      "sha256": "fa8d3b1852623af85de82532421031a6d32663d561ca75efd0999579c30c4175"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/age-resume.json",
+      "sha256": "e89e20aded143edfc152e40e61d1db1621eb7e828e65d338ecafa66b42c1cc5f"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/age-screen.png",
+      "sha256": "df2a43ddb0abbd9f79aa0cab009d80d1d2175075ce9a265c2ad4fec2eb56077b"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/game-combat-screen.png",
+      "sha256": "fa9dc7d83286c689cf17aa8690b452f9efff25b4c86988f1d5a2a5a5a4d4808c"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/game-live-logcat.txt",
+      "sha256": "966bd1c492ca5eb01287b5566f2403c35df7a328e20962888b235eb5b877ed4a"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/game-operator-ready.json",
+      "sha256": "c1cf3a990cb678c0f4deba57ebae6bea4e2798f1035a00e979cce008903fe127"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/game-over-ok-screen.png",
+      "sha256": "ead9dd31805bb954ff0d51be8d830026372bfaa2e180b9a586e6d1d30af3eeb9"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/game-resume.json",
+      "sha256": "9b3eb8fc0791d6fbfbb59b58d34f11bc9b6dac3c8f2356df91ba584c1bef6bfa"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/game-screen.png",
+      "sha256": "0ae80c4925cfa8ddca27071b807a21deb6b2adaff19cdeb6f2fb105543fcd205"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/gameplay-device.json",
+      "sha256": "4aae8ffb3fddf571a036d004981b1d897e39b5701e62b5345b69e02edc15e19b"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/main-start-operator-ready.json",
+      "sha256": "c160127c5e9ebdea6b1e29c7cee3c152b8c0ffc8b961b6da9dda2a9ad06f09c4"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/main-start-player.json",
+      "sha256": "14c559b2c5d6a1c327c274a845cd3e09f66b8182bd4e0bad95ff5287dc67ac12"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/main-start-resume.json",
+      "sha256": "18242d9d267b98304612aa54fcbaa2dc004f8406588e249ea6f5770385c5df2f"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/main-start-screen.png",
+      "sha256": "d5c1b68cde2ef81bb655d644ca89c76992027cf7afff67bbe2f6cb489a9635a0"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/original-main-return-player.json",
+      "sha256": "14c559b2c5d6a1c327c274a845cd3e09f66b8182bd4e0bad95ff5287dc67ac12"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/original-return-app-logcat.txt",
+      "sha256": "592d68faebfc0fe84c89aaa007bc08f5dbbe3ca8f0dec46a3455ed0f1864e06c"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/original-return-observation.json",
+      "sha256": "80b2ef820a1b09ff62205f907e61cc3b7c7196bfa1affd7a524e5a50cba30185"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/original-return-process-maps.txt",
+      "sha256": "8a13580426fffd96b8cf46ed0428b5ddfabcba99e6bb4ffb7a3fcb57d6128d70"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/readonly-analysis.json",
+      "sha256": "e4c55fe6ba5d6ae9459f92cd3c2e629ee36cc1c377471f765b1a8418632a3e33"
+    },
+    {
+      "localRelativePath": "Logs/revival/lts-gameplay-device-1/screen-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
