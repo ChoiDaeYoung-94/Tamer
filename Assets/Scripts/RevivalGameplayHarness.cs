@@ -359,10 +359,65 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             collider != null && collider.enabled && collider.gameObject.activeInHierarchy;
     }
 
+#if TAMER_INVENTORY_RESTORE
+    private static bool OriginalAgeModalOwnsInput()
+    {
+        var popups = Managers.PopupM;
+        if (popups == null || !popups.isActiveAndEnabled) return false;
+        var presenter = popups.GetComponent<AgeChoicePresenter>();
+        if (presenter == null || !presenter.isActiveAndEnabled) return false;
+        const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic;
+        var type = typeof(AgeChoicePresenter);
+        var open = type.GetField("_open", fields);
+        var modalField = type.GetField("_modal", fields);
+        var scene = type.GetField("_scene", fields);
+        var popupOwner = type.GetField("_popups", fields);
+        var adsOwner = type.GetField("_ads", fields);
+        if (open == null || modalField == null || scene == null || popupOwner == null || adsOwner == null)
+            return false;
+        var modal = modalField.GetValue(presenter) as GameObject;
+        if (!(open.GetValue(presenter) is bool isOpen) || !isOpen || modal == null || !modal.activeInHierarchy ||
+            !(scene.GetValue(presenter) is int ownerScene) || ownerScene != UnitySceneManager.GetActiveScene().handle ||
+            !ReferenceEquals(popupOwner.GetValue(presenter), popups) ||
+            !ReferenceEquals(adsOwner.GetValue(presenter), Managers.GoogleAdMobM)) return false;
+        var ownersField = typeof(PopupManager).GetField("_flowOwners", fields);
+        var owners = ownersField?.GetValue(popups) as System.Collections.Generic.HashSet<GameObject>;
+        return owners != null && owners.Contains(modal);
+    }
+#endif
+
     private IEnumerator WaitForScene(string scene)
     {
+#if TAMER_INVENTORY_RESTORE
+        var budget = new RevivalGameplayReadyBudget(40);
+        double previous = Time.realtimeSinceStartupAsDouble;
+        bool ageWaitReported = false;
+        while (!Ready(scene))
+        {
+            double now = Time.realtimeSinceStartupAsDouble;
+            bool ageQuestionOwnsInput = scene == "Main" &&
+                UnitySceneManager.GetActiveScene().name == scene &&
+                Managers.Instance == _originalManagers && Managers.SceneM != null &&
+                !Managers.SceneM.IsTransitioning && Player.Instance != null &&
+                Player.Instance.isActiveAndEnabled && Player.Instance.Hp > 0 &&
+                CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
+                Time.timeScale == 0 && Managers.GoogleAdMobM != null &&
+                Managers.GoogleAdMobM.AgeSelection.NeedsQuestion && OriginalAgeModalOwnsInput();
+            if (ageQuestionOwnsInput && !ageWaitReported)
+            {
+                Mark("WAIT_AGE_CHOICE original modal; choose Declined manually; Ready budget paused");
+                ageWaitReported = true;
+            }
+            budget.Advance(now - previous, ageQuestionOwnsInput);
+            previous = now;
+            if (budget.Expired) break;
+            yield return null;
+        }
+#else
         float deadline = Time.realtimeSinceStartup + 40;
         while (!Ready(scene) && Time.realtimeSinceStartup < deadline) yield return null;
+#endif
         // Start methods and one rendered frame must run after the scene-load callback.
         yield return null;
     }
@@ -453,6 +508,28 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             ? "MANUAL_READY " + destination + " use original gameplay controls"
             : "FAIL manual transition " + destination);
         _busy = false;
+    }
+}
+
+// Pure budget used only by the isolated inventory harness; never changes consent or timeScale.
+public sealed class RevivalGameplayReadyBudget
+{
+    private readonly double _limit;
+    public double ActiveSeconds { get; private set; }
+    public bool Expired => ActiveSeconds >= _limit;
+
+    public RevivalGameplayReadyBudget(double limit)
+    {
+        if (double.IsNaN(limit) || double.IsInfinity(limit) || limit <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        _limit = limit;
+    }
+
+    public void Advance(double elapsedSeconds, bool ageQuestionOwnsInput)
+    {
+        if (double.IsNaN(elapsedSeconds) || double.IsInfinity(elapsedSeconds) || elapsedSeconds < 0)
+            throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
+        if (!ageQuestionOwnsInput) ActiveSeconds += elapsedSeconds;
     }
 }
 #endif

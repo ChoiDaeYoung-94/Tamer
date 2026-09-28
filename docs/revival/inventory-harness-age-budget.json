@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "baseline": "4a2d55e81a960e98c4d12e8c6996f121d4655eed",
+  "codeCommit": "2230dba",
+  "scope": "TAMER_INVENTORY_RESTORE isolated harness only",
+  "pureCSharpChecks": {
+    "passed": 5,
+    "failed": 0,
+    "runtime": "dotnet SDK9.0.301/net9.0",
+    "actualPureClassSourceUsed": true
+  },
+  "privateOperatorChecks": {
+    "passed": 5,
+    "failed": 0,
+    "seconds": 0.058,
+    "deviceUsed": false
+  },
+  "operatorDeadlineSeconds": 300,
+  "readinessActiveBudgetSeconds": 40,
+  "productAgeSelectionChanged": false,
+  "productTimeScaleChanged": false,
+  "unityFullCompilationPerformed": true,
+  "newApkBuilt": true,
+  "fourthDeviceAttemptExecuted": true,
+  "unverified": [
+    "negative Unity predicate scenarios (missing/inactive modal, unrelated popup, different owner/scene)",
+    "complete Game scene/combat/collection flow",
+    "actual native ARM64 16KB runtime",
+    "final release AAB and store",
+    "real account/purchase/ad/save service integration"
+  ],
+  "evidenceHashes": {
+    "lts-readiness-budget-check-output.txt": "f77fb57009dc9c99b660992899417e6e1e40641aa714bc1ce14562d8abcf3423",
+    "lts-operator-prepared-tests.txt": "5fb247b902df1829594f9dc99396b18d28a4a909b30ac9f0d3529c1dce29d952",
+    "lts-operator-deadline-tests.txt": "ec8ddd90903e772e8c9f82b1cc8415648729d239b7056304c3859be937bf9439"
+  },
+  "readOnlyAgePredicate": [
+    "original PopupManager presenter active",
+    "presenter _open",
+    "modal activeInHierarchy",
+    "presenter scene handle equals current scene",
+    "bound popup and ads owners match",
+    "modal registered in PopupManager _flowOwners"
+  ],
+  "missingPrivateObservationFailsClosed": true,
+  "privateOwnershipCaptureFailureCleanup": "explicit unconfirmed/refused, no inferred deletion",
+  "predicateUnityValidationPerformed": false,
+  "operatorDeadlineAcceptanceChecks": {
+    "passed": 2,
+    "failed": 0,
+    "seconds": 0.031,
+    "deviceUsed": false,
+    "checks": [
+      "late valid signal rejected after slow guard",
+      "timely valid signal accepted"
+    ]
+  },
+  "operatorDeadlineRecheckedBeforeAcceptance": true,
+  "preparationResultsHistorical": true,
+  "actualValidationSummary": "inventory-harness-fourth-attempt.json",
+  "actualValidationCodeCommit": "4b6726fbd5016bcd782d864296d97f8c810e5a2c"
+}

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-28",
+  "checkout": "C:/Users/pc_17/.codex/worktrees/unity-lts-transition/Tamer",
+  "branch": "codex/inventory-harness-age-budget",
+  "actualBuildCodeCommit": "4b6726fbd5016bcd782d864296d97f8c810e5a2c",
+  "buildStartedClean": true,
+  "approvedCorrectedBuildAttempts": 1,
+  "correctedBuildResult": "passed",
+  "newApk": {
+    "variant": "inventoryrestore",
+    "applicationId": "com.AeDeong.MonsterTamer.revival.inventoryrestore",
+    "bytes": 153659813,
+    "sha256": "253d5ffd3c40143a2cfd133f5f4f88677b2eccb4ae0a77f06c076b7975d26660",
+    "minSdk": 25,
+    "targetSdk": 36,
+    "versionCode": 26,
+    "version": "1.0.5",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "debuggable": true,
+    "debugSignatureVerified": true,
+    "internetPermission": false,
+    "billingPermission": false,
+    "adIdPermission": false,
+    "mobileAdsInitProvider": false
+  },
+  "deviceAttempt": 4,
+  "deviceResult": "passed",
+  "previousDeviceAttempts": {
+    "failed": 3,
+    "recordsPreserved": true
+  },
+  "approvedFifthAttemptExecuted": false,
+  "unity": "6000.3.25f1",
+  "unityRevision": "e1dba0a9aba4",
+  "cli": "1.0.0-beta.8",
+  "pipeline": "0.6.0-exp.1",
+  "jdk": "17.0.18+8",
+  "ndk": "27.2.12479018",
+  "gradle": "9.3.1",
+  "buildTools": "36.0.0",
+  "device": {
+    "androidApi": 33,
+    "pageSize": 4096,
+    "runtime16KBVerified": false
+  },
+  "positiveAgePredicateObserved": true,
+  "freshAgeModalReviewed": true,
+  "declinedTapCount": 1,
+  "resumeSignalAccepted": true,
+  "restartProcessChanged": true,
+  "phaseMarkers": [
+    "INVENTORY_RESTORE_PASS phase=write owned=3 equipped=MasterSword,SimpleShield collection=empty gold=1000 hp=150 power=60 attack=1.5 move=3 errors=0",
+    "INVENTORY_RESTORE_PASS phase=restart owned=3 equipped=MasterSword,SimpleShield collection=empty gold=1000 hp=150 power=60 attack=1.5 move=3 errors=0"
+  ],
+  "visualReviews": [
+    "Main environment and character with sword visible; HP150/150, Gold1000, joystick and settings HUD visible; equipment two models active verified by harness; no black or magenta screen",
+    "Main environment and character with sword visible; HP150/150, Gold1000, joystick and settings HUD visible; equipment two models active verified by harness; no black or magenta screen"
+  ],
+  "inventoryStableKeys": [
+    "Version",
+    "Owner",
+    "Collection",
+    "OwnedItems",
+    "Equipped"
+  ],
+  "inventoryChangedKeys": [
+    "Session"
+  ],
+  "playerFileBytesStable": true,
+  "nativeRuntime": {
+    "unityAndIl2cppMappedBothPhases": true,
+    "translationMapped": false,
+    "fatalSignalObserved": false
+  },
+  "ownFreshInstallRemoved": true,
+  "existingAppsModified": false,
+  "operatingAccountPurchasesAdsExecuted": false,
+  "harnessSubscribedErrorCountBothPhases": 0,
+  "earlierPlayerConnectionNativeErrorsEachProcess": [
+    "Socket blocking mode failed (2 lines)",
+    "multicast socket setup failed (1 line)"
+  ],
+  "wholeAppErrorCountZeroClaimed": false,
+  "strictRelroRechecks": 0,
+  "unverified": [
+    "negative Unity predicate scenarios (missing/inactive modal, unrelated popup, different owner/scene)",
+    "complete Game scene/combat/collection flow",
+    "actual native ARM64 16KB runtime",
+    "final release AAB and store",
+    "real account/purchase/ad/save service integration"
+  ],
+  "privateEvidence": "Logs/revival/lts-inventory-device-4/* and lts-inventory-corrected-*",
+  "evidenceHashes": {
+    "lts-inventory-corrected-preflight.json": "ad61c23bb986f2ab16f612725606c925c25399330ad026baae3c85a75b7a0b60",
+    "lts-inventory-corrected-build-exit.json": "0b551df664eaa727f5253c64247805c6c7093f8a107f0ba523c24d70f1888615",
+    "lts-inventory-corrected-apk-verification.json": "188e32e35a35d621e9ebc97e0f984cd0229649a060c4bf650ce3e7723306d80c",
+    "lts-inventory-corrected-apk-provenance.json": "513b1e56ae9701829692df5490b4e62ae6cdb016877c41c098266c4568c3453b",
+    "lts-inventory-device-exit-4.json": "1f25daf1e24efa1fa1b3736d6f259c2485367be537d6bfbbef9cb18ce965bb9d",
+    "lts-inventory-device-4/inventory-device.json": "1eeb1ea7af9c0b3fc0c65871c176fd9fab1c032deb6b19ba14231b4674d770be",
+    "lts-inventory-device-4/initial-age-screen.png": "29d5dbf81969592bcbae40c3fa40026667fd5cdd5253deae6eebc8d493127cf0",
+    "lts-inventory-device-4/operator-action.json": "d66caf24c8ea701e98b9d806ae980d0dadb7602dc02c51dcc0e6629c9630569a",
+    "lts-inventory-device-4/write-app-logcat.txt": "14b93a4c9c4e0781006e7402e8083611896220ad669a276594d2d747b8cdf36d",
+    "lts-inventory-device-4/restart-app-logcat.txt": "58af9feceb11bd311380695fcc2a3e34f80f8d0f8114babe23d83718890cbb7f",
+    "lts-inventory-device-4/write-screen.png": "8b0931172e55b130701aadf182aad20a8d1711dbf4da28b32668638a9be39a1a",
+    "lts-inventory-device-4/restart-screen.png": "8ce2bff81910e8e3663740b2d3af831f671be6623f0d4084b3923684ff9dbcf5",
+    "lts-inventory-device-4/write-player.json": "14c559b2c5d6a1c327c274a845cd3e09f66b8182bd4e0bad95ff5287dc67ac12",
+    "lts-inventory-device-4/restart-player.json": "14c559b2c5d6a1c327c274a845cd3e09f66b8182bd4e0bad95ff5287dc67ac12",
+    "lts-inventory-device-4/write-inventory.json": "e96ab0cb07a80e46fda0c3b3d0f56b495c99b5aa9cdbacb3400c75695c99f860",
+    "lts-inventory-device-4/restart-inventory.json": "1773fbac4531b00261e04218ea0a6ea89439e9b294b54644ab37eb8f8661a268"
+  },
+  "secondsFromWaitAgeMarkerToWritePass": 42.827
+}
