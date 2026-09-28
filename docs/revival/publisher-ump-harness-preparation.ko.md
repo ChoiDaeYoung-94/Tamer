@@ -122,6 +122,17 @@ private 검사 결과는 `Logs/revival/ads-ump-publisher-verification.json`과
 `Logs/revival/ads-ump-publisher-build.log`에 보존한다. 로그 SHA-256은
 `d064c05e4266ef149f88c1e4ff05228a2b10bfe120201eff3adc90bf1d8db6fb`다.
 
+이후 총괄이 승인한 최소 기본 네이티브 검사도 같은 APK에 **1회** 실행했다.
+`verify_native_alignment.py --apk Build/revival/Tamer-ads-ump-publisher.apk`는
+exit0 / native library 6개 / **LOAD·ZIP 기본 검사 PASS**다. 6개 모두 압축돼 있어
+ZIP의 비압축 native mmap offset 정렬 검사 대상은 없다. 원본 결과는
+`Logs/revival/publisher-ump-apk-native-alignment.json`에 보존한다.
+
+별도 RELRO 진단은 `relroChecksPassed=false`이며 `libc++_shared.so`, `libmain.so`,
+`libswappywrapper.so` 3개의 end address modulo-16384 조건을 통과하지 못했다.
+`--strict-relro`는 실행하지 않았다. 기본 PASS를 추가 RELRO 조건 통과나 16KB 기기
+실행 성공으로 확대하지 않으며 이 진단만으로 실행 불가를 단정하지 않는다.
+
 실제 APK를 설치/실행하지 않았으며 publisher UMP 네트워크·폼 표시·거절/옵션/재시작,
-네이티브 전체 트래픽, 이 APK의 LOAD/ZIP/strict RELRO, AAB/스토어는 미검증이다.
+네이티브 전체 트래픽, strict RELRO 실행, 16KB 기기, AAB/스토어는 미검증이다.
 메시지 Publish OFF/운영 및 지역 flags false를 유지한다. 별도 범위 확인 전 기기/게시 실행하지 않는다.
