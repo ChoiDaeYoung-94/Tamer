@@ -166,7 +166,10 @@ AdMob 기존 **Monster Tamer Android** 앱에 연결된 `Monster Tamer - Europea
 설치·로그인·저장·구매·광고 요청을 시도하지 않았다. UMP 테스트 기기 해시는 UMP가
 출력한 값을 로컬 입력에만 사용하며 공개 증거에 넣지 않는다.
 
-| 합성 기기 사례 | 실제 관측 |
+아래 지역 이름은 harness에서 선택한 값이다. SDK가 강제 지역을 실제 적용했다는
+뜻은 아니며, 후속 읽기 조사에서 발견한 입력 오류와 관측별 한계를 다음 절에 기록한다.
+
+| 합성 기기 사례(선택값) | 실제 관측 |
 | --- | --- |
 | 성인·EEA | 영어 `Monster Tamer` 제목과 Consent / Do not consent / Manage options가 실제 폰에 표시됐다. Manage options에서 선택값을 확인했고 거절 후 `UMP privacy options` 재진입과 Confirm choices 변경을 확인했다. |
 | 성인·EEA 재시작 | own 패키지를 force-stop/재시작한 후 명시적 Update에서 기존 선택이 유지돼 첫 동의 폼은 다시 표시되지 않았다. 첫 입력은 로컬 테스트 해시 길이 오류로 차단됐고 문자별 재입력 후 정상 Update를 확인했다. |
@@ -198,3 +201,36 @@ MobileAdsInitProvider 및 AD_ID 권한은 존재하므로 SDK 자체 통신·전
 재조회에서 이 패키지와 운영 `com.AeDeong.MonsterTamer`는 모두 폰에 없었고,
 이번 관측용 폰 임시 화면 파일 2개도 제거했다. 원본의 다른 앱·계정·저장에는
 접근하지 않았다. 검증용 로컬 화면과 로그는 비공개 ignored 경로에 남긴다.
+
+### 후속 정정: 테스트 기기 해시 입력과 강제 지역 적용 한계
+
+2026-09-29 읽기 조사에서 **작업자의 PowerShell 입력 스크립트가 SDK 로그의
+테스트 기기 해시에 `ToLowerInvariant()`를 적용한 오류**를 확인했다. 제품 코드
+`GoogleUmpConsentClient.CreateDebugSettings`는 입력을 그대로 전달하며, 실제 player의
+Unity Android bridge 생성 코드에도 대소문자 변환이 없다. 제품의 지역 선택 코드
+오류로 판정한 것은 아니다.
+
+기존 UMP Android `4.0.0` 라이브러리를 읽으면 SDK 해시는 `%032X` 형식의 대문자이고,
+`ConsentDebugSettings.Builder`는 등록 문자열을 대소문자 구분 없이 정규화하지 않고
+목록에서 비교한다. 테스트 기기로 인식되지 않으면 요청의 debug 지역 목록은 비워진다.
+또한 SDK의 테스트 기기 등록 안내 로그는 debug settings가 없거나
+`isTestDevice()`가 false일 때 출력된다.
+
+기존 native 로그에는 EEA 재시작(11:29:34), 미국 1차(11:30:08), Other(11:31:08),
+Under13·EEA(11:31:26), 미국 2차(12:26:12 KST)에 이 등록 안내가 남아 있다.
+따라서 이 관측들의 **Update 성공은 강제 지역 적용 성공의 근거가 될 수 없다**.
+미국의 두 `NOT_REQUIRED` 응답은 보존하지만, 이를 올바르게 강제된 미국 지역에서의
+메시지 설정 문제로 판정할 수 없다. Other와 Under13 사례의 지역별 결론도 유보한다.
+Under13에서 `tfua=True`를 전달한 사실과 Unknown·Declined의 호출 전 차단은 별개다.
+
+11:25:47의 EEA 폼 관측 시점에는 수집된 로그에서 같은 안내가 발견되지 않았지만,
+경고 부재만으로 모든 지역 적용을 입증하지 않는다. 실제 유럽 폼·거절·옵션 변경 및
+재시작 후 첫 폼이 재표시되지 않은 UI 관측은 그대로 보존한다. 전체 사례를 강제 지역
+검증 성공으로 확대하지 않는다. 원시 해시·게시자 식별값은 공개하지 않는다.
+
+공식 문서도 debug 지역은 테스트 기기에서만 동작한다고 설명한다.
+[Unity UMP 테스트 기기 등록](https://developers.google.com/admob/unity/privacy#testing)과
+[미국 주 메시지 테스트](https://developers.google.com/admob/android/privacy/us-iab-support)를
+함께 대조했다. 이 정정에는 기기 실행·재빌드·메시지 설정 변경이 없다. 재관측이
+승인된다면 기존 APK를 사용하고, SDK가 출력한 해시의 대소문자를 그대로 보존·대조한 뒤
+테스트 기기 인식 근거를 먼저 확인하는 절차로 바꿔야 한다. 세 번째 실행은 승인 전 보류한다.
