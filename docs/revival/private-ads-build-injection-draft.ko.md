@@ -214,8 +214,8 @@ entry 탐색/호출 전에 반환하는 경로임을 확인했다. 통합/보안
 - `tools/revival/private_ads_build/PrivateAdsContract.cs`
 - `tools/revival/private_ads_build/PrivateProductionAdsBuild.cs`
 
-단순 상단 using 선언만 합쳤고 클래스 본문은 보존했다. conditional/alias/late using을
-거절하는 준비 검사, 원본 SHA-256, using 치환 후 본문 해시, `#line` 매핑을 private
+단순 상단 using 선언만 합쳤고 클래스 본문은 보존했다. 이번 두 실제 소스에
+conditional/alias/late using이 없음을 읽기 확인했고 원본 SHA-256, using 치환 후 본문 해시, `#line` 매핑을 private
 manifest에 기록했다. 원본 1,089개 파일의 스냅샷도 보존했다. 새 템플릿은 Assets에
 설치하지 않았고 meta 생성이나 소유 파일 삭제는 **0**이다.
 
