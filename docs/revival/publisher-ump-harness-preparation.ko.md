@@ -170,18 +170,20 @@ AdMob 기존 **Monster Tamer Android** 앱에 연결된 `Monster Tamer - Europea
 | --- | --- |
 | 성인·EEA | 영어 `Monster Tamer` 제목과 Consent / Do not consent / Manage options가 실제 폰에 표시됐다. Manage options에서 선택값을 확인했고 거절 후 `UMP privacy options` 재진입과 Confirm choices 변경을 확인했다. |
 | 성인·EEA 재시작 | own 패키지를 force-stop/재시작한 후 명시적 Update에서 기존 선택이 유지돼 첫 동의 폼은 다시 표시되지 않았다. 첫 입력은 로컬 테스트 해시 길이 오류로 차단됐고 문자별 재입력 후 정상 Update를 확인했다. |
-| 성인·규제 미국 주 | 로컬 reset 후 `RegulatedUSState` debug Update 성공과 즉시 필수 폼 없음은 확인했다. `PrivacyOptionsRequired` 버튼이 나타나지 않아 게시된 미국 거부 UI/선택/변경은 아직 확인하지 못했다. |
+| 성인·규제 미국 주 | 게시 직후 11:30대와 Console의 최대 1시간 반영 안내가 지난 12:26 KST에 각각 1회 로컬 reset 후 `RegulatedUSState` debug Update에 성공했다. 두 관측 모두 즉시 필수 폼은 없고 `PrivacyOptionsRequired` 버튼도 나타나지 않았다. 게시된 미국 거부 UI/선택/변경은 확인하지 못했다. |
 | 성인·Other | 로컬 reset 후 Update 성공, 필수 폼 및 옵션 버튼 없음. |
 | Under13·EEA | 로컬 reset 후 `tfua=True`로 Update 성공, 필수 폼 없음. 지역 정책 전체의 승인 근거는 아니다. |
 | Unknown·Declined | 각각 `ump_blocked unknown_or_declined_age`로 UMP Update 호출 전 차단됐다. |
 
 Google 문서상 미국 주 메시지는 앱 시작 시 필수 동의 폼이 아니라 개인정보 옵션
 진입점에서 표시된다. 따라서 미국 사례에서 필수 폼이 없는 것만으로 실패라고 판정하지
-않는다. 현재 필요한 진입점 자체가 나타나지 않은 원인은 게시 반영 지연 또는 설정/SDK
-상태 중 미확정이며 거부 플로우 검증은 열려 있다. 격리 앱 자체의 UMP 저장 상태는
-`privacy_options_requirement_status=NOT_REQUIRED`, `is_pub_misconfigured=false`였다.
-이 값은 당시 SDK 응답 상태일 뿐 게시된 미국 메시지가 최종적으로 노출되지 않는다는
-판정은 아니다. [Google 메시지 표시 시점](https://support.google.com/admob/answer/10114020)을 기준으로 해석한다.
+않는다. 다만 12:26 KST의 추가 관측에서도 진입점이 없었고, 격리 앱 UMP 저장 상태는
+두 번 모두 `privacy_options_requirement_status=NOT_REQUIRED`,
+`is_pub_misconfigured=false`였다. 원인은 현재의 메시지 타기팅·게시자 설정·SDK 응답
+중 어디에 있는지 확정하지 못했다. 미국 거부 플로우는 **미검증**으로 남기고 같은 조건의
+세 번째 실행을 중단한다. 이 SDK 응답만으로 실제 모든 미국 주 이용자에게 메시지가
+표시되지 않는다고 단정하지 않는다.
+[Google 메시지 표시 시점](https://support.google.com/admob/answer/10114020)을 기준으로 해석한다.
 
 기기에서 관측한 `can_request=True`는 Google UMP의 광고 요청 가능 신호이며
 개인 맞춤 광고 동의 또는 실제 광고 요청·게재를 뜻하지 않는다. 격리 앱은 managed
@@ -190,3 +192,9 @@ MobileAdsInitProvider 및 AD_ID 권한은 존재하므로 SDK 자체 통신·전
 단정하지 않는다. raw 화면·filtered 로그는 ignored
 `Logs/revival/publisher-ump-device-20260929/`에 보존한다. 이 4KB 기기 실측은
 16KB 기기 실행, strict RELRO, AAB·스토어 검증을 대신하지 않는다.
+
+두 번째 미국 관측 후 설치 전과 같은 경로의 own 격리 패키지임을 재확인하고
+`com.AeDeong.MonsterTamer.revival.umppublisher`만 force-stop·uninstall했다.
+재조회에서 이 패키지와 운영 `com.AeDeong.MonsterTamer`는 모두 폰에 없었고,
+이번 관측용 폰 임시 화면 파일 2개도 제거했다. 원본의 다른 앱·계정·저장에는
+접근하지 않았다. 검증용 로컬 화면과 로그는 비공개 ignored 경로에 남긴다.
