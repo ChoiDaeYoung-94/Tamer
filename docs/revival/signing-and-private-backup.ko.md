@@ -1,5 +1,63 @@
 # 서명 역할 확인과 비공개 에셋 복구
 
+## 2026-09-29 기존 키 암호화 백업 준비
+
+사용자는 기존 키 보존과 암호화 묶음 준비 후 Drive 직접 업로드를 선택했다.
+기존 JKS 비밀번호는 현재 모르는 상태이며, 아래 과거 새 키/reset 초안은 이번 실행 범위가
+아니다. 새 **백업 암호**는 보관 파일을 여는 암호로 기존 **JKS 암호**를 대체하지 않는다.
+
+`tools/revival/prepare_encrypted_key_backup.py`는 이미 설치된 Git의 GPG와 Windows
+pinentry를 사용한다. 기존 키·공개 인증서·복구 메모의 정확한 파일 경로 세 개를 받아
+메모리에서 묶고 암호화하며 평문 ZIP을 디스크에 쓰지 않는다. 비밀번호 인자는 받지 않고
+사용자가 로컬 GPG 입력창에서 직접 입력한다. 출력은 사용자 홈의 `TamerPrivateBackups`
+아래 새 디렉터리로 제한하고, 현재 사용자와 SYSTEM만 접근하도록 상속 권한을 제거한다.
+링크·정션과 중복 입력 파일을 거절하며 기존 파일을 덮어쓰지 않는다.
+
+```powershell
+python tools/revival/prepare_encrypted_key_backup.py --keystore '<확인한 기존 키>' --certificate '<확인한 공개 인증서>' --recovery-note '<비공개 복구 메모>'
+```
+
+실행 전 공개 인증서의 역할과 메모 내용을 확인해야 한다. 이 도구는 세 파일이 서로 같은
+키를 설명하는지 인증하거나 JKS 개인키를 복호화하지 않는다. 복구 메모에는 역할·alias·
+공개 인증서와 원본 파일 해시·복구 절차를 적고 암호·토큰은 넣지 않는다.
+
+암호화 후 캐시를 사용하지 않는 복호화로 정확한 파일 목록과 각 파일 해시를 대조하고,
+읽은 원본 snapshot과 종료 시 파일 identity·내용 일치까지 확인한다. 같은 암호문 bytes를
+복호화·해시에 사용하고 게시 직전 파일을 재대조하며, 작업 전용 GPG agent 종료 성공 후
+`verified-receipt.json`을 원자적으로 게시한다. 이는 검사 시점의 일치이며 파일 잠금이나
+이후 변경 방지를 뜻하지 않는다. 영수증은 단순 존재가 아니라 정상 JSON의 `verified=true`와
+현재 암호문 SHA-256 일치를 확인해야 한다. 성공 안내의 `recovery.zip.gpg` 하나만 사용자가 Drive에
+직접 업로드하며 암호는 별도 암호 관리자에 보관한다. 재다운로드 사본의 해시·복호화
+대조 전에는 외부 복구 완료로 표시하지 않는다. 기존 키와 증거는 보존한다.
+
+합성 파일로 실제 GPG 스트림 왕복·암호문 변조 거절·파일 목록·원본 변경 감지 2건을
+통과했다. 첫 실행은 MSYS GPG agent의 Windows 드라이브 콜론 경로 거절로 실패했고,
+MSYS 경로로 변환한 두 번째 실행에서 통과했다. 실제 키 암호화, 사용자 pinentry 입력,
+실제 출력 ACL 확인, Drive 업로드·다운로드 복구는 아직 수행하지 않았다.
+보안 리뷰 후 실패 경로 mock 2건을 추가하여 ACL 실패 시 암호화 미호출, 입력 취소,
+agent 종료 실패, 암호문 교체 시 성공 영수증 미생성과 영수증 쓰기 실패 정리를 확인했다.
+기존 GPG 왕복 시험은 반복하지 않았다. 실제 실행은 ACL 설정 뒤 DACL을 다시 읽어 검사한다.
+여기서 자동 정리는 해당 작업의 agent 종료와 미완 영수증 삭제만 뜻한다. 실패한 암호문과
+작업 전용 GPG 홈은 점검을 위해 남으며 성공 영수증 없이 업로드하지 않는다.
+후속 실제 빈 디렉터리 DACL 검증은 두 번 실패해 중단했다. 현재 셸에서 설정된 권한을
+읽으면 사용자·SYSTEM FullControl 및 상속 차단이었지만, Python에서 호출한 Windows
+PowerShell 검증은 exit 1이었다. EncodedCommand 변경만으로 해결되지 않았다.
+호스트 pwsh 모듈 경로가 자식 Windows PowerShell에 상속되는 가능성을 확인해 표준
+자식 환경에서만 PSModulePath를 제거하고 Windows PowerShell 절대 경로와 단계별
+오류 코드를 사용하는 수정안을 준비했으나 원인 확정·3차 검증은
+사용자 승인 전 보류다. 이 상태에서는 실제 키 백업 도구의 준비 완료를 선언하지 않는다.
+
+이후 사용자 승인으로 `b9eed7b098eb1a4807aa7439e012c3e9d0c49087`의 수정안을 사용해
+빈 신규 소유 폴더의 실제 ACL 검증을 세 번째로 **1회 실행해 통과**했다. 현재 사용자와
+SYSTEM의 FullControl 두 규칙 및 상속 차단을 도구가 직접 확인했다. 비공개 결과를
+보존했으며 시험 폴더 삭제는 자동 승인 검토에서 차단되어 폴더를 남겼다.
+앞선 실패는 보존하며, 자식 환경 격리 후 성공한 사실과 과거 stderr가 없어 원인을
+확정하지 못한 점을 구분한다. 기존 합성 GPG·mock 검증은 반복하지 않았다.
+실제 키 암호화·사용자 pinentry·공개 인증서/복구 메모의 정확한 입력 확인·Drive 복구는
+여전히 미실행이다.
+GPG의 [대칭 암호화](https://www.gnupg.org/documentation/manuals/gnupg/Operational-GPG-Commands.html)와
+[암호 캐시 옵션](https://www.gnupg.org/documentation/manuals/gnupg/GPG-Esoteric-Options.html)을 따른다.
+
 확인일: 2026-09-11. 기준 코드: `4e8c0398c700bc133d3b1e8d6592fca24f0b4d89`.
 관련: [#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94),
 [#92](https://github.com/ChoiDaeYoung-94/Tamer/issues/92),
