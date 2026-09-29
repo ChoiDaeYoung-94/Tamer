@@ -11,7 +11,8 @@
 최초 C# 계약 검증 두 번 실패 후 중단했고, 사용자의 명시적 승인과 독립 읽기
 리뷰를 거쳐 세 번째 합성 검증을 한 번 실행하여 통과했다. Windows 핸들 정리도
 독립 리뷰 후 임시 폴더 전용 6개 검증을 통과했다. 실제 실행 경로는
-Editor 참조의 Roslyn emit-only 컴파일도 한 번 통과했다. 정상 Unity asset/asmdef
+`036fe8f` 소스의 Editor 참조 Roslyn emit-only 컴파일도 한 번 통과했다. 이후 아래의
+Editor/Player define 구분 수정은 새 컴파일을 하지 않았다. 정상 Unity asset/asmdef
 컴파일·콜백 등록/호출·최종 바이너리·보존 폴더의 수동 확인이 남아 계속 차단한다.
 이 초안은 병합·실행 준비 완료 상태가 아니다.
 
@@ -253,3 +254,30 @@ URP 두 파일은 사전 바이트 스냅샷 목록에 없으므로 exact 사전
 사후 **Git clean**, Settings 스냅샷 해시 일치, 해당 Editor 0을 확인했다.
 컴파일/Editor import를 다시 실행하지 않았고 private manifest·응답·변경 전후 증거·
 복원 receipt를 보존했다. 이 단계의 추가 빌드/기기/Console/운영 ID 주입은 0이다.
+
+## 후속 최소 수정: Editor와 Player define 구분
+
+`036fe8f` emit-only의 unreachable 경고는 Editor에 적용된 테스트 define 분기 뒤에서
+나왔다. Editor의 `UNITY_INCLUDE_TESTS`만으로 Player 빌드까지 무조건 거절하지 않도록
+그 심볼을 **Editor용 #if에서만** 제거했다. 기존 Editor TAMER 하네스 거절은 유지한다.
+
+Android `PlayerSettings.GetScriptingDefineSymbols`의 테스트/하네스 심볼 거절과
+`BuildOptions.None` 요구는 바꾸지 않는다. 개발 빌드/IncludeTestAssemblies 등 다른
+옵션을 허용하지 않는다. 추가로
+[`CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies)`](https://docs.unity.com/en-us/engine/6000.3/script-reference/unityeditor/compilation/assembliestype/playerwithouttestassemblies)
+의 Player 계획에서 다음을 확인한다.
+
+- Android 활성 target 및 비개발 설정, 비어 있지 않은 어셈블리 목록
+- 각 어셈블리의 UNITY_ANDROID 포함, UNITY_EDITOR와 기존 TEST/HARNESS/TAMER/
+  DEVELOPMENT_BUILD 금지 심볼 없음, 중복 어셈블리명 없음
+- GoogleAdMobManager/AdRequestPolicy/AgeTreatmentPolicy 소스가 이 checkout의 정규화된
+  절대 경로와 정확히 일치하여 각 한 번 포함됨(Windows 대소문자 무시, 그 외 구분)
+
+정렬한 어셈블리별 define 계획을 불변 snapshot에 보존하고 각 콜백에서 다시 대조한다.
+receipt에는 `prospectivePlayerDefinePlanSha256`로 기록하여 최종 Player 어셈블리나
+바이너리 검증과 구분한다. 이 추가 검사는 잘못된/누락된 Player 계획을 거절하며
+실제 컴파일 성공을 가정하지 않는다. 새 패키지·flags 활성화·시험용 우회는 없다.
+이 수정 이후 새 Editor 시작/컴파일/정상 assembly 등록/합성 AAB 빌드는 수행하지 않았다.
+앞 절의 컴파일 결과를 이 변경된 콜백 소스의 결과로 재표현하지 않는다.
+계획 SHA는 어셈블리명과 define만 고정하며 전체 source/reference graph의 고정이나
+최종 Player gate의 컴파일 결과를 입증하지 않는다.

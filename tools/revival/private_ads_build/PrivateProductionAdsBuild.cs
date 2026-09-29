@@ -8,6 +8,7 @@ using AD.Advertising;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Compilation;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -22,7 +23,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
 
     private sealed class Snapshot
     {
-        public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines;
+        public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan;
         public readonly PrivateAdsContract Config;
         public readonly string[] Scenes;
         public Snapshot(string root)
@@ -35,6 +36,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             if (Hash(raw) != ConfigHash) throw Rejected();
             Config = PrivateAdsContract.Read(raw, root);
             Defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
+            PlayerCompilationPlan = ReadPlayerCompilationPlan();
             Scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
             if (Scenes.Count(s => s == Login) != 1 || Scenes.Distinct().Count() != Scenes.Length ||
                 Scenes.Any(s => s.IndexOf("Harness", StringComparison.OrdinalIgnoreCase) >= 0) ||
@@ -74,6 +76,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             var receipt = new Receipt { configSha256 = snapshot.ConfigHash,
                 artifactSha256 = Hash(File.ReadAllBytes(snapshot.Output)), unityVersion = Application.unityVersion,
                 configuredAndroidDefines = snapshot.Defines, injectedManagers = injections,
+                prospectivePlayerDefinePlanSha256 = Hash(System.Text.Encoding.UTF8.GetBytes(snapshot.PlayerCompilationPlan)),
                 buildSceneValueMatched = true, compiledEditorGatesDisabled = true,
                 binaryVerified = false, distributable = false };
             using (var file = new FileStream(snapshot.Receipt, FileMode.CreateNew, FileAccess.Write))
@@ -135,15 +138,47 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed ||
             Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>().Any(AgeTreatmentPolicy.IsReviewed) ||
             PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android) != snapshot.Defines ||
+            ReadPlayerCompilationPlan() != snapshot.PlayerCompilationPlan ||
             !EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).SequenceEqual(snapshot.Scenes))
             throw Rejected();
-#if TAMER_TEST_ADS || TAMER_REVIVAL_SMOKE || TAMER_AD_TEST_HARNESS || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS || UNITY_INCLUDE_TESTS
+#if TAMER_TEST_ADS || TAMER_REVIVAL_SMOKE || TAMER_AD_TEST_HARNESS || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
         throw Rejected();
 #endif
         var asset = AssetDatabase.LoadMainAssetAtPath("Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset");
         if (asset == null) throw Rejected();
         var app = new SerializedObject(asset).FindProperty("adMobAndroidAppId");
         if (app == null || app.stringValue != snapshot.Config.AppId) throw Rejected();
+    }
+    private static string ReadPlayerCompilationPlan()
+    {
+        // UNITY_INCLUDE_TESTS in the Editor hosting this callback does not mean
+        // the Player includes tests. Inspect the prospective Android Player view.
+        // This is a plan, not evidence of the final emitted/stripped assemblies.
+        if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android ||
+            EditorUserBuildSettings.development) throw Rejected();
+        var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+        if (assemblies == null || assemblies.Length == 0 ||
+            assemblies.Any(a => a == null || string.IsNullOrEmpty(a.name) ||
+                a.defines == null || a.sourceFiles == null ||
+                a.sourceFiles.Any(string.IsNullOrEmpty) ||
+                !a.defines.Contains("UNITY_ANDROID") || a.defines.Contains("UNITY_EDITOR") ||
+                a.defines.Any(d => string.IsNullOrEmpty(d) || ForbiddenDefine(d))) ||
+            assemblies.Select(a => a.name).Distinct(StringComparer.Ordinal).Count() != assemblies.Length)
+            throw Rejected();
+        var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        var pathComparison = Application.platform == RuntimePlatform.WindowsEditor
+            ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        foreach (var source in new[] { "Assets/Scripts/Managers/GoogleAdMobManager.cs",
+            "Assets/Scripts/Advertising/AdRequestPolicy.cs", "Assets/Scripts/Advertising/AgeTreatmentPolicy.cs" })
+        {
+            var expected = Path.GetFullPath(Path.Combine(root, source));
+            if (assemblies.Sum(a => a.sourceFiles.Count(p => string.Equals(
+                Path.GetFullPath(Path.IsPathRooted(p) ? p : Path.Combine(root, p)),
+                expected, pathComparison))) != 1)
+                throw Rejected();
+        }
+        return string.Join("\n", assemblies.OrderBy(a => a.name, StringComparer.Ordinal).Select(a =>
+            a.name + ":" + string.Join(";", a.defines.Distinct(StringComparer.Ordinal).OrderBy(d => d, StringComparer.Ordinal))));
     }
     private static bool ForbiddenDefine(string value)
     { return value.StartsWith("TAMER_", StringComparison.Ordinal) ||
@@ -157,7 +192,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     { return new BuildFailedException("Private disabled preparation rejected; output is not distributable."); }
     [Serializable] private sealed class Receipt
     {
-        public string configSha256, artifactSha256, unityVersion, configuredAndroidDefines;
+        public string configSha256, artifactSha256, unityVersion, configuredAndroidDefines,
+            prospectivePlayerDefinePlanSha256;
         public int injectedManagers;
         public bool buildSceneValueMatched, compiledEditorGatesDisabled, binaryVerified, distributable;
     }
