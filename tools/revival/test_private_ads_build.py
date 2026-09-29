@@ -168,6 +168,14 @@ class CSharpContractTests(unittest.TestCase):
                           valid[:-1] + ',"nested":{"x":1,"x":2}}',
                           valid[:-1] + ',"productionActivationApprov\\u0065d":false}',
                           valid + '{}', '[]', valid[:-1] + ',}', valid.replace('false', 'NaN', 1)]
+            for evidence in ('[1,]', '{"x":1,}', 'NaN', 'Infinity', '-Infinity',
+                             '01', '+1', '.1', '1.', '1e', '0x10', '/*comment*/true',
+                             "'text'", '{bare:true}', 'undefined', '"bad\\q"'):
+                candidates.append(valid[:-1] + ',"evidence":' + evidence + '}')
+            candidates.extend([valid + '/*comment*/', valid + '\x00', valid[:-1],
+                               valid[:-1] + ',"evidence":[true,false,null,-1.25e+2,"\\uAC00"]}',
+                               ' \r\n' + valid + '\t ',
+                               valid[:-1] + ',"evidence":{"when":"2026-09-29","items":[]}}'])
             for key in ('consoleInventoryConfirmed', 'productionActivationApproved', 'regionalReviewApproved'):
                 for value in (None, 0, 1, 'false', [], {}, not config[key]):
                     candidates.append(json.dumps(dict(config, **{key: value})))
@@ -188,12 +196,20 @@ class CSharpContractTests(unittest.TestCase):
                     expected.append('accept')
                 except ValueError:
                     expected.append('reject')
+            self.assertEqual(len(expected), 59)
+            self.assertEqual(expected.count('accept'), 5)
             shutil.copyfile(Path(build.__file__).parent / 'private_ads_build/PrivateAdsContract.cs',
                             root / 'PrivateAdsContract.cs')
+            checkout = Path(build.__file__).resolve().parents[2]
+            packages = [p for p in (checkout / 'Library/PackageCache').glob('com.unity.nuget.newtonsoft-json@*')
+                        if json.loads((p / 'package.json').read_text(encoding='utf-8'))['version'] == '3.2.2']
+            self.assertEqual(len(packages), 1, 'Exactly one existing locked Newtonsoft 3.2.2 required')
+            shutil.copyfile(packages[0] / 'Runtime/Newtonsoft.Json.dll', root / 'Newtonsoft.Json.dll')
             (root / 'Contract.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
                 '<OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework>'
                 '<EnableDefaultCompileItems>true</EnableDefaultCompileItems>'
-                '</PropertyGroup></Project>')
+                '</PropertyGroup><ItemGroup><Reference Include="Newtonsoft.Json">'
+                '<HintPath>Newtonsoft.Json.dll</HintPath></Reference></ItemGroup></Project>')
             (root / 'Program.cs').write_text('''using System; using System.IO;
 class Program { static void Main(string[] args) {
 for (int i = 0; i < int.Parse(args[1]); i++) {
@@ -209,6 +225,8 @@ catch { Console.WriteLine("reject"); }
                                     encoding='utf-8', errors='replace')
             self.assertEqual(result.returncode, 0)
             self.assertEqual(result.stdout.splitlines(), expected)
+            print('Synthetic strict contract: ' + str(len(candidates)) + ' matched; ' +
+                  str(expected.count('accept')) + ' accepted, ' + str(expected.count('reject')) + ' rejected.')
 
 
 if __name__ == '__main__':

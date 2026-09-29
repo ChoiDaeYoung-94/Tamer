@@ -1,29 +1,36 @@
-// Staged into this checkout's Editor directory only by private_ads_build.py.
+// Uses the project's existing com.unity.nuget.newtonsoft-json dependency.
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Json;
+using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 internal sealed class PrivateAdsContract
 {
     public readonly string Checkout, AppId, RewardedUnit;
     private PrivateAdsContract(string checkout, string app, string unit)
     { Checkout = checkout; AppId = app; RewardedUnit = unit; }
-
     public static PrivateAdsContract Read(byte[] bytes, string checkout)
     {
-        // XML JSON mapping retains every member, unlike deserializing to a dictionary.
-        // Walk every object to reject duplicate *decoded* names, including nested ones.
-        var doc = new XmlDocument { XmlResolver = null };
-        using (var reader = JsonReaderWriterFactory.CreateJsonReader(bytes,
-            new XmlDictionaryReaderQuotas { MaxDepth = 64, MaxStringContentLength = 1048576,
-                MaxArrayLength = 1048576, MaxBytesPerRead = 4096, MaxNameTableCharCount = 1048576 }))
-            doc.Load(reader);
-        var root = doc.DocumentElement;
-        if (root == null || root.GetAttribute("type") != "object") throw Rejected();
-        ValidateMembers(root);
+        try { return ReadCore(bytes, checkout); }
+        catch { throw Rejected(); }
+    }
+    private static PrivateAdsContract ReadCore(byte[] bytes, string checkout)
+    {
+        if (bytes == null || bytes.Length > 1048576) throw Rejected();
+        var text = new UTF8Encoding(false, true).GetString(bytes);
+        if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
+        // Newtonsoft accepts extensions: check complete strict grammar first.
+        new Grammar(text).Validate();
+        JObject root;
+        using (var input = new StringReader(text))
+        using (var reader = new JsonTextReader(input) { DateParseHandling = DateParseHandling.None, MaxDepth = 64 })
+        {
+            root = JObject.Load(reader, new JsonLoadSettings {
+                DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+            if (reader.Read()) throw Rejected();
+        }
         RequireBool(root, "consoleInventoryConfirmed", true);
         RequireBool(root, "productionActivationApproved", false);
         RequireBool(root, "regionalReviewApproved", false);
@@ -38,37 +45,91 @@ internal sealed class PrivateAdsContract
             app.Split('~')[0] != unit.Split('/')[0]) throw Rejected();
         return new PrivateAdsContract(Path.GetFullPath(owner), app, unit);
     }
-
-    private static string Name(XmlElement node)
-    { return node.HasAttribute("item") ? node.GetAttribute("item") : node.LocalName; }
-    private static void ValidateMembers(XmlElement node)
+    private static string RequireString(JObject root, string name)
     {
-        var names = new HashSet<string>(StringComparer.Ordinal);
-        foreach (XmlNode child in node.ChildNodes)
-        {
-            var member = child as XmlElement;
-            if (member == null) continue;
-            if (node.GetAttribute("type") == "object" && !names.Add(Name(member))) throw Rejected();
-            ValidateMembers(member);
-        }
+        var value = root[name];
+        if (value == null || value.Type != JTokenType.String || ((string)value).Length == 0) throw Rejected();
+        return (string)value;
     }
-    private static XmlElement Member(XmlElement root, string name)
+    private static void RequireBool(JObject root, string name, bool expected)
     {
-        foreach (XmlNode child in root.ChildNodes)
-            if (child is XmlElement && Name((XmlElement)child) == name) return (XmlElement)child;
-        throw Rejected();
-    }
-    private static string RequireString(XmlElement root, string name)
-    {
-        var member = Member(root, name);
-        if (member.GetAttribute("type") != "string" || member.InnerText.Length == 0) throw Rejected();
-        return member.InnerText;
-    }
-    private static void RequireBool(XmlElement root, string name, bool expected)
-    {
-        var member = Member(root, name);
-        if (member.GetAttribute("type") != "boolean" || member.InnerText != (expected ? "true" : "false"))
-            throw Rejected();
+        var value = root[name];
+        if (value == null || value.Type != JTokenType.Boolean || (bool)value != expected) throw Rejected();
     }
     private static Exception Rejected() { return new InvalidDataException("Private configuration rejected."); }
+
+    // Syntax only: existing Newtonsoft decodes names and constructs values.
+    private sealed class Grammar
+    {
+        private readonly string text;
+        private int position;
+        public Grammar(string value) { text = value; }
+        public void Validate() { Value(0); Space(); if (position != text.Length) throw Rejected(); }
+        private char Peek { get { return position < text.Length ? text[position] : '\0'; } }
+        private void Space() { while (Peek == ' ' || Peek == '\t' || Peek == '\r' || Peek == '\n') position++; }
+        private bool Take(char token) { if (Peek != token) return false; position++; return true; }
+        private void Need(char token) { if (!Take(token)) throw Rejected(); }
+        private void Value(int depth)
+        {
+            Space();
+            if (Peek == '{' || Peek == '[')
+            {
+                if (depth >= 64) throw Rejected();
+                bool obj = Take('{');
+                if (!obj) Need('[');
+                char end = obj ? '}' : ']';
+                Space();
+                if (Take(end)) return;
+                do
+                {
+                    Space();
+                    if (obj) { String(); Space(); Need(':'); }
+                    Value(depth + 1);
+                    Space();
+                    if (Take(end)) return;
+                    Need(','); // Next iteration requires a real member/value.
+                } while (true);
+            }
+            if (Peek == '"') { String(); return; }
+            foreach (var literal in new[] { "true", "false", "null" })
+                if (position + literal.Length <= text.Length &&
+                    string.CompareOrdinal(text, position, literal, 0, literal.Length) == 0)
+                { position += literal.Length; return; }
+            Number();
+        }
+        private void String()
+        {
+            Need('"');
+            while (position < text.Length)
+            {
+                char ch = text[position++];
+                if (ch == '"') return;
+                if (ch < 0x20) throw Rejected();
+                if (ch != '\\') continue;
+                if (position == text.Length) throw Rejected();
+                ch = text[position++];
+                if (ch == 'u')
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        char digit = Peek;
+                        if (!((digit >= '0' && digit <= '9') || (digit >= 'a' && digit <= 'f') ||
+                              (digit >= 'A' && digit <= 'F'))) throw Rejected();
+                        position++;
+                    }
+                }
+                else if ("\"\\/bfnrt".IndexOf(ch) < 0) throw Rejected();
+            }
+            throw Rejected();
+        }
+        private bool Digit { get { return Peek >= '0' && Peek <= '9'; } }
+        private void Digits() { if (!Digit) throw Rejected(); while (Digit) position++; }
+        private void Number()
+        {
+            Take('-');
+            if (!Take('0')) Digits();
+            if (Take('.')) Digits();
+            if (Take('e') || Take('E')) { if (!Take('+')) Take('-'); Digits(); }
+        }
+    }
 }

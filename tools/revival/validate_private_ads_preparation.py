@@ -17,7 +17,9 @@ def unique_object(pairs):
 
 
 def read_contract(raw, checkout):
-    config = json.loads(raw, object_pairs_hook=unique_object)
+    def reject_constant(_):
+        raise ValueError('Non-JSON numeric constant')
+    config = json.loads(raw, object_pairs_hook=unique_object, parse_constant=reject_constant)
     if not isinstance(config, dict):
         raise ValueError('Configuration must be an object')
     for key, expected in [('consoleInventoryConfirmed', True),
