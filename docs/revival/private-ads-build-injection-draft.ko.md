@@ -12,7 +12,8 @@
 리뷰를 거쳐 세 번째 합성 검증을 한 번 실행하여 통과했다. Windows 핸들 정리도
 독립 리뷰 후 임시 폴더 전용 6개 검증을 통과했다. 실제 실행 경로는
 `036fe8f` 소스의 Editor 참조 Roslyn emit-only 컴파일도 한 번 통과했다. 이후 아래의
-Editor/Player define 구분 수정은 새 컴파일을 하지 않았다. 정상 Unity asset/asmdef
+Editor/Player define 구분 수정 `e9a86c4`도 별도 emit-only 컴파일 한 번을 통과했다.
+정상 Unity asset/asmdef
 컴파일·콜백 등록/호출·최종 바이너리·보존 폴더의 수동 확인이 남아 계속 차단한다.
 이 초안은 병합·실행 준비 완료 상태가 아니다.
 
@@ -277,7 +278,34 @@ Android `PlayerSettings.GetScriptingDefineSymbols`의 테스트/하네스 심볼
 receipt에는 `prospectivePlayerDefinePlanSha256`로 기록하여 최종 Player 어셈블리나
 바이너리 검증과 구분한다. 이 추가 검사는 잘못된/누락된 Player 계획을 거절하며
 실제 컴파일 성공을 가정하지 않는다. 새 패키지·flags 활성화·시험용 우회는 없다.
-이 수정 이후 새 Editor 시작/컴파일/정상 assembly 등록/합성 AAB 빌드는 수행하지 않았다.
-앞 절의 컴파일 결과를 이 변경된 콜백 소스의 결과로 재표현하지 않는다.
+이 수정의 독립 읽기 리뷰 직후에는 새 실행을 하지 않았으며, 아래 별도 배정된
+emit-only 검증을 수행했다. 정상 assembly 등록/합성 AAB 빌드는 수행하지 않았다.
+앞 절 `036fe8f`의 결과를 이 변경된 콜백 소스의 결과로 재표현하지 않는다.
 계획 SHA는 어셈블리명과 define만 고정하며 전체 source/reference graph의 고정이나
 최종 Player gate의 컴파일 결과를 입증하지 않는다.
+
+## 변경된 `e9a86c4` 소스의 emit-only 컴파일
+
+총괄의 후속 배정에 따라 `e9a86c4292b74327d82d0695c75882800762962b`의
+두 템플릿에 대해 검토된 private 외부 결합/run_script 경로를 재사용했다.
+이전 소스를 변경 없이 반복한 시험이 아니라 Editor/Player define 수정 소스의
+**첫 실행 1회**다. using/소스/CLI/명령/checkout 해시를 새로 대조하고 이번에는
+URP 두 파일까지 포함한 원본 **1,091개** 바이트 스냅샷을 확보했다.
+동일 Unity 6000.3.25f1/e1dba0a9aba4, CLI 1.0.0-beta.8을 사용했다.
+
+실제 응답은 **CLI exit 0 / command success=true / diagnostics=[]**,
+compile **1,246ms**, execute **0ms**, assemblyName **null**이다.
+명시적 dry-run 미로드/미실행 문구가 있으며 **오류 0, 경고 0**이다.
+이전 CS0162를 숨기지 않았고 새 소스의 해당 emit-only 진단에는 나오지 않았다.
+보안 담당자가 원 응답을 직접 읽어 확인했다.
+
+Editor 초기화가 이전과 같은 ProjectSettings/URP Low/Medium 세 파일을 변경했다.
+변경 후 바이트를 보존하고 보안 독립 읽기 확인 후, Editor 0/HEAD/현재 after 해시를
+다시 대조하여 세 파일 모두 배타 핸들 안에서 **각 사전 스냅샷 바이트**로 복원했다.
+이번에는 URP도 사전 스냅샷이 있으므로 세 해시 모두 원본과 일치함을 확인했다.
+사후 **Git clean / 해당 Editor 0**, 추가 컴파일/Editor 재실행 0이다.
+
+Assets 임시 설치/삭제, 콜백 실행, 빌드/설치/기기/운영 광고/Console 작업은 0이다.
+특히 `ReadPlayerCompilationPlan`은 컴파일되었을 뿐 **실제 API를 호출한 결과가 아니다**.
+정상 Unity assembly 편입·콜백 등록과 최종 Player/AAB 검증은 여전히 남아 있으며
+`--execute` 차단과 Draft/병합 보류를 유지한다.
