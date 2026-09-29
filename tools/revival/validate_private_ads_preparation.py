@@ -39,6 +39,36 @@ def read_contract(raw, checkout):
     return config
 
 
+def require_disabled_declaration(source, name, declaration):
+    # Conservative source contract, not a C# compiler. Mask comments and strings
+    # before matching so examples cannot stand in for an active declaration.
+    token = re.compile(r'//[^\r\n]*|/\*[\s\S]*?\*/|@"(?:[^"]|"")*"|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
+    code = token.sub(lambda m: re.sub(r'[^\r\n]', ' ', m.group()), source)
+    if re.search(r'/\*|\*/|["\']', code):
+        raise ValueError('Unsupported or incomplete source token')
+    declarations = list(re.finditer(r'\bbool\s+' + re.escape(name) + r'\s*(?:=>|=)', code))
+    if len(declarations) != 1:
+        raise ValueError('Ambiguous gate declaration')
+    matches = list(re.finditer(r'^\s*' + re.escape(declaration) + r'\s*$', code, re.M))
+    if len(matches) != 1:
+        raise ValueError('Gate must be an unconditional disabled declaration')
+    depth = 0
+    for directive in re.finditer(r'^\s*#\s*(\w+)', code[:matches[0].end()], re.M):
+        kind = directive.group(1)
+        if kind == 'if':
+            depth += 1
+        elif kind == 'endif':
+            depth -= 1
+            if depth < 0:
+                raise ValueError('Unbalanced preprocessor scope')
+        elif kind in ('else', 'elif') and depth == 0:
+            raise ValueError('Unbalanced preprocessor branch')
+        elif kind not in ('else', 'elif', 'region', 'endregion'):
+            raise ValueError('Unsupported preprocessor contract')
+    if depth:
+        raise ValueError('Conditional gate declaration')
+
+
 def audit(checkout, config_path):
     root = checkout.resolve()
     raw = config_path.read_bytes()
@@ -55,15 +85,14 @@ def audit(checkout, config_path):
            if n.get(ns + 'name') == 'com.google.android.gms.ads.APPLICATION_ID']
     if settings != [config['androidAppId']] or ids != settings:
         raise ValueError('Source publisher identity mismatch')
-    if not re.search(r'^\s*public const bool ProductionAdsEnabled = false;\s*$',
-                     data[paths[2]].decode('utf-8-sig'), re.M):
-        raise ValueError('Production source gate is not disabled')
+    require_disabled_declaration(data[paths[2]].decode('utf-8-sig'), 'ProductionAdsEnabled',
+                                 'public const bool ProductionAdsEnabled = false;')
     age = data[paths[3]].decode('utf-8-sig')
-    if not re.search(r'^\s*public static bool RegionalConsentReviewed => false;\s*$', age, re.M):
-        raise ValueError('Regional source gate is not disabled')
+    require_disabled_declaration(age, 'RegionalConsentReviewed',
+                                 'public static bool RegionalConsentReviewed => false;')
     for cohort in ('Under13', 'From13To15', 'From16To17', 'Adult'):
-        if not re.search(r'^\s*private const bool ' + cohort + r'ConsentReviewed = false;\s*$', age, re.M):
-            raise ValueError('Cohort source gate is not disabled')
+        require_disabled_declaration(age, cohort + 'ConsentReviewed',
+                                     'private const bool ' + cohort + 'ConsentReviewed = false;')
     # Digest detects changes only when a caller checks it again; it is not a lock.
     return {'scope': 'read-only source/config preflight; no injection/build/binary verification',
             'configSha256': hashlib.sha256(raw).hexdigest(),
