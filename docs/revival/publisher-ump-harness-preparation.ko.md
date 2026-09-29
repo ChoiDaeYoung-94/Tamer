@@ -1,11 +1,12 @@
-# 게시자 UMP 전용 harness 준비 — 네트워크·게시 미실행
+# 게시자 UMP 전용 harness 준비와 단계별 검증
 
 2026-09-28, checkout `C:/Users/pc_17/.codex/worktrees/e5e5/Tamer`, 기반
 `38a284fdd0b54ccae36e6c96b314c23285d3f3ba`, Unity `6000.3.25f1` / CLI `1.0.0-beta.8` /
 Android min25·target36·ARM64 기준이다. 기존 정책
 `https://github.com/ChoiDaeYoung-94/Tamer#개인정보처리방침` 본문 보완은 PR #264로 병합됐다.
-유럽 영어 메시지는 사용자 승인된 게시 후보이며 두 메시지는 Console 초안/게시 OFF 상태다.
-이 준비는 메시지 게시나 운영 광고 활성화 승인이 아니다.
+이 단락은 2026-09-28의 준비 시점 상태다. 당시 유럽 영어 메시지는 사용자 승인된
+게시 후보였고 두 메시지는 Console 초안/게시 OFF였다. 2026-09-29의 승인된 게시·기기
+실측은 문서 끝의 후속 기록에서 구분한다.
 
 ## 기존 경로 확장
 
@@ -35,7 +36,7 @@ private config는 `.meta` 복원 승인 기록이 아니며 Editor 전 복원 �
 ## 실행 전후 경계
 
 빌드 준비 명령은 `Run-AdHarness.ps1 -Variant ump-publisher -PrivatePublisherOptIn`이다.
-현재 이 명령을 실행하지 않았다. wrapper는 설치/기기 실행/메시지 게시를 하지 않는다.
+준비 시점에는 이 명령을 실행하지 않았다. wrapper는 설치/기기 실행/메시지 게시를 하지 않는다.
 기존 APK verifier를 확장해 실제 merged manifest App ID 정확1개/private config 일치/샘플혼입없음,
 별도 package/debug signature/SDK/ABI를 검사한다. 결과에는 ID 자체 없이 일치 bool을 기록한다.
 
@@ -43,7 +44,7 @@ private config는 `.meta` 복원 승인 기록이 아니며 Editor 전 복원 �
 Unity compile/build 및 APK manifest/signature 검사. 이것은 게시자 폼 표시 성공이 아니다.
 게시 후 별도 범위에서 확인할 것: 실제 publisher Update·EEA 거절→Required 옵션→변경→재시작,
 미국 opt-out/옵션 진입, Other 관측, 대표 TFUA=true 억제, Unknown/Declined 시작 차단.
-현재 Console 미게시 상태에서는 예상 폼 성공을 단정하거나 반복 기기 요청으로 우회하지 않는다.
+초안 시점에는 예상 폼 성공을 단정하거나 반복 기기 요청으로 우회하지 않았다.
 
 ## 검증과 미검증
 
@@ -54,8 +55,9 @@ Unity compile/build 및 APK manifest/signature 검사. 이것은 게시자 폼 �
   중복 형식, 이를 제외한 2차 UnityEditor와 CoreModule 중복 및 기존 internal
   GoogleUmpConsentClient의 외부 assembly 접근 오류다. 실제 두 소스를 링크했지만
   제품의 Unity compile 성공/실패 판정 근거가 아니다. 지시대로 3차나 유사 우회 실행을 하지 않는다.
-- IL2CPP/APK/AAB·빌드 경로의 finally 실실행·게시자 네트워크/기기·메시지 게시는
-  **미실행/미검증**이다. 새 APK SHA-256은 해당 없음. raw 구성 결과는 ignored 로컬 경로에 보존한다.
+- 이 초기 준비 시점에는 IL2CPP/APK/AAB·빌드 경로의 finally 실실행·게시자
+  네트워크/기기·메시지 게시가 **미실행/미검증**이었다. 당시 새 APK SHA-256은
+  해당 없었다. raw 구성 결과는 ignored 로컬 경로에 보존한다.
 - production/지역 false, 기존 연령별 fullscreen 제한, 보상/No Ads 계약은 변경하지 않았다.
 
 ### 사용자 승인 후 실제 Unity 컴파일 1회
@@ -135,4 +137,64 @@ ZIP의 비압축 native mmap offset 정렬 검사 대상은 없다. 원본 결�
 
 실제 APK를 설치/실행하지 않았으며 publisher UMP 네트워크·폼 표시·거절/옵션/재시작,
 네이티브 전체 트래픽, strict RELRO 실행, 16KB 기기, AAB/스토어는 미검증이다.
-메시지 Publish OFF/운영 및 지역 flags false를 유지한다. 별도 범위 확인 전 기기/게시 실행하지 않는다.
+이 APK 단계에서는 메시지 Publish OFF/운영 및 지역 flags false를 유지했다.
+후속 게시·기기 단계는 아래에 별도로 기록한다.
+
+### 후속 승인된 유럽·미국 메시지 게시와 테스트폰 UMP 관측
+
+2026-09-29, checkout `C:/Users/pc_17/.codex/worktrees/e5e5/Tamer`, 실제 APK 소스
+`7f5e24723a2f955b19aad26f18c2f8dddb83131f`, 게시·기기 관측 시작 checkout
+`a209f7b5304e5be277b0afaaeb852271f8c41dce`다. Unity `6000.3.25f1`
+(`e1dba0a9aba4`), CLI `1.0.0-beta.8`, APK min25/target36/ARM64 기준이다.
+기존 빌드 APK 98,520,264 bytes, SHA-256
+`570bc882e52b23a2ff0549e90b4557b9ad02d49187cbb9a21cbe1ea1314167a4`를
+재사용했다. 빌드·Editor·복원·코드 테스트를 재실행하지 않았다.
+
+AdMob 기존 **Monster Tamer Android** 앱에 연결된 `Monster Tamer - European privacy v1`
+(영어 en, EEA·영국·스위스, 동의/거절/옵션 관리)과
+`Monster Tamer - US state privacy v1`(영어 en-US, 현재·향후 지원 미국 주 전체,
+판매·공유 거부 옵션)을 각각 게시했다. 두 목록에서 `게시됨` 및 게시 스위치 ON,
+개인 정보 보호 및 메시지 개요에서 각 활성 메시지 1개를 확인했다. 기존 정책 URL은
+`https://github.com/ChoiDaeYoung-94/Tamer#개인정보처리방침`이며 별도 정책/파트너/
+적법한 이익/대체 메시지/계정 설정을 변경하지 않았다. 이 메시지는 기존 게시자 App ID에
+연결돼 있어 실제 기존 앱 이용자에 대한 노출 가능성이 있다. Console 안내상 표시 반영에는
+최대 1시간이 걸릴 수 있다. 게시 자체를 기존 앱 사용자에게 노출 0의 증거로 해석하지 않는다.
+
+연결된 물리 기기는 Samsung SM-N986N, Android 13/API33, `PAGE_SIZE=4096`이다.
+설치 전 `com.AeDeong.MonsterTamer.revival.umppublisher`가 없음을 확인한 뒤 debug
+격리 패키지만 새로 설치했다. 기존 `com.AeDeong.MonsterTamer`는 이 폰에서 미설치였고
+설치·로그인·저장·구매·광고 요청을 시도하지 않았다. UMP 테스트 기기 해시는 UMP가
+출력한 값을 로컬 입력에만 사용하며 공개 증거에 넣지 않는다.
+
+| 합성 기기 사례 | 실제 관측 |
+| --- | --- |
+| 성인·EEA | 영어 `Monster Tamer` 제목과 Consent / Do not consent / Manage options가 실제 폰에 표시됐다. Manage options에서 선택값을 확인했고 거절 후 `UMP privacy options` 재진입과 Confirm choices 변경을 확인했다. |
+| 성인·EEA 재시작 | own 패키지를 force-stop/재시작한 후 명시적 Update에서 기존 선택이 유지돼 첫 동의 폼은 다시 표시되지 않았다. 첫 입력은 로컬 테스트 해시 길이 오류로 차단됐고 문자별 재입력 후 정상 Update를 확인했다. |
+| 성인·규제 미국 주 | 게시 직후 11:30대와 Console의 최대 1시간 반영 안내가 지난 12:26 KST에 각각 1회 로컬 reset 후 `RegulatedUSState` debug Update에 성공했다. 두 관측 모두 즉시 필수 폼은 없고 `PrivacyOptionsRequired` 버튼도 나타나지 않았다. 게시된 미국 거부 UI/선택/변경은 확인하지 못했다. |
+| 성인·Other | 로컬 reset 후 Update 성공, 필수 폼 및 옵션 버튼 없음. |
+| Under13·EEA | 로컬 reset 후 `tfua=True`로 Update 성공, 필수 폼 없음. 지역 정책 전체의 승인 근거는 아니다. |
+| Unknown·Declined | 각각 `ump_blocked unknown_or_declined_age`로 UMP Update 호출 전 차단됐다. |
+
+Google 문서상 미국 주 메시지는 앱 시작 시 필수 동의 폼이 아니라 개인정보 옵션
+진입점에서 표시된다. 따라서 미국 사례에서 필수 폼이 없는 것만으로 실패라고 판정하지
+않는다. 다만 12:26 KST의 추가 관측에서도 진입점이 없었고, 격리 앱 UMP 저장 상태는
+두 번 모두 `privacy_options_requirement_status=NOT_REQUIRED`,
+`is_pub_misconfigured=false`였다. 원인은 현재의 메시지 타기팅·게시자 설정·SDK 응답
+중 어디에 있는지 확정하지 못했다. 미국 거부 플로우는 **미검증**으로 남기고 같은 조건의
+세 번째 실행을 중단한다. 이 SDK 응답만으로 실제 모든 미국 주 이용자에게 메시지가
+표시되지 않는다고 단정하지 않는다.
+[Google 메시지 표시 시점](https://support.google.com/admob/answer/10114020)을 기준으로 해석한다.
+
+기기에서 관측한 `can_request=True`는 Google UMP의 광고 요청 가능 신호이며
+개인 맞춤 광고 동의 또는 실제 광고 요청·게재를 뜻하지 않는다. 격리 앱은 managed
+Mobile Ads Init/Load/Show 경로가 없고 관련 호출 로그도 없었다. merged manifest의
+MobileAdsInitProvider 및 AD_ID 권한은 존재하므로 SDK 자체 통신·전체 트래픽 0을
+단정하지 않는다. raw 화면·filtered 로그는 ignored
+`Logs/revival/publisher-ump-device-20260929/`에 보존한다. 이 4KB 기기 실측은
+16KB 기기 실행, strict RELRO, AAB·스토어 검증을 대신하지 않는다.
+
+두 번째 미국 관측 후 설치 전과 같은 경로의 own 격리 패키지임을 재확인하고
+`com.AeDeong.MonsterTamer.revival.umppublisher`만 force-stop·uninstall했다.
+재조회에서 이 패키지와 운영 `com.AeDeong.MonsterTamer`는 모두 폰에 없었고,
+이번 관측용 폰 임시 화면 파일 2개도 제거했다. 원본의 다른 앱·계정·저장에는
+접근하지 않았다. 검증용 로컬 화면과 로그는 비공개 ignored 경로에 남긴다.
