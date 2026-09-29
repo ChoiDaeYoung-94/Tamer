@@ -9,8 +9,9 @@
 
 `tools/revival/private_ads_build.py`의 `--execute`는 무조건 거절한다.
 최초 C# 계약 검증 두 번 실패 후 중단했고, 사용자의 명시적 승인과 독립 읽기
-리뷰를 거쳐 세 번째 합성 검증을 한 번 실행하여 통과했다. 실제 실행 경로는
-Unity 호환성·최종 바이너리·OS 삭제 경합이 미검증/미해결이므로 계속 차단한다.
+리뷰를 거쳐 세 번째 합성 검증을 한 번 실행하여 통과했다. Windows 핸들 정리도
+독립 리뷰 후 임시 폴더 전용 6개 검증을 통과했다. 실제 실행 경로는
+Unity 호환성·최종 바이너리·보존 폴더의 수동 확인이 남아 계속 차단한다.
 이 초안은 병합·실행 준비 완료 상태가 아니다.
 
 - 첫 번째: .NET 표준 출력의 UTF-8 한글을 Python 기본 cp949로 읽다가 실패했다.
@@ -56,10 +57,9 @@ meta를 설치하도록 작성했다. 다른 프로젝트의 Editor를 종료하
 파일이 생기면 덮어쓰지 않고 journal/스냅샷을 보존한다. 강제종료로 finally가 생략되면
 다음 실행은 journal/hook 잔여물로 중단한다. 이는 동시 사용자 편집을 막는 OS 잠금이
 아니므로 실제 실행 시 해당 checkout의 독점 사용도 필요하다.
-특히 경로 검사와 open/unlink 사이 경합은 재대조만으로 완전히 없애지 못했다.
-향후 활성화 전에는 Windows handle 기반 쓰기/교체 배제 등으로 이 간격을 닫거나,
-독점 사용을 보장하지 못하면 자동 삭제를 보류하는 설계가 추가로 필요하다.
-현재 코드는 이 OS 수준 경합 문제의 해결을 주장하지 않으며 실행 차단을 유지한다.
+초기 경로 재대조/unlink 구현의 경합은 아래 Windows handle 정리 구현으로 보강했다.
+폴더 소유권을 mkdir 직후 조회만으로 증명하지 않고 자동 rmdir를 제거했다.
+남은 폴더/active journal은 수동 확인 대상으로 보존하며 실행 차단을 유지한다.
 Git ignore는 OS ACL/백업 동기화 접근 제한을 제공하지 않는다.
 
 ## 수동 복구 절차
@@ -93,7 +93,8 @@ player gate, 서명/ABI 검증은 별도 필요하다. 이 초안은 이를 구�
 
 검증 코드 집합은 `099607b4aeb88b1671a3174b1b3222fc10ba983e`에 기록했다.
 실행 당시에는 `16ce8e5` 위에 아래 세 파일의 미커밋 변경이 있었고, 통과 후
-그대로 해당 커밋에 기록했다. 이후 wrapper 변경은 차단 메시지/주석만 갱신한다.
+그대로 해당 커밋에 기록했다. 당시 후속 `898922c`의 wrapper 변경은 차단 메시지/
+주석만 갱신했으며, 별도 Windows 정리 보강은 아래 `e4d833e` 결과와 구분한다.
 
 - `tools/revival/private_ads_build/PrivateAdsContract.cs`
 - `tools/revival/validate_private_ads_preparation.py`
@@ -137,3 +138,57 @@ Python도 `parse_constant` 거절을 명시하여 미사용 evidence 필드 안�
 NaN/Infinity까지 거절하도록 보강했고 이번 합성 입력에 포함했다.
 승인 범위인 **교체 후 같은 C#↔Python 계약 검증 한 번**을 완료했다.
 새 Unity 실행·AAB 빌드·기기 검증은 승인 범위에 포함하지 않는다.
+
+## Windows 소유 파일 정리 보강
+
+`windows_owned_files.py`는 volume root부터 각 ancestor 디렉터리를 열린 핸들로
+유지하고 DIRECTORY/REPARSE 속성을 확인한다. share READ만 허용하여 해당
+디렉터리 자체의 일반적인 쓰기/rename/delete 핸들과 충돌하면 중단한다.
+자식 파일의 생성 전체를 막는 독점 디렉터리 잠금이라고 표현하지 않는다.
+
+소유 hook/meta와 journal은 `GENERIC_READ | DELETE`, share READ,
+`OPEN_EXISTING | FILE_FLAG_OPEN_REPARSE_POINT`로 열고 같은 `os.fstat` 표현의
+identity와 같은 핸들로 읽은 바이트 해시를 비교한다. 전부 확보/검증하기 전에는
+삭제하지 않으며 `SetFileInformationByHandle(FileDispositionInfo)`로 검증한 핸들의
+파일만 삭제한다. pathname unlink/rmdir, 공유 위반 재시도/강제종료/fallback은 없다.
+이 공유 모드와 삭제 접근권한은 Microsoft의 [CreateFile 문서](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)와
+[SetFileInformationByHandle 문서](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfileinformationbyhandle)에 근거한다.
+
+receipt와 journal 사본은 exclusive-create로 예약해 기존 파일을 덮어쓰지 않는다.
+여러 파일 삭제는 transaction이 아니므로 중간 실패 시 일부 자기 파일만 제거될 수
+있으며 원래 active journal은 보존한다. 실패 때 생긴 빈/부분 receipt는 성공 증거가
+아니다. 핸들은 예외에서도 닫는다. 자기 파일 정리 후에도 폴더는 자동 삭제하지 않아
+`manualRecoveryRequired=true`와 active journal을 유지한다. 실행 초안도 이 상태를
+성공 완료로 반환하지 않고 수동 확인 필요 오류로 종료한다.
+
+보장 범위는 일반 사용자 파일 I/O 경합이다. 관리자/커널/원시 볼륨 접근, 기존 writable
+mapping, stage와 cleanup 사이 파일 ID 재사용까지 전면 방어한다고 주장하지 않는다.
+재파싱 경로는 거절한다. 실제 프로젝트 파일 삭제로 검증하지 않으며 새 검증은 Windows
+임시 폴더에만 한정한다. 기존 lifecycle 12개 PASS는 `16ce8e5`의 이전 정리 구현
+결과이고 이번 결과로 재표현하지 않는다. 기존 테스트의 폴더 보존 기대값은 갱신했지만
+반복 실행하지 않았다. JSON 59개 판정 검증도 반복하지 않았다.
+
+### 변경된 정리 경로 검증
+
+검증 코드 집합은 `e4d833e9f91126d31786afe6d4c95b50e321998b`다.
+실행 당시 `898922c` 위에 해당 커밋의 미커밋 코드 변경이 있었고, 실행 후 그대로
+기록했다. 독립 읽기 리뷰의 `FILE_DISPOSITION_INFO.DeleteFile` 지적에 따라
+`ctypes.Structure`의 **c_ubyte(1바이트 BOOLEAN)**로 수정한 뒤,
+`python -m unittest test_windows_owned_files -v`를 한 번 실행했다.
+종료 코드 **0**, **6개 통과**, 실패/재시도는 없다.
+
+- 잠금 중 파일 쓰기·교체와 부모 디렉터리 rename 거절, 같은 핸들 대상 삭제
+- 내용은 같아도 교체된 다른 identity의 파일 거절
+- own 파일 정리 뒤 빈 폴더·active journal·원본 보존
+- 기존 writer의 공유 위반 시 fallback 없이 모든 대상 보존
+- 두 번째 삭제 표식에서 합성 실패 시 일부 own 파일만 정리하고 journal 보존/핸들 해제
+- 기존 결과 파일을 덮어쓰지 않음
+
+Python 3.14/Windows 로컬 임시 폴더에서만 수행했다. 실제 checkout의 hook/meta/
+journal 삭제나 Unity/기기/빌드 작업은 하지 않았다. 최초 lifecycle 12개와
+승인된 JSON 59개 검증을 이 단계에서 반복하지 않았다.
+
+검증 후 독립 읽기 리뷰에서 `e4d833e`의 실제 1바이트 ABI 수정과 시험 범위가
+확인되었고 추가 차단 사항은 발견되지 않았다. 리뷰 담당자는 테스트를 실행하지
+않았으며 6 OK/exit0 수치는 작성자 실행 보고와 이 문서에 근거했다. 원 실행 로그를
+독립 재열람하여 확인한 결과라고 표현하지 않는다.

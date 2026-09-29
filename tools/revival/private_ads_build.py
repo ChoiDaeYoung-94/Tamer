@@ -240,7 +240,7 @@ def finalize(root, state):
 
 def execute(root, config, head, version):
     # The authorized third synthetic contract check passed for its 59 inputs.
-    # Unity compatibility, binary verification and OS cleanup races remain unresolved.
+    # Unity compatibility, binary verification and retained-directory review remain incomplete.
     raise ValueError('Execution blocked: Unity and lifecycle readiness incomplete')
 
 
