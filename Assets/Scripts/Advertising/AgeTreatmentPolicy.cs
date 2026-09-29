@@ -19,11 +19,29 @@ namespace AD.Advertising
         // A source-reviewed release contract, never a PlayerPrefs/locale/debug override.
         // Supported regions, age treatment and published messages remain unreviewed.
         public static bool RegionalConsentReviewed => false;
-        public static bool IsReviewed(AgeChoice choice) =>
-            RegionalConsentReviewed && TryCreatePlan(choice, out _);
+        // Each cohort needs its own reviewed release decision. Opening the master
+        // gate must never implicitly approve every age after an adult-only check.
+        private const bool Under13ConsentReviewed = false;
+        private const bool From13To15ConsentReviewed = false;
+        private const bool From16To17ConsentReviewed = false;
+        private const bool AdultConsentReviewed = false;
 
-        // An age-only candidate, not permission to advertise: the current Play target
-        // audience is 9-17, and regional, consent and release review all remain closed.
+        public static bool IsReviewed(AgeChoice choice)
+        {
+            if (!RegionalConsentReviewed) return false;
+            switch (choice)
+            {
+                case AgeChoice.Under13: return Under13ConsentReviewed;
+                case AgeChoice.From13To15: return From13To15ConsentReviewed;
+                case AgeChoice.From16To17: return From16To17ConsentReviewed;
+                case AgeChoice.Adult: return AdultConsentReviewed;
+                default: return false;
+            }
+        }
+
+        // An age-only candidate, not permission to advertise. The saved Play target
+        // includes ages 9+ (adult added, review submission pending); all release
+        // and regional gates remain closed, including the separate adult review.
         // The SDK controls the native X; no five-second close guarantee exists here.
         public static bool AllowsFullscreenRewarded(AgeChoice choice) =>
             choice == AgeChoice.Adult;
