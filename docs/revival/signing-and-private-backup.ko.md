@@ -39,6 +39,13 @@ agent 종료 실패, 암호문 교체 시 성공 영수증 미생성과 영수�
 기존 GPG 왕복 시험은 반복하지 않았다. 실제 실행은 ACL 설정 뒤 DACL을 다시 읽어 검사한다.
 여기서 자동 정리는 해당 작업의 agent 종료와 미완 영수증 삭제만 뜻한다. 실패한 암호문과
 작업 전용 GPG 홈은 점검을 위해 남으며 성공 영수증 없이 업로드하지 않는다.
+후속 실제 빈 디렉터리 DACL 검증은 두 번 실패해 중단했다. 현재 셸에서 설정된 권한을
+읽으면 사용자·SYSTEM FullControl 및 상속 차단이었지만, Python에서 호출한 Windows
+PowerShell 검증은 exit 1이었다. EncodedCommand 변경만으로 해결되지 않았다.
+호스트 pwsh 모듈 경로가 자식 Windows PowerShell에 상속되는 가능성을 확인해 표준
+자식 환경에서만 PSModulePath를 제거하고 Windows PowerShell 절대 경로와 단계별
+오류 코드를 사용하는 수정안을 준비했으나 원인 확정·3차 검증은
+사용자 승인 전 보류다. 이 상태에서는 실제 키 백업 도구의 준비 완료를 선언하지 않는다.
 GPG의 [대칭 암호화](https://www.gnupg.org/documentation/manuals/gnupg/Operational-GPG-Commands.html)와
 [암호 캐시 옵션](https://www.gnupg.org/documentation/manuals/gnupg/GPG-Esoteric-Options.html)을 따른다.
 

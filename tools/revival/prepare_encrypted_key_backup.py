@@ -4,6 +4,7 @@ Passwords are entered by the user in GnuPG pinentry, never accepted by this CLI.
 The backup password does not replace the existing keystore password.
 """
 import argparse
+import base64
 import hashlib
 import io
 import json
@@ -16,6 +17,7 @@ import uuid
 import zipfile
 
 GPG = Path('C:/Program Files/Git/usr/bin/gpg.exe')
+POWERSHELL = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
 LIMIT = 16 * 1024 * 1024
 
 
@@ -125,7 +127,7 @@ def owner_directory(parent):
         parent.mkdir()
     target = parent / ('key-backup-' + uuid.uuid4().hex)
     target.mkdir()
-    sid = subprocess.run(['powershell.exe', '-NoProfile', '-Command',
+    sid = subprocess.run([str(POWERSHELL), '-NoProfile', '-Command',
                           '[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value'],
                          check=True, capture_output=True, text=True).stdout.strip()
     if not re.fullmatch(r'S-1-[0-9-]+', sid):
@@ -138,19 +140,30 @@ def owner_directory(parent):
 
 
 def verify_owner_acl(target, sid):
-    script = '''$a=Get-Acl -LiteralPath $env:TAMER_BACKUP_ACL_PATH
-if (!$a.AreAccessRulesProtected) { exit 1 }
+    script = '''$ErrorActionPreference='Stop'
+try { $a=Get-Acl -LiteralPath $env:TAMER_BACKUP_ACL_PATH } catch { exit 10 }
+if (!$a.AreAccessRulesProtected) { exit 11 }
 $rules=@($a.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier]))
-if ($rules.Count -ne 2) { exit 2 }
+if ($rules.Count -ne 2) { exit 12 }
 foreach($s in @($env:TAMER_BACKUP_ACL_SID,'S-1-5-18')) {
  $r=@($rules | Where-Object { $_.IdentityReference.Value -eq $s })
  if ($r.Count -ne 1 -or $r[0].AccessControlType -ne 'Allow' -or
-     $r[0].FileSystemRights -ne [System.Security.AccessControl.FileSystemRights]::FullControl) { exit 3 }
+     $r[0].FileSystemRights -ne [System.Security.AccessControl.FileSystemRights]::FullControl) { exit 13 }
 }
+exit 0
 '''
-    env = dict(os.environ, TAMER_BACKUP_ACL_PATH=str(target), TAMER_BACKUP_ACL_SID=sid)
-    subprocess.run(['powershell.exe', '-NoProfile', '-Command', script], env=env,
-                   check=True, capture_output=True)
+    env = {key: value for key, value in os.environ.items() if key.casefold() != 'psmodulepath'}
+    env.update(TAMER_BACKUP_ACL_PATH=str(target), TAMER_BACKUP_ACL_SID=sid)
+    # Windows PowerShell must not load modules inherited from the hosting pwsh.
+    encoded = base64.b64encode(script.encode('utf-16le')).decode('ascii')
+    result = subprocess.run([str(POWERSHELL), '-NoProfile', '-EncodedCommand', encoded], env=env,
+                            capture_output=True)
+    if result.returncode:
+        # This new directory already has the restricted ACL. Keep diagnostics
+        # local for review; never echo native output to a public log.
+        with (target / 'acl-diagnostic.private.txt').open('xb') as handle:
+            handle.write(('ACL verification exit=' + str(result.returncode) + '\n').encode() + result.stderr)
+        raise ValueError('Backup ACL verification failed')
 
 
 def gpg_run(home, arguments, payload=None):
