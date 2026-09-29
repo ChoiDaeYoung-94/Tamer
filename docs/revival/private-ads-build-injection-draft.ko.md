@@ -11,7 +11,8 @@
 최초 C# 계약 검증 두 번 실패 후 중단했고, 사용자의 명시적 승인과 독립 읽기
 리뷰를 거쳐 세 번째 합성 검증을 한 번 실행하여 통과했다. Windows 핸들 정리도
 독립 리뷰 후 임시 폴더 전용 6개 검증을 통과했다. 실제 실행 경로는
-Unity 호환성·최종 바이너리·보존 폴더의 수동 확인이 남아 계속 차단한다.
+Editor 참조의 Roslyn emit-only 컴파일도 한 번 통과했다. 정상 Unity asset/asmdef
+컴파일·콜백 등록/호출·최종 바이너리·보존 폴더의 수동 확인이 남아 계속 차단한다.
 이 초안은 병합·실행 준비 완료 상태가 아니다.
 
 - 첫 번째: .NET 표준 출력의 UTF-8 한글을 Python 기본 cp949로 읽다가 실패했다.
@@ -28,10 +29,11 @@ Unity 호환성·최종 바이너리·보존 폴더의 수동 확인이 남아 �
   동일 바이트 타인 파일/타인 빈 폴더 보존과 `--execute` 차단을 추가한 Python
   lifecycle **12개가 통과**했다. 이 실행에는 중단된 C# 계약 검증을 포함하지 않았다.
 
-Unity Editor/CLI 실행, 실제 Assets hook 설치, APK/AAB 생성, 기기 접근,
+초기 구현·합성 검증 단계에서는 Unity Editor/CLI 실행, 실제 Assets hook 설치, APK/AAB 생성, 기기 접근,
 서명 변경, 실제 광고 요청, Console 제출은 수행하지 않았다.
-실제 Editor API 호환성·씬 콜백·최종 바이너리는 미검증이다.
-프로젝트 버전 지침 충돌도 해결하지 않았으며 새 Editor 설치/전환은 없다.
+후속 Editor emit-only 검증은 문서 마지막 절의 별도 결과다. 씬 콜백·최종 바이너리는 미검증이다.
+초기 단계의 버전 지침 충돌은 자체 판단으로 변경하지 않았다. 후속 컴파일은 총괄 배정에 따라
+설치된 버전과 프로젝트 기준 일치를 확인했으며 새 Editor 설치/전환은 없다.
 
 ## 구현 경계
 
@@ -192,3 +194,62 @@ journal 삭제나 Unity/기기/빌드 작업은 하지 않았다. 최초 lifecyc
 확인되었고 추가 차단 사항은 발견되지 않았다. 리뷰 담당자는 테스트를 실행하지
 않았으며 6 OK/exit0 수치는 작성자 실행 보고와 이 문서에 근거했다. 원 실행 로그를
 독립 재열람하여 확인한 결과라고 표현하지 않는다.
+
+## Editor 참조 Roslyn emit-only 컴파일 1회
+
+2026-09-29 실제 소스는 `036fe8ff37359903bcb43ed2c96500783e178197`,
+checkout은 본 문서 상단의 e5e5, 브랜치는 `codex/private-ads-build-injection`이다.
+실행 전 tracked clean 및 해당 checkout Editor 0을 확인했다.
+설치된 Unity **6000.3.25f1 / e1dba0a9aba4**와 ProjectVersion/toolchain,
+CLI **1.0.0-beta.8**의 고정 SHA-256을 대조했다. 기존 비공개 에셋 복원 승인 자료가
+유지되고 추가 충돌/누락이 없음을 확인했으며 새 설치나 버전 전환은 없었다.
+활성 라이선스를 확인했고 누락된 이 checkout의 계정 pin만 기존 로그인 계정으로
+설정했다. 다른 프로젝트나 전역 활성 계정은 바꾸지 않았다.
+
+프로젝트에 설치된 unity-pipeline 스킬과 `RunScriptCommand.cs`/
+`RoslynCompilationService.cs`를 읽어 `dry_run`이 emit 후 어셈블리를 로드하지 않고
+entry 탐색/호출 전에 반환하는 경로임을 확인했다. 통합/보안 독립 읽기 리뷰 후
+아래 두 템플릿을 Assets 밖 private 결합 파일로 준비했다.
+
+- `tools/revival/private_ads_build/PrivateAdsContract.cs`
+- `tools/revival/private_ads_build/PrivateProductionAdsBuild.cs`
+
+단순 상단 using 선언만 합쳤고 클래스 본문은 보존했다. conditional/alias/late using을
+거절하는 준비 검사, 원본 SHA-256, using 치환 후 본문 해시, `#line` 매핑을 private
+manifest에 기록했다. 원본 1,089개 파일의 스냅샷도 보존했다. 새 템플릿은 Assets에
+설치하지 않았고 meta 생성이나 소유 파일 삭제는 **0**이다.
+
+명령은 고정 절대 checkout에 대해 `unity run <checkout> --editor-version 6000.3.25f1
+--command run_script --timeout 900 --non-interactive --format json -- --file <private combined.cs>
+--mode ephemeral --dry_run true`였다. 실행 직전 CLI 해시/정확한 명령/소스와 원본
+스냅샷 해시를 재검사하고, 자식 환경에서 모든 `TAMER_PRIVATE_ADS_*`를 대소문자와
+무관하게 제거했다. 고유 nonce와 exclusive 생성 표식으로 같은 실행의 재호출을 막았다.
+
+결과는 **CLI exit 0 및 실제 command success=true**, compile **1,033ms**,
+execute **0ms**, assemblyName **null**, 명시적 dry-run 미로드/미실행 응답이다.
+진단은 **오류 0, CS0162 unreachable-code 경고 1**이다. Editor 활성 define을 사용한
+테스트/하네스 거절 분기 주변의 경고이며 경고를 숨기거나 새 컴파일로 없애지 않았다.
+`reusedRunningEditor=false`였고 종료 후 해당 checkout Editor 0을 확인했다.
+보안 리뷰 담당자가 보존된 원 응답과 receipt를 직접 읽어 위 결과를 확인했다.
+
+이 결과는 **실행 중 Editor의 참조·define을 사용한 Roslyn emit-only 컴파일**이다.
+Unity의 정상 asset/asmdef 컴파일 파이프라인 편입, 콜백 등록/호출, 씬 주입,
+APK/AAB 생성·서명·실기기·운영 광고 성공의 증거가 아니다. `--execute` 차단은 유지한다.
+
+### Editor 초기화 변경과 제한된 복원
+
+새 소스의 미로드와 별개로 Editor 초기화/import가 기존 tracked 파일 세 개를 수정했다.
+공백을 제외한 변경은 ProjectSettings의 `AndroidKeyaliasName`과 URP Low/Medium의
+`k_AssetPreviousVersion`이었다. 설정 값과 원시 로그는 공개하지 않고 변경 후 바이트를
+private 증거로 보존했다. 처음부터 변경 없는 실행이었다고 표현하지 않는다.
+
+독립 읽기 리뷰에서 실행 전 clean/HEAD, 현재 after-import 해시, index=HEAD,
+Settings 스냅샷 해시를 확인했다. 복원 직전에 Editor 0/HEAD/현재 해시를 다시 대조한 뒤
+**ProjectSettings 한 개는 사전 스냅샷 바이트로**, **URP 두 개는 정확한 경로의 Git HEAD
+기준으로** 복원했다. Settings는 배타 파일 핸들 안에서 현재 해시를 확인하고 복원했다.
+URP 두 파일은 사전 바이트 스냅샷 목록에 없으므로 exact 사전 바이트 복원이라고
+주장하지 않는다. 전체 restore/reset은 하지 않았다.
+
+사후 **Git clean**, Settings 스냅샷 해시 일치, 해당 Editor 0을 확인했다.
+컴파일/Editor import를 다시 실행하지 않았고 private manifest·응답·변경 전후 증거·
+복원 receipt를 보존했다. 이 단계의 추가 빌드/기기/Console/운영 ID 주입은 0이다.
