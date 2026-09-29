@@ -15,6 +15,7 @@ import sys
 import uuid
 
 from validate_private_ads_preparation import audit, unique_object
+from windows_owned_files import locked_directories, verified_files
 
 HOOK = 'Assets/Scripts/Editor/RevivalPrivateAdsPreparation'
 JOURNAL = '.revival-local/private-ads-build-active.json'
@@ -38,7 +39,8 @@ def identity(path):
 
 def journal_view(state):
     # Runtime-created identities are not reconstructed from a surviving journal.
-    return {key: value for key, value in state.items() if key not in ('created', 'folderIdentity')}
+    return {key: value for key, value in state.items()
+            if key not in ('created', 'folderIdentity', 'journalIdentity', 'journalSha256')}
 
 
 def safe_path(root, relative):
@@ -162,11 +164,15 @@ def stage(root, config, preflight_result, expected_head, editor_version, owner=N
              'created': {}, 'folderIdentity': None}
     # Exclusive creation also rejects a concurrent wrapper. Orphan snapshots are private,
     # harmless, and preserved if the process dies before journal creation.
-    with journal_path.open('x', encoding='utf-8') as stream:
+    with journal_path.open('xb') as stream:
         if owner is not None:
             owner.update(state)
             state = owner
-        json.dump(journal_view(state), stream, indent=2)
+        info = os.fstat(stream.fileno())
+        state['journalIdentity'] = (info.st_dev, info.st_ino)
+        raw_journal = json.dumps(journal_view(state), indent=2).encode('utf-8')
+        state['journalSha256'] = digest(raw_journal)
+        stream.write(raw_journal)
         stream.flush()
         os.fsync(stream.fileno())
     safe_path(root, HOOK).mkdir(exist_ok=False)
@@ -182,47 +188,54 @@ def stage(root, config, preflight_result, expected_head, editor_version, owner=N
 
 
 def finalize(root, state):
-    """Remove only this invocation's byte-identical files. Never restore unknown edits."""
-    journal = safe_path(root, JOURNAL)
-    saved = json.loads(journal.read_bytes(), object_pairs_hook=unique_object)
-    if saved != journal_view(state) or saved['checkout'] != str(root):
-        raise ValueError('Journal ownership mismatch; preserve for manual recovery')
-    # Validate everything before removing anything. Missing owned files are allowed:
-    # staging can have failed before creating them, or cleanup can have been interrupted.
-    allowed = set(state['created'])
-    folder = safe_path(root, HOOK)
-    if folder.exists() and identity(folder) != state['folderIdentity']:
-        raise ValueError('Folder was not exclusively created by this invocation')
-    if folder.exists() and any(p.relative_to(root).as_posix() not in allowed for p in folder.rglob('*')):
-        raise ValueError('Unexpected staging contents; preserve for manual recovery')
-    if any(safe_path(root, path).exists() for path in set(state['owned']) - allowed):
-        raise ValueError('Planned path was not created by this invocation')
-    for path, expected in state['owned'].items():
-        file = safe_path(root, path)
-        if file.exists() and (identity(file) != state['created'].get(path) or
-                              not file.is_file() or digest(file.read_bytes()) != expected):
-            raise ValueError('Owned file changed; preserve for manual recovery')
-    for path in reversed(list(state['created'])):
-        file = safe_path(root, path)
-        if file.exists():
-            # Recheck immediately; this still does not provide an OS transaction.
-            if identity(file) != state['created'][path] or digest(file.read_bytes()) != state['owned'][path]:
-                raise ValueError('Owned file changed immediately before removal')
-            file.unlink()
-    if folder.exists():
-        folder.rmdir()  # Empty only; no recursive deletion.
-    changed = [path for path, original in state['sources'].items()
-               if not safe_path(root, path).is_file() or digest(safe_path(root, path).read_bytes()) != original['sha256']]
-    changed += list(set(protected_paths(root)) - set(state['sources']))
-    result = {'cleanupOwnedFiles': True, 'originalsUnchanged': not changed,
-              'changedSourcePaths': sorted(set(changed)), 'binaryVerified': False, 'distributable': False}
-    safe_path(root, state['run'] + '/cleanup.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
-    if (changed or git(root, 'rev-parse', 'HEAD') != state['head'] or
-            git(root, 'branch', '--show-current') != state['branch'] or git(root, 'status', '--porcelain')):
-        raise ValueError('Source drift: snapshots/journal retained; manual comparison required')
-    safe_path(root, state['run'] + '/journal.completed.json').write_bytes(journal.read_bytes())
-    journal.unlink()
-    return result
+    """Handle-bound Windows cleanup. Keep directories for explicit manual recovery.
+
+    Deletion of several files is not atomic. Any failure retains the active journal;
+    some verified own files may already have been deleted. Never retry/fallback here.
+    """
+    expected = {JOURNAL: (state['journalIdentity'], state['journalSha256'])}
+    expected.update({path: (ident, state['owned'][path]) for path, ident in state['created'].items()})
+    with locked_directories([safe_path(root, state['run'])]):
+        with verified_files(root, expected) as handles:
+            raw_journal = handles[JOURNAL].bytes()
+            saved = json.loads(raw_journal, object_pairs_hook=unique_object)
+            if saved != journal_view(state) or saved['checkout'] != str(root):
+                raise ValueError('Journal ownership mismatch')
+            allowed = set(state['created'])
+            folder = safe_path(root, HOOK)
+            if folder.exists() and any(p.relative_to(root).as_posix() not in allowed for p in folder.rglob('*')):
+                raise ValueError('Unexpected staging contents')
+            if any(safe_path(root, path).exists() for path in set(state['owned']) - allowed):
+                raise ValueError('Planned path was not created by this invocation')
+            # Reserve receipts exclusively before deletion; never overwrite someone
+            # else's result. A partial/empty receipt after failure is not success.
+            with safe_path(root, state['run'] + '/journal.completed.json').open('xb') as completed:
+                with safe_path(root, state['run'] + '/cleanup.json').open('xb') as receipt:
+                    for path in state['created']:
+                        handles[path].delete()
+                        handles[path].close()
+                    changed = [path for path, original in state['sources'].items()
+                               if not safe_path(root, path).is_file() or
+                               digest(safe_path(root, path).read_bytes()) != original['sha256']]
+                    changed += list(set(protected_paths(root)) - set(state['sources']))
+                    if (changed or git(root, 'rev-parse', 'HEAD') != state['head'] or
+                            git(root, 'branch', '--show-current') != state['branch'] or
+                            git(root, 'status', '--porcelain')):
+                        raise ValueError('Source drift: original journal and snapshots retained')
+                    # Keep the active journal while any folder/unknown child remains.
+                    # No directory is ever automatically removed or claimed as owned.
+                    result = {'cleanupOwnedFiles': True, 'originalsUnchanged': True,
+                              'directoryPreserved': folder.exists(), 'manualRecoveryRequired': folder.exists(),
+                              'binaryVerified': False, 'distributable': False}
+                    completed.write(raw_journal)
+                    completed.flush()
+                    os.fsync(completed.fileno())
+                    receipt.write(json.dumps(result, indent=2).encode('utf-8'))
+                    receipt.flush()
+                    os.fsync(receipt.fileno())
+                    if not folder.exists():
+                        handles[JOURNAL].delete()
+            return result
 
 
 def execute(root, config, head, version):
@@ -263,7 +276,9 @@ def _execute_after_contract_review(root, config, head, version):
     finally:
         if state:
             require_editor_closed(root)
-            finalize(root, state)
+            cleanup = finalize(root, state)
+            if cleanup['manualRecoveryRequired']:
+                raise ValueError('Owned files cleaned; retained directory/journal require manual review')
 
 
 def main():

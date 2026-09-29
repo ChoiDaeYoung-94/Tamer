@@ -38,8 +38,9 @@ class LifecycleTests(unittest.TestCase):
         result = build.finalize(self.root, state)
         self.assertTrue(result['originalsUnchanged'])
         self.assertFalse(result['binaryVerified'])
-        self.assertFalse((self.root / build.HOOK).exists())
-        self.assertFalse((self.root / build.JOURNAL).exists())
+        self.assertTrue((self.root / build.HOOK).exists())
+        self.assertTrue((self.root / build.JOURNAL).exists())
+        self.assertTrue(result['manualRecoveryRequired'])
         self.assertTrue((self.root / state['run'] / 'journal.completed.json').is_file())
         self.assertEqual((self.root / build.PROTECTED[0]).read_bytes(), b'synthetic original')
 
@@ -77,7 +78,7 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual((self.root / state['sources'][build.PROTECTED[0]]['backup']).read_bytes(),
                          b'synthetic original')
         self.assertTrue((self.root / build.JOURNAL).exists())
-        self.assertFalse((self.root / build.HOOK).exists())
+        self.assertTrue((self.root / build.HOOK).exists())
 
     def test_partial_stage_failure_can_clean_exact_owner(self):
         owner = {}
@@ -141,8 +142,7 @@ class LifecycleTests(unittest.TestCase):
 
         with patch.object(Path, 'mkdir', collide), self.assertRaises(FileExistsError):
             self.stage(owner)
-        with self.assertRaises(ValueError):
-            build.finalize(self.root, owner)
+        self.assertTrue(build.finalize(self.root, owner)['manualRecoveryRequired'])
         self.assertTrue((self.root / build.HOOK).is_dir())
 
     def test_execute_is_blocked_before_any_preflight_or_mutation(self):
