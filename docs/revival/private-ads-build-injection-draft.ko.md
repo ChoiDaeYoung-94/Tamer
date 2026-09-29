@@ -309,3 +309,50 @@ Assets 임시 설치/삭제, 콜백 실행, 빌드/설치/기기/운영 광고/C
 특히 `ReadPlayerCompilationPlan`은 컴파일되었을 뿐 **실제 API를 호출한 결과가 아니다**.
 정상 Unity assembly 편입·콜백 등록과 최종 Player/AAB 검증은 여전히 남아 있으며
 `--execute` 차단과 Draft/병합 보류를 유지한다.
+
+## Player 계획 읽기 probe 첫 실행 — 실패
+
+checkout HEAD `ddeb01ec8943eaa15b099948af69e1ffa4f08031`에서 콜백 템플릿의
+ReadPlayerCompilationPlan/ForbiddenDefine/Rejected 본문을 그대로 복사한 private
+외부 probe를 독립 읽기 리뷰 후 한 번 실행했다. 원본 템플릿/본문 해시와 실행 파일의
+raw 해시를 고정했다. 준비 과정의 LF 문자열 해시와 Windows CRLF 파일 해시 차이는
+실행 전에 명시적으로 구분·정정했고, 검토한 본문은 바꾸지 않았다.
+
+probe는 callback 인터페이스나 Build 메서드를 포함하지 않는다. 이 단계는 emit-only와
+달리 probe 어셈블리를 로드하고 읽기 메서드 Inspect를 호출했다. Assets 설치/삭제,
+설정 쓰기, 콜백 템플릿 로드/등록, 빌드/기기 실행은 없다.
+
+**CLI exit 0이지만 실제 inner command success=false / Runtime Error이므로 실패**다.
+compile 1,145ms, 진단 0, execute 39ms이며 ReadPlayerCompilationPlan 내부의
+일반 거절 예외로 끝났다. 스택 64행은 메서드 닫는 괄호이므로 특정 검사 분기나
+앞단 조건 통과를 입증하지 않는다. 처음 소스 count 실패로 추정한 보고는 즉시
+정정했고 **실제 거절 조건은 미확정**으로 남긴다.
+
+세 핵심 소스는 실제 checkout에 존재한다. 기존 Bee rsp는 이전 9월 28일 Editor/
+하네스 빌드 자료라 이번 API의 반환값이나 실패 이유를 증명하지 않는다.
+시험을 다시 실행하거나 상태 조건을 완화하여 통과시키지 않았다.
+
+초기화로 변경된 같은 세 설정 파일은 원시 after 증거를 보존하고 독립 읽기 검토 후,
+Editor 0/현재 해시/HEAD를 확인해 세 사전 스냅샷으로 배타 복원했다.
+사후 세 해시 일치/Git clean/Editor 0, 이번 probe 호출 **1회·재시도 0**이다.
+
+후속 진단 준비는 조건을 바꾸지 않고 아래 고정 코드만 추가한다. 실제 경로·심볼·
+식별값을 예외에 넣지 않으며 예상 밖 API/경로 예외도 P11로 숨긴다.
+자체 private 예외형만 고정 코드를 보존하고 API의 BuildFailedException을 포함한
+나머지 예외는 P11로 바꾼다. 실제 Build/Guard의 외곽 generic 처리는 여전히 일반
+실패만 반환하므로 고정 reason 관측은 이 메서드를 직접 부르는 읽기 probe 범위다.
+
+| 코드 | 거절 조건 |
+| --- | --- |
+| P01 | Android 활성 target 아님 |
+| P02 | development 설정 켜짐 |
+| P03 | Player 목록 누락/비어 있음 |
+| P04 | 어셈블리 메타데이터 누락/잘못된 항목 |
+| P05 | Android define 누락 또는 Editor define 포함 |
+| P06 | 기존 금지 테스트/하네스/개발 define 포함 |
+| P07 | 어셈블리명 중복 |
+| P08/P09/P10 | Manager/요청 정책/연령 정책의 정확한 소스 집계가 1 아님 |
+| P11 | 예상 밖 API 또는 경로 처리 예외 |
+
+이 진단 수정은 아직 실행하지 않았다. 다음 두 번째 배정이 이뤄지면 기존 조건을
+함께 확인하며, 같은 검증이 두 번 실패하면 그 경로와 종속 작업을 중단한다.

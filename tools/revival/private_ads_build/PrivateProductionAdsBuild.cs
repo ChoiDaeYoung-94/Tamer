@@ -151,35 +151,48 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     }
     private static string ReadPlayerCompilationPlan()
     {
-        // UNITY_INCLUDE_TESTS in the Editor hosting this callback does not mean
-        // the Player includes tests. Inspect the prospective Android Player view.
-        // This is a plan, not evidence of the final emitted/stripped assemblies.
-        if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android ||
-            EditorUserBuildSettings.development) throw Rejected();
-        var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
-        if (assemblies == null || assemblies.Length == 0 ||
-            assemblies.Any(a => a == null || string.IsNullOrEmpty(a.name) ||
-                a.defines == null || a.sourceFiles == null ||
-                a.sourceFiles.Any(string.IsNullOrEmpty) ||
-                !a.defines.Contains("UNITY_ANDROID") || a.defines.Contains("UNITY_EDITOR") ||
-                a.defines.Any(d => string.IsNullOrEmpty(d) || ForbiddenDefine(d))) ||
-            assemblies.Select(a => a.name).Distinct(StringComparer.Ordinal).Count() != assemblies.Length)
-            throw Rejected();
-        var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-        var pathComparison = Application.platform == RuntimePlatform.WindowsEditor
-            ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        foreach (var source in new[] { "Assets/Scripts/Managers/GoogleAdMobManager.cs",
-            "Assets/Scripts/Advertising/AdRequestPolicy.cs", "Assets/Scripts/Advertising/AgeTreatmentPolicy.cs" })
+        // Inspect the prospective Player view, not the Editor hosting this callback.
+        // Fixed reason codes disclose no source paths, symbols or private identifiers.
+        try
         {
-            var expected = Path.GetFullPath(Path.Combine(root, source));
-            if (assemblies.Sum(a => a.sourceFiles.Count(p => string.Equals(
-                Path.GetFullPath(Path.IsPathRooted(p) ? p : Path.Combine(root, p)),
-                expected, pathComparison))) != 1)
-                throw Rejected();
+            if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android) throw PlanRejected("P01");
+            if (EditorUserBuildSettings.development) throw PlanRejected("P02");
+            var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            if (assemblies == null || assemblies.Length == 0) throw PlanRejected("P03");
+            if (assemblies.Any(a => a == null || string.IsNullOrEmpty(a.name) ||
+                a.defines == null || a.sourceFiles == null || a.sourceFiles.Any(string.IsNullOrEmpty)))
+                throw PlanRejected("P04");
+            if (assemblies.Any(a => !a.defines.Contains("UNITY_ANDROID") || a.defines.Contains("UNITY_EDITOR")))
+                throw PlanRejected("P05");
+            if (assemblies.Any(a => a.defines.Any(d => string.IsNullOrEmpty(d) || ForbiddenDefine(d))))
+                throw PlanRejected("P06");
+            if (assemblies.Select(a => a.name).Distinct(StringComparer.Ordinal).Count() != assemblies.Length)
+                throw PlanRejected("P07");
+            var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            var pathComparison = Application.platform == RuntimePlatform.WindowsEditor
+                ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var required = new[] { "Assets/Scripts/Managers/GoogleAdMobManager.cs",
+                "Assets/Scripts/Advertising/AdRequestPolicy.cs", "Assets/Scripts/Advertising/AgeTreatmentPolicy.cs" };
+            var sourceCodes = new[] { "P08", "P09", "P10" };
+            for (int i = 0; i < required.Length; i++)
+            {
+                var expected = Path.GetFullPath(Path.Combine(root, required[i]));
+                if (assemblies.Sum(a => a.sourceFiles.Count(path => string.Equals(
+                    Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(root, path)),
+                    expected, pathComparison))) != 1) throw PlanRejected(sourceCodes[i]);
+            }
+            return string.Join("\n", assemblies.OrderBy(a => a.name, StringComparer.Ordinal).Select(a =>
+                a.name + ":" + string.Join(";", a.defines.Distinct(StringComparer.Ordinal).OrderBy(d => d, StringComparer.Ordinal))));
         }
-        return string.Join("\n", assemblies.OrderBy(a => a.name, StringComparer.Ordinal).Select(a =>
-            a.name + ":" + string.Join(";", a.defines.Distinct(StringComparer.Ordinal).OrderBy(d => d, StringComparer.Ordinal))));
+        catch (PlayerPlanRejectedException) { throw; }
+        catch { throw PlanRejected("P11"); }
     }
+    private sealed class PlayerPlanRejectedException : Exception
+    {
+        public PlayerPlanRejectedException(string code) : base("Private player plan rejected (" + code + ").") { }
+    }
+    private static PlayerPlanRejectedException PlanRejected(string code)
+    { return new PlayerPlanRejectedException(code); }
     private static bool ForbiddenDefine(string value)
     { return value.StartsWith("TAMER_", StringComparison.Ordinal) ||
         value.IndexOf("TEST", StringComparison.OrdinalIgnoreCase) >= 0 ||
