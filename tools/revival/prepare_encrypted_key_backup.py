@@ -34,11 +34,26 @@ def digest(data):
 def regular_path(path):
     path = Path(path).absolute()
     for part in (path, *path.parents):
-        if part.exists():
+        if part.exists() or part.is_symlink():
             info = part.lstat()
             if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
                 raise ValueError('Links and reparse points are not allowed')
     return path
+
+
+def read_snapshot(path):
+    path = regular_path(path)
+    with path.open('rb') as handle:
+        before = os.fstat(handle.fileno())
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= LIMIT * 4:
+            raise ValueError('Invalid snapshot input')
+        data = handle.read(LIMIT * 4 + 1)
+        after = os.fstat(handle.fileno())
+    current = regular_path(path).stat()
+    identity = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
+    if identity(before) != identity(after) or identity(after) != identity(current) or len(data) != after.st_size:
+        raise ValueError('File changed during snapshot')
+    return data, identity(after)
 
 
 def collect(inputs):
@@ -54,11 +69,11 @@ def collect(inputs):
         if identity in seen:
             raise ValueError('Recovery inputs must be distinct')
         seen.add(identity)
-        data = path.read_bytes()
+        data, snapshot_identity = read_snapshot(path)
         if not data or len(data) > LIMIT:
             raise ValueError('Invalid recovery input size')
         contents[role] = data
-        snapshots[role] = (path, digest(data))
+        snapshots[role] = (path, digest(data), snapshot_identity)
     return contents, snapshots
 
 
@@ -92,9 +107,9 @@ def verify_plaintext(plaintext, expected):
 
 
 def unchanged(snapshots):
-    for path, before in snapshots.values():
-        regular_path(path)
-        if digest(path.read_bytes()) != before:
+    for path, before, identity in snapshots.values():
+        data, current_identity = read_snapshot(path)
+        if digest(data) != before or current_identity != identity:
             raise ValueError('Recovery source changed; backup is not verified')
 
 
@@ -118,7 +133,24 @@ def owner_directory(parent):
     subprocess.run(['icacls.exe', str(target), '/inheritance:r', '/grant:r',
                     '*' + sid + ':(OI)(CI)F', '*S-1-5-18:(OI)(CI)F'],
                    check=True, capture_output=True)
+    verify_owner_acl(target, sid)
     return target
+
+
+def verify_owner_acl(target, sid):
+    script = '''$a=Get-Acl -LiteralPath $env:TAMER_BACKUP_ACL_PATH
+if (!$a.AreAccessRulesProtected) { exit 1 }
+$rules=@($a.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier]))
+if ($rules.Count -ne 2) { exit 2 }
+foreach($s in @($env:TAMER_BACKUP_ACL_SID,'S-1-5-18')) {
+ $r=@($rules | Where-Object { $_.IdentityReference.Value -eq $s })
+ if ($r.Count -ne 1 -or $r[0].AccessControlType -ne 'Allow' -or
+     $r[0].FileSystemRights -ne [System.Security.AccessControl.FileSystemRights]::FullControl) { exit 3 }
+}
+'''
+    env = dict(os.environ, TAMER_BACKUP_ACL_PATH=str(target), TAMER_BACKUP_ACL_SID=sid)
+    subprocess.run(['powershell.exe', '-NoProfile', '-Command', script], env=env,
+                   check=True, capture_output=True)
 
 
 def gpg_run(home, arguments, payload=None):
@@ -147,20 +179,43 @@ def create_backup(inputs, destination):
         gpg_run(home, ['--cipher-algo', 'AES256', '--symmetric', '--output', gpg_path(encrypted)], pack(contents))
         if not encrypted.is_file() or encrypted.stat().st_size == 0:
             raise ValueError('Missing encrypted output')
-        plaintext = gpg_run(home, ['--decrypt', gpg_path(encrypted)])
+        ciphertext, encrypted_identity = read_snapshot(encrypted)
+        plaintext = gpg_run(home, ['--decrypt'], ciphertext)
         verify_plaintext(plaintext, contents)
         unchanged(snapshots)
         receipt = {'verified': True, 'roles': sorted(contents),
-                   'encryptedSha256': digest(encrypted.read_bytes()),
+                   'encryptedSha256': digest(ciphertext),
                    'sourceUnchanged': True, 'offsiteVerified': False,
                    'keystorePasswordVerified': False}
-        with (target / 'verified-receipt.json').open('x', encoding='utf-8') as handle:
-            json.dump(receipt, handle, indent=2)
-        return encrypted
     finally:
         # Stop only the agent attached to this newly created private home.
         subprocess.run([str(GPG.parent / 'gpgconf.exe'), '--homedir', gpg_path(home),
-                        '--kill', 'gpg-agent'], capture_output=True, check=False)
+                        '--kill', 'gpg-agent'], capture_output=True, check=True)
+    # A cleanup failure cannot publish a success receipt. Recheck the exact file
+    # before publication; this is a point-in-time check, not a filesystem lock.
+    current, current_identity = read_snapshot(encrypted)
+    if current_identity != encrypted_identity or digest(current) != digest(ciphertext):
+        raise ValueError('Encrypted output changed after verification')
+    publish_receipt(target, receipt)
+    return encrypted
+
+
+def publish_receipt(target, receipt):
+    final = regular_path(target / 'verified-receipt.json')
+    temporary = regular_path(target / 'verified-receipt.pending')
+    if final.exists() or temporary.exists():
+        raise ValueError('Receipt destination already exists')
+    try:
+        with temporary.open('x', encoding='utf-8') as handle:
+            json.dump(receipt, handle, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        # Windows rename does not overwrite an existing destination.
+        temporary.rename(final)
+    except Exception:
+        if temporary.is_file() and not temporary.is_symlink():
+            temporary.unlink()
+        raise
 
 
 def main():

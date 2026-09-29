@@ -22,8 +22,11 @@ python tools/revival/prepare_encrypted_key_backup.py --keystore '<확인한 기�
 공개 인증서와 원본 파일 해시·복구 절차를 적고 암호·토큰은 넣지 않는다.
 
 암호화 후 캐시를 사용하지 않는 복호화로 정확한 파일 목록과 각 파일 해시를 대조하고,
-원본 불변까지 확인해야 `verified-receipt.json`을 만든다. 취소·실패로 이 영수증이 없으면
-출력 파일을 업로드하지 않는다. 성공 안내의 `recovery.zip.gpg` 하나만 사용자가 Drive에
+읽은 원본 snapshot과 종료 시 파일 identity·내용 일치까지 확인한다. 같은 암호문 bytes를
+복호화·해시에 사용하고 게시 직전 파일을 재대조하며, 작업 전용 GPG agent 종료 성공 후
+`verified-receipt.json`을 원자적으로 게시한다. 이는 검사 시점의 일치이며 파일 잠금이나
+이후 변경 방지를 뜻하지 않는다. 영수증은 단순 존재가 아니라 정상 JSON의 `verified=true`와
+현재 암호문 SHA-256 일치를 확인해야 한다. 성공 안내의 `recovery.zip.gpg` 하나만 사용자가 Drive에
 직접 업로드하며 암호는 별도 암호 관리자에 보관한다. 재다운로드 사본의 해시·복호화
 대조 전에는 외부 복구 완료로 표시하지 않는다. 기존 키와 증거는 보존한다.
 
@@ -31,6 +34,11 @@ python tools/revival/prepare_encrypted_key_backup.py --keystore '<확인한 기�
 통과했다. 첫 실행은 MSYS GPG agent의 Windows 드라이브 콜론 경로 거절로 실패했고,
 MSYS 경로로 변환한 두 번째 실행에서 통과했다. 실제 키 암호화, 사용자 pinentry 입력,
 실제 출력 ACL 확인, Drive 업로드·다운로드 복구는 아직 수행하지 않았다.
+보안 리뷰 후 실패 경로 mock 2건을 추가하여 ACL 실패 시 암호화 미호출, 입력 취소,
+agent 종료 실패, 암호문 교체 시 성공 영수증 미생성과 영수증 쓰기 실패 정리를 확인했다.
+기존 GPG 왕복 시험은 반복하지 않았다. 실제 실행은 ACL 설정 뒤 DACL을 다시 읽어 검사한다.
+여기서 자동 정리는 해당 작업의 agent 종료와 미완 영수증 삭제만 뜻한다. 실패한 암호문과
+작업 전용 GPG 홈은 점검을 위해 남으며 성공 영수증 없이 업로드하지 않는다.
 GPG의 [대칭 암호화](https://www.gnupg.org/documentation/manuals/gnupg/Operational-GPG-Commands.html)와
 [암호 캐시 옵션](https://www.gnupg.org/documentation/manuals/gnupg/GPG-Esoteric-Options.html)을 따른다.
 
