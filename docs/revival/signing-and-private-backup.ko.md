@@ -1,5 +1,39 @@
 # 서명 역할 확인과 비공개 에셋 복구
 
+## 2026-09-29 기존 키 암호화 백업 준비
+
+사용자는 기존 키 보존과 암호화 묶음 준비 후 Drive 직접 업로드를 선택했다.
+기존 JKS 비밀번호는 현재 모르는 상태이며, 아래 과거 새 키/reset 초안은 이번 실행 범위가
+아니다. 새 **백업 암호**는 보관 파일을 여는 암호로 기존 **JKS 암호**를 대체하지 않는다.
+
+`tools/revival/prepare_encrypted_key_backup.py`는 이미 설치된 Git의 GPG와 Windows
+pinentry를 사용한다. 기존 키·공개 인증서·복구 메모의 정확한 파일 경로 세 개를 받아
+메모리에서 묶고 암호화하며 평문 ZIP을 디스크에 쓰지 않는다. 비밀번호 인자는 받지 않고
+사용자가 로컬 GPG 입력창에서 직접 입력한다. 출력은 사용자 홈의 `TamerPrivateBackups`
+아래 새 디렉터리로 제한하고, 현재 사용자와 SYSTEM만 접근하도록 상속 권한을 제거한다.
+링크·정션과 중복 입력 파일을 거절하며 기존 파일을 덮어쓰지 않는다.
+
+```powershell
+python tools/revival/prepare_encrypted_key_backup.py --keystore '<확인한 기존 키>' --certificate '<확인한 공개 인증서>' --recovery-note '<비공개 복구 메모>'
+```
+
+실행 전 공개 인증서의 역할과 메모 내용을 확인해야 한다. 이 도구는 세 파일이 서로 같은
+키를 설명하는지 인증하거나 JKS 개인키를 복호화하지 않는다. 복구 메모에는 역할·alias·
+공개 인증서와 원본 파일 해시·복구 절차를 적고 암호·토큰은 넣지 않는다.
+
+암호화 후 캐시를 사용하지 않는 복호화로 정확한 파일 목록과 각 파일 해시를 대조하고,
+원본 불변까지 확인해야 `verified-receipt.json`을 만든다. 취소·실패로 이 영수증이 없으면
+출력 파일을 업로드하지 않는다. 성공 안내의 `recovery.zip.gpg` 하나만 사용자가 Drive에
+직접 업로드하며 암호는 별도 암호 관리자에 보관한다. 재다운로드 사본의 해시·복호화
+대조 전에는 외부 복구 완료로 표시하지 않는다. 기존 키와 증거는 보존한다.
+
+합성 파일로 실제 GPG 스트림 왕복·암호문 변조 거절·파일 목록·원본 변경 감지 2건을
+통과했다. 첫 실행은 MSYS GPG agent의 Windows 드라이브 콜론 경로 거절로 실패했고,
+MSYS 경로로 변환한 두 번째 실행에서 통과했다. 실제 키 암호화, 사용자 pinentry 입력,
+실제 출력 ACL 확인, Drive 업로드·다운로드 복구는 아직 수행하지 않았다.
+GPG의 [대칭 암호화](https://www.gnupg.org/documentation/manuals/gnupg/Operational-GPG-Commands.html)와
+[암호 캐시 옵션](https://www.gnupg.org/documentation/manuals/gnupg/GPG-Esoteric-Options.html)을 따른다.
+
 확인일: 2026-09-11. 기준 코드: `4e8c0398c700bc133d3b1e8d6592fca24f0b4d89`.
 관련: [#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94),
 [#92](https://github.com/ChoiDaeYoung-94/Tamer/issues/92),
