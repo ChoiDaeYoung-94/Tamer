@@ -8,15 +8,16 @@
 ## 현재 상태
 
 `tools/revival/private_ads_build.py`의 `--execute`는 무조건 거절한다.
-C# 계약 검증이 두 번 실패하여 해당 파서와 종속 실행 경로를 중단했다.
-이 초안은 병합·실행 준비 완료 상태가 아니며, 파서 수정과 세 번째 검증은
-총괄 담당자가 사용자 승인을 취합한 후에만 재개한다.
+최초 C# 계약 검증 두 번 실패 후 중단했고, 사용자의 명시적 승인과 독립 읽기
+리뷰를 거쳐 세 번째 합성 검증을 한 번 실행하여 통과했다. 실제 실행 경로는
+Unity 호환성·최종 바이너리·OS 삭제 경합이 미검증/미해결이므로 계속 차단한다.
+이 초안은 병합·실행 준비 완료 상태가 아니다.
 
 - 첫 번째: .NET 표준 출력의 UTF-8 한글을 Python 기본 cp949로 읽다가 실패했다.
   C# 입력 계약 결과는 확인하지 못했다.
 - 두 번째: 출력 인코딩 수정 후 순수 C# 템플릿은 .NET으로 컴파일되었으나,
   `JsonReaderWriterFactory` 기반 파서가 후행 객체와 마지막 쉼표를 허용했다.
-  Python의 엄격한 JSON 계약과 불일치하여 실패했다. 파서 교체/보강은 미완료다.
+  Python의 엄격한 JSON 계약과 불일치하여 실패했다. 아래 승인된 교체로 보강했다.
 - 별도 Python 합성 lifecycle 9개는 첫 실행에서 통과했다. 소유 파일 정리,
   강제종료를 모사한 잔여 journal 차단, meta 변조·미소유 파일 보존,
   원본 변경 보존/스냅샷 유지, 부분 staging 실패 복구, journal 변조,
@@ -85,9 +86,32 @@ player gate, 서명/ABI 검증은 별도 필요하다. 이 초안은 이를 구�
 실제 산출물이 없어 APK/AAB SHA-256 및 Android 도구/기기 결과는 없다.
 합성 검증 환경은 Python 3.14, .NET SDK 9.0.301이며 Unity 버전/CLI 버전 결과를
 대체하지 않는다. 세 번째 C# 계약 검증 승인 전에는 해당 테스트를 이름을 바꾸거나
-동등한 입력으로 다시 실행하지 않는다.
+동등한 입력으로 다시 실행하지 않는 중단 규칙을 지켰고, 아래 명시적 승인 후
+세 번째 한 번만 실행했다. 변경 없는 재실행은 하지 않는다.
 
-## 승인 후 파서 교체 최소안 (읽기 조사, 미실행)
+## 승인된 파서 교체와 세 번째 검증
+
+검증 코드 집합은 `099607b4aeb88b1671a3174b1b3222fc10ba983e`에 기록했다.
+실행 당시에는 `16ce8e5` 위에 아래 세 파일의 미커밋 변경이 있었고, 통과 후
+그대로 해당 커밋에 기록했다. 이후 wrapper 변경은 차단 메시지/주석만 갱신한다.
+
+- `tools/revival/private_ads_build/PrivateAdsContract.cs`
+- `tools/revival/validate_private_ads_preparation.py`
+- `tools/revival/test_private_ads_build.py`
+
+독립 보안 담당자가 위 세 파일을 읽기 검토한 뒤, 작성자가
+`python -m unittest test_private_ads_build.CSharpContractTests -v`를 **한 번** 실행했다.
+종료 코드 **0**, 테스트 **1개 통과**, 합성 입력 **59개 판정 일치(허용 5/거절 54)**다.
+검증은 순수 C# 계약 템플릿을 .NET SDK 9.0.301로 컴파일하고 프로젝트에 이미 있는
+Newtonsoft 3.2.2 Runtime DLL을 참조했다. 새 패키지 설치는 없다.
+중복 decoded 키(루트/중첩/escaped), 후행 객체, 객체/배열 마지막 쉼표,
+잘못된 bool 타입/누락/값, 중첩·문자열 키 위장, 주석·숫자 확장 문법을 포함한다.
+기존 Python lifecycle 검증은 반복하지 않았다. 최초 두 실패는 위 이력에 보존한다.
+
+이 결과는 **해당 59개 입력의 판정 일치**이며 파서 전체 동치를 입증하지 않는다.
+C#의 1MB/깊이64 제한은 Python에 동일하게 적용되어 있지 않고 BOM·극단 수치·
+Unicode·경로 정규화 전 범위도 검증하지 않았다. Unity 콜백 코드는 컴파일/실행하지
+않았고 실제 AAB/기기/운영 광고/Console 설정 작업은 없다.
 
 프로젝트 lock에는 `com.unity.nuget.newtonsoft-json` **3.2.2**가 이미 있으며
 현재 PackageCache의 Runtime Newtonsoft.Json DLL/XML 문서도 존재한다.
@@ -95,7 +119,7 @@ player gate, 서명/ABI 검증은 별도 필요하다. 이 초안은 이를 구�
 PlayFab `SimpleJson.TryDeserializeObject`는 ParseValue 이후 전체 소비를 확인하지
 않고, ParseObject는 같은 키에 재대입하므로 이 계약의 대체로 사용하지 않는다.
 
-교체안은 기존 Newtonsoft의 JObject 구조/타입 검사와
+교체한 구현은 기존 Newtonsoft의 JObject 구조/타입 검사와
 `JsonLoadSettings.DuplicatePropertyNameHandling = Error`를 사용하여 중첩을 포함한
 decoded 키 중복을 거절하는 것이다. 루트의 실제 Boolean/String 타입을 확인하고
 명시한 세 bool 값 및 checkout/동일 게시자 규칙을 유지한다.
@@ -110,7 +134,6 @@ Newtonsoft도 확장 JSON 문법을 받아들이므로 단독 교체만으로 �
   식별자를 오류 문자열에 포함하지 않는다. Newtonsoft 파서 예외도 generic 처리한다.
 
 Python도 `parse_constant` 거절을 명시하여 미사용 evidence 필드 안의
-NaN/Infinity까지 동일하게 거절하도록 맞출 계획이다. 이 보강은 아직 적용/검증하지 않았다.
-승인 요청 범위는 **교체 후 같은 C#↔Python 계약 검증 한 번**이며, 기존 반례에
-객체/배열 trailing comma, 주석/작은따옴표, 숫자 확장 문법을 추가한다.
-새 Unity 실행·AAB 빌드·기기 검증은 그 승인 범위에 포함하지 않는다.
+NaN/Infinity까지 거절하도록 보강했고 이번 합성 입력에 포함했다.
+승인 범위인 **교체 후 같은 C#↔Python 계약 검증 한 번**을 완료했다.
+새 Unity 실행·AAB 빌드·기기 검증은 승인 범위에 포함하지 않는다.

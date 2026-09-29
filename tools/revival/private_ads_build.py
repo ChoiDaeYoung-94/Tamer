@@ -226,9 +226,9 @@ def finalize(root, state):
 
 
 def execute(root, config, head, version):
-    # Contract parity verification failed twice (see readiness document). Keep the
-    # entire dependent path disabled until a reviewed fix and authorized retry pass.
-    raise ValueError('Execution blocked: strict C# parser validation incomplete')
+    # The authorized third synthetic contract check passed for its 59 inputs.
+    # Unity compatibility, binary verification and OS cleanup races remain unresolved.
+    raise ValueError('Execution blocked: Unity and lifecycle readiness incomplete')
 
 
 def _execute_after_contract_review(root, config, head, version):
