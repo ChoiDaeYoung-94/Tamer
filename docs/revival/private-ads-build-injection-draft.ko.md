@@ -349,10 +349,49 @@ Editor 0/현재 해시/HEAD를 확인해 세 사전 스냅샷으로 배타 복�
 | P03 | Player 목록 누락/비어 있음 |
 | P04 | 어셈블리 메타데이터 누락/잘못된 항목 |
 | P05 | Android define 누락 또는 Editor define 포함 |
-| P06 | 기존 금지 테스트/하네스/개발 define 포함 |
+| P06 | 빈 define 또는 기존 금지 테스트/하네스/개발 define 포함 |
 | P07 | 어셈블리명 중복 |
 | P08/P09/P10 | Manager/요청 정책/연령 정책의 정확한 소스 집계가 1 아님 |
 | P11 | 예상 밖 API 또는 경로 처리 예외 |
 
-이 진단 수정은 아직 실행하지 않았다. 다음 두 번째 배정이 이뤄지면 기존 조건을
-함께 확인하며, 같은 검증이 두 번 실패하면 그 경로와 종속 작업을 중단한다.
+이 진단 수정은 독립 읽기 리뷰 후 아래 두 번째 배정에서 실행했다.
+
+## Player 계획 두 번째 실패 — P06, 재시도 중단
+
+총괄이 배정한 두 번째 1회는 `fbca8054c0dea14c94141f5fd75b96ce77f6c320`의
+고정 코드/전용 예외형까지 그대로 복사하고 raw hash를 고정한 probe로 수행했다.
+원래 검사 조건은 완화하지 않았다. **inner command success=false, P06**으로
+다시 실패했다. CLI exit 0을 성공으로 취급하지 않는다.
+compile 1,244ms, diagnostics=[], execute 37ms이며 읽기 probe 어셈블리는 로드됐다.
+
+확인된 거절 범주는 Player 어셈블리 define의 **null/empty 또는 금지된 TEST/HARNESS/
+TAMER/DEVELOPMENT 심볼**이다. P06에서 정확한 심볼이나 어셈블리를 반환하지 않아
+어느 항목인지까지 확인되지는 않았다. 첫 실행의 구체 원인도 소급 확정하지 않는다.
+
+동일 검증이 두 번 실패했으므로 **세 번째 조회, 이름을 바꾼 동등한 probe,
+정상 콜백 등록/합성 빌드 등 이 결과에 의존하는 작업을 중단**했다.
+조건을 삭제하거나 설정을 바꿔 통과시키지 않았다. 다음 조회는 사용자 승인 전
+실행하지 않는다. 이전 JSON 세 번째 성공/Windows 정리 성공/emit-only 성공은
+이 Player 계획 API 성공을 대체하지 않는다.
+
+두 번째 실행의 초기화 변경 세 파일도 독립 읽기 확인 후 Editor 0/현재 after 해시를
+대조하여 각 사전 스냅샷으로 배타 복원했다. 세 해시는 일치하며 해당 Editor는 종료됐다.
+복원 직후에는 이 실패 기록 문서만 수정 상태였고 실제 프로젝트 설정 변경은 남지 않았다.
+원 응답과 전후 증거를 보존했으며 API/컴파일/빌드 추가 실행은 없다.
+
+### 승인 전 준비한 세 번째 진단 범위
+
+공식 `PlayerWithoutTestAssemblies` 문서는 테스트 어셈블리를 제외하는 필터를 설명할
+뿐 반환되는 모든 define에 TEST 문자열이 없다는 보장은 하지 않는다.
+Unity의 공개 [UnityEngine 프로젝트 정의](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Projects/CSharp/UnityEngine.csproj)에는
+`ENABLE_MARSHALLING_TESTS`도 존재한다. 로컬의 **과거** rsp에도 이 심볼이 있지만
+현재 P06의 원인으로 확정하거나 이를 허용하도록 보호 조건을 바꾸지는 않았다.
+`UNITY_INCLUDE_TESTS`가 이번 반환값에 있었는지도 아직 확인하지 못했다.
+
+필요한 세 번째 범위는 기존 조건과 단일 API 조회를 유지한 채 P06에서만
+빈 항목/UNITY_INCLUDE_TESTS/DEVELOPMENT_BUILD/TAMER/기타 TEST/기타 HARNESS의
+고정 분류와 개수를 수집하는 읽기 진단 한 번이다. 필요하면 원문 대신 심볼/어셈블리
+SHA-256과 핵심 세 소스의 역할 코드만 기록하여 후속 읽기 대조에 사용한다.
+raw define/전체 경로/광고 값은 공개 출력하지 않는다. 같은 조회 결과로 기존 거절
+판정도 함께 수행하고 성공으로 바꾸지 않는다. 이 계획은 아직 실행하지 않았으며,
+사용자 승인 전에는 컴파일을 포함한 동등한 진단 호출을 하지 않는다.
