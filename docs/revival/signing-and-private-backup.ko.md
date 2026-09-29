@@ -46,6 +46,15 @@ PowerShell 검증은 exit 1이었다. EncodedCommand 변경만으로 해결되�
 자식 환경에서만 PSModulePath를 제거하고 Windows PowerShell 절대 경로와 단계별
 오류 코드를 사용하는 수정안을 준비했으나 원인 확정·3차 검증은
 사용자 승인 전 보류다. 이 상태에서는 실제 키 백업 도구의 준비 완료를 선언하지 않는다.
+
+이후 사용자 승인으로 `b9eed7b098eb1a4807aa7439e012c3e9d0c49087`의 수정안을 사용해
+빈 신규 소유 폴더의 실제 ACL 검증을 세 번째로 **1회 실행해 통과**했다. 현재 사용자와
+SYSTEM의 FullControl 두 규칙 및 상속 차단을 도구가 직접 확인했다. 비공개 결과를
+보존했으며 시험 폴더 삭제는 자동 승인 검토에서 차단되어 폴더를 남겼다.
+앞선 실패는 보존하며, 자식 환경 격리 후 성공한 사실과 과거 stderr가 없어 원인을
+확정하지 못한 점을 구분한다. 기존 합성 GPG·mock 검증은 반복하지 않았다.
+실제 키 암호화·사용자 pinentry·공개 인증서/복구 메모의 정확한 입력 확인·Drive 복구는
+여전히 미실행이다.
 GPG의 [대칭 암호화](https://www.gnupg.org/documentation/manuals/gnupg/Operational-GPG-Commands.html)와
 [암호 캐시 옵션](https://www.gnupg.org/documentation/manuals/gnupg/GPG-Esoteric-Options.html)을 따른다.
 
