@@ -244,12 +244,17 @@ class NativeAlignmentTests(unittest.TestCase):
                 self.assertEqual(expected, report['relroChecksPassed'])
                 self.assertFalse(report['libraries'][0]['elf']['relroSegments'][0]['matchesWholeLoadSegment'])
 
-    def test_missing_relro_is_not_a_relro_pass(self):
+    def test_missing_relro_passes_alignment_without_evidencing_protection(self):
         report = self.make_apk()
         self.assertTrue(report['loadZipChecksPassed'])
-        self.assertFalse(report['relroChecksPassed'])
+        self.assertTrue(report['relroChecksPassed'])
         self.assertEqual(0, report['relroSegmentCount'])
-        self.assertIn('No PT_GNU_RELRO', ' '.join(report['relroErrors']))
+        self.assertEqual(1, report['relroAbsentLibraryCount'])
+        self.assertFalse(report['libraries'][0]['elf']['relroPresent'])
+        self.assertEqual([], report['relroErrors'])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(0, verify.main(['--apk', str(self.apk), '--output',
+                                           str(self.base / 'relro.json'), '--strict-relro']))
 
     def test_strict_cli_fails_relro_but_default_exit_remains_load_zip_only(self):
         data = elf_fixture([dict(memsz=4096), dict(kind=verify.PT_GNU_RELRO, memsz=4096)])

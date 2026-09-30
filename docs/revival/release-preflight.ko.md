@@ -1,5 +1,39 @@
 # 출시 후보 사전 검사와 16KB 호스트 준비
 
+## 2026-09-30 RELRO 부재 판정 보정
+
+기준 main `85892a9ec299a36b011c6d8045b2342e91ba93cb`, 격리 checkout
+`C:/Users/pc_17/.codex/worktrees/relro-diagnostic-release/Tamer`, 브랜치
+`codex/relro-release-diagnostics`에서 Python 정적 검사만 수정했다.
+Unity 기준은 `6000.3.25f1`, Android min25/target36/ARM64이며 Unity/CLI/ADB를 실행하지 않았다.
+
+이전 호출 흐름은 `candidate_checks` → `inspect_bundle_libraries` → `inspect_elf`이며,
+출시 후보의 `artifactChecksPassed`는 모든 `.so`의 LOAD와 RELRO 검사 통과를 요구한다.
+`inspect_elf`가 RELRO 부재까지 실패로 처리해, 정렬된 LOAD만 있는 합성 AAB도 거절했다.
+[Android 공식 RELRO 안내](https://developer.android.com/guide/practices/page-sizes#check-the-relro-security-flag)는
+RELRO가 없는 파일을 이 정렬 조건에 적합하다고 명시하므로 이 부재 조건만 보정했다.
+
+- RELRO가 없으면 끝 정렬 검사는 통과한다. `relroPresent=false`와 APK의
+  `relroAbsentLibraryCount`로 부재를 표시하며, RELRO 보안 보호가 입증됐다는 뜻은 아니다.
+- RELRO가 있으면 `(VirtAddr + MemSiz) % 16384 == 0` 검사를 계속 요구한다.
+  전체 LOAD와 범위가 같아도 끝 불일치는 실패다. `--strict-relro`와 출시 AAB의
+  `artifactChecksPassed`에서 이 실패를 유지한다.
+- LOAD 정렬/합동/범위, ABI, APK ZIP 정렬, AAB 서명·인증서와 manifest/version 검사는 그대로다.
+  AAB 내부 ZIP 배치는 전달 split APK의 ZIP 정렬 증거가 아니므로 split 검증도 별도로 필요하다.
+- [Bionic 특수 경로](https://android.googlesource.com/platform/bionic/+/android16-qpr2-release/linker/linker_phdr_16kib_compat.cpp)의
+  전체 LOAD RELRO 처리는 배치 진단 근거다. 공식 끝 정렬 조건을 면제하거나 native 16KB 적합을 확정하지 않는다.
+  기존 실패 기록은 수정하지 않았고 `runtime16KBVerified=false`, `releaseReady=false`를 유지한다.
+
+JSON의 부재 판정 의미 변경은 native report `schemaVersion=3`으로 구분한다.
+출시 후보에는 파일별 `relroPresent`와 `relroErrors`를 추가하여 실패 원인을 보존한다.
+기존 LTS APK SHA-256 `9f7cd0be899f436daea7d045e59e3950756d25a3a8936ca3ebe02c0cf516b068`의
+LOAD/ZIP 통과·RELRO 끝 불일치 4개 기록은 이번 보정으로 해소되지 않는다. 해당 APK를 다시 검사하지 않았다.
+
+변경 후 최소 합성 검사 1회: `test_verify_native_alignment.py` 26개,
+`test_release_candidate.py` 8개 모두 통과했다. 부재 strict 통과, 존재하는 비정렬 RELRO 실패,
+LOAD 부족 실패, `releaseReady=false`를 확인했다. 합성 AAB의 외부 도구 응답은 mock이며
+실제 서명·빌드·다운로드·계정·기기 설치·ARM64 16KB 실행·스토어 승인 증거는 새로 생성하지 않았다.
+
 2026-09-30 원격 main `a28b1d526a5fab818f65ac224b29002598c35415`의 문서 대조: 아래 검사 결과는 각 기록의 소스·산출물 기준이며 최신 `main`에서 재실행한 결과가 아니다. Unity6000.3.25f1/min25 전환은 통합됐고 남은 영향 범위·실제 ARM6416KB·최종 출시 AAB·스토어 검증은 미완료다. 완료된 삭제 경로·보관 원칙과 기존 광고형 보상 유지 결정은 마지막 항목에서 구분하며, 이번 문서 변경으로 새 테스트·APK 결과를 추가하지 않는다.
 
 아래 PR #247/#248 관측의 과거 대조 기준 main은 `a6e5213`이다. [PR #248 온라인 삭제 시험과 UI 수정](deletion-online-followup.ko.md)은 폐기 계정 1개의 접수·로컬 정리·타이틀 검색 부재와 서버 원복을 확인했다. 기존 APK의 접수 후 예외는 후속 Editor UI 테스트 12/12 통과와 구분하며 수정 기기 검증·운영 계정·구매 복원·제공자 전체 소거는 미검증이다. [PR #247 UMP 샘플 기기 검증](ump-only-device-validation.ko.md)은 성인 EEA 폼·개인정보 옵션 재진입과 Under13 처리를 확인했지만 게시자 실제 메시지·운영 연령 계약·전체 native 트래픽 검증은 남아 있다.
