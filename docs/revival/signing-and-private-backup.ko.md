@@ -1,5 +1,39 @@
 # 서명 역할 확인과 비공개 에셋 복구
 
+## 2026-09-30 단축 GPG 홈 합성 검증
+
+현재 결과: 사용자 승인으로 합성 자료 세 개만 사용한 로컬 pinentry 암호화·복호화
+검증 한 번이 종료 코드 0으로 완료됐다. 실제 키의 검증된 암호화 백업과 Drive 복구는
+아직 완료하지 않았다. 아래 9월 29일 준비/미실행 표현은 당시 이력이다.
+
+checkout은 `C:/Users/pc_17/.codex/worktrees/completion-state-refresh/Tamer`, branch는
+`codex/backup-pinentry-diagnostics`, 기반 HEAD는 `a049310d9e7031cdebbf5e706efd39ad5340df8b`다.
+실행 소스는 미커밋 `prepare_encrypted_key_backup.py`이며 raw SHA-256은
+`f74feb258ff6dafff8655756eb0899503941efcbfdf36ca0bf90bd62bb47c7af`다.
+Python 3.14.0, 기존 Git GPG 2.4.7과 pinentry-w32를 사용했다. Unity·Android는 실행하지 않았다.
+
+앞선 실제 키 백업 시도는 입력창을 확인하지 못하고 실패했으며 stderr가 없어 원인은
+미확정이다. 별도 합성 진단에서는 agent가 browser socket 경로 길이를 거절한 원문을
+확인했다. 두 실패의 원인을 같다고 확정하지 않는다. 새 홈 이름을 `g`로 줄이고 MSYS
+browser socket 경로가 UTF-8 100바이트를 넘으면 실행을 거절하도록 했다. 이 수치는
+보수적인 가드이며 모든 사용자 경로의 성공이나 공식 보편 한계를 보장하지 않는다.
+GPG/cleanup 실패 stderr는 새 소유 ACL 폴더에만 exclusive 파일로 남긴다.
+
+독립 읽기 검토 후 승인된 실행의 사전 검사에서 합성 파일에 없는 줄바꿈을 기대해
+한 번 중단됐다. 이때 소스 호출·marker·새 폴더·GPG 실행은 0이었다. 실제 합성 bytes에
+맞게 runner 기대값만 고친 뒤 exclusive marker와 소스 해시 고정으로 GPG를 한 번 호출했다.
+사용자가 실제 Pinentry 창에서 직접 암호를 입력했으며 도구는 암호를 읽거나 입력하지 않았다.
+
+- receipt `verified=true`, `sourceUnchanged=true`, 암호문 SHA-256 일치를 확인했다.
+- 세 입력의 `PUBLIC SYNTHETIC <role>` bytes와 실행 소스 해시는 종료 후에도 같았다.
+- 암복호화 결과의 정확한 목록·내용 해시를 대조했고 전용 agent 종료 성공 후에만 receipt를 게시했다.
+- 종료 뒤 별도 읽기 관측에서 GPG·gpg-agent·pinentry 프로세스와 Pinentry 창은 0이었다.
+- 실패 진단 파일은 없으며 `offsiteVerified=false`, `keystorePasswordVerified=false`다.
+
+ignored `Logs/revival/pinentry-short-home-once.py`, 실행 manifest와 결과 JSON, 소유 ACL의
+합성 암호문·영수증은 로컬에 보존한다. 이번 실행에서 실제 키 읽기/암호화·Drive 접근·
+기존 성공 시험 반복은 하지 않았다. 합성 성공을 실제 키·외부 복구 성공으로 표시하지 않는다.
+
 ## 2026-09-29 기존 키 암호화 백업 준비
 
 사용자는 기존 키 보존과 암호화 묶음 준비 후 Drive 직접 업로드를 선택했다.

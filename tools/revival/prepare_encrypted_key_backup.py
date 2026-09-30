@@ -172,6 +172,9 @@ def gpg_run(home, arguments, payload=None):
                             input=payload, capture_output=True)
     if result.returncode:
         # Neither native stderr nor decrypted data belongs in terminal output.
+        stage = 'decrypt' if '--decrypt' in arguments else 'encrypt'
+        with (home.parent / (stage + '-diagnostic.private.txt')).open('xb') as handle:
+            handle.write(('GPG exit=' + str(result.returncode) + '\n').encode() + result.stderr)
         raise ValueError('GPG cancelled or failed; no verified backup was produced')
     return result.stdout
 
@@ -179,7 +182,10 @@ def gpg_run(home, arguments, payload=None):
 def create_backup(inputs, destination):
     contents, snapshots = collect(inputs)
     target = owner_directory(destination)
-    home = target / 'gpg-home'
+    # Git/MSYS uses Unix sockets; the browser socket suffix makes long homes fail.
+    home = target / 'g'
+    if len((gpg_path(home) + '/S.gpg-agent.browser').encode('utf-8')) > 100:
+        raise ValueError('Owner path is too long for the GPG agent socket')
     home.mkdir()
     pinentry = GPG.parent / 'pinentry-w32.exe'
     if not GPG.is_file() or not pinentry.is_file():
@@ -202,8 +208,12 @@ def create_backup(inputs, destination):
                    'keystorePasswordVerified': False}
     finally:
         # Stop only the agent attached to this newly created private home.
-        subprocess.run([str(GPG.parent / 'gpgconf.exe'), '--homedir', gpg_path(home),
-                        '--kill', 'gpg-agent'], capture_output=True, check=True)
+        cleanup = subprocess.run([str(GPG.parent / 'gpgconf.exe'), '--homedir', gpg_path(home),
+                                 '--kill', 'gpg-agent'], capture_output=True)
+        if cleanup.returncode:
+            with (target / 'cleanup-diagnostic.private.txt').open('xb') as handle:
+                handle.write(('Cleanup exit=' + str(cleanup.returncode) + '\n').encode() + cleanup.stderr)
+            raise ValueError('Backup agent cleanup failed')
     # A cleanup failure cannot publish a success receipt. Recheck the exact file
     # before publication; this is a point-in-time check, not a filesystem lock.
     current, current_identity = read_snapshot(encrypted)
