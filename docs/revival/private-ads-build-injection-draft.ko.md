@@ -908,3 +908,48 @@ tracked 코드 적용·컴파일·실행은0이다. 다음 동일 빌드 재시�
 같은 합성 네 번째 Build1회다. 실패 시 다섯 번째·추가 emit은 수행하지 않는다.
 빈 baseline 분기의 batch 종료 의존과 원 Build 예외 masking 한계는 유지하며,
 이번 적용·승인을 원인 해결 또는 실제 검증 성공으로 표현하지 않는다.
+
+## 승인된 네 번째 호출 — 초기 상태 거부와 비용 축소
+
+적용 커밋 `a93d191168f012d6e6042cc964b2f1ffb51bcf59`는 보존 제안에 초기 개수
+고정 로그를 추가한 최종 소스이며 원 제안 SHA와 동일하다고 표현하지 않는다.
+최소 emit1회가 outer/inner true, diagnostics=[], compile879ms/execute0,
+assemblyName=null으로 통과했다. 코드는 로드하거나 실행하지 않았다. import3 사전
+바이트 복원·보호1095·Editor0·clean을 독립 확인하고 세 번째 실패 AAB도 동일
+바이트·SHA로 보존했다. 인증 조회는 loggedIn=true/sessionState=fresh 및 활성
+라이선스/로그인 상태와 목록2개였으며 계정 기본값을 변경하지 않았다.
+
+source12/stage8/보호1095/고정 명령을 독립 검토한 네 번째 같은 합성 호출1회는
+CLI exit0/outertrue지만 innerfalse `S00`, diagnostics=[], compile1114ms/execute4ms다.
+초기 고정 관측은 **setup=0, scene=1, loaded=0, active=0**이다. loaded/active 개수는
+setup 배열에 대한 값이며 실제 Scene의 loaded/active 상태라고 확대하지 않는다.
+초기 빈 배열·scene0 분기에 해당하지 않고 nonempty 요건 guard에서 거부되는
+소스 흐름과 결합해 fixture 생성/BuildPipeline 이전에 중단됐다고 판단했다.
+**네 번째 새 AAB·fixture/meta·artifact-check는 모두 없다.** 이번 관측을 앞선
+세 호출의 초기 상태나 R10의 세부 원인으로 소급 확정하지 않는다.
+
+동일 경로의 네 번째 호출 실패 뒤 다섯 번째·추가 emit·새 runtime 조회는 중단했다.
+변동은 정확한 import3뿐이었다. 독립 검토한 after SHA
+`ac1befe2e73e4ea797efb74693efc9a61f3038c2aa29a595111bae48498766db`로
+기존 recover-reviewed를 한 번 실행해 전체 대상 identity/hash 선검사·같은 핸들 복원,
+보호1095 확인 후 stage8의 원 생성 식별자·해시를 같은 핸들로 검사·삭제했다.
+fixture 파일은 없었고 검토된 ordinary 빈 디렉터리2만 비재귀로 한 번 정리했다.
+최종 사후 독립 검토에서 clean/Editor0/보호1095/원 증거·source12 불변과 실패
+AAB archive3개 보존, stage8·폴더2 및 새 AAB/fixture 부재를 확인했다.
+
+후속 미실행 제안은 두 개다. placeholder 안은 setup0/scene1만으로 허용하지 않고,
+실제 Scene의 validLoaded/pathEmpty/clean/roots0/active를 모두 검사한다. 허용된
+깨끗한 rootless·unnamed placeholder는 R10에서 EmptyScene/Single로 재생성하고
+반환 Scene의 같은 구조와 sceneCount1을 사후 확인한다. 이는 원 핸들의 정확 복원이
+아닌 구조 재구성이다. 이번 호출에는 이 속성들의 관측이 없어 실제 placeholder라고
+확정할 수 없다. zero-scene의 batch 종료 의존 및 원 Build 예외 masking 한계도 남는다.
+
+반복 full Build 비용을 줄이기 위한 우선 제안은 **Build 없는 초기 씬 상태 읽기1회**다.
+고정 checkout·Unity 버전·batch에서 setup/count와 위 비식별 bool/root 개수만 반환하는
+읽기 도구를 준비했다. BuildPipeline·NewScene·SaveScene 등 씬 변경 API와 실제
+경로·ID·키·예외 상세 출력은 없다. 코드가 읽기 전용이어도 Editor import의 디스크
+변동이 가능하므로 source/manifest 고정·보호1095 snapshot·사후 종료/파일 복원
+검증이 필요하다. 두 제안 모두 정적 검토만 통과했으며 tracked 적용·컴파일·실행은0이다.
+읽기 진단 성공은 Build/production 계약/바이너리 검증이 아니고, 별도 사용자 승인
+전에는 이 runtime 진단도 수행하지 않는다. 다음 결정에는 다섯 번째 full Build를
+포함하지 않는다.
