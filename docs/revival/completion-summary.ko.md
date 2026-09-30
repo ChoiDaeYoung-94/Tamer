@@ -2,11 +2,13 @@
 
 ## 2026-09-30 현재 상태와 남은 조건
 
-원격 main `a28b1d526a5fab818f65ac224b29002598c35415`(PR #275)을 읽기로 대조했다. clean 소유 checkout `C:/Users/pc_17/.codex/worktrees/completion-state-refresh/Tamer`의 문서 브랜치에서 정리하며, 이 변경은 새 테스트·Editor·APK/AAB 검증 결과를 추가하지 않는다.
+원격 main `5864d5fb49a34068012e7b7c4f4f01605ef1ee1a`(PR #279)을 읽기로 대조했다. 이전 `a28b1d5`(PR #275) 대조는 당시 기록이며 아래 검증을 최신 main 전체 재실행 결과로 합산하지 않는다. clean 소유 checkout `C:/Users/pc_17/.codex/worktrees/completion-state-refresh/Tamer`의 문서 브랜치에서 정리하며, 이 변경은 새 테스트·Editor·APK/AAB 검증 결과를 추가하지 않는다.
 
-- [LTS 전환](lts-transition-validation.ko.md)은 Unity `6000.3.25f1`/CLI `1.0.0-beta.8`/Android min25·target36 기준으로 통합됐다. 광고123·IAP40 및 새 debug APK 기본 LOAD/ZIP 검사는 해당 소스에서 통과했고 strict RELRO4개 실패는 별도다. 남은 영향 범위·실제 ARM64 네이티브16KB·최종 출시 AAB·스토어 검증을 이전 Unity 결과로 대체하지 않는다.
+- [LTS 전환](lts-transition-validation.ko.md)은 Unity `6000.3.25f1`/CLI `1.0.0-beta.8`/Android min25·target36 기준으로 통합됐다. 광고123·IAP40 및 새 debug APK 기본 LOAD/ZIP 검사는 해당 소스에서 통과했고 strict RELRO4개 실패는 별도다. [PR #278](https://github.com/ChoiDaeYoung-94/Tamer/pull/278)은 실제 소스 `85892a9`의 저장·삭제 6개 클래스 1회 114/114 통과와 보호 파일·메타·소스의 정확한 원복, clean·Editor 종료를 기록했다. 임시 파일·fake gateway의 Editor 범위이며 실기기·운영 삭제 완료·삭제 후 구매 복원은 미검증이다. [PR #277](https://github.com/ChoiDaeYoung-94/Tamer/pull/277)은 RELRO 부재의 정렬 판정만 보정했으며 기존 끝 정렬 4개 실패를 해소하지 않았다. 남은 영향 범위·실제 ARM64 네이티브16KB·최종 출시 AAB·스토어 검증을 이전 Unity 결과로 대체하지 않는다.
 - [실제 키 로컬 암호화 백업](signing-and-private-backup.ko.md)은 PR #272/#274/#275에 기록한 1회 범위로 완료됐다. 사용자 직접 Drive 업로드·재다운로드 복구는 미검증이며 기존 JKS 암호는 미상이다. 새 백업 암호를 기존 키 암호 복구나 reset으로 취급하지 않는다.
-- [게시자 UMP](publisher-ump-harness-preparation.ko.md)는 PR #270의 승인된 미국 주 관측에서 옵션 진입·판매/공유 거부 저장·재진입 유지를 확인했다. PR #271 연령별 검토·사전 검사와 구분하며 운영·지역·연령 gate는 OFF다. 비공개 빌드 주입 [Draft PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)은 main 미통합·미완료이며 개별 실패·승인·복구와 후속 읽기 진단 상태는 해당 PR을 따른다.
+- [게시자 UMP](publisher-ump-harness-preparation.ko.md)는 PR #270의 승인된 미국 주 관측에서 옵션 진입·판매/공유 거부 저장·재진입 유지를 확인했다. PR #271 연령별 검토·사전 검사와 구분하며 운영·지역·연령 gate는 OFF다. [PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)은 병합됐고 승인된 감독 합성 주입 1회 성공·원복을 확인했다. 운영 실행은 차단하며 `productionContractVerified=false`, `binaryVerified=false`, `distributable=false`다. 합성 콜백·샘플/Debug 산출물을 운영 주입 계약·출시 바이너리 증거로 사용하지 않고 앞선 실패·승인·복구 이력은 해당 PR에 보존한다.
+
+- [PR #279](https://github.com/ChoiDaeYoung-94/Tamer/pull/279)의 [Data safety 변경안](data-safety-draft.ko.md)과 [정책 본문 후보](privacy-policy-release-draft.ko.md)는 미제출·미게시 검토 초안이다. README의 기존 정책·URL·시행일과 Console은 변경하지 않았다. 9월 30일 Console 읽기에서 제공 24/1.0.3·최대26 미승인, 9+·성인 포함 연령 변경의 검토 전송 준비, 기존 수집/공유 NO·Families YES·암호화되지 않음 선언을 확인했다. 삭제 URL 등록값은 현재 NO 분기에서 확인하지 못했다. 실제 제공24 SDK·공급자 잔존·메일 운영·최종 답안은 미확정이며 진행 중인 실제 로그인 준비도 미완료다.
 
 연령은 9세 이상·성인 포함, 배포 지역은 기존178개 유지, AdMob 보상형 광고와 No Ads 신규 구매·기존 권한·복원 유지로 결정됐다. 5초 닫기 추가 조사는 보류하며 정책 적합성 미해결과 운영 gate OFF를 유지한다. 확정된 선택을 다시 묻지 않는다. 실제 제공 앱/SDK·공급자 잔존 범위와 정책/Console 답안 대조, 미완료 기능·기기·서명 검증 후 최종 출시 후보·트랙/심사·공개 설치를 확인한다. 모든 최종 검증 뒤 시험 자원을 정리하고 저장소 `Tamer`→`tamer` 변경은 마지막에 수행한다. 원본 checkout·운영 키·구매 권한·핵심 증거는 보존한다.
 
