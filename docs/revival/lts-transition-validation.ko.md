@@ -50,3 +50,43 @@ Android13/API33·ARM64·PAGE_SIZE4096 물리 기기에 격리 debug 앱만 새 �
 새 APK·실기기 결과는 위에 기재했습니다. 실제 ARM64 16KB 실행·최종 출시 AAB·스토어 검증은 미완료입니다. 기존 Unity 결과를 새 버전 결과로 대체하지 않습니다. 5초 닫기 추가 조사는 보류하고 rewarded/No Ads 구조를 유지합니다.
 
 원시 증거는 이 checkout의 비공개 `Logs/revival/lts-*`에 보존했습니다. [공개 요약](lts-transition-validation.json)은 실제 기준·실행 범위·실패/미검증 사항만 기록합니다.
+
+
+## 2026-09-30 저장·삭제 최소 영향 범위 후속 검증
+
+최신 원격 main 조회 후 소유 checkout
+`C:\Users\pc_17\.codex\worktrees\e5e5\Tamer`의 Editor 종료·clean 상태를 확인하고
+새 `codex/lts-save-delete-validation`을 생성했다. 실제 검증 커밋은
+`85892a9ec299a36b011c6d8045b2342e91ba93cb`이며 실행 시 미커밋 변경은 없었다.
+직전 Ads 브랜치와 Assets/Packages/ProjectSettings는 같았고 tools 차이는 암호화 백업
+관련2개뿐이었다. 원본 `D:\meee\git\Tamer`와 다른 checkout은 변경하지 않았다.
+Unity `6000.3.25f1`·revision `e1dba0a9aba4`·CLI `1.0.0-beta.8`·min25/target36/ARM64와
+실제 ProjectVersion 바이트, 지정 branch 및 실행 도구 해시를 대조했다.
+프로젝트 계정 pin·fresh OAuth 세션·활성 라이선스를 확인하며 기본 계정은 변경하지 않았다.
+
+기존 새 LTS 광고123/IAP40의 클래스와 겹치지 않는 아래6개 클래스만 정확한 regex로
+선택해 batch EditMode 테스트를 **1회** 실행했다. 기존 e5e5의 같은 클래스 XML은
+`6000.0.81f1` 결과여서 새 LTS 검증으로 대체하지 않았다. 원 XML은 **114/114 통과**,
+failed0/skipped0, 약1.95초이며 CLI exit0/success=true였다. 선택된 모든 fullname을
+독립 대조하여 아래6개 외의 클래스가 포함되지 않았음을 확인했다.
+
+| 클래스 | 통과 건수 |
+| --- | ---: |
+| RevivalDataSyncTests | 62 |
+| RevivalSaveQueueTests | 4 |
+| RevivalInventoryStoreTests | 9 |
+| RevivalDeletionIntakeTests | 20 |
+| RevivalCloudScriptDeletionTests | 7 |
+| RevivalDeletionUITests | 12 |
+
+원 XML SHA-256은 `cd1636c2869cecece7153bd9372c47b5ddad7af5589a1f17edfdc97a4f06279e`다.
+원시 XML·로그·실행 manifest·복원 자료는 비공개로 보존한다. Editor 시작 시 바뀐
+known import3의 현재 identity/hash와 사전 백업을 독립 확인한 뒤 같은 핸들에서
+정확 사전 바이트로1회 복원했다. 사후 독립 검토에서 보호1095·meta3604의 정확한
+집합/해시·소스6·원증거 불변과 해당 Editor0/clean을 확인했다.
+
+이 결과는 fake gateway와 임시 파일을 사용하는 저장·삭제 Editor 영향 범위 검증이다.
+새 APK/AAB·scene harness·전체 회귀·실기기·운영 계정·서버/Store 쓰기는0이며 새
+산출물 SHA는 없다. 실제 로그인/저장·삭제 후 구매 복원·운영 삭제 완료·최종 출시
+검증으로 확대하지 않는다. 기존 inventory의 승인된4차 기기 PASS 및 APK 근거는
+보존하고 재실행하지 않았다. 이전 중단/실패 이력을 소급 성공으로 바꾸지 않는다.
