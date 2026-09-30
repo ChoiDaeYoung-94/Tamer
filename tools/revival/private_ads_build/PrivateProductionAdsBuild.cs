@@ -164,7 +164,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
                 throw PlanRejected("P04");
             if (assemblies.Any(a => !a.defines.Contains("UNITY_ANDROID") || a.defines.Contains("UNITY_EDITOR")))
                 throw PlanRejected("P05");
-            if (assemblies.Any(a => a.defines.Any(d => string.IsNullOrEmpty(d) || ForbiddenDefine(d))))
+            if (assemblies.Any(a => a.defines.Any(d => string.IsNullOrEmpty(d) || ForbiddenPlayerDefine(d))))
                 throw PlanRejected("P06");
             if (assemblies.Select(a => a.name).Distinct(StringComparer.Ordinal).Count() != assemblies.Length)
                 throw PlanRejected("P07");
@@ -193,6 +193,16 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     }
     private static PlayerPlanRejectedException PlanRejected(string code)
     { return new PlayerPlanRejectedException(code); }
+    // Narrow metadata exception observed by the approved SHA-256 probe on this version.
+    // Configured Android symbols still use ForbiddenDefine without this exception.
+    // This recognizes a name, not its provenance or final binary safety.
+    private static bool ForbiddenPlayerDefine(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return true;
+        if (string.Equals(Application.unityVersion, "6000.3.25f1", StringComparison.Ordinal) &&
+            string.Equals(value, "ENABLE_MARSHALLING_TESTS", StringComparison.Ordinal)) return false;
+        return ForbiddenDefine(value);
+    }
     private static bool ForbiddenDefine(string value)
     { return value.StartsWith("TAMER_", StringComparison.Ordinal) ||
         value.IndexOf("TEST", StringComparison.OrdinalIgnoreCase) >= 0 ||

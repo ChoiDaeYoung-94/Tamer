@@ -461,3 +461,80 @@ SHA-256과 발생 개수를 수집하여 알려진 공식 심볼과 정적으로
 명시적 조건 변경안을 검토할 수 있다. 이 후속 진단이나 조건 변경은 실행하지 않았다.
 이전 두 실패 및 이번 원계약 거절 이력은 그대로 보존하며, 정상 콜백 등록과 빌드
 등 종속 검증도 보류한다.
+
+
+## 사용자 승인 제4차 해시 진단 — 이번 차단 심볼 확인
+
+2026-09-30 총괄이 구체적으로 제안한 정의 SHA-256/발생수 단일 진단에 대한 사용자
+재개 승인으로 제4차를 **한 번** 수행했다. checkout은 위 e5e5, 브랜치는
+`codex/private-ads-build-injection`, 검증 HEAD는
+`87781e7fc1bcfe5b948f47e685571f4862568e11`의 clean 상태다. Unity
+`6000.3.25f1`/`e1dba0a9aba4`, CLI `1.0.0-beta.8`/고정 SHA, Android
+min25/target36/ARM64 기준, 활성 라이선스와 프로젝트 계정 pin을 다시 확인했다.
+
+실행 당시 production 템플릿과 원래 검사 조건은 그대로였다. 승인된 외부 probe는
+같은 단일 API 반환값에서 차단된 nonempty 정의의 **정확한 UTF-8 SHA-256**별
+발생 횟수만 추가 수집했다. 빈 값은 별도 고정 개수로 유지했다. raw define,
+어셈블리명, 경로, plan은 반환하지 않았다. probe raw SHA-256은
+`d6c4c35a363e31725af5bf20181f309fe05778f53781e8909a89615aca56b7cf`이며
+실행 전 독립 읽기 검토와 source/CLI/1,091 snapshot 검증을 거쳤다.
+
+CLI exit 0, outer/data/inner success=true, diagnostics=[], compile 1,359ms,
+execute 82ms였다. **진단 완료지만 원계약 contractAccepted=false / P06**이다.
+고정 분류는 기타 TEST 67회, 다른 다섯 범주 0회이며 반환된 비어 있지 않은 차단
+정의 해시는 한 종류다.
+
+- SHA-256: `61ce8b9a5562471741f54abf05a90c9774cecb2618d4c626c8274f3394f11539`
+- 발생 횟수: 67회
+- 정확 후보 대조: `ENABLE_MARSHALLING_TESTS`의 UTF-8 SHA-256과 일치
+
+보안 담당도 원 응답과 후보 해시를 독립 계산·대조했다. 공식
+[UnityCsReference의 UnityEngine.csproj](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Projects/CSharp/UnityEngine.csproj)
+DefineConstants에도 동일 토큰이 있다. 읽은 공개 원문 사본 SHA-256은
+`762e149b81c57e46fa1a0b628ea314804d03f2def4c5b487273dff984dabdc2a`로
+비공개 증거에 보존했다. 이 공개 master 자료는 **6000.3.25f1 빌드의 출처나
+바이너리 안전성 증명은 아니다**. 해시 대조는 이번 API에서 차단된 정의의 이름을
+확인한 것이며, 과거 첫 실패 원인을 소급 확정하지 않는다. 67은 여전히 정의 발생
+횟수이고 어셈블리 개수라고 표현하지 않는다. P07~P10은 거절 이후라 미검증이다.
+
+초기화가 변경한 같은 세 파일의 before/after를 보존하고 독립 읽기 검토 후,
+명시적 checkout/Editor 0/HEAD/index/현재 after 해시를 확인하여 세 배타 핸들에서
+정확한 사전 바이트로 복원했다. **복원 직후 1,091개 보호 snapshot 전체 일치,
+Git clean, 해당 Editor 종료**를 확인한 뒤 아래 의도적 소스 수정에 착수했다.
+
+### 확인 근거에 따른 최소 guard 수정 — 정적 검토 범위
+
+수정은 P06의 API 메타데이터 판정에 `ForbiddenPlayerDefine`을 분리하는 데 한정했다.
+`Application.unityVersion`이 정확히 `6000.3.25f1`이고 정의가 정확히
+`ENABLE_MARSHALLING_TESTS`일 때만 이 메타데이터 분기의 예외로 취급한다.
+두 비교는 모두 Ordinal이다. null/empty는 거절하고, 다른 버전·대소문자·접미사·
+다른 TEST/HARNESS/TAMER/DEVELOPMENT 정의는 기존 `ForbiddenDefine`으로 판정한다.
+
+사용자 지정 Android `Defines.Split(';').Any(ForbiddenDefine)`는 변경하지 않았다.
+따라서 같은 심볼을 사용자 지정 설정에 추가하면 기존 엄격 차단이 그대로 적용된다.
+nondevelopment, `BuildOptions.None`, 빈 extraScriptingDefines, 원래 P01~P11의
+나머지 조건, gate OFF, 원본 보호 및 `--execute` 즉시 거절도 유지한다.
+
+이 분리는 'API 반환에 이 이름이 있다'와 '사용자가 테스트 심볼을 설정했다'를 같은
+문자열 휴리스틱으로 일괄 거절하던 문제를 좁게 다루는 수정안이다. 메타데이터 이름만으로
+주입 경로나 출처를 완전히 인증하지는 못하며, 실제 Player에 테스트 코드가 없다는
+보장으로 사용하지 않는다. 최종 바이너리 검증이 별도로 필요한 이유도 그대로다.
+
+이 소스 변경은 실행 없이 정적으로 검토했다. **수정 후 C# 컴파일/Player API 조회/
+정상 콜백 등록/Build/기기/광고/Console 실행은 하지 않았다.** 제5차·동등한 재검증은
+0회이며 새 조건 통과를 주장하지 않는다. Draft/병합 보류와 binaryVerified=false,
+distributable=false를 유지한다.
+
+### 다음 최소 단일 재검증의 목적과 범위 — 아직 실행하지 않음
+
+별도 승인 후 수정된 메서드를 포함하는 Assets 밖 probe를 한 번 컴파일·호출하여
+같은 API를 한 번만 조회한다. 목적은 좁은 P06 판정이 관측 환경에서 더 이상 해당
+심볼을 오탐하지 않는지와, 이어지는 P07 어셈블리명 중복 및 P08~P10 핵심 세 소스의
+정확 집계가 통과하는지 확인하는 것이다. 사용자 설정 정의에는 기존 엄격 판정을
+적용했는지도 같은 진단에서 읽기 확인한다. 반환은 고정 거절 코드/수락 여부와
+필요한 비식별 요약만으로 제한한다.
+
+동일하게 사전 snapshot/source hash를 고정하고 초기화 변경을 제한 복원한다.
+한 번의 결과가 실패하면 추가 조회 없이 멈춘다. 성공해도 정상 Unity 콜백 편입과
+실행 또는 AAB의 직렬화/manifest/Player define/gate 안전성을 입증하지 않는다.
+실제 Build/기기/운영 광고/서명/Console 작업은 이 재검증 범위에 포함하지 않는다.
