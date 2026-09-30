@@ -1,5 +1,11 @@
 # Android 네이티브 16KB 정렬 검증
 
+2026-09-30 도구 보정: RELRO 부재는 공식 안내에 따라 정렬 실패에서 제외하고
+`relroPresent`/`relroAbsentLibraryCount` 진단으로 표시한다. 존재하는 RELRO의 끝 modulo 검사와
+strict 실패는 유지한다. 아래 역사 기록의 존재 필수 설명은 당시 schema 2 동작이며,
+현재 schema 3 및 출시 검사 범위는 [RELRO 부재 판정 보정](release-preflight.ko.md#2026-09-30-relro-부재-판정-보정)을 따른다.
+기존 실제 바이너리의 RELRO 끝 실패와 미검증 상태는 변경하지 않는다.
+
 검증일: 2026-09-11. **최종 통합 APK는 LOAD/ZIP 검사를 통과했지만 공식 Android 가이드의 RELRO 끝 주소 modulo 검사는 5개 실패했다. 실제 16KB 실행·스토어 승인은 미검증이다. 2차 AAB·split 정적 검사 결과는 [별도 기록](aab-16kb-validation.ko.md)에 있으며 동일한 strict RELRO 5개 실패가 남는다.** 아래 SDK 단독 APK의 4개 실패 기록과 구분한다.
 
 후속 [실제 기기 검사](device-smoke-validation.ko.md)에서 Android 13 ARM64의 APK·split 설치와 Unity 화면을 확인했다. 관측 페이지 크기는 4KB이므로 이 성공을 16KB 판정으로 확대하지 않는다.

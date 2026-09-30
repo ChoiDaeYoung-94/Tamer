@@ -3,8 +3,9 @@
 This is static evidence, not proof of 16 KB device execution or store acceptance.
 Compressed libraries require extraction; their ZIP data offset is not a mmap
 alignment requirement. Manifest extraction settings and AAB splits are not checked.
---strict-relro additionally requires RELRO presence and 16 KB end alignment per
-the Android guide. A failed end-modulo check alone does not prove a runtime crash.
+--strict-relro additionally requires 16 KB end alignment for every present RELRO
+segment per the Android guide. Absence is reported, not an alignment failure.
+A failed end-modulo check alone does not prove a runtime crash.
 
 References:
 https://developer.android.com/guide/practices/page-sizes
@@ -103,8 +104,7 @@ def inspect_elf(data):
         if not relro['endAligned16KB']:
             result['relroErrors'].append('PT_GNU_RELRO {}: end address fails guide modulo-16384 check'
                                          .format(relro['index']))
-    if not result['relroSegments']:
-        result['relroErrors'].append('No PT_GNU_RELRO segment; RELRO protection is not evidenced')
+    result['relroPresent'] = bool(result['relroSegments'])
     result['relroChecksPassed'] = not result['relroErrors']
     return result
 
@@ -130,16 +130,16 @@ def inspect_apk(apk, expected_abis=('arm64-v8a',), strict_relro=False):
     """Collect failures instead of accepting empty or partially inspected APKs."""
     apk = Path(apk).resolve()
     apk_label = apk.relative_to(ROOT).as_posix() if apk.is_relative_to(ROOT) else str(apk)
-    report = dict(schemaVersion=2, apk=apk_label, bytes=None, sha256=None,
+    report = dict(schemaVersion=3, apk=apk_label, bytes=None, sha256=None,
         pageSize=PAGE_SIZE, expectedAbis=sorted(set(expected_abis)), abis=[],
         arm64Only=False, libraries=[], errors=[], loadZipChecksPassed=False,
         relroChecksPassed=False, relroErrors=[], strictRelro=strict_relro,
-        relroCheckScope='RELRO presence and (virtualAddress + memorySize) modulo 16384',
+        relroCheckScope='For each present RELRO: (virtualAddress + memorySize) modulo 16384; absence is diagnostic',
         runtime16KBVerified=False,
         limitations=[
             'loadZipChecksPassed covers LOAD alignment, ZIP native packaging, ABI and inspected structure only.',
             'Compressed native libraries require extraction; manifest extraction settings are not checked.',
-            'relroChecksPassed is the separate Android guide GNU_RELRO presence/end-modulo check; false means that additional guide check did not pass.',
+            'relroChecksPassed checks the Android guide end-modulo condition for present GNU_RELRO segments; absence passes alignment but does not evidence RELRO security protection.',
             'A nonzero RELRO end remainder alone does not prove a runtime blocker: Bionic treats whole-LOAD RELRO differently from a prefix with a writable tail.',
             'RELRO layout fields are evidence, not a complete linker simulation; no device execution or store approval is established.',
             'AAB configuration, generated split APKs and native libraries outside lib/ are not checked.',
@@ -223,6 +223,8 @@ def inspect_apk(apk, expected_abis=('arm64-v8a',), strict_relro=False):
     relros = [segment for entry in report['libraries'] if entry['elf'] is not None
               for segment in entry['elf']['relroSegments']]
     report['relroSegmentCount'] = len(relros)
+    report['relroAbsentLibraryCount'] = sum(entry['elf'] is not None and not entry['elf']['relroPresent']
+                                           for entry in report['libraries'])
     report['relroEndAlignmentFailureCount'] = sum(not segment['endAligned16KB'] for segment in relros)
     return report
 

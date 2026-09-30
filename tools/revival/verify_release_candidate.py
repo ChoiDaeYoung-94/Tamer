@@ -43,7 +43,8 @@ def inspect_bundle_libraries(aab):
             result=inspect_elf(archive.read(name))
             if result['machine'] != 183 or result['bits'] != 64 or result['byteOrder'] != 'little':
                 raise ValueError('Native ELF does not match little-endian ARM64')
-            libraries.append(dict(path=name,loadPassed=result['passed'],relroPassed=result['relroChecksPassed']))
+            libraries.append(dict(path=name,loadPassed=result['passed'],relroPassed=result['relroChecksPassed'],
+                                  relroPresent=result['relroPresent'],relroErrors=result['relroErrors']))
     if not libraries: raise ValueError('No ARM64 native libraries')
     return libraries
 

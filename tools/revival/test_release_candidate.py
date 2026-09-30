@@ -6,7 +6,7 @@ import sys
 import zipfile
 from unittest.mock import patch
 from pathlib import Path
-from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, main
+from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, candidate_checks, SHA256, main
 from test_verify_native_alignment import elf_fixture
 
 
@@ -88,6 +88,27 @@ class ReleaseCandidateTests(unittest.TestCase):
                 else:
                     with self.assertRaisesRegex(ValueError,'little-endian'):
                         inspect_bundle_libraries(artifact)
+
+    def test_candidate_accepts_absent_relro_but_keeps_present_end_and_load_blockers(self):
+        cases = [([dict(memsz=4096)], True, False),
+                 ([dict(memsz=4096), dict(kind=0x6474E552, memsz=4096)], False, True),
+                 ([dict(memsz=4096, align=4096)], False, False)]
+        with tempfile.TemporaryDirectory() as folder:
+            artifact=Path(folder)/'synthetic.aab'
+            for segments, passed, present in cases:
+                with self.subTest(segments=segments):
+                    with zipfile.ZipFile(artifact,'w') as archive:
+                        archive.writestr('base/lib/arm64-v8a/test.so',elf_fixture(segments))
+                    with patch('verify_release_candidate.digest',return_value=SHA256), \
+                         patch('verify_release_candidate.subprocess.check_output',
+                               side_effect=['',self.manifest,'{}']):
+                        result=candidate_checks(artifact,27,26,'0'*64,Path('mock.jar'),Path('mock.java'))
+                    self.assertEqual(passed,result['artifactChecksPassed'])
+                    self.assertEqual(present,result['libraries'][0]['relroPresent'])
+                    self.assertFalse(result['releaseReady'])
+                    if present:
+                        self.assertFalse(result['libraries'][0]['relroPassed'])
+                        self.assertTrue(result['libraries'][0]['relroErrors'])
 
 
 if __name__=='__main__': unittest.main()
