@@ -45,7 +45,7 @@ public static class PrivateAdsSyntheticBuild
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         var oldArchitecture = PlayerSettings.Android.targetArchitectures;
         object result = null;
-        bool restoreFailed = false;
+        string firstRestoreFailure = null;
         string phase = "S10";
         try
         {
@@ -87,19 +87,19 @@ public static class PrivateAdsSyntheticBuild
         finally
         {
             PrivateAdsSyntheticCallbacks.Reset();
-            Action<Action> restore = action => { try { action(); } catch { restoreFailed = true; } };
-            restore(() => PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId));
-            restore(() => PlayerSettings.Android.useCustomKeystore = oldKey);
-            restore(() => PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend));
-            restore(() => PlayerSettings.Android.targetArchitectures = oldArchitecture);
-            restore(() => EditorUserBuildSettings.development = oldDevelopment);
-            restore(() => EditorUserBuildSettings.buildAppBundle = oldBundle);
-            restore(() => EditorUserBuildSettings.exportAsGoogleAndroidProject = oldExport);
-            restore(() => EditorBuildSettings.scenes = oldScenes);
-            restore(() => { settings.Update(); settings.FindProperty("adMobAndroidAppId").stringValue = oldApp;
+            Action<string, Action> restore = (reason, action) => { try { action(); } catch { if (firstRestoreFailure == null) firstRestoreFailure = reason; } };
+            restore("R01", () => PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId));
+            restore("R02", () => PlayerSettings.Android.useCustomKeystore = oldKey);
+            restore("R03", () => PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend));
+            restore("R04", () => PlayerSettings.Android.targetArchitectures = oldArchitecture);
+            restore("R05", () => EditorUserBuildSettings.development = oldDevelopment);
+            restore("R06", () => EditorUserBuildSettings.buildAppBundle = oldBundle);
+            restore("R07", () => EditorUserBuildSettings.exportAsGoogleAndroidProject = oldExport);
+            restore("R08", () => EditorBuildSettings.scenes = oldScenes);
+            restore("R09", () => { settings.Update(); settings.FindProperty("adMobAndroidAppId").stringValue = oldApp;
                 settings.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(settings.targetObject); });
-            restore(() => EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup));
-            if (restoreFailed) throw new BuildFailedException("Synthetic diagnostic S90.");
+            restore("R10", () => EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup));
+            if (firstRestoreFailure != null) throw new BuildFailedException("Synthetic diagnostic " + firstRestoreFailure + ".");
         }
         return result;
     }

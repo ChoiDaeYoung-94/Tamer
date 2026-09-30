@@ -16,7 +16,8 @@ public static class PrivateAdsSyntheticInvoke
             var allowed = new[] { "Synthetic diagnostic C01.", "Synthetic diagnostic C02.",
                 "Synthetic diagnostic C03.", "Synthetic diagnostic C04.", "Synthetic diagnostic C05.",
                 "Synthetic diagnostic S10.", "Synthetic diagnostic S20.", "Synthetic diagnostic S30.",
-                "Synthetic diagnostic S40.", "Synthetic diagnostic S50.", "Synthetic diagnostic S90." };
+                "Synthetic diagnostic S40.", "Synthetic diagnostic S50.", "Synthetic diagnostic S90.",
+                "Synthetic diagnostic R01.", "Synthetic diagnostic R02.", "Synthetic diagnostic R03.", "Synthetic diagnostic R04.", "Synthetic diagnostic R05.", "Synthetic diagnostic R06.", "Synthetic diagnostic R07.", "Synthetic diagnostic R08.", "Synthetic diagnostic R09.", "Synthetic diagnostic R10." };
             string message = error.InnerException == null ? null : error.InnerException.Message;
             throw new InvalidOperationException(allowed.Contains(message) ? message : "Synthetic diagnostic S00.");
         }
