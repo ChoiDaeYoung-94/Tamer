@@ -45,7 +45,9 @@ def snapshot_paths():
     return set(protected_paths(ROOT)) | {'Assets/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml',
                                          'Assets/GoogleMobileAds/Editor/GoogleUmpDependencies.xml',
                                          'Assets/Settings/Settings/UniversalRP-LowQuality.asset',
-                                         'Assets/Settings/Settings/UniversalRP-MediumQuality.asset'}
+                                         'Assets/Settings/Settings/UniversalRP-MediumQuality.asset',
+                                         'Assets/Settings/Settings/UniversalRP-HighQuality.asset',
+                                         'Assets/UniversalRenderPipelineGlobalSettings.asset'}
 def validate_manifest(manifest):
     if manifest.get('schema') != 1 or manifest.get('checkout') != str(ROOT) or manifest.get('mode') not in MODES:
         raise ValueError('Fixed manifest schema/checkout/mode required')

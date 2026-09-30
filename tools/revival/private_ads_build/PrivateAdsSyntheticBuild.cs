@@ -46,6 +46,7 @@ public static class PrivateAdsSyntheticBuild
         var oldArchitecture = PlayerSettings.Android.targetArchitectures;
         object result = null;
         bool restoreFailed = false;
+        string phase = "S10";
         try
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -53,6 +54,7 @@ public static class PrivateAdsSyntheticBuild
             root.SetActive(false); // Must precede AddComponent: never run manager Awake in the fixture.
             root.AddComponent<GoogleAdMobManager>();
             if (!EditorSceneManager.SaveScene(scene, fixture, false)) throw Rejected();
+            phase = "S20";
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, PrivateAdsSyntheticCallbacks.Package);
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
@@ -65,14 +67,23 @@ public static class PrivateAdsSyntheticBuild
             settings.ApplyModifiedPropertiesWithoutUndo();
             // Only this settings asset is saved; no global SaveAssets.
             AssetDatabase.SaveAssetIfDirty(settings.targetObject);
+            phase = "S30";
             PrivateAdsSyntheticCallbacks.Prepare(output);
+            phase = "S40";
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = new[] { fixture }, target = BuildTarget.Android, locationPathName = output,
                 options = BuildOptions.None, extraScriptingDefines = new string[0] });
             if (report.summary.result != BuildResult.Succeeded || !File.Exists(output)) throw Rejected();
+            phase = "S50";
             result = PrivateAdsSyntheticCallbacks.ReadResult();
         }
-        catch { throw Rejected(); }
+        catch (Exception error)
+        {
+            var allowed = new[] { "Synthetic diagnostic C01.", "Synthetic diagnostic C02.",
+                "Synthetic diagnostic C03.", "Synthetic diagnostic C04.", "Synthetic diagnostic C05." };
+            // Emit only fixed literals; never propagate exception messages, paths or IDs.
+            throw new BuildFailedException(allowed.Contains(error.Message) ? error.Message : "Synthetic diagnostic " + phase + ".");
+        }
         finally
         {
             PrivateAdsSyntheticCallbacks.Reset();
@@ -88,7 +99,7 @@ public static class PrivateAdsSyntheticBuild
             restore(() => { settings.Update(); settings.FindProperty("adMobAndroidAppId").stringValue = oldApp;
                 settings.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(settings.targetObject); });
             restore(() => EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup));
-            if (restoreFailed) throw new BuildFailedException("Synthetic settings recovery requires owner review.");
+            if (restoreFailed) throw new BuildFailedException("Synthetic diagnostic S90.");
         }
         return result;
     }

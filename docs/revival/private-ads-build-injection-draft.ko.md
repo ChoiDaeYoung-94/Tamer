@@ -755,3 +755,48 @@ XML 두 파일도 snapshot에 명시적으로 추가하되, 예상치 못한 의
 synthetic 실행에는 timeout_ms=1500000(25분), CLI 제한은1800초를 고정했다.
 registration은30000ms/900초다. 이 준비 수정은 Python runner/문서에 한정하며
 변경 없는 C# emit-only를 반복하지 않는다.
+
+## 합성 AAB 첫 실행 실패와 정확 범위 복원
+
+2026-09-30, checkout `C:/Users/pc_17/.codex/worktrees/e5e5/Tamer`,
+branch `codex/private-ads-build-injection`, clean HEAD
+`e7a1a3164e9c3088a64bfd6d4734db3265f2d66e`에서 합성 실행을 한 번 수행했다.
+Unity `6000.3.25f1`/revision `e1dba0a9aba4`, CLI `1.0.0-beta.8`,
+Android min25/target36/ARM64, 고정 별도 package와 공개 Google 테스트 광고 ID,
+debug signing을 사용했다. 운영 ID·키·광고·로그인·저장·구매·기기 설치는 사용하지 않았다.
+bundletool 미설치로 staging 전 준비 한 번이 거부됐고, 기존 설치 도구로 고정
+`1.18.3`을 설치한 뒤 준비했다. 실제 Unity 합성 실행은 한 번뿐이다.
+
+외부 CLI exit0이지만 inner success=false/runtime error였다.
+외부 코드 compile850ms/execute326323ms이며, Unity 로그에는 Build Success가 있지만
+두 generic catch가 내부 원인을 숨겨 콜백 결과 읽기 또는 설정 복원 중 어느 지점인지
+확정할 수 없다. 성공한 합성 호출로 재분류하지 않는다.
+
+AAB SHA-256은 `22ea58fc3a3fae2533eacd3ebf882669c3fc26b19c04c596d22a2aef692c26d8`,
+크기는65,986,529바이트다. 사후 읽기 전용 bundletool/manifest/signature 검사가 한 번
+통과했고 고정 합성 package·공개 sample App ID·non-development·min25/target36·ARM64,
+사전 debug 인증서 일치와 서명 payload858개를 확인했다. 이 결과는 콜백 완료,
+production 계약, 광고 실행, 16KB/실기기·스토어 검증을 증명하지 않는다.
+`productionContractVerified/binaryVerified/distributable=false`를 유지한다.
+실패 AAB·fixture·stage·비공개 원로그와 journal을 보존했다.
+
+실행 뒤 보호 snapshot 대상 여덟 파일과 보호 밖 두 설정 에셋의 변경을 발견했다.
+원 after와 manifest는 변경하지 않았다. 수동 복원 준비가 Git normalized diff8과
+실제 byte drift10을 동일시해 두 번 쓰기 전 거부됐고, 중단 후 사용자 승인을 받아
+수정 준비를 한 번 실행했다. GMA settings/GraphicsSettings는 개행 차이만 있었다.
+추가 HighQuality/global settings는 공백 차이만 확인됐지만 사전 snapshot이 없어,
+기록된 HEAD raw blob과 checkout-filtered baseline을 별도 보존했다.
+
+독립 검토한 plan SHA `b3a858f160df927f8a5f7143f5fc4d234e99563d7b8c79b1d51ef8107d31561c`로
+열 파일 전체의 현재 identity·SHA를 먼저 확인하고 같은 배타 핸들로 한 번 복원했다.
+여덟 파일은 exact pre-invocation snapshot 복원, 추가 두 파일은 Git HEAD 기준 재구성이다.
+추가 두 파일의 정확한 실행 전 바이트를 증명했다고 표현하지 않는다.
+사후 보호1093 전체와 추가 두 파일의 계획 baseline hash, Editor0/index0/추적 변경0,
+원 manifest/after·source12·stage8·fixture/meta·AAB 불변을 독립 검토했다.
+untracked 검증용 파일은 남아 있으므로 완전 clean이나 다음 실행 준비 완료가 아니다.
+
+후속 정적 변경은 실패 지점 고정 코드 `S00/S10/S20/S30/S40/S50/S90`와
+콜백 완료 조건 `C01`–`C05`만 허용한다. 예외 원문·경로·ID·키 값은 출력하지 않는다.
+빌드 동작이나 기존 복원 동작은 바꾸지 않으며, 새 코드의 컴파일·실행은 아직 검증하지 않았다.
+새 준비부터 추가 두 에셋도 snapshot에 포함해 보호 대상1095개로 보완했다.
+두 번째 실제 빌드는 아직 실행하지 않았으며, 두 번 실패하면 해당 경로를 중단한다.

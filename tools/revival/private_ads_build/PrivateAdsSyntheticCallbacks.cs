@@ -40,7 +40,11 @@ public sealed class PrivateAdsSyntheticCallbacks : IPreprocessBuildWithReport,
     }
     public static object ReadResult()
     {
-        if (!prepared || !preprocessed || !postprocessed || injections != 1 || scenes != 1) throw Rejected();
+        if (!prepared) throw new BuildFailedException("Synthetic diagnostic C01.");
+        if (!preprocessed) throw new BuildFailedException("Synthetic diagnostic C02.");
+        if (!postprocessed) throw new BuildFailedException("Synthetic diagnostic C03.");
+        if (injections != 1) throw new BuildFailedException("Synthetic diagnostic C04.");
+        if (scenes != 1) throw new BuildFailedException("Synthetic diagnostic C05.");
         return new { syntheticCallbacksCompleted = true, injectedManagers = injections,
             productionContractVerified = false, binaryVerified = false, distributable = false };
     }
