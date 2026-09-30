@@ -1,5 +1,13 @@
 # 출시 후보 사전 검사와 16KB 호스트 준비
 
+## 2026-09-30 최신 출시 준비 상태
+
+대조 main은 `5864d5fb49a34068012e7b7c4f4f01605ef1ee1a`다. [PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)은 준비 도구·승인된 감독 합성 주입 1회 성공·원복을 통합했으나 운영 실행은 차단하며 `productionContractVerified=false`, `binaryVerified=false`, `distributable=false`를 유지한다. [PR #277](https://github.com/ChoiDaeYoung-94/Tamer/pull/277)의 RELRO 부재 판정 보정은 아래 기록을 따르며 기존 LTS 끝 정렬 4개 실패와 실제16KB·최종AAB 미검증을 해소하지 않는다.
+
+[PR #278](https://github.com/ChoiDaeYoung-94/Tamer/pull/278)의 [LTS 기록](lts-transition-validation.ko.md)은 소스 `85892a9`의 저장·삭제 6개 클래스 1회 114/114 통과와 정확한 원복·clean·Editor 종료를 확인했다. fake gateway·임시 파일의 Editor 결과이며 실제 로그인 준비·실기기 UI·운영 삭제·삭제 후 구매 복원은 미완료다. [PR #279](https://github.com/ChoiDaeYoung-94/Tamer/pull/279)의 [Data safety](data-safety-draft.ko.md)와 [개인정보처리방침](privacy-policy-release-draft.ko.md)은 미제출·미게시 초안으로 README 공개 정책·URL·시행일과 Console을 변경하지 않았다.
+
+9월 30일 Console 읽기는 제공24/1.0.3·최대26 미승인, 9+·성인 포함 연령 변경의 검토 전송 준비와 기존 수집/공유 NO·Families YES·암호화되지 않음 선언을 확인했다. 삭제 URL 등록값은 현재 분기에서 확인하지 못했다. 실제 제공 SDK·메일 처리·공급자 잔존·서명과 외부복구·기기·최종AAB/전달split·정책/README·트랙/신고/심사는 남아 있다. 모든 최종 검증 뒤 시험 자원 정리, 저장소 이름 변경은 마지막이다. 아래 날짜별 실패·산출물 이력과 기존 사용자 결정을 보존하며 이번 변경은 새 테스트·빌드·게시 결과가 아니다.
+
 ## 2026-09-30 RELRO 부재 판정 보정
 
 기준 main `85892a9ec299a36b011c6d8045b2342e91ba93cb`, 격리 checkout
@@ -40,7 +48,7 @@ LOAD 부족 실패, `releaseReady=false`를 확인했다. 합성 AAB의 외부 �
 
 5초 닫기 추가 조사는 사용자 결정으로 보류했고 나머지 복구는 계속한다. 실제 닫기·운영 정책 적합성은 미해결 알려진 이슈로 후보와 함께 기록한다. 이를 해결 완료·심사 승인으로 간주하거나 추가 조사를 현재 복구 작업의 필수 선행 단계로 다시 요구하지 않는다. 이 결정으로 운영 광고 gate나 연령·동의 보호를 해제하지 않는다.
 
-[게시자 UMP](publisher-ump-harness-preparation.ko.md)의 PR #270 관측과 PR #271 사전 검사 이후에도 운영 gate는 OFF다. [Draft PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)의 빌드 주입·진단은 main 미통합·미완료이며 합성 산출물을 출시 후보로 사용하지 않는다. 정책/기능·서명·실기기·최종 후보와 스토어 검증을 마친 뒤 시험 자원 정리, 마지막 저장소 이름 소문자 변경 순서를 따른다.
+[게시자 UMP](publisher-ump-harness-preparation.ko.md)의 PR #270 관측과 PR #271 사전 검사 이후에도 운영 gate는 OFF다. [PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)의 준비 도구·감독 합성 검증은 main에 통합됐으나 운영 실행·주입 계약·출시 바이너리 검증은 미완료다. 합성 산출물을 출시 후보로 사용하지 않는다. 정책/기능·서명·실기기·최종 후보와 스토어 검증을 마친 뒤 시험 자원 정리, 마지막 저장소 이름 소문자 변경 순서를 따른다.
 
 이 도구는 설정·산출물을 읽고 결과를 기록한다. 빌드, 서명, 키 생성, 업로드, 정책 게시 또는 Windows 설정 변경은 수행하지 않는다.
 
