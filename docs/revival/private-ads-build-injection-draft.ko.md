@@ -1,11 +1,33 @@
-# 비공개 광고 단위 빌드 씬 주입 초안 — 실행 차단
+# 비공개 광고 단위 준비 도구와 합성 주입 검증
+
+
+## 최신 검증 범위 — 2026-09-30
+
+검증 대상은 `codex/private-ads-build-injection`의
+`66510b41d5699cfa2db836103faee72edec8cafa`다. Unity `6000.3.25f1`·revision
+`e1dba0a9aba4`·CLI `1.0.0-beta.8`에서 승인된 최소 emit1회와 다섯 번째 합성 호출1회가
+통과했다. 실제 asset import된 합성 콜백의 pre/scene/post 완료 및 공통 주입1개와
+고정 공개 테스트 App ID·격리 package·min25/target36·ARM64·기존 Debug 인증서의
+AAB 검증을 확인했다. 이는 비공개 운영 값의 실제 빌드 주입·운영 콜백 계약·최종
+직렬화 광고 값/Player gate·배포 가능성의 증거가 아니다.
+`productionContractVerified`·`binaryVerified`·`distributable`은 모두 false다.
+
+병합 평가 대상은 **생산 실행이 차단된 준비 도구와 감독하의 합성 검증 도구**다.
+`private_ads_build.py --execute`의 무조건 거절과 production/regional/age gate OFF를
+유지한다. 운영 key/ID·광고·기기·계정·저장·구매 작업은0이다. 공통 씬 주입은 합성
+콜백에서 검증됐지만 실제 production callback은 별도 미완료다. 자동 복구가 완성된
+도구로 표현하지 않는다. shipped `recover-reviewed`는 이번 canonical 변경10을
+허용하지 않으며 Git 정규화 diff8와 실제 바이트 변동10 차이도 고려하지 못하므로,
+이번에는 별도 고정 계획·독립 검토·같은 핸들의 정확10 수동 복원 절차를 사용했다.
+원 증거와 스냅샷 보존 및 사용자 승인 후의 1회 실행/실패 중단 규칙을 유지한다.
+아래 최초 초안·실패·교체 기록은 당시 근거로 보존하며 최신 결과와 구분한다.
 
 2026-09-29, 기준 커밋 `28a5493a405d9863ba433564c8ef5ff51f5504ac`.
 구현 checkout은 `C:\Users\pc_17\.codex\worktrees\e5e5\Tamer`,
 작업 브랜치는 `codex/private-ads-build-injection`이다. 아래 결과는 이 기준에
 미커밋 도구 초안을 추가한 상태의 검증이며 최신 main 또는 Unity 검증 결과가 아니다.
 
-## 현재 상태
+## 최초 초안 상태와 당시 근거
 
 `tools/revival/private_ads_build.py`의 `--execute`는 무조건 거절한다.
 최초 C# 계약 검증 두 번 실패 후 중단했고, 사용자의 명시적 승인과 독립 읽기
@@ -991,3 +1013,72 @@ setup0/scene1인 경우에도 실제 validLoaded/pathEmpty/clean/roots0/active �
 이 변경은 정적 구현이며 적용 후 컴파일·Build 실행은0이다. zero-scene batch 종료
 의존과 원 Build 예외 masking 한계도 남는다. 다섯 번째 같은 합성 Build와 새 emit은
 이번 승인 범위에 없으며 별도 구체 승인 전 실행하지 않는다. PR은 Draft·병합 금지다.
+
+
+## 승인된 최소 emit 및 다섯 번째 합성 빌드 성공
+
+2026-09-30 사용자의 현재 구체 대기 작업 전체 승인에 따라 최소 emit1회와 통과 후
+같은 합성 다섯 번째 호출1회를 실행했다. 실행 checkout·branch·HEAD는 위 최신 검증
+범위와 같다. 실행 전에 각 실제 manifest/source/tool/snapshot/command의 독립 귀속
+검토를 수행했다. 최신 인증 조회는 loggedIn=true/sessionState=fresh 및
+license active=true/signedIn=true/licenses2였다. 기본 계정과 서명키는 변경하지 않았다.
+
+최소 emit은 source7의 using-only combined 변환과 보호1095를 고정해 dry_run으로
+실행했다. outer/inner true, diagnostics=[], compile837ms/execute0/assemblyName=null로
+통과하며 코드는 로드하거나 실행하지 않았다. manifest SHA
+`40293f6093d6f1761adaacb990a62affa1e2cf8269423e5996e12a766f604c82`,
+CLI SHA `f8ae2dadd65ab52300415d1313b59ea4ad40b1695b731201b343be0fca230c9a`,
+receipt SHA `18c57bba10343c2ecdca8b814e808045d4b30a8b07276f3b5cf82c65028a60db`다.
+known import3의 사후 귀속 검토 뒤 exact 복원1회와 보호1095/clean/Editor0를 독립 확인했다.
+
+다섯 번째 실제 준비는 source12/stage8/snapshot1095/고정 Entry·CLI·Java tool·debug key
+hash를 보존했으며 source Build SHA는
+`c9f7f1f323e66b9e06d0f57f8b4b044a297d6195f2bc57f69e4edf3700764c61`다.
+manifest SHA `c7e27dbdcb83e2bbf8d284c2694f02323945b4f5bdbd09ef622f671638713360`의
+raw bytes를 실행 직전 재대조하고 기존 one-attempt marker로 한 번 실행했다.
+CLI exit0/outer·inner true, diagnostics=[], compile1114ms/execute34197ms였다.
+원콜백 결과 syntheticCallbacksCompleted=true/injectedManagers1은 ReadResult의
+prepared/preprocessed/postprocessed/injections1/scenes1 요건을 통과한 근거다.
+운영 콜백을 실행한 결과가 아니고 이전 실패 네 번을 성공으로 재분류하지 않는다.
+CLI SHA는 `a6c1a81374c40fc4413bfa12daaa9a8a0127ff17b298b97d24fcbe1e275df67a`,
+after SHA는 `f04045a2f9773518dee2ced1cd89a5501556a747d7d19a011db830135bfce144`다.
+
+이번 AAB는 65,986,521바이트, SHA-256
+`49ad610f8c14fdea025e53df9d15cf4e5df544d90c7008454f1796e20e81d99c`다.
+고정 verifier1회가 bundletool validate/merged manifest의 격리 package·공개 샘플 App ID·
+nondevelopment·min25/target36, ARM64만 포함, 기존 Debug key에서 내보낸 인증서 일치 및
+서명된 payload858을 확인했다. verifier도 source12에 귀속됐다. 독립 reviewer는 원결과·
+실제 AAB hash·certificate receipt·verifier/runner source를 대조했으며 verifier를 다시
+실행하지 않았다. 이 검사는 최종 serialized rewarded field나 stripped Player gate,
+production contract 또는 배포 승인 검증이 아니다. 새로운 기기 설치/광고 실행,
+16KB/RELRO/스토어 검증으로 확대하지 않는다.
+
+사후 변화10개는 모두 exact 실행 전 snapshot에 존재한다. reviewed plan SHA
+`8241c6ac06a92745bc01f8aa3e72e278797da26762f22419e3490d565833ffa5`로 전체 파일
+identity/hash를 쓰기 전 잠금 검사하고 같은 핸들에 정확 사전 바이트를 복원했다.
+복원 결과 restored10/exactSnapshot10/HEADBaseline0/protected1095/EditorClosed=true다.
+원본 재구성으로 대체하지 않았다. reviewed cleanup plan SHA
+`069040b68f2d908b1698e7a5db1152ba5ced522f9831edd79cd55ac642e4189e`로 stage8 및
+fixture/meta2의 전체 생성/관측 identity·hash를 먼저 검사한 뒤 같은 핸들에서 삭제하고
+ordinary 빈 폴더2를 비재귀로 정리했다. 성공 AAB는 `synthetic-validation.aab`로 배타
+복사·fsync·잠금 해시 확인 후 원래 출력의 검증된 핸들만 삭제했다. archive의 길이와
+SHA는 위 성공 AAB와 같으며 syntheticValidationOnly=true 및 productionContract/
+binary/distributable=false를 receipt에 유지했다. 원로그·manifest·스냅샷과 실패
+archive3개도 보존했다. 사후 독립 검토에서 clean HEAD66510b4/Editor0/보호1095/
+source12·원증거 불변, stage·fixture·폴더2·원 출력 부재, 성공 archive1개 및 실패
+archive3개 동일 해시를 확인했다. 복원·cleanup·archive는 각각 한 번만 수행했다.
+
+## 남은 실제 운영 주입 조건
+
+준비 도구의 병합과 실제 운영 광고 활성화/출시 승인은 분리한다. 비공개 설정의 정확
+계약·승인/출처·동의 분류 및 실제 App/Unit 연계, production callback 등록·pre/scene/post
+실행, Login에 정확1개 manager 주입/원본 씬 불변, 실제 production Player compile plan,
+최종 serialized rewarded field/Player gate/merged manifest·서명 및 정책·기기·스토어
+검증은 완료되지 않았다. 최종 생산 실행 wrapper는 계속 무조건 거절한다. 이전 결과로
+새 운영 빌드의 검증을 대체하지 않는다. 생산 전용 callback의 엄격한 Player define 검사와
+합성 경로의 제한된 ENABLE_MARSHALLING_TESTS 처리도 별도로 재검토해야 한다.
+
+추가 무제한 합성 재시도나 운영 실행 승인으로 해석하지 않는다. 새 Build/emit은
+필요한 구체 실행 범위에 따라 판단하며 변경 없는 통과 테스트를 반복하지 않는다.
+R10의 빈 placeholder 처리는 구조 재구성이며 원 scene handle identity 복원이 아니다.
+원 Build 예외 masking/zero-scene batch 종료 의존 및 감독 복원 제약은 그대로 남는다.
