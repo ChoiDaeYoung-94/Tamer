@@ -395,3 +395,69 @@ SHA-256과 핵심 세 소스의 역할 코드만 기록하여 후속 읽기 대�
 raw define/전체 경로/광고 값은 공개 출력하지 않는다. 같은 조회 결과로 기존 거절
 판정도 함께 수행하고 성공으로 바꾸지 않는다. 이 계획은 아직 실행하지 않았으며,
 사용자 승인 전에는 컴파일을 포함한 동등한 진단 호출을 하지 않는다.
+
+
+## 사용자 승인 제3차 분류 진단 — 분류 완료, 원계약 P06 유지
+
+2026-09-30 사용자가 총괄의 일괄 질문에 승인한 **제3차 단일 진단**을
+`C:\Users\pc_17\.codex\worktrees\e5e5\Tamer`,
+`codex/private-ads-build-injection`, HEAD
+`3f4ad862b9a87724341d6bbfe03b7ee0347c45ee`의 clean 상태에서 수행했다.
+Unity `6000.3.25f1`/revision `e1dba0a9aba4`, CLI `1.0.0-beta.8`의 기존
+고정 SHA-256, 활성 라이선스와 checkout 계정 pin을 실행 전에 확인했다.
+Android 기준은 min25/target36/ARM64 그대로이며, 실제 Player 빌드는 실행하지 않았다.
+
+production 템플릿은 수정하지 않았다. Assets 밖 private probe의 기존 P01~P11
+검사와 순서를 유지하고, P06이 성립하면 **같은 단일 GetAssemblies 반환값**을
+분류한 뒤 같은 거절을 발생시켰다. Inspect는 자체 고정 예외만 받아 거절 여부와
+고정 분류 개수를 반환했다. 원문 plan/define/어셈블리명/경로/광고 값은 반환하지
+않았다. probe raw SHA-256은
+`ff1f16c8930ba7b74af6091c80374ff013b3d2430832b734e2ff0ea80bf953e0`이며,
+source-map·복사본·runner·1,091개 사전 snapshot을 고정하고 독립 보안 읽기 검토를 거쳤다.
+
+CLI exit 0, outer/data/inner success=true, diagnostics=[], compile 1,110ms,
+execute 103ms이다. 이는 **진단 반환 완료**를 뜻한다. 반환된 원계약 결과는
+**contractAccepted=false / P06**으로 검증 통과가 아니다.
+
+| P06 고정 분류 | define 발생 횟수 |
+| --- | ---: |
+| null/empty | 0 |
+| UNITY_INCLUDE_TESTS | 0 |
+| DEVELOPMENT_BUILD | 0 |
+| TAMER_ 접두사 | 0 |
+| 기타 TEST 포함 | 67 |
+| 기타 HARNESS 포함 | 0 |
+
+분류는 표의 순서로 상호 배타 적용하며, 대소문자 규칙은 기존 차단 조건과 같다.
+67은 **어셈블리별 define 항목의 총 발생 횟수**다. 고유 심볼 수나 어셈블리 수가
+아니며 정확한 심볼명은 수집하지 않았다. 첫 번째 실패 원인을 소급 확정하지 않는다.
+P06 이후 P07~P10 조건도 이번 결과로 검증됐다고 표현하지 않는다.
+
+추가 실행 없이 기존 Bee rsp를 정적으로 조사했다. TEST/HARNESS/TAMER/개발
+항목이 있는 rsp 206개의 수정 시각은 모두 이번 진단 이전이며, 최신 것도
+2026-09-28 자료였다. 과거 자료의 `ENABLE_MARSHALLING_TESTS` 존재는 이번
+API의 67회가 해당 심볼이라는 증거가 아니다. 따라서 정확 심볼은 미확정으로 남긴다.
+
+초기화는 기존과 같은 세 파일만 변경했다. URP Low/Medium의
+`k_AssetPreviousVersion`과 ProjectSettings의 `AndroidKeyaliasName` 및 공백
+변화를 비공개 증거에 보존했다. 독립 검토 후 해당 Editor 0, HEAD/index,
+현재 after 해시와 snapshot 해시를 확인하고 세 파일의 배타 핸들을 모두 확보한
+상태에서 각각 사전 바이트로 복원했다. 세 복원 해시뿐 아니라 **1,091개 보호
+snapshot 전부 일치 / Git clean / 해당 Editor 0**을 확인했다.
+복원 helper의 Editor 검사에 cwd 의존성이 있다는 추가 읽기 지적은 복원 후 받았다.
+실제 실행 cwd는 위 e5e5 checkout이었고 사후 검증도 같은 대상이었다. helper는
+명시적 절대 checkout 인자를 사용하도록 수정했으며 복원을 재실행하지 않았다.
+
+제3차 진단은 1회, 제4차/동등한 추가 조회는 0회다. 콜백 등록·실행, Assets
+설치·삭제, 실제 Build/AAB/APK/기기/광고/Console 작업은 0회이며 배포물 SHA-256은
+없다. `--execute` 차단과 Draft/병합 보류를 유지한다.
+
+### 필요한 최소 후속 판단
+
+현재 근거만으로 TEST 부분문자열 차단을 해제하거나 특정 심볼을 허용하지 않는다.
+원인을 더 좁히려면 별도 사용자 승인을 받은 단일 진단에서 금지 항목의 비식별
+SHA-256과 발생 개수를 수집하여 알려진 공식 심볼과 정적으로 대조하는 것이 최소
+범위다. 그 뒤에만 실제 프로젝트 테스트/하네스와 Unity 기본 심볼을 구분할 수 있는
+명시적 조건 변경안을 검토할 수 있다. 이 후속 진단이나 조건 변경은 실행하지 않았다.
+이전 두 실패 및 이번 원계약 거절 이력은 그대로 보존하며, 정상 콜백 등록과 빌드
+등 종속 검증도 보류한다.
