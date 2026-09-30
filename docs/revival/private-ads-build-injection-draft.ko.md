@@ -685,3 +685,25 @@ SyntheticBuild의 `SceneManager.sceneCount`와 `SceneManager.GetSceneAt` 두 참
 후속 수정은 두 참조를 `UnityEngine.SceneManagement.SceneManager`로 명시하는 것뿐이다.
 총괄이 배정한 두 번째 emit-only 1회에서 이를 확인하며, 두 번째도 실패하면 해당 검사와
 종속 작업을 중단하고 승인 없는 세 번째 시도를 하지 않는다.
+
+
+### 새 C# 7파일 두 번째 emit-only — 통과
+
+두 참조 수정 후 `7c26835ef2abac5b181077810ecd2d9be8f889ed` clean에서 배정된
+두 번째 컴파일을 한 번 수행했다. CLI exit0, inner success=true, diagnostics=[],
+compile **1,084ms**, execute **0ms**, assemblyName=null이다. 도구도 아무것도
+로드/실행하지 않은 dry run임을 명시했다. 새 코드 일곱 파일의 Editor 참조 컴파일이
+통과했으며 정상 asset 등록이나 실제 dispatcher/합성 Build 성공으로 확대하지 않는다.
+첫 CS0104 실패는 보존하며 세 번째 컴파일 호출은 없다.
+
+7개 source와 합성 소스/원 응답 SHA, 1,091 snapshot 및 세 after 파일의 귀속을
+독립 확인했다. 명시 checkout/Editor0/HEAD/index/현재 after 해시를 재확인하고
+기존 검토된 세 파일 배타 복원 도구로 정확 사전 바이트를 복원했다. 이후 보호
+**1,091개 해시 모두 일치 / Git clean / 해당 Editor 종료**를 확인했다.
+이번 복원은 새 validation recovery 실행 성공 근거가 아니다. 새 runner의 실제
+staging·metadata 확인·검토 후 복구와 synthetic Build는 아직 실행하지 않았다.
+
+다음 최소 실행은 registration mode만 준비하여 source/staged/entry 연결,
+1회 marker/manifest 귀속과 정확 복구 경로를 다시 읽기 리뷰한 뒤 정상 Editor
+어셈블리의 인터페이스 구현 metadata를 확인하는 것이다. Build·기기·광고 실행은 없다.
+운영 --execute 차단은 유지하고 빈 디렉터리/journal 잔존은 수동 검토 상태로 기록한다.
