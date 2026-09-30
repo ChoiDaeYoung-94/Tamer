@@ -19,7 +19,7 @@ from windows_owned_files import locked_directories, verified_files
 
 HOOK = 'Assets/Scripts/Editor/RevivalPrivateAdsPreparation'
 JOURNAL = '.revival-local/private-ads-build-active.json'
-TEMPLATES = ('PrivateAdsContract.cs', 'PrivateProductionAdsBuild.cs')
+TEMPLATES = ('PrivateAdsContract.cs', 'PrivateAdsSceneInjection.cs', 'PrivateProductionAdsBuild.cs')
 PROTECTED = (
     'Assets/Scenes/Login.unity', 'Assets/Scenes/Login.unity.meta',
     'Assets/Prefabs/Manager/Manager.prefab', 'Assets/Prefabs/Manager/Manager.prefab.meta',

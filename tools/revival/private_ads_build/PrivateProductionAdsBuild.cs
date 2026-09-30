@@ -97,23 +97,10 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         if (report == null) return; // Ordinary Editor scene loading is not injection.
         Guard(report);
         if (!preprocessed || postprocessed || !snapshot.Scenes.Contains(scene.path)) throw Rejected();
-        var managers = scene.GetRootGameObjects()
-            .SelectMany(obj => obj.GetComponentsInChildren<GoogleAdMobManager>(true)).ToArray();
-        if (scene.path != Login)
-        {
-            if (managers.Length != 0) throw Rejected();
-            return;
-        }
-        if (++loginScenes != 1 || managers.Length != 1) throw Rejected();
-        var serialized = new SerializedObject(managers[0]);
-        var field = serialized.FindProperty("_productionRewardedAdUnit");
-        if (field == null || !string.IsNullOrEmpty(field.stringValue)) throw Rejected();
-        field.stringValue = snapshot.Config.RewardedUnit;
-        serialized.ApplyModifiedPropertiesWithoutUndo();
-        serialized.Update();
-        if (serialized.FindProperty("_productionRewardedAdUnit").stringValue != snapshot.Config.RewardedUnit ||
-            ++injections != 1) throw Rejected();
-        // Never SaveAssets, SaveScene, or apply changes to a prefab asset.
+        if (scene.path == Login && ++loginScenes != 1) throw Rejected();
+        injections += PrivateAdsSceneInjection.Apply(scene, Login, snapshot.Config.RewardedUnit);
+        if (injections > 1) throw Rejected();
+
     }
     public void OnPostprocessBuild(BuildReport report)
     {

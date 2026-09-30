@@ -33,22 +33,27 @@ def _api():
 
 
 class LockedFile:
-    def __init__(self, path, directory=False):
+    def __init__(self, path, directory=False, writable=False, deletable=True):
         import msvcrt
         self.kernel = _api()
         self.stream = None
         self.descriptor = None
         self.directory = directory
+        self.writable = writable
+        self.deletable = deletable
+        if directory and writable:
+            raise ValueError("Directory writes are not supported")
         # Directory locks exclude write/delete handles to the directory itself;
         # they do not prevent normal creation of new children.
-        access = 0x80 if directory else 0x80000000 | 0x10000  # attributes / read+DELETE
+        access = 0x80 if directory else 0x80000000 | (0x10000 if deletable else 0)  # attributes / optional DELETE
+        if writable: access |= 0x40000000  # GENERIC_WRITE; same verified file handle
         share = 0x1  # no FILE_SHARE_WRITE or FILE_SHARE_DELETE
         handle = self.kernel.CreateFileW(str(path), access, share, None, 3,
                                          0x02000000 | 0x00200000, None)  # backup + open reparse
         if handle == ctypes.c_void_p(-1).value:
             raise OSError(ctypes.get_last_error(), 'Cannot lock owned path')
         try:
-            descriptor = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+            descriptor = msvcrt.open_osfhandle(handle, (os.O_RDWR if writable else os.O_RDONLY) | os.O_BINARY)
         except Exception:
             self.kernel.CloseHandle(handle)
             raise
@@ -62,7 +67,7 @@ class LockedFile:
                 raise ValueError('Unexpected owned handle type')
             self.identity = (info.st_dev, info.st_ino)
             if not directory:
-                self.stream = os.fdopen(descriptor, 'rb')
+                self.stream = os.fdopen(descriptor, 'r+b' if writable else 'rb')
         except Exception:
             self.close()
             raise
@@ -77,11 +82,22 @@ class LockedFile:
         if self.identity != tuple(expected_identity) or hashlib.sha256(self.bytes()).hexdigest() != expected_sha256:
             raise ValueError('Owned identity or content changed')
 
+    def restore_bytes(self, raw, expected_sha256):
+        if not self.writable or self.directory or hashlib.sha256(raw).hexdigest() != expected_sha256:
+            raise ValueError('Writable file handle and verified snapshot required')
+        self.stream.seek(0)
+        self.stream.write(raw)
+        self.stream.truncate(len(raw))
+        self.stream.flush()
+        os.fsync(self.stream.fileno())
+        if hashlib.sha256(self.bytes()).hexdigest() != expected_sha256:
+            raise ValueError('Restored handle hash mismatch')
+
     def delete(self):
         """Mark exactly the verified handle for deletion, never reopen its pathname."""
         import msvcrt
-        if self.directory:
-            raise ValueError('Directory deletion is not supported')
+        if self.directory or not self.deletable:
+            raise ValueError('Deletion is not supported for this handle')
         disposition = FileDispositionInfo(1)
         if not self.kernel.SetFileInformationByHandle(msvcrt.get_osfhandle(self.stream.fileno()),
                                                       4, ctypes.byref(disposition), ctypes.sizeof(disposition)):
@@ -121,7 +137,7 @@ def locked_directories(paths):
 
 
 @contextmanager
-def verified_files(root, expected):
+def verified_files(root, expected, writable=False):
     """Acquire and check every target before yielding any handle for removal.
 
     expected maps relative path -> (identity, sha256). Missing files are rejected:
@@ -138,7 +154,7 @@ def verified_files(root, expected):
         with ExitStack() as stack:
             handles = {}
             for relative, path in targets.items():
-                handle = stack.enter_context(LockedFile(path))
+                handle = stack.enter_context(LockedFile(path, writable=writable))
                 handle.verify(*expected[relative])
                 handles[relative] = handle
             yield handles

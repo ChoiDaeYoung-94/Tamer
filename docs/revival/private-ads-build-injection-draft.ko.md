@@ -621,3 +621,50 @@ dirty 전체를 되돌리지 않는다. 다른 checkout·Editor·기기·계정�
 
 이 계획의 준비/정적 검토는 완료했지만 실제 등록 및 synthetic runner 구현·검증은
 아직 남아 있다. Player 계획 API의 변경 없는 반복 실행은 필요하지 않다.
+
+
+## 비운영 검증 준비 구현 — 실행 결과와 분리
+
+제5차 결과는 `1b381ac`에 먼저 기록했다. 이후 총괄 지시에 따라 최소 공통 동작과
+별도 검증 도구를 구현했다. 기존 production `execute()`의 즉시 거절은 유지한다.
+
+- `PrivateAdsSceneInjection`: production의 빌드용 scene 직렬화 주입 동작만 추출했다.
+  manager 개수/빈 기존 값/반영 후 대조/비대상 씬의 manager 거절은 공유한다.
+  production의 Login 횟수·순서·Snapshot Guard는 원래 경로에 남아 있다.
+- `PrivateAdsRegistrationProbe`: 정상 Library/ScriptAssemblies의 유일한 production
+  타입, 세 인터페이스 구현과 메서드 IL 해시를 읽는다. 이는 metadata 확인이며
+  Unity dispatcher가 실제 콜백을 호출했다는 증거가 아니다.
+- `PrivateAdsSyntheticCallbacks/Build/Invoke`: production 타입과 동시에 설치하지
+  않는다. 고정 package/공개 테스트 App·Rewarded Unit/단일 비활성 fixture만 허용한다.
+  fixture는 비활성화 후 manager를 추가한다. 설정·컴파일된 하네스·prospective Player
+  define을 검사하고 관측 Unity 버전의 exact 메타데이터 예외만 유지한다.
+  nondevelopment/BuildOptions.None/debug signing을 요구하고 고정된 새 AAB 경로를
+  Prepare에서 보존하여 각 BuildReport 경로와 대조한다. 빌드 전 운영 서명/광고 환경
+  입력을 거절하며 finally에서 수정 설정별 독립 복구를 시도한다.
+- `private_ads_validation.py`: production과 별개의 준비/단일 실행/검토 후 복구 도구다.
+  mode별 source/staged/tool/snapshot 집합과 staged-source/entry-source 해시를 연결한다.
+  1회 marker/after/manifest/runner SHA를 연결하고 child의 운영 광고·서명 환경을 제거한다.
+  부분 실패도 재시도하지 않고 after 증거를 보존한다. 실제 등록과 synthetic mode는
+  서로 다른 검증이며 아직 이 runner를 실행하지 않았다.
+- `verify_private_ads_synthetic.py`: 고정 package·공개 sample App·min25/target36·ARM64·
+  nondevelopment manifest를 검사한다. 사전 고정한 기존 debug key에서 공개 DER만
+  내보내며 기존 Java 검증기의 모든 payload 서명 및 debug subject 검사 결과를
+  정확 DER SHA와 대조한다. AAB/DER를 읽기 핸들로 잠근 동안 모든 검사를 수행한다.
+  이 검사는 설치/실행·production 계약·최종 직렬화 검증을 대체하지 않는다.
+
+복원은 기존 Windows 핸들 도구에 기본 동작을 유지하는 writable 모드를 추가했다.
+모든 파일의 reparse/type/fstat identity/hash를 먼저 확인하고 동일 배타 핸들로
+snapshot을 쓴다. 동일 바이트의 다른 identity도 거절한다. 정리는 실제 생성 기록이
+있는 템플릿 파일만 수행하며 디렉터리·생성 fixture·journal은 보존하고
+manualRecoveryRequired=true로 남긴다. 후속 담당자 검토 없이 이를 완전 clean이나
+다음 단계 실행 가능으로 취급하지 않는다. 새 PowerShell 복원 초안은 폐기하고
+기존 handle 구현을 재사용한다.
+
+독립 읽기 리뷰가 지적한 identity/reparse, 증거 연결, 고정 집합, 동일 AAB 바이트,
+staged-source/entry-source 연결을 보완했다. 새 writable/read-lock 임시 파일 검사는
+첫 모듈 호출에서 cwd 때문에 import 실패했고 본문은 실행되지 않았다. 명시 파일
+경로로 고친 두 번째 호출에서 1개 검사가 0.020초에 통과했다. 같은 핸들 복원,
+writer/replace 차단, 동일 SHA 다른 identity 거절, 복수 파일 중 한 검증이 실패하면
+전체 쓰기 미진입, 읽기 잠금의 동시 읽기 허용/쓰기 차단을 확인했다. 세 번째 호출은 없다.
+Python AST와 diff 검사를 수행했다. 새 C# 전체의 emit-only 컴파일은 별도 한 번으로
+확인할 예정이며, 이 시점에 정상 staging/등록/콜백/Build 실행 결과는 없다.
