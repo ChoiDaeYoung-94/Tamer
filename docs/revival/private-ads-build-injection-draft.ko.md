@@ -1082,3 +1082,39 @@ archive3개 동일 해시를 확인했다. 복원·cleanup·archive는 각각 �
 필요한 구체 실행 범위에 따라 판단하며 변경 없는 통과 테스트를 반복하지 않는다.
 R10의 빈 placeholder 처리는 구조 재구성이며 원 scene handle identity 복원이 아니다.
 원 Build 예외 masking/zero-scene batch 종료 의존 및 감독 복원 제약은 그대로 남는다.
+
+
+## 실제 Login 미리보기의 공통 주입 검증 — 2026-09-30
+
+실제 검증 checkout은 `C:\Users\pc_17\.codex\worktrees\e5e5\Tamer`,
+브랜치는 `codex/actual-login-preview`, clean 시작 HEAD는
+`8b1faf2d725ace41a62a88d4c3a7fd38d1783cab`이다. Unity `6000.3.25f1`·revision
+`e1dba0a9aba4`·CLI `1.0.0-beta.8`을 사용했다. 프로젝트 기준은 min25/target36/ARM64이며
+이번에는 새 APK/AAB를 빌드하지 않았다. 최신 main의 별도 재실행 결과로 표현하지 않는다.
+
+직접 Login과 연결된 prefab 3개 및 EditMode lifecycle·RuntimeOnly 이벤트·생성자/종료
+경로를 정적으로 검토했다. 기본 폰트의 dynamic/multiAtlas fallback은 기존 font asset에
+subobject를 추가하고 동일 경로를 재임포트할 수 있으므로 절대 무쓰기라고 가정하지 않았다.
+기존 보호집합·전체 meta·TMP 참조 에셋 5개를 합친 exact snapshot 4,702개와
+전체 Assets 파일 6,829개의 경로/해시를 고정하고 독립 검토 후 승인된 1회를 실행했다.
+
+Assets 밖의 private probe가 `OpenPreviewScene("Assets/Scenes/Login.unity")` 후 기존
+`PrivateAdsSceneInjection.Apply`를 공개 테스트 Rewarded Unit으로 한 번 호출했다.
+CLI exit0·outer/inner success, compile 1,054ms/execute 359ms, manager 주입1·SerializedObject
+값 재읽기·`ClosePreviewScene`·일반 씬 count/active handle 불변을 확인했다.
+Play·event Invoke·SaveScene/SaveAssets·Build·운영 설정/서비스 호출은 수행하지 않았다.
+이는 실제 Login prefab 인스턴스의 공통 helper 결과이며 production callback 실행,
+비공개 설정 계약, 최종 serialized field/Player gate, binary/distributable 검증은 아니다.
+
+Assets 파일 추가/삭제0, meta 3,604개와 TMP 에셋 변화0이었다. 기존 재임포트 설정3개만
+변경됐으며 observed after identity/hash와 exact before backup의 독립 귀속 확인 뒤
+`verified_files`/`restore_bytes`의 같은 핸들로 정확3개를 한 번 복원했다. 사후 독립 검토에서
+보호4,702·Assets6,829 전체집합/해시·meta·원증거/backup 불변·clean HEAD·Editor0를 확인했다.
+Library 캐시는 보존했으며 새 파일 삭제나 성공 검증 재실행은 하지 않았다.
+
+비공개 run `10001a51f429410084ee83c469e9bca5`의 final manifest SHA-256은
+`5d3681a9767f762609ff3a1a1cc6f72007718a3d3090cfe1614510ffecec085a`,
+CLI response는 `0d3c67495cb121d04c811011c4c77988cd8c733077c3b1b4dd48b359ca5ca1cc`,
+원 receipt는 `cb60d88888a499b0222aa145f562da02916ac9de912392b22a9d5252cce53404`,
+복원 result는 `6db713eb7d9c1f9bfacb84b77cfc693ba47bcde07121af520240d7cddb3ba892`다.
+원로그·private probe/runner·snapshot·receipt는 공개 커밋에 넣지 않는다.
