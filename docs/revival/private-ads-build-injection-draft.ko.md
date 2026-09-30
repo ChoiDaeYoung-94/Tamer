@@ -857,3 +857,44 @@ fixture/meta2는 원 `after.created`에 없어 실패 뒤 관찰한 현재 식�
 복원 순서·열 항목 전체 시도·고정 문자열만 출력하는 경계는 유지한다.
 세 번째 실패 시 네 번째 실행은 하지 않으며 복원·정리·문서 작업만 계속한다.
 이 승인은 현재 원인 해결 또는 새 컴파일·실행 성공의 증거가 아니다.
+
+## 승인된 세 번째 호출 — R10 확인과 원상 복원
+
+진단안 적용 커밋 `c39511749c5586d20ad958f99055a3768c002363`의 두 소스는
+보존 제안 SHA와 동일하며 독립 diff 검토를 통과했다. clean checkout에서 최소
+emit-only1회를 실행해 outer/inner success=true, diagnostics=[], compile1084ms,
+execute0/assemblyName=null을 확인했다. 코드는 로드하거나 실행하지 않았다.
+import3 파일의 사전 바이트 복원/보호1095/Editor0/Git clean을 독립 확인했다.
+인증 상태 조회는 loggedIn=true/sessionState=stale, 라이선스는 active/signedIn=true와
+라이선스 목록2개였다. 이를 fresh 인증으로 표현하지 않으며 계정 기본값은 변경하지 않았다.
+
+두 번째 실패 AAB도 동일 바이트·SHA를 비공개 증거 폴더에 보존한 뒤 고정 출력의
+같은 핸들만 정리했다. source12/stage8/entry/tool/보호1095/고정 명령과 출력 경계를
+독립 검토하고 승인된 **세 번째 같은 합성 호출1회**를 실행했다.
+CLI exit0/outertrue지만 innerfalse, diagnostics=[], compile1132ms/execute31302ms,
+고정 `R10`이었다. 코드상 `EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup)`가
+최초 복원 예외 항목이다. 앞 아홉 복원 action은 예외를 던지지 않았지만, 이 사실만으로
+설정의 의미적 복원 전체나 Build 계약 완료를 증명하지 않는다. 세부 원래 예외는 미확정이며
+finally의 복원 예외가 원래 Build 예외를 가릴 수 있는 제한은 남아 있다.
+
+자동 artifact-check는 실행되지 않았다. 세 번째 AAB의 SHA-256은
+`b0c4d0977efa73a72a00bfadbe423d1a379feee0d9fdedac2471d9831f91d024`,
+크기65,986,538바이트이며 미검증 실패 출력으로 보존했다. 이전 AAB 검사를 이 출력에
+적용하지 않는다. 네 번째 Build·추가 emit·동등 runtime 조회는 중단했다.
+
+독립 검토한 plan SHA
+`86cbb29c166f6e069bbc04d27d0b040ef2621b250d4e9fc7df3d9c403c095e07`로
+현재10 파일 전체의 identity/hash를 먼저 확인하고 같은 배타 핸들로 한 번 복원했다.
+모두 exact pre-invocation snapshot이며 HEAD baseline은0개다. 보호1095/Editor0와
+원 증거·source12·실패 산출물 보존을 확인했다. 검토된 stage8/관찰한 fixture·meta2를
+원본/분리 백업에 연결해 정확10 파일 및 빈 폴더2만 한 번 정리했다. 실패 AAB3개,
+원로그·journal·복원/정리 백업·미실행 후속 제안은 보존했다.
+
+후속 가설은 빈 초기 씬 구성이다. [Unity6000.3 공식 API 문서](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/SceneManagement.EditorSceneManager.RestoreSceneManagerSetup.html)는
+복원 배열에 로드된 씬과 활성 씬을 요구하지만, 현재 코드는 초기 빈 배열을 배제하지 않는다.
+이번 실행의 초기 setup 길이·loaded/active·sceneCount 기록이 없어 실제 빈 배열이었다고
+확정할 수 없다. 초기 setup이 비어 있고 sceneCount도0인 batch에만 복원 대상 없음으로
+해당 API 호출을 생략하고, 비어 있지 않으면 loaded/active 요건을 사전 검사해 기존 복원을
+유지하는 최소 제안을 비공개 파일로 보존했다. 빈 초기 씬 상태는 API 복원 완료와 같지 않으며
+해당 batch 종료 및 디스크 스냅샷 복원이 확인돼야 한다. 제안은 원인 해결 증거가 아니고
+tracked 코드 적용·컴파일·실행은0이다. 다음 동일 빌드 재시도는 별도 사용자 승인이 필요하다.
