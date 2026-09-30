@@ -34,6 +34,18 @@ public static class PrivateAdsSyntheticBuild
         var oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         var oldScenes = EditorBuildSettings.scenes;
         var oldSceneSetup = EditorSceneManager.GetSceneManagerSetup();
+        int initialSceneCount = UnityEngine.SceneManagement.SceneManager.sceneCount;
+        int initialSetupCount = oldSceneSetup == null ? -1 : oldSceneSetup.Length;
+        int initialLoadedCount = oldSceneSetup == null ? -1 : oldSceneSetup.Count(item => item.isLoaded);
+        int initialActiveCount = oldSceneSetup == null ? -1 : oldSceneSetup.Count(item => item.isActive);
+        Debug.Log(string.Format("Synthetic scene baseline counts: setup={0}, scene={1}, loaded={2}, active={3}.",
+            initialSetupCount, initialSceneCount, initialLoadedCount, initialActiveCount));
+        bool hadNoScenes = oldSceneSetup != null && oldSceneSetup.Length == 0 &&
+            initialSceneCount == 0;
+        if (oldSceneSetup == null || (!hadNoScenes &&
+            (!oldSceneSetup.Any(item => item.isLoaded) || oldSceneSetup.Count(item => item.isActive) != 1 ||
+             oldSceneSetup.Any(item => item.isActive && !item.isLoaded)))) throw Rejected();
+        if (hadNoScenes) Debug.Log("Synthetic scene baseline empty; restoration deferred to batch exit.");
         foreach (var scene in oldSceneSetup)
             if (string.IsNullOrEmpty(scene.path)) throw Rejected();
         for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
@@ -98,7 +110,8 @@ public static class PrivateAdsSyntheticBuild
             restore("R08", () => EditorBuildSettings.scenes = oldScenes);
             restore("R09", () => { settings.Update(); settings.FindProperty("adMobAndroidAppId").stringValue = oldApp;
                 settings.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(settings.targetObject); });
-            restore("R10", () => EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup));
+            // A batch process starting with zero scenes has no valid scene setup to restore.
+            if (!hadNoScenes) restore("R10", () => EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup));
             if (firstRestoreFailure != null) throw new BuildFailedException("Synthetic diagnostic " + firstRestoreFailure + ".");
         }
         return result;
