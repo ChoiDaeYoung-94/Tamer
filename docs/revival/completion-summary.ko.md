@@ -1,6 +1,16 @@
 # Tamer 복구 구현·통합 검증 결과
 
-## 2026-09-28 현재 상태와 과거 검증의 구분
+## 2026-09-30 현재 상태와 남은 조건
+
+원격 main `a28b1d526a5fab818f65ac224b29002598c35415`(PR #275)을 읽기로 대조했다. clean 소유 checkout `C:/Users/pc_17/.codex/worktrees/completion-state-refresh/Tamer`의 문서 브랜치에서 정리하며, 이 변경은 새 테스트·Editor·APK/AAB 검증 결과를 추가하지 않는다.
+
+- [LTS 전환](lts-transition-validation.ko.md)은 Unity `6000.3.25f1`/CLI `1.0.0-beta.8`/Android min25·target36 기준으로 통합됐다. 광고123·IAP40 및 새 debug APK 기본 LOAD/ZIP 검사는 해당 소스에서 통과했고 strict RELRO4개 실패는 별도다. 남은 영향 범위·실제 ARM64 네이티브16KB·최종 출시 AAB·스토어 검증을 이전 Unity 결과로 대체하지 않는다.
+- [실제 키 로컬 암호화 백업](signing-and-private-backup.ko.md)은 PR #272/#274/#275에 기록한 1회 범위로 완료됐다. 사용자 직접 Drive 업로드·재다운로드 복구는 미검증이며 기존 JKS 암호는 미상이다. 새 백업 암호를 기존 키 암호 복구나 reset으로 취급하지 않는다.
+- [게시자 UMP](publisher-ump-harness-preparation.ko.md)는 PR #270의 승인된 미국 주 관측에서 옵션 진입·판매/공유 거부 저장·재진입 유지를 확인했다. PR #271 연령별 검토·사전 검사와 구분하며 운영·지역·연령 gate는 OFF다. 비공개 빌드 주입 [Draft PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)은 main 미통합·미완료이며 개별 실패·승인·복구와 후속 읽기 진단 상태는 해당 PR을 따른다.
+
+연령은 9세 이상·성인 포함, 배포 지역은 기존178개 유지, AdMob 보상형 광고와 No Ads 신규 구매·기존 권한·복원 유지로 결정됐다. 5초 닫기 추가 조사는 보류하며 정책 적합성 미해결과 운영 gate OFF를 유지한다. 확정된 선택을 다시 묻지 않는다. 실제 제공 앱/SDK·공급자 잔존 범위와 정책/Console 답안 대조, 미완료 기능·기기·서명 검증 후 최종 출시 후보·트랙/심사·공개 설치를 확인한다. 모든 최종 검증 뒤 시험 자원을 정리하고 저장소 `Tamer`→`tamer` 변경은 마지막에 수행한다. 원본 checkout·운영 키·구매 권한·핵심 증거는 보존한다.
+
+## 2026-09-28 상태 대조 이력
 
 사용자 후속 결정으로 기존 광고형 보상·No Ads 혜택을 유지하고 5초 닫기 추가 조사는 보류한다. 나머지 복구는 계속하며, 실제 닫기·정책 적합성은 미해결 알려진 이슈로 남긴다. 최종 스토어 심사 후 문제 대응 의사를 정책 충족이나 심사 승인 근거로 사용하지 않는다. [광고 결정 기록](ad-recovery-decision.ko.md)을 따른다.
 
@@ -14,7 +24,7 @@ PR [#247](https://github.com/ChoiDaeYoung-94/Tamer/pull/247)의 [UMP 전용 실�
 
 이번 상태 정리의 기준은 `a6e52139b9490a615c100b7609794216a8479734`이며 clean 격리 checkout `C:/Users/pc_17/.codex/worktrees/completion-state-refresh/Tamer`에서 문서만 변경했다. README의 기존 [Google Play 주소](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)는 2026-09-28 공개 페이지와 설치 표시를 조회했고, 그 페이지의 개인정보처리방침 링크가 [기존 GitHub README](https://github.com/ChoiDaeYoung-94/Tamer)로 연결됨을 확인했다. README 정책과 [외부 삭제 안내](https://github.com/ChoiDaeYoung-94/Tamer/blob/main/docs/account-deletion.ko.md)도 공개 열람됐다. 링크 열람은 복구 빌드의 공개 배포·기기 설치 가능·정책 적합성·메일 처리 검증이 아니다. README 개편·다운로드·설치·메일 발송은 수행하지 않았다.
 
-광고는 AdMob 유지·Unity Ads 철회 상태이며 2026-09-28 사용자가 기존 광고 완료 후 보상과 No Ads 즉시 혜택 유지(A)를 확정했다. [광고 결정과 조기 닫기 조사](admob-product-options.ko.md)의 B안은 미채택 이력이다. 기존 No Ads 혜택과 구매·복원 보존 원칙을 유지하며, 5초 뒤 닫기를 보상 지급으로 간주하거나 앱 타이머로 지급하는 변경은 승인되지 않았다. 운영 계정의 실제 삭제·메일 처리·삭제 후 구매 복원과 광고 운영, ARM64 네이티브 16KB 실행, 후반 LTS 전환 및 최종 출시 AAB·스토어 검증은 각 후속 근거가 필요하다. [최신 실행 목록](recovery-execution-backlog.ko.md)과 [출시 사전 검사](release-preflight.ko.md)에서 완료·미검증·결정 대기를 구분한다. 이번 정리는 문서 변경이며 새 Unity 실행·테스트·APK 빌드 결과를 추가하지 않는다.
+광고는 AdMob 유지·Unity Ads 철회 상태이며 2026-09-28 사용자가 기존 광고 완료 후 보상과 No Ads 즉시 혜택 유지(A)를 확정했다. [광고 결정과 조기 닫기 조사](admob-product-options.ko.md)의 B안은 미채택 이력이다. 기존 No Ads 혜택과 구매·복원 보존 원칙을 유지하며, 5초 뒤 닫기를 보상 지급으로 간주하거나 앱 타이머로 지급하는 변경은 승인되지 않았다. 운영 계정의 실제 삭제·메일 처리·삭제 후 구매 복원과 광고 운영, ARM64 네이티브 16KB 실행, 전환된 LTS의 남은 영향 범위 및 최종 출시 AAB·스토어 검증은 각 후속 근거가 필요하다. [최신 실행 목록](recovery-execution-backlog.ko.md)과 [출시 사전 검사](release-preflight.ko.md)에서 완료·미검증·결정 대기를 구분한다. 이번 정리는 문서 변경이며 새 Unity 실행·테스트·APK 빌드 결과를 추가하지 않는다.
 
 ## 2026-09-21 삭제 접수 복구 후속 통합
 
@@ -95,7 +105,7 @@ PR [#114](https://github.com/ChoiDaeYoung-94/Tamer/pull/114)에서 SM-N986N / An
 
 3차 변경 PR [#113](https://github.com/ChoiDaeYoung-94/Tamer/pull/113)·[#114](https://github.com/ChoiDaeYoung-94/Tamer/pull/114)·[#115](https://github.com/ChoiDaeYoung-94/Tamer/pull/115)은 main에 병합했다. [3차 통합 데이터](phase3-validation.json)는 실제 재실행한 Python 75개와 이전 단계의 Unity 249개를 구분한다. 이번 harness 변경은 두 APK 빌드와 실기 화면·콜백으로 검증했다.
 
-남은 작업은 다음과 같다.
+아래 남은 작업과 Unity 유지 방침은 당시 3차 검증 시점의 이력이다. 현재 완료·미완료 조건은 위 2026-09-30 정리와 최신 실행 목록을 따른다.
 
 - **기기·결제:** 기존 계정 로그인·저장 실패/재시도·No Ads 구매/복원·실제 게임에서의 광고/음악·전투, 16KB Android에서의 APK·AAB/split 실행. 서버 영수증 검증은 이번 구현에 포함되지 않았다.
 - **광고·스토어 [#91](https://github.com/ChoiDaeYoung-94/Tamer/issues/91):** Families 5초 닫힘, 공급자·consent 설정과 심사. Console의 거절 연결 번들26을 현재 제공 버전으로 단정하지 않는다. 광고 API 차단이 native SDK의 모든 자동 통신 차단을 증명하지는 않는다.
