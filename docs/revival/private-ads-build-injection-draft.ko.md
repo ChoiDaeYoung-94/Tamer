@@ -668,3 +668,20 @@ writer/replace 차단, 동일 SHA 다른 identity 거절, 복수 파일 중 한 
 전체 쓰기 미진입, 읽기 잠금의 동시 읽기 허용/쓰기 차단을 확인했다. 세 번째 호출은 없다.
 Python AST와 diff 검사를 수행했다. 새 C# 전체의 emit-only 컴파일은 별도 한 번으로
 확인할 예정이며, 이 시점에 정상 staging/등록/콜백/Build 실행 결과는 없다.
+
+
+### 새 C# 7파일 emit-only 첫 시도 — CS0104
+
+`8df0ac1ad6172e535ab6629a538971bf795e22e7` clean에서 새 파일 일곱 개를
+using 선언만 모아 하나의 외부 소스로 만든 뒤 승인된 emit-only 1회를 수행했다.
+CLI exit 0과 달리 **inner success=false**이며 compile904ms/execute0ms였다.
+SyntheticBuild의 `SceneManager.sceneCount`와 `SceneManager.GetSceneAt` 두 참조가
+프로젝트 `AD.SceneManager`와 Unity 타입 사이에서 모호하여 CS0104 두 진단이 발생했다.
+콜백·Build를 실행하지 않았다. 반환 assemblyName은 컴파일 시도용 이름일 뿐 이 실패에서
+어셈블리 로드 성공의 근거가 아니다.
+
+원 응답·7source/합성 SHA·before/after 증거를 보존하고 독립 검토 후 동일 세 설정
+파일을 정확 snapshot으로 복원했다. 보호1091 해시 일치/clean/해당 Editor0을 확인했다.
+후속 수정은 두 참조를 `UnityEngine.SceneManagement.SceneManager`로 명시하는 것뿐이다.
+총괄이 배정한 두 번째 emit-only 1회에서 이를 확인하며, 두 번째도 실패하면 해당 검사와
+종속 작업을 중단하고 승인 없는 세 번째 시도를 하지 않는다.

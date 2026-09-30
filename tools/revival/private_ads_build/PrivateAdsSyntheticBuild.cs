@@ -36,8 +36,8 @@ public static class PrivateAdsSyntheticBuild
         var oldSceneSetup = EditorSceneManager.GetSceneManagerSetup();
         foreach (var scene in oldSceneSetup)
             if (string.IsNullOrEmpty(scene.path)) throw Rejected();
-        for (int i = 0; i < SceneManager.sceneCount; i++)
-            if (SceneManager.GetSceneAt(i).isDirty) throw Rejected();
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+            if (UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty) throw Rejected();
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         bool oldDevelopment = EditorUserBuildSettings.development;
