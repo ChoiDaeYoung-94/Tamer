@@ -42,7 +42,20 @@ public static class PrivateAdsSyntheticBuild
             initialSetupCount, initialSceneCount, initialLoadedCount, initialActiveCount));
         bool hadNoScenes = oldSceneSetup != null && oldSceneSetup.Length == 0 &&
             initialSceneCount == 0;
-        if (oldSceneSetup == null || (!hadNoScenes &&
+        bool hadEmptyPlaceholder = false;
+        if (oldSceneSetup != null && oldSceneSetup.Length == 0 && initialSceneCount == 1)
+        {
+            var initialScene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(0);
+            bool validLoaded = initialScene.IsValid() && initialScene.isLoaded;
+            bool pathEmpty = validLoaded && string.IsNullOrEmpty(initialScene.path);
+            bool clean = validLoaded && !initialScene.isDirty;
+            int roots = validLoaded ? initialScene.rootCount : -1;
+            bool active = validLoaded && UnityEngine.SceneManagement.SceneManager.GetActiveScene().handle == initialScene.handle;
+            hadEmptyPlaceholder = pathEmpty && clean && roots == 0 && active;
+            Debug.Log(string.Format("Synthetic placeholder baseline: validLoaded={0}, pathEmpty={1}, clean={2}, roots={3}, active={4}.",
+                validLoaded, pathEmpty, clean, roots, active));
+        }
+        if (oldSceneSetup == null || (!(hadNoScenes || hadEmptyPlaceholder) &&
             (!oldSceneSetup.Any(item => item.isLoaded) || oldSceneSetup.Count(item => item.isActive) != 1 ||
              oldSceneSetup.Any(item => item.isActive && !item.isLoaded)))) throw Rejected();
         if (hadNoScenes) Debug.Log("Synthetic scene baseline empty; restoration deferred to batch exit.");
@@ -111,7 +124,16 @@ public static class PrivateAdsSyntheticBuild
             restore("R09", () => { settings.Update(); settings.FindProperty("adMobAndroidAppId").stringValue = oldApp;
                 settings.ApplyModifiedPropertiesWithoutUndo(); AssetDatabase.SaveAssetIfDirty(settings.targetObject); });
             // A batch process starting with zero scenes has no valid scene setup to restore.
-            if (!hadNoScenes) restore("R10", () => EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup));
+            restore("R10", () => {
+                if (hadEmptyPlaceholder)
+                {
+                    var restoredScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                    if (!restoredScene.IsValid() || !restoredScene.isLoaded || !string.IsNullOrEmpty(restoredScene.path) ||
+                        restoredScene.isDirty || restoredScene.rootCount != 0 || UnityEngine.SceneManagement.SceneManager.sceneCount != 1 ||
+                        UnityEngine.SceneManagement.SceneManager.GetActiveScene().handle != restoredScene.handle) throw Rejected();
+                }
+                else if (!hadNoScenes) EditorSceneManager.RestoreSceneManagerSetup(oldSceneSetup);
+            });
             if (firstRestoreFailure != null) throw new BuildFailedException("Synthetic diagnostic " + firstRestoreFailure + ".");
         }
         return result;

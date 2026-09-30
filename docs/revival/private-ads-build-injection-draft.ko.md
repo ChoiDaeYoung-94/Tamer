@@ -953,3 +953,41 @@ AAB archive3개 보존, stage8·폴더2 및 새 AAB/fixture 부재를 확인했�
 읽기 진단 성공은 Build/production 계약/바이너리 검증이 아니고, 별도 사용자 승인
 전에는 이 runtime 진단도 수행하지 않는다. 다음 결정에는 다섯 번째 full Build를
 포함하지 않는다.
+
+
+## 승인된 읽기 진단과 빈 placeholder 최소 구현
+
+2026-09-30 사용자의 명시 승인에 따라 Build 없는 읽기 진단1회를 실행했다.
+실행 checkout은 `C:\Users\pc_17\.codex\worktrees\e5e5\Tamer`, branch는
+`codex/private-ads-build-injection`, 검증 대상 HEAD는
+`6e463bf74e4411fd7510022545c324740b25d551`이며 실행 전 clean/Editor0였다.
+Unity `6000.3.25f1`·revision `e1dba0a9aba4`·CLI `1.0.0-beta.8` 기준이다.
+source1/using-only combined/보호 snapshot1095와 runner·복구·CLI·환경 필터·파일 보호
+도구 해시를 고정한 실제 manifest의 독립 검토 후 실행했다. manifest SHA는
+`3e504c928c92fa9bcdbd37a33a7f6d3998650e12cbce167b7b405813ea6a5ae3`다.
+
+CLI exit0/outer·inner success, diagnostics=[], compile1136ms/execute2ms였다.
+setup0/scene1/setup 배열 loaded0·active0이며 실제 Scene은 validLoaded/pathEmpty/
+clean/active 모두 true, roots0였다. emptyPlaceholderCandidate=true다. 이는 이번
+독립 진단의 시작 상태를 관측한 결과이며 앞선 네 호출의 실제 Scene 속성이나
+세 번째 R10의 원인을 소급 확정하지 않는다. 읽기 진단은 Build·callback·production
+계약·바이너리 성공 증거가 아니다. Build0/별도emit0/씬 쓰기0/기기·운영 계정 작업0이다.
+CLI 응답 SHA는 `906c38e8076c72e4694c4409e4164522ba7beb3a92acab6653acb3235891eb2c`,
+사후 receipt SHA는 `0bb554bbfa8cdd650d0363430b8a48ffc08aaf866ac7cb32c860611da472c86a`다.
+원로그와 manifest·스냅샷·복원 자료는 비공개로 보존한다.
+
+Editor 종료와 known import3(low/medium 품질 asset 및 ProjectSettings)만 변동한
+사후 귀속을 독립 확인했다. reviewed receiptSHA를 고정한 정확 복원1회로 전체
+대상 identity/hash 선검사 뒤 같은 핸들에 사전 바이트를 복원했고 보호1095/Editor
+종료를 확인했다. 새 AAB·fixture·Assets 임시 코드 생성은 없다.
+
+관측에 근거하여 이전 정적 검토 placeholder 최소안을 tracked 소스에 적용했다.
+setup0/scene1인 경우에도 실제 validLoaded/pathEmpty/clean/roots0/active 요건을
+모두 만족해야만 허용한다. R10에서는 EmptyScene/Single로 빈 장면을 재생성하고
+같은 구조와 sceneCount1을 확인한다. 이는 원 장면 핸들의 정확 복원이 아닌 구조
+재구성이며, batch 종료와 외부 디스크 스냅샷 복원 검증을 계속 요구한다.
+다른 상태의 기존 guard·복원 및 운영 차단은 유지했다. 적용 소스 SHA는
+`c9f7f1f323e66b9e06d0f57f8b4b044a297d6195f2bc57f69e4edf3700764c61`다.
+이 변경은 정적 구현이며 적용 후 컴파일·Build 실행은0이다. zero-scene batch 종료
+의존과 원 Build 예외 masking 한계도 남는다. 다섯 번째 같은 합성 Build와 새 emit은
+이번 승인 범위에 없으며 별도 구체 승인 전 실행하지 않는다. PR은 Draft·병합 금지다.
