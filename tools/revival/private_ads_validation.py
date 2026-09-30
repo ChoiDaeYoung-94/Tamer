@@ -42,7 +42,9 @@ def staged_paths(mode):
     if mode == 'synthetic': paths.add(FIXTURE + '.meta')
     return paths
 def snapshot_paths():
-    return set(protected_paths(ROOT)) | {'Assets/Settings/Settings/UniversalRP-LowQuality.asset',
+    return set(protected_paths(ROOT)) | {'Assets/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml',
+                                         'Assets/GoogleMobileAds/Editor/GoogleUmpDependencies.xml',
+                                         'Assets/Settings/Settings/UniversalRP-LowQuality.asset',
                                          'Assets/Settings/Settings/UniversalRP-MediumQuality.asset'}
 def validate_manifest(manifest):
     if manifest.get('schema') != 1 or manifest.get('checkout') != str(ROOT) or manifest.get('mode') not in MODES:
@@ -122,7 +124,7 @@ def prepare(mode, head):
     create(run / 'Entry.cs', entry_file.read_bytes())
     command = [str(CLI), 'run', str(ROOT), '--editor-version', '6000.3.25f1', '--command', 'run_script',
                '--timeout', '1800' if mode == 'synthetic' else '900', '--non-interactive', '--format', 'json', '--',
-               '--file', str(run / 'Entry.cs'), '--mode', 'ephemeral', '--entry',
+               '--file', str(run / 'Entry.cs'), '--mode', 'ephemeral', '--timeout_ms', '1500000' if mode == 'synthetic' else '30000', '--entry',
                'PrivateAdsRegistrationProbe.Inspect' if mode == 'registration' else 'PrivateAdsSyntheticInvoke.Run']
     sources = {relative: sha(safe_path(ROOT, relative).read_bytes()) for relative in source_paths(mode)}
     tools = {str(path): sha(path.read_bytes()) for path in (JDK / 'java.exe', JDK / 'keytool.exe')}
@@ -150,7 +152,7 @@ def run_once(run):
     if manifest['mode'] not in MODES: raise ValueError('Unknown mode')
     expected_command = [str(CLI), 'run', str(ROOT), '--editor-version', '6000.3.25f1', '--command', 'run_script',
         '--timeout', '1800' if manifest['mode'] == 'synthetic' else '900', '--non-interactive', '--format', 'json', '--',
-        '--file', str(run / 'Entry.cs'), '--mode', 'ephemeral', '--entry',
+        '--file', str(run / 'Entry.cs'), '--mode', 'ephemeral', '--timeout_ms', '1500000' if manifest['mode'] == 'synthetic' else '30000', '--entry',
         'PrivateAdsRegistrationProbe.Inspect' if manifest['mode'] == 'registration' else 'PrivateAdsSyntheticInvoke.Run']
     if manifest['command'] != expected_command: raise ValueError('Command drift')
     for path, expected in manifest['toolHashes'].items():
@@ -238,7 +240,8 @@ def recover_reviewed(run, reviewed_after_sha):
         if item.get('missing') or sha(safe_path(ROOT, relative).read_bytes()) != item['sha256']:
             raise ValueError('Current after bytes changed')
     save(run / 'recovery-started.json', {'reviewedAfterSha256': reviewed_after_sha})
-    allowed = {'ProjectSettings/ProjectSettings.asset', 'ProjectSettings/EditorBuildSettings.asset',
+    allowed = {'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml',
+               'ProjectSettings/ProjectSettings.asset', 'ProjectSettings/EditorBuildSettings.asset',
                'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset',
                'Assets/Settings/Settings/UniversalRP-LowQuality.asset', 'Assets/Settings/Settings/UniversalRP-MediumQuality.asset'}
     if set(after['changes']) - allowed: raise ValueError('Change outside recovery allowlist')

@@ -707,3 +707,51 @@ staging·metadata 확인·검토 후 복구와 synthetic Build는 아직 실행�
 1회 marker/manifest 귀속과 정확 복구 경로를 다시 읽기 리뷰한 뒤 정상 Editor
 어셈블리의 인터페이스 구현 metadata를 확인하는 것이다. Build·기기·광고 실행은 없다.
 운영 --execute 차단은 유지하고 빈 디렉터리/journal 잔존은 수동 검토 상태로 기록한다.
+
+
+## 정상 Editor 어셈블리 metadata 확인 — registration 첫 실행 통과
+
+`b61c1507f52f97cc5a24fb466e04e80dfe059561` clean에서 registration mode의
+고정 source11/stage7/entry 및 snapshot1091을 준비하고 독립 귀속 검토를 거쳤다.
+production 계약·공통 주입·production 콜백의 세 템플릿과 해당 meta만 일시 설치했다.
+synthetic 템플릿/fixture/debug key는 사용하지 않았다. manifest SHA는
+`932236dcbe3426ff6ed54689fc6229edce7f42d8e72c6c191ee08233372a05e7`이다.
+
+단일 정상 Editor 초기화 뒤 외부 읽기 도구가 Library/ScriptAssemblies에서 유일한
+production 타입과 세 인터페이스 구현 및 IL 해시 세 개를 확인했다.
+CLI/inner success=true, diagnostics=[], 읽기 도구 compile1172ms/execute2ms,
+normalEditorAssembly=true/interfaceCount=3이다. 이 시간은 외부 읽기 도구의
+Roslyn 컴파일/실행 시간으로, 정상 Unity 전체 import/compile 소요 시간은 아니다.
+**callbackExecuted/buildExecuted/binaryVerified는 모두 false**다. 정상 어셈블리의
+인터페이스 구현 metadata를 확인했으며 dispatcher 호출 성공이라고 표현하지 않는다.
+
+실행 후 독립 검토에서 manifest/runner/marker/after 연결, source11, before1091,
+현재 after의 정확 세 파일 hash·identity, 실제 생성된 stage7의 hash·identity가
+모두 일치함을 확인했다. after SHA는
+`8cc30d09c7f7b62ffb99f1021444f52638504178973f3f938bd220b218768f3e`다.
+이 SHA를 지정한 recover-reviewed를 **한 번** 실행해 검토된 세 설정 파일을 동일
+배타 핸들로 정확 snapshot 복원하고 소유 stage7을 검증된 핸들로 삭제했다.
+보호1091 전체 해시 일치/해당 Editor0/Git clean을 확인했다.
+
+빈 `Assets/Scripts/Editor/RevivalPrivateAdsValidation` 디렉터리와 비공개 journal·
+증거는 보존하여 manualRecoveryRequired=true다. 이번 모드에서는 fixture가 생성되지
+않았다. 복구 도구의 일반적인 retainedFoldersAndGeneratedFixture 필드는 보존 정책이며,
+실제 잔존물은 별도 post-recovery 기록에서 구분했다. 다음 실행 전 이 빈 폴더의
+수동 귀속 검토가 필요하며 stale 검사를 이름 변경으로 우회하지 않는다.
+
+
+registration 복구 후 독립 검토에서 빈 예약 폴더의 정확 경로·일반 디렉터리 속성·
+children0·해당 Editor0을 재확인했다. 이 **현재 빈 폴더만** 비재귀
+Directory.Delete(path,false) 한 번으로 수동 정리했다. private journal/증거는 모두
+보존했고 원 보호1091 해시 일치/fixture 없음/예약 경로 부재를 기록했다.
+자동 디렉터리 삭제 기능을 추가하거나 stale 경로 검사를 우회하지 않았다.
+
+다음 synthetic 준비 전 기존 GMA ManifestProcessor가 원 AndroidManifest.xml을
+저장한다는 코드를 확인했다. 해당 파일은 원래 snapshot 대상이며, 검토 후 복원의
+고정 allowlist에 그 정확한 한 경로만 추가했다. GoogleMobileAds/GoogleUmp 의존성
+XML 두 파일도 snapshot에 명시적으로 추가하되, 예상치 못한 의존성 변경을 자동
+복원 허용하지 않는다. 새 보호 대상은1093개다.
+또한 run_script의 실제 기본 dispatcher 제한이30초임을 패키지 소스에서 확인해
+synthetic 실행에는 timeout_ms=1500000(25분), CLI 제한은1800초를 고정했다.
+registration은30000ms/900초다. 이 준비 수정은 Python runner/문서에 한정하며
+변경 없는 C# emit-only를 반복하지 않는다.
