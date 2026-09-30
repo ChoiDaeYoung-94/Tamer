@@ -538,3 +538,86 @@ distributable=false를 유지한다.
 한 번의 결과가 실패하면 추가 조회 없이 멈춘다. 성공해도 정상 Unity 콜백 편입과
 실행 또는 AAB의 직렬화/manifest/Player define/gate 안전성을 입증하지 않는다.
 실제 Build/기기/운영 광고/서명/Console 작업은 이 재검증 범위에 포함하지 않는다.
+
+
+## 사용자 승인 제5차 — 수정 후 Player 계획 읽기 통과
+
+2026-09-30 사용자 승인으로 e5e5 checkout/`codex/private-ads-build-injection`,
+HEAD `33cfb50ff62f1f2b2a46397505cc659ff8004322` clean에서 수정 후 진단을
+한 번 실행했다. Unity `6000.3.25f1`/`e1dba0a9aba4`, CLI `1.0.0-beta.8`의
+고정 해시, Android min25/target36/ARM64, 라이선스/프로젝트 pin을 확인했다.
+production의 ReadPlayerCompilationPlan부터 ForbiddenDefine까지 본문을 그대로
+복사하고 사용자 설정 정의의 엄격 판정을 별도 읽기로 추가했다. 추출 준비 중 포함된
+불필요 helper는 실행 전에 제거하고 source-map/실행 복사본 해시를 다시 고정했다.
+이 준비 과정에 컴파일 실행은 없었다. 최종 probe SHA-256은
+`dc02cec0c5501bff4a4427c7741b72e33979a70ea045b737da66bcc44ebcf56c`이다.
+
+독립 사전 읽기 검토 후 단일 compile+Inspect/API 조회를 수행했다.
+CLI exit 0, outer/data/inner success=true, compile **1,213ms**, execute **93ms**,
+diagnostics=[]이며 다음 결과가 반환됐다.
+
+| 읽기 판정 | 결과 |
+| --- | --- |
+| playerPlanAccepted | true |
+| configuredDefinesAccepted | true |
+| 두 판정의 conjunction인 contractAccepted | true |
+| reasonCode | NONE |
+| callbackExecuted / buildExecuted / binaryVerified | 모두 false |
+
+이번 관측은 수정 P06 및 이어지는 P07 중복 어셈블리명/P08~P10 핵심 세 소스의
+정확 집계와 현재 사용자 지정 Android 정의의 엄격 판정 통과 근거다.
+**contractAccepted는 이 두 읽기 판정의 결합일 뿐 전체 Snapshot/build 계약의
+통과가 아니다.** 새 조건의 모든 부정 입력 검증이나 최종 바이너리 안전성을 뜻하지
+않는다. 이전 실패 이력은 그대로 보존한다.
+
+같은 세 초기화 변경 파일의 before/after를 보존하고 독립 귀속 검토 후 명시적
+checkout/HEAD/index/Editor 0/현재 after 해시를 재확인했다. 세 배타 핸들에서
+정확 사전 바이트로 복원하고 **보호 snapshot 1,091개 전부 일치, 복원 직후 clean,
+해당 Editor 종료**를 확인했다. 이후 변경은 이 결과 문서뿐이다. 제5차 1회,
+제6차·추가 재시도 0회, Assets staging/삭제·콜백 등록·실제 Build·기기·광고·Console
+0회다. Draft와 운영 `--execute` 차단, binaryVerified=false/distributable=false를 유지한다.
+
+### 다음 비운영 등록·합성 빌드 단계의 코드 검토와 최소 계획
+
+현재 `private_ads_build.py.execute()`는 즉시 거절하며 이를 해제하지 않는다.
+도달 불가 `_execute_after_contract_review()`를 직접 호출하는 우회도 사용하지 않는다.
+현재 production 계약은 실제 inventory 확인과 비샘플 형식의 ID, Login 씬/AAB를
+요구한다. 따라서 가짜 inventory 승인이나 임의의 운영형 ID를 넣어 같은 경로를
+통과시키는 방식은 적절하지 않다. 기존 RevivalAdHarnessBuild도 별도 하네스
+define/씬/APK를 사용하므로 이번 production 콜백 검증을 대체하지 못한다.
+
+다음 단계는 아래 두 부분을 분리하여 준비한다. 아직 실행하거나 새 실행 경로를
+구현하지 않았으며 production 보호 조건은 그대로다.
+
+1. **정상 Editor 등록 확인:** 소유 journal로 production 템플릿/메타를 예약 경로에
+   일시 설치한다. 정상 Unity 컴파일 후 세 인터페이스 등록 여부와 메서드 해시를
+   읽기 확인하되 Build/콜백을 호출하지 않는다. 외부 Roslyn probe의 로드 성공과
+   정상 asset/asmdef 편입 성공을 구분한다. import 오류면 실행을 멈추고 증거를 보존한다.
+2. **명시적으로 분리된 합성 검증 경로:** production parser/entry를 재사용해 우회하지
+   않는 별도 synthetic runner와 계약을 만든다. 고정 별도 package
+   `com.tamer.revival.privateads.synthetic`, 비운영 debug signing, 고정된 공개 테스트
+   ID만 허용하고 실제 private config/운영 ID/서명 환경 변수 입력은 거절한다.
+   Android Development 옵션은 끄고 `BuildOptions.None`을 유지한다. debug signing과
+   Development 빌드 옵션은 서로 다른 개념이다. 빌드에는 격리된 비활성 fixture 씬만
+   넣고 운영 Login/계정/저장/구매 경로를 호출하지 않는다. 기기에 설치·실행하지 않는다.
+
+합성 경로는 pre/scene/post 순서·빌드용 직렬화 값 변경·원본 무변경을 확인하도록
+좁은 공통 동작을 추출하거나 동작 대응표를 만든 뒤 독립 코드 리뷰를 거쳐야 한다.
+production 콜백을 복사한 별도 구현만 시험한다면 실제 production 콜백 통과라고
+보고할 수 없다. production 등록 확인과 합성 콜백 실행 결과를 별도 항목으로 기록한다.
+운영 계약의 Login/AAB 전제와 synthetic fixture 차이를 감추지 않는다.
+
+실행 설계는 원본 source/ProjectSettings/Packages 및 변경할 설정값을 사전 보존하고,
+설정 변경은 Unity API로 수행하며 finally에서 되돌린다. 별도 출력 경로/고정 테스트
+package/debug 인증서를 산출물에서 확인하고 SHA-256을 기록한다. AAB debug 서명
+지원과 최종 서명 검사는 구현 전에 기존 도구와 대조하며 운영 키 fallback은 금지한다.
+모든 로그·산출물은 ignored private 경로에 보존하고 distributable=false로 표시한다.
+
+소유 파일 정리는 이미 검토된 identity/hash/Windows 배타 핸들 경로만 사용한다.
+현재 finalize는 빈 디렉터리와 active journal을 수동 확인 대상으로 남긴다. 이 상태를
+완전 복원 성공으로 숨기지 않고, 후속 실행 전에 담당자가 소유권과 남은 상태를 검토한다.
+원래 파일은 post-import 해시와 snapshot 귀속을 검토한 정확 경로만 복원하며 임의로
+dirty 전체를 되돌리지 않는다. 다른 checkout·Editor·기기·계정·운영 광고 작업은 없다.
+
+이 계획의 준비/정적 검토는 완료했지만 실제 등록 및 synthetic runner 구현·검증은
+아직 남아 있다. Player 계획 API의 변경 없는 반복 실행은 필요하지 않다.
