@@ -61,8 +61,9 @@ Android min25/target36·versionCode26/version1.0.5·ARM64/IL2CPP·debug developm
   설치된 base.apk의 해시도 같았다. 이전 APK와 새 APK 모두 보존했다.
 - 정적 검사 1차는 aapt의 Permission denied로 실패했다. 불필요한 DELETE 접근을
   요구한 파일 pin과의 공유 충돌은 가설이며 확정하지 않았다. 승인된 2차에서는
-  `deletableFalse` 읽기 pin으로 실제 도구 4개 exit0·금지 도메인 경로 18개 검사·
-  기본 debug 인증서를 확인했다. 원래 실패 1회와 선행 PASS 보고의 정정 기록을 보존한다.
+  `deletableFalse` 읽기 pin으로 실제 도구 호출 4회 exit0·백업과 기기 전송의
+  제외 규칙 18개(domain/path)·새 APK의 debug 서명을 확인했다.
+  원래 실패 1회와 선행 PASS 보고의 정정 기록을 보존한다.
 - 설치 1회·실행 1회·실제 Declined 선택 1회 후 같은 PID에서 읽기 관찰 1회로
   위 표의 동일한 **10개 체크를 모두 통과**했다. PASS 마커 1개·FAIL 마커 0개,
   합성 계정의 최종 Gold1050/AllyBat가 저장과 실제 화면에서 일치했다.
