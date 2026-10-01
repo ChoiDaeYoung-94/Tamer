@@ -2,7 +2,8 @@ param(
     [string]$TestTitle,
     [string]$ProductionTitle,
     [string]$Catalog = 'iap-test-v1',
-    [switch]$PrepareOnly
+    [switch]$PrepareOnly,
+    [switch]$CreateSigningForNewTestApp
 )
 $ErrorActionPreference = 'Stop'
 $project = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -13,6 +14,21 @@ $key = Join-Path $private 'test-upload.jks'
 $passwordFile = Join-Path $private 'password.dpapi'
 $certificate = Join-Path $private 'test-upload.der'
 $marker = Join-Path $private 'test-only.json'
+# Decide before creating directories, changing ACLs, decrypting passwords, or launching tools.
+function Assert-IapSigningPreparation {
+    param([int]$ExistingFiles, [bool]$PrepareOnly, [bool]$CreateSigningForNewTestApp)
+    if ($ExistingFiles -gt 0 -and $ExistingFiles -lt 4) {
+        throw 'Incomplete IAP signing setup; preserve existing files and recover the original setup.'
+    }
+    if ($CreateSigningForNewTestApp -and (!$PrepareOnly -or $ExistingFiles -ne 0)) {
+        throw 'New signing creation requires PrepareOnly and an empty setup for a newly approved test app.'
+    }
+    if ($ExistingFiles -eq 0 -and !$CreateSigningForNewTestApp) {
+        throw 'Existing IAP signing files are missing. Recover the original four files; no replacement key will be generated.'
+    }
+}
+$existingSigningFiles = @(@($key, $passwordFile, $certificate, $marker) | Where-Object { Test-Path -LiteralPath $_ }).Count
+Assert-IapSigningPreparation -ExistingFiles $existingSigningFiles -PrepareOnly ([bool]$PrepareOnly) -CreateSigningForNewTestApp ([bool]$CreateSigningForNewTestApp)
 if (Test-Path $private) {
     if ((Get-Item -LiteralPath $private).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Signing directory must not be a link.' }
 } else { New-Item -ItemType Directory -Path $private | Out-Null }
