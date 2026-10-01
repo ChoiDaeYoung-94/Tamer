@@ -79,6 +79,13 @@ AeDeong은 Monster Tamer의 계정 확인, 게임 진행 저장과 복원, 구�
 
 위 공개 후보와 달리 이 절은 내부 검토용이다. 공개 시 구현 식별자·시험 브랜치·Console 내부 상태를 이용자 문구에 넣지 않는다.
 
+2026-10-01 운영 PlayFab의 집중 시간·장치 정보·전체 IP 저장·새 수집 기능 자동 실행
+설정은 모두 ON을 유지하기로 결정했다. [Data Safety의 옵션별 준비 범위](data-safety-draft.ko.md)를
+따라 실제 제공 버전의 세션/기기/IP 처리 항목·목적·필수/선택·보관을 확인한 뒤
+위 SDK 서비스 처리와 서비스별 안내를 완성한다. 설정 ON을 실제 전송량·보관기간의
+증거로 쓰지 않고, 자동 기기 보고와 로그인 요청의 명시적 OS·모델·계정 식별자를
+구분한다. 수집을 줄인 설정이나 제공자 전체 소거 기한은 이번 결정에 포함되지 않는다.
+
 1. **신규 별도 권한 사본 보관 결정은 필요 없다.** PR #235 이후 삭제 경로는 새 `.deletion-entitlement-*` 파일을 만들지 않는다. 기존 생성 파일은 두 필드 형식·대상 소유 일치 때만 정리한다. 소유 불명 파일 예외와 접근 불가 기기 한계는 승인된 안내를 유지한다. 삭제 후 새 계정 구매 복원은 일반 구매 유지와 별개로 미검증이다.
 2. **접수와 소거를 구분한다.** [PlayFab Server/DeletePlayer](https://learn.microsoft.com/en-us/rest/api/playfab/server/account-management/delete-player?view=playfab-rest)는 title 범위 비동기 접수이며 PlayStream·publisher 계정/연결 등을 포함하지 않는다. 운영의 남는 자료와 필요한 별도 요청 범위를 확인하되 master 삭제로 자동 확대하지 않는다. 삭제 접수 및 로컬 정리 시험을 전체 공급자 소거 증거로 쓰지 않는다.
 3. **공급자 기간은 적용 범위를 확인한다.** [Unity IAP 5.4 이상 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)의 서비스 로그 90일 및 orders/configs/OAuth token 삭제 선택까지 보관은 공급자 일반 설명이다. 이 게임의 실제 기록과 처리자/독립 목적을 확인하고, 자체 게임·이메일 자료의 보관기간으로 복사하지 않는다. 기존 [공급자·메일 정리 절차](account-deletion-email-draft.ko.md)를 사용한다. Gmail의 휴지통·Google 일반 백업 안내도 운영자의 별도 보관 결정이 아니다.
