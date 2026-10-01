@@ -10,6 +10,7 @@ using UnityEngine;
 
 public static class RevivalIapBuild
 {
+    private const string PlayFabResource = "Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset";
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
     private const string AdsManifest = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
@@ -34,6 +35,41 @@ public static class RevivalIapBuild
         return document.ToString();
     }
 
+    private static void UseTestPlayFabResource(string testTitle)
+    {
+        // Resources are included even when all production login calls are gated.
+        // Preserve the original asset/meta bytes outside this temporary build scope.
+        var asset = AssetDatabase.LoadAssetAtPath<PlayFabSharedSettings>(PlayFabResource);
+        if (asset == null) throw new BuildFailedException("Existing PlayFab settings resource required.");
+        var settings = new SerializedObject(asset);
+        void Text(string name, string value)
+        {
+            var field = settings.FindProperty(name);
+            if (field == null) throw new BuildFailedException("PlayFab settings schema changed.");
+            field.stringValue = value;
+        }
+        void Flag(string name, bool value)
+        {
+            var field = settings.FindProperty(name);
+            if (field == null) throw new BuildFailedException("PlayFab settings schema changed.");
+            field.boolValue = value;
+        }
+        Text("TitleId", testTitle);
+        Text("DeveloperSecretKey", "");
+        Text("ProductionEnvironmentUrl", "");
+        Text("LoggerHost", "");
+        Flag("DisableDeviceInfo", true);
+        Flag("DisableFocusTimeCollection", true);
+        Flag("EnableRealTimeLogging", false);
+        settings.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.SaveAssets();
+        // Do not print settings, identifiers, or secrets in build logs.
+        if (asset.TitleId != testTitle || !string.IsNullOrEmpty(asset.DeveloperSecretKey) ||
+            !string.IsNullOrEmpty(asset.ProductionEnvironmentUrl) || !string.IsNullOrEmpty(asset.LoggerHost) ||
+            !asset.DisableDeviceInfo || !asset.DisableFocusTimeCollection || asset.EnableRealTimeLogging)
+            throw new BuildFailedException("IAP test resource isolation failed.");
+    }
+
     public static void BuildAndroid() => Build(false);
     public static void BuildStoreTestBundle() => Build(true);
 
@@ -50,7 +86,9 @@ public static class RevivalIapBuild
             catalog = Environment.GetEnvironmentVariable("TAMER_IAP_TEST_CATALOG")
         };
         RevivalIapIsolation.Validate(config, RevivalIapIsolation.ApplicationId);
-        var files = new[] { Manifest, AdsSettings, AdsManifest };
+        var files = new[] { Manifest, AdsSettings, AdsManifest, PlayFabResource, PlayFabResource + ".meta" };
+        if (files.Any(path => !File.Exists(path) || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0))
+            throw new BuildFailedException("Existing regular build settings and metadata required.");
         var originals = files.ToDictionary(path => path, File.ReadAllBytes);
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
@@ -63,6 +101,7 @@ public static class RevivalIapBuild
         try
         {
             RevivalBuild.ValidateBaseline();
+            UseTestPlayFabResource(config.testTitle);
             File.WriteAllText(configPath, JsonUtility.ToJson(config));
             AssetDatabase.ImportAsset(configPath, ImportAssetOptions.ForceUpdate);
             RevivalBuild.RequireSavedScenes();
@@ -116,23 +155,29 @@ public static class RevivalIapBuild
         catch (Exception error) { Debug.LogException(error); }
         finally
         {
-            AssetDatabase.DeleteAsset(configPath);
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
-            PlayerSettings.Android.useCustomKeystore = oldKey;
-            PlayerSettings.Android.keyaliasName = oldAlias;
-            PlayerSettings.Android.keystoreName = oldKeystore;
-            PlayerSettings.Android.keystorePass = oldStorePass;
-            PlayerSettings.Android.keyaliasPass = oldAliasPass;
-            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
-            EditorUserBuildSettings.buildAppBundle = oldBundle;
-            AssetDatabase.SaveAssets();
-            foreach (var entry in originals)
+            try
             {
-                File.WriteAllBytes(entry.Key, entry.Value);
-                AssetDatabase.ImportAsset(entry.Key, ImportAssetOptions.ForceUpdate);
+                AssetDatabase.DeleteAsset(configPath);
+                PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
+                PlayerSettings.Android.useCustomKeystore = oldKey;
+                PlayerSettings.Android.keyaliasName = oldAlias;
+                PlayerSettings.Android.keystoreName = oldKeystore;
+                PlayerSettings.Android.keystorePass = oldStorePass;
+                PlayerSettings.Android.keyaliasPass = oldAliasPass;
+                PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
+                EditorUserBuildSettings.buildAppBundle = oldBundle;
+                AssetDatabase.SaveAssets();
             }
-            if (originals.Any(entry => !File.ReadAllBytes(entry.Key).SequenceEqual(entry.Value)))
-                throw new BuildFailedException("IAP test build settings restoration failed.");
+            finally
+            {
+                // Settings cleanup failures must not skip resource/metadata restoration.
+                foreach (var entry in originals)
+                    File.WriteAllBytes(entry.Key, entry.Value);
+                foreach (var path in files.Where(path => !path.EndsWith(".meta", StringComparison.Ordinal)))
+                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                if (originals.Any(entry => !File.ReadAllBytes(entry.Key).SequenceEqual(entry.Value)))
+                    throw new BuildFailedException("IAP test build settings restoration failed.");
+            }
         }
         if (Application.isBatchMode) EditorApplication.Exit(code);
         else if (code != 0) throw new BuildFailedException("IAP test build failed.");

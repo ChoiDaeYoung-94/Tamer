@@ -37,6 +37,7 @@ if (!$ready -and ((Test-Path $key) -or (Test-Path $passwordFile) -or (Test-Path 
 }
 $pointer = [IntPtr]::Zero
 $snapshot = $null
+$resourceSnapshot = @()
 try {
     if (!$ready) {
         $random = New-Object byte[] 32
@@ -65,6 +66,30 @@ try {
     if (!$PrepareOnly) {
         if ($TestTitle -notmatch '^[a-fA-F0-9]{3,32}$' -or $ProductionTitle -notmatch '^[a-fA-F0-9]{3,32}$' -or $TestTitle -eq $ProductionTitle -or [string]::IsNullOrWhiteSpace($Catalog)) { throw 'Explicit separate test title and catalog required.' }
         $snapshot = Save-RevivalProjectSettings -ProjectPath $project
+        # Capture before Editor startup/import as well as the C# build's own finally.
+        # This private backup may contain restored configuration; never print it.
+        $resourcePaths = @(
+            'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset',
+            'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset.meta'
+        )
+        foreach ($relative in $resourcePaths) {
+            $path = Join-Path $project $relative
+            if (!(Test-Path -LiteralPath $path -PathType Leaf) -or
+                ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                throw 'Existing regular PlayFab resource and metadata required; restore approved assets first.'
+            }
+        }
+        $resourceBackup = Join-Path $project ('Logs/revival/iap-resource-snapshots/' + [Guid]::NewGuid().ToString('N'))
+        [IO.Directory]::CreateDirectory($resourceBackup) | Out-Null
+        [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($resourceBackup), $acl)
+        foreach ($relative in $resourcePaths) {
+            $path = Join-Path $project $relative
+            $backup = Join-Path $resourceBackup ([IO.Path]::GetFileName($path) + '.backup')
+            $bytes = [IO.File]::ReadAllBytes($path)
+            $stream = [IO.File]::Open($backup, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+            try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
+            $resourceSnapshot += [pscustomobject]@{ Path=$path; Backup=$backup; Sha256=(Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash }
+        }
         $env:TAMER_IAP_TEST_TITLE = $TestTitle
         $env:TAMER_IAP_PRODUCTION_TITLE = $ProductionTitle
         $env:TAMER_IAP_TEST_CATALOG = $Catalog
@@ -76,8 +101,32 @@ try {
     try {
         if ($null -ne $snapshot) { Restore-RevivalProjectSettings -Snapshot $snapshot }
     } finally {
+    try {
+        if ($resourceSnapshot.Count -gt 0) {
+            if (Get-RevivalProjectEditor -ProjectPath $project) {
+                throw 'Project Editor is still running; PlayFab resource backup preserved without overwrite.'
+            }
+            # Check every backup before writing any original, including its GUID metadata.
+            foreach ($entry in $resourceSnapshot) {
+                if ((Get-FileHash -LiteralPath $entry.Backup -Algorithm SHA256).Hash -ne $entry.Sha256) {
+                    throw 'PlayFab resource recovery copy changed; originals were not overwritten.'
+                }
+                if ((Test-Path -LiteralPath $entry.Path) -and
+                    ((Get-Item -LiteralPath $entry.Path).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                    throw 'PlayFab resource path changed; recovery backup preserved.'
+                }
+            }
+            foreach ($entry in $resourceSnapshot) {
+                [IO.File]::WriteAllBytes($entry.Path, [IO.File]::ReadAllBytes($entry.Backup))
+                if ((Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash -ne $entry.Sha256) {
+                    throw 'PlayFab resource restoration verification failed; private backup preserved.'
+                }
+            }
+        }
+    } finally {
     Remove-Item Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue
     if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
     $secret = $null
+    }
     }
 }
