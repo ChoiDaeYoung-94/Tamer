@@ -8,7 +8,7 @@ main `2e822906`의 격리 `codex/relro-linker-flags`에서 실제 빌드 없이 
 
 | 실패 파일 | 공급/빌드 경로 | 최소 조치와 이번 패치 범위 |
 | --- | --- | --- |
-| libil2cpp.so | Unity IL2CPP/Bee로 프로젝트 C++를 링크 | 기존 rsp는 max-page-size=16384만 포함. RevivalBuild의 격리 baseline에 common-page-size=16384를 추가하고 finally에서 추가 인자를 복원. 기존 linker 인자/환경변수가 있으면 충돌 검토 전 중단 |
+| libil2cpp.so | Unity IL2CPP/Bee로 프로젝트 C++를 링크 | 기존 rsp는 max-page-size=16384만 포함. RevivalBuild baseline과 BuildScript APK/AAB의 공통 IDisposable scope에 common-page-size=16384를 추가하고 using 종료 시 추가 인자를 복원. 기존 linker 인자/환경변수가 있으면 충돌 검토 전 중단 |
 | libswappywrapper.so | Unity Source/FramePacing CMake + androidx.games:games-frame-pacing:2.1.2 prefab static lib | flexible page ON인데 실제 build.ninja는 max-page-size만 포함. mainTemplate의 CMAKE_SHARED_LINKER_FLAGS에 common-page-size 추가. 외부 AAR의 완성 .so를 그대로 복사하는 경로가 아님 |
 | libmain.so | Unity 6000.3.25f1 Development ARM64 제공 바이너리 | 기존 APK .so SHA와 설치본이 정확히 일치. 프로젝트 링크 플래그로 재링크 불가. 공급자의 정렬된 동일 역할 바이너리/승인된 별도 수정본 필요. Release variation의 최종 후보는 별도 확인 대상 |
 | libc++_shared.so | 고정 NDK r27c의 사전 빌드 STL, CMake obj 및 merged native 경유 | 프로젝트 링크 플래그로 STL 자체 재링크 불가. 공급자 호환 STL 또는 승인된 별도 NDK 평가가 필요. strip/후속 캐시로 APK와 원본 SHA는 불일치하므로 정확한 원본 동일성까지 확정하지 않음 |
@@ -20,8 +20,7 @@ r27 이하에 max-page-size와 common-page-size를 함께 요구하며, 사전 �
 [Unity 추가 IL2CPP 인자 API](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/PlayerSettings.SetAdditionalIl2CppArgs.html)와
 설치된 il2cpp.exe의 --help에서 --linker-flags 지원을 확인했다. 추가 인자는 실험적 기능이며 실제 전달/성공은 미검증이다.
 
-현재 패치는 FramePacing과 baseline IL2CPP의 **새 링크 조건 준비**다. 모든 운영 빌더의 IL2CPP 설정을
-전역 변경하거나 공급자 바이너리를 교체하지 않았다. 전체 4개 해결 또는 출시 준비 완료를 뜻하지 않는다.
+현재 패치는 FramePacing과 baseline/BuildScript IL2CPP의 **새 링크 조건 준비**다. 다른 하네스 빌더나 Editor 직접 빌드에는 IL2CPP scope를 자동 적용하지 않는다. 전역 설정을 영속 변경하거나 공급자 바이너리를 교체하지 않았다. 전체 4개 해결 또는 출시 준비 완료를 뜻하지 않는다.
 기존 실패 횟수의 담당 간 누적은 미확정이며 같은 실패 산출물을 재실행하지 않았다.
 실제 빌드 전에 이 새 source 조건·캐시 재링크 범위와 실패 이력을 총괄 담당이 확인해야 한다.
 이번 구간은 diff 검사만 수행하며 C#/Gradle 컴파일, 새 빌드, 실제 16KB, 서명/키·SDK/Unity 버전 변경은 수행하지 않는다.
@@ -86,3 +85,5 @@ Android는 NDK r27 이하에 max-page-size와 common-page-size를 모두16384로
 위 3건은 9월 12일의 특정 AAB에서 **모두 존재하는 GNU_RELRO의 끝 주소 불일치**다. Android 공식 안내는 불일치가 16KB 환경에서 충돌한다고 설명하므로 strict 실패를 유지한다. 다만 세 RELRO가 각각 쓰기 가능 LOAD 전체와 일치하고 추가 writable 영역과 겹치지 않는다는 이 AAB의 배치, Android 16 Bionic의 whole-LOAD 처리 경로를 근거로 실제 충돌 여부는 해당 바이너리의 ARM64 네이티브 16KB 실행으로 확정해야 한다. RELRO가 **없는** 라이브러리는 공식 안내에서 이 정렬 항목에 적합하다고 보지만, 이 3건에는 해당하지 않는다. [Android RELRO 검사](https://developer.android.com/guide/practices/page-sizes#check-the-relro-security-flag), [Bionic 16KB 호환 경로](https://android.googlesource.com/platform/bionic/+/android16-qpr2-release/linker/linker_phdr_16kib_compat.cpp).
 
 현재 고정 NDK r27c의 `libc++_shared.so`와 Unity의 `libmain.so`는 사전 빌드 파일이다. `libil2cpp.so`에 `common-page-size=16384`를 더하는 실험이 성공해도 앞의 두 파일과 최종 AAB의 strict 실패가 함께 해결되지는 않는다. 공급자 호환 바이너리와 승인된 후반 Unity LTS 전환 뒤 새 AAB로 각 파일을 재검사해야 한다. 9월 23일 x86_64 16KB 게스트 부팅은 확인했으나 ARM64 코드는 번역 계층으로 표시됐고 앱을 설치하지 않았으므로, 위 세 라이브러리의 실제 실행 판정에는 사용하지 않는다. [호스트 재점검](release-preflight.ko.md#2026-09-23-가속-및-격리-게스트-관측)을 참조한다.
+
+추가 읽기 확인: Unity 제공 libmain Development/Release/Release_ThinLTO 모두 RELRO 끝 나머지 8192, whole-LOAD=true다. Release 변형 선택만으로 이 조건이 해소되지 않는다. NDK toolchain 636행 CACHE 설정은 FORCE가 없고 650행은 ANDROID_LINKER_FLAGS와 전달된 CMAKE_SHARED_LINKER_FLAGS를 연결한다. FramePacing CMake도 wrap 옵션을 기존 문자열에 추가한다. 따라서 현재 생성 인자에 기존 동일 -D가 없는 조건에서는 NDK flags를 유지한다. 같은 변수를 별도 커스텀화한 프로젝트로 확대 적용할 때는 중복 -D 검토가 필요하다. Gradle 인자는 세미콜론 없는 단일 문자열이며 IL2CPP는 --help에서 옵션 이름만 확인했다. nested quote의 실제 parser/링크 전달과 C# 컴파일은 새 빌드 전 검증 대상으로 남긴다.
