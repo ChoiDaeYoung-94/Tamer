@@ -9,7 +9,7 @@
 | 항목 | 확인된 범위 | 남은 준비·검증 |
 | --- | --- | --- |
 | 새 LTS·생성 네이티브 | [PR #284](https://github.com/ChoiDaeYoung-94/Tamer/pull/284)의 실제 개발 APK에서 libil2cpp·FramePacing LOAD/RELRO 통과와 사후 정확 복원·독립 검토 PASS | 새 APK의 prebuilt2·전체 strict/ZIP/서명은 미검사. 최종 AAB와 전달 split, ARM64 native 16KB 실행은 미완료. 개발 APK를 출시 후보로 사용하지 않음 |
-| 16KB 실행 환경 | ARM64 native 16KB 환경이 없다는 사용자 확인. 기존 x86_64 게스트 부팅과 번역 계층은 별개 | 대안의 참고 관측을 검토하되 결과 수신 전에는 미실행으로 기록. 번역 관측으로 native 16KB 검증을 대체하지 않고 나머지 복구를 계속함 |
+| 16KB 실행 환경 | ARM64 native 16KB 환경이 없다는 사용자 확인. 10월 1일 번역 AVD 참고 시도는 설치 전 부팅 상태 조회 timeout으로 중단 | 새 PAGE_SIZE·앱 실행은 미검증. 자기 프로세스 정리를 독립 확인했고 추가 시도는 보류함. 번역 관측으로 native 16KB 검증을 대체하지 않고 나머지 복구를 계속함 |
 | PlayFab 수집 | 현재 집중 시간·기기 정보·전체 IP 저장·새 수집 기능 자동 실행 모두 ON을 읽기 확인했고 사용자는 그대로 유지하기로 결정 | [Data Safety 후보](data-safety-draft.ko.md)에 설정과 소스 사실을 구분해 반영. 실제 제공 버전별 전송·필수/선택·목적·제공자 보관 범위는 미확정 |
 | 삭제 문의 | [PR #285](https://github.com/ChoiDaeYoung-94/Tamer/pull/285)에 운영자 기존 메일 직접 처리·2주 이내 메일 처리 목표와 처리 종료 후 자료 삭제 원칙 반영 | 소유 확인·지연/상태 회신 운영, Console 삭제 URL 등록값·공급자 잔존 범위 확인. 2주를 모든 로그·백업 소거 보증으로 사용하지 않음 |
 | 기존 키 백업·서명 | 로컬 암호문·receipt 존재, 기존 기록의 verified/sourceUnchanged=true. 새 백업 암호와 기존 키 암호는 별개 | 사용자 확인으로 Drive 미업로드, offsiteVerified=false·keystorePasswordVerified=false 유지. 외부 사본 복구와 기존 키 사용 가능성·현재 활성 업로드 인증서 대조 필요 |
@@ -27,6 +27,29 @@ artifactChecksPassed는 출시 승인이나 releaseReady=true를 뜻하지 않�
 이번 문서 작업에서 signing·Unity·Console·메일·운영 삭제·백업 업로드는 실행하지 않는다.
 과거 e5e5 검증은 [LTS 기록](lts-transition-validation.ko.md)의 보고 범위이며,
 해당 비공개 원로그를 현재 접근하거나 다시 확인했다고 주장하지 않는다.
+
+## 2026-10-01 번역 AVD 참고 관측 중단
+
+한국시간 12:01:15–12:01:28에 기존 WHPX x86_64/ARM64 번역 AVD를 1회 시작했다.
+대상은 `C:/Users/pc_17/.codex/worktrees/ad-production-completion/Tamer`의 source
+`4ba1422850c0bb2bb29182e177d160c5ed5ac0ac`에서 생성한 개발 APK이며,
+SHA-256은 `f3efa94bbb12b930231afcb07bf473abcf9687d8dba09ff213e54dbc871d4533`이다.
+이 source와 main `dfb7b67437a1795e2f49525e24a16ec3e0bf71a8`의 전체 tree 동일성을
+대조한 뒤 참고 실행을 시도했다. 관측 실행 checkout은
+`C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`이며 Unity 명령은 실행하지 않았다.
+
+WHPX 사용 가능·AVD 식별 뒤 `sys.boot_completed` 단일 조회가 5초 제한으로
+timeout되어 중단됐다. 새 PAGE_SIZE 조회와 설치 전 오프라인 확인에는 도달하지
+않았고 APK 설치0·앱 실행0이다. 앱 화면·앱 로그 관측도 없다. 초기 ADB 연결 오류가
+있었지만 지연과 게스트 문제 중 원인은 미확정이며 게스트 부팅 실패나 앱 실패로
+단정하지 않는다. 과거 9월 23일 PAGE_SIZE=16384를 이번 APK 실행 증거로 재사용하지 않는다.
+
+자기 launcher와 부모 연결·생성 시각·정확한 AVD/port로 확인한 qemu만 종료했다.
+독립 사후 읽기 검토에서 남은 관련 프로세스와 cleanup 오류가 없고 소유 프로세스가
+모두 종료됐음을 확인했다. 자동 재시도는 없으며 사용자 결정에 따라 추가 부팅·진단을
+보류하고 나머지 복구를 계속한다. `runtime16KBVerified=false`,
+`arm64NativeRuntimeVerified=false`, `prebuiltRelroResolved=false`를 유지한다.
+기존 prebuilt2 RELRO 미해결은 이 환경 관측 중단과 별개다. 원시 증거는 비공개로 보존한다.
 
 ## 2026-09-30 최신 출시 준비 상태
 
