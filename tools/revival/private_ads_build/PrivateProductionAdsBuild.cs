@@ -23,11 +23,15 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
 
     private sealed class Snapshot
     {
-        public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan;
+        public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan, RunId, SourceHead;
         public readonly PrivateAdsContract Config;
         public readonly string[] Scenes;
         public Snapshot(string root)
         {
+            RunId = Required("TAMER_PRIVATE_ADS_RUN_ID");
+            SourceHead = Required("TAMER_PRIVATE_ADS_SOURCE_HEAD");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(RunId, @"\A[0-9a-f]{32}\z") ||
+                !System.Text.RegularExpressions.Regex.IsMatch(SourceHead, @"\A[0-9a-f]{40}\z")) throw Rejected();
             ConfigPath = Required("TAMER_PRIVATE_ADS_CONFIG");
             ConfigHash = Required("TAMER_PRIVATE_ADS_SHA256");
             Output = Required("TAMER_PRIVATE_ADS_OUTPUT");
@@ -73,7 +77,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
                 injections != 1 || loginScenes != 1 || !File.Exists(snapshot.Output)) throw Rejected();
             // This confirms callbacks only. It does NOT prove the final serialized
             // AAB, merged manifest, player defines, or stripped player gates.
-            var receipt = new Receipt { configSha256 = snapshot.ConfigHash,
+            var receipt = new Receipt { schema = 1, runId = snapshot.RunId, sourceHead = snapshot.SourceHead,
+                preprocessed = preprocessed, postprocessed = postprocessed, loginScenes = loginScenes,
+                productionContractVerified = false, configSha256 = snapshot.ConfigHash,
                 artifactSha256 = Hash(File.ReadAllBytes(snapshot.Output)), unityVersion = Application.unityVersion,
                 configuredAndroidDefines = snapshot.Defines, injectedManagers = injections,
                 prospectivePlayerDefinePlanSha256 = Hash(System.Text.Encoding.UTF8.GetBytes(snapshot.PlayerCompilationPlan)),
@@ -202,9 +208,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     { return new BuildFailedException("Private disabled preparation rejected; output is not distributable."); }
     [Serializable] private sealed class Receipt
     {
-        public string configSha256, artifactSha256, unityVersion, configuredAndroidDefines,
+        public string runId, sourceHead, configSha256, artifactSha256, unityVersion, configuredAndroidDefines,
             prospectivePlayerDefinePlanSha256;
-        public int injectedManagers;
-        public bool buildSceneValueMatched, compiledEditorGatesDisabled, binaryVerified, distributable;
+        public int schema, injectedManagers, loginScenes;
+        public bool preprocessed, postprocessed, productionContractVerified, buildSceneValueMatched, compiledEditorGatesDisabled, binaryVerified, distributable;
     }
 }
