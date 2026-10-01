@@ -1,0 +1,57 @@
+# 격리 publisher UMP 등록 요청 준비
+
+## 소스 범위
+
+`RevivalAdHarness`의 `TAMER_UMP_PUBLISHER_HARNESS` 분기에만 명시적 등록 버튼을 추가한다.
+Android 개발 빌드, 격리 패키지 `com.AeDeong.MonsterTamer.revival.umppublisher`, 기존
+`Assets/Tests/Scenes/RevivalAdHarness.unity`, Managers 부재, 운영 광고·지역 검토 gate false를
+모두 만족해야 실행한다. 기본 `GoogleUmpConsentClient()`에서 `Update(true, callback)`을
+한 번만 직접 호출한다. debug geography·test-device hash 설정은 전달하지 않는다.
+
+프로세스 수명의 static latch로 객체 재생성 이후에도 재요청을 막고, 시도 이후 기존
+동의 UI도 잠근다. 콜백은 기존 큐로 메인 스레드에서 처리하며 객체 소멸·늦은 콜백은
+무시한다. 30초 초과·SDK 실패·예외는 중단 상태로 남긴다. 성공 콜백도 해시 확인을
+기다리는 중단 상태이며 자동으로 다음 테스트에 진입하지 않는다.
+
+Gather·폼·privacy options·Reset·managed Mobile Ads initialize/load/show 호출이나
+운영 gate 변경은 이 등록 경로에 없다. 실제 UMP 네트워크 요청이므로 native SDK 수집
+또는 네트워크 0으로 표현하지 않는다. TFUA=true는 기술적 요청값이며 법적 연령 승인이나
+성인 EEA 동의 성공 근거가 아니다. SDK가 등록 해시를 출력한다는 보장도 없다.
+
+## 단계별 실행 계획 — 별도 지시 전 실행 보류
+
+1. 변경 커밋과 clean checkout을 고정하고, 해당 checkout Editor 부재를 확인한다.
+   기본 검증은 Unity 번들 Roslyn과 기존 publisher player RSP의 참조·소스로 수행하는
+   순수 컴파일 1회다. 출력만 ignored 증거 폴더에 저장한다. Editor·assembly load·빌드·기기
+   실행은 포함하지 않는다. 컴파일 결과와 exact commit을 독립 검토에 전달한다.
+2. 빌드 지시 후에는 기존 `BuildUmpPublisher`와 이전 검토 runner를 재사용해 exact
+   commit/branch·CLI SHA·Unity 6000.3.25f1/e1dba0a9aba4·private config·전체 Assets와
+   ProjectSettings·meta/GUID·서명키를 고정한 새 manifest를 준비하고 먼저 검토받는다.
+   기존 APK SHA `06ae4ff09fb515bde71813b05200b63928e19915392145c7716335d01b4fb21e`를
+   same-handle 검증한 비공개 사본으로 보존한 뒤, 별도 승인된 정확한 출력 파일 처리만
+   수행한다. 경로를 바꿔 기존 APK를 덮어쓰거나 보존 여부를 추정하지 않는다.
+   BuildPlayer 출력은 기존 `Build/revival/Tamer-ads-ump-publisher.apk`로 고정돼 있다.
+   빌드는 1회, 같은 격리 패키지/debug signing/min25/target36/ARM64/네 가지 harness define을
+   사용한다. 빌드 종료 후 원래 identity와 변경 파일의 정확한 복원 여부를 검토한다.
+   Library·원본 D checkout·다른 Editor는 보존한다. 16KB 전체 충족 주장은 하지 않는다.
+3. 설치는 아직 승인되지 않았다. 현재 기기에 이미 설치된 격리 앱과 데이터를 보존해야
+   하므로 기존의 신규 설치 runner를 재실행할 수 없다. 새 APK SHA·package·debug cert와
+   현재 설치본의 package/cert/version/source 근거, 단일 기기·owner profile을 읽기로 확인하고
+   설치 계획을 다시 검토한다. 같은 격리 패키지의 데이터 보존 교체 설치 `adb install -r`
+   1회는 명시적 별도 지시가 있어야 한다. clear/uninstall/downgrade 우회는 하지 않는다.
+   확인 불가·불일치 시 중단한다. 기존 install 1회와 최초 PID 확인 실패 1회는 보존한다.
+4. 기기 등록 요청도 별도 지시가 필요하다. 명시적 버튼 탭 1회만 허용하고 같은 앱의
+   정확한 단일 PID를 제한 시간 내 읽어 확인한다. 즉시 PID가 없었던 기존 실패를 성공으로
+   바꾸지 않는다. 기동/등록 시작 전후 로그 범위를 비공개로 보존하고 이번 요청의 SDK
+   등록 메시지에서 정확히 단일 원문 해시를 확인한다. 0건·다중·오류·timeout은 중단하며
+   재bootstrap·fake hash·대소문자 변환은 하지 않는다. 이후 입력은 원문과 Ordinal로 대조한다.
+   등록 요청 성공만으로 forced EEA 테스트를 실행하지 않는다.
+
+## 보존할 이력과 현재 검증 한계
+
+기존 Adult US 3차 성공 기록과 이전 두 실패·원문 해시 변환 오류는
+`publisher-ump-harness-preparation.ko.md`에 그대로 남긴다. 현재 빌드의 올바른 해시를
+사용한 새 EEA 관측은 아직 미실시다. 기존 신규 설치는 성공했으나 최초 PID 확인에서
+runner가 실패했고, 후속 읽기에서 실제 시작을 확인했다. 이 둘을 구분해 보존한다.
+이번 준비는 Console 설정·운영 광고·로그인·구매·저장·계정·국가 범위 변경을 포함하지 않는다.
+원시 로그·기기 식별값·publisher 설정·SDK 해시는 ignored 폴더 밖에 공개하지 않는다.
