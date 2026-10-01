@@ -2,13 +2,21 @@
 
 **몬스터를 동료로 모으고, 함께 싸우며 성장하는 Android 3D 게임**
 
-필드에서 몬스터와 전투하고 포획해 동료를 늘려 보세요. 마을에서는 장비와 캐릭터를 관리하고 다음 전투를 준비합니다. Unity로 제작했으며, [WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko)의 플레이를 3D로 재구성한 프로젝트입니다.
+몬스터와 함께 대륙을 탐험하는 사냥꾼이 되어 보세요. 필드에서 만난 몬스터는 전투 상대가 되기도 하고, 포획 후 함께 싸우는 동료가 되기도 합니다.
 
 **[▶ 기존 플레이 영상 보기](https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd)** · **[Google Play 페이지 열기](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)** · [개발 시작하기](docs/development.ko.md)
 
 **[앱 삭제 후에도 계정 및 관련 데이터 삭제 요청하기](docs/account-deletion.ko.md)** — Monster Tamer 이용자는 기존 문의 이메일로 삭제를 요청할 수 있습니다.
 
-## 플레이
+## 어떤 게임인가요?
+
+- **전투와 포획:** 필드를 이동하며 몬스터와 싸우고 포획합니다.
+- **동료와 성장:** 모은 몬스터를 동료로 데리고 전투하며 캐릭터를 성장시킵니다.
+- **마을에서 준비:** 장비와 캐릭터를 관리하고 다음 탐험을 준비합니다.
+
+Unity로 제작했으며, [WildTamer](https://play.google.com/store/apps/details?id=com.percent.wildtamer&hl=ko)의 플레이를 3D로 재구성한 프로젝트입니다.
+
+## 실제 게임 화면
 
 <p align="center">
   <img src="docs/images/gameplay-capture.png" width="280" alt="필드에서 몬스터 포획 버튼이 표시된 실제 게임 화면">
@@ -16,23 +24,22 @@
   <img src="docs/images/gameplay-village.png" width="280" alt="Monster Tamer 마을의 실제 게임 화면">
 </p>
 
-테스트 환경에서 촬영한 실제 게임 화면입니다. [촬영 조건·출처](docs/images/README.md)
-
-| 전투와 포획 | 동료와 성장 | 마을에서 준비 |
-| --- | --- | --- |
-| 필드를 이동하며 몬스터와 싸우고 포획합니다. | 포획한 몬스터를 동료로 데리고 전투합니다. | 장비와 캐릭터를 관리하며 다음 탐험을 준비합니다. |
+필드의 포획 화면 · Bat 동료가 따라오는 마을 · 마을 전경입니다. 기존 테스트 환경에서 촬영한 화면으로 테스트 표시가 포함되며, 현재 스토어 버전이나 자연 포획 확률을 보여 주는 자료는 아닙니다. [촬영 조건·출처](docs/images/README.md)
 
 ## 기존 플레이 영상
 
 [▶ Monster Tamer 플레이 영상 재생](https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd)
 
-기존에 공개한 영상입니다. 현재 복구 중인 개발 빌드와 화면·동작이 다를 수 있습니다.
+기존에 공개한 약 2분 35초 영상으로 캐릭터 선택과 마을 플레이를 확인할 수 있습니다. 현재 복구 중인 개발 빌드와 화면·동작이 다를 수 있습니다.
 
 ## 다운로드
 
 **[Google Play에서 Monster Tamer 확인하기](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)**
 
-기존 공개 스토어 주소입니다. 현재 복구 빌드의 공개 배포와 해당 기기에서의 설치 가능 여부는 아직 확인하지 않았습니다. 이 저장소의 개발·내부 테스트 APK는 일반 다운로드로 제공하지 않습니다.
+Monster Tamer의 기존 공개 스토어 페이지입니다. 설치 가능 여부는 해당 페이지에서 사용 중인 기기로 확인해 주세요. 현재 복구 빌드의 공개 배포는 아직 완료되지 않았으며, 이 저장소의 개발·내부 테스트 APK는 일반 다운로드로 제공하지 않습니다.
+
+<details>
+<summary><strong>개발 환경·복구 진행 상황·기여 안내</strong></summary>
 
 ## 복구 진행 상황
 
@@ -45,13 +52,13 @@
 | 샘플 광고 보상 후 Home 복귀, 보상 1회·BGM 복귀, 일반 release 광고 요청 차단 | [광고 검증](docs/revival/families-ad-followup-20260914.ko.md) |
 | 결제 없는 진행도 검증 앱과 Editor 회귀 400개 통과 | [진행도 검증 준비](docs/revival/progress-only-harness.ko.md) |
 
-실제 서버 진행도 지속 저장, 운영 광고·지역별 동의, 16KB 실행, 개인정보·삭제 운영 연결과 최종 출시 검증은 남아 있습니다. release AAB의 엄격 RELRO 검사 3건 실패와 과거 debug APK 5건 실패를 구분합니다. [전체 실행 목록](docs/revival/recovery-execution-backlog.ko.md)에서 최신 상태를 확인할 수 있습니다.
+새 개발 APK의 소스 생성 라이브러리 2개는 LOAD·RELRO 검사에 통과했습니다. 사전 빌드 라이브러리 문제와 실제 ARM64 16KB 실행·최종 출시 AAB·스토어 검증은 별도로 남아 있습니다. 번역 AVD 참고 시도는 앱 설치 전 중단되어 앱 실행 근거가 아닙니다. [최종 후보 준비 조건](docs/revival/release-preflight.ko.md)과 [전체 실행 목록](docs/revival/recovery-execution-backlog.ko.md)에서 기능·운영·정책을 포함한 남은 범위를 확인할 수 있습니다.
 
-개발 기준은 **Unity 6000.0.81f1 · Android min API 24 / target API 36 · ARM64**입니다. [도구 잠금](tools/revival/toolchain.json)과 [UPM 잠금](Packages/packages-lock.json)을 따릅니다. **CI/CD는 보류 중**이며 기존 App Center 설정을 보존합니다.
+개발 기준은 **Unity 6000.3.25f1 · Android min API 25 / target API 36 · ARM64**입니다. [도구 잠금](tools/revival/toolchain.json)과 [UPM 잠금](Packages/packages-lock.json)을 따릅니다. **CI/CD는 보류 중**이며 기존 App Center 설정을 보존합니다.
 
 ## 시작하기 — Windows PowerShell
 
-필요한 환경은 Git, Python 3.11 이상, Unity **6000.0.81f1**과 Android Build Support(SDK/NDK/OpenJDK), 활성 Unity 라이선스입니다. 구매 에셋은 공개 저장소에 들어 있지 않으므로 권한 있는 원본 또는 비공개 아카이브도 필요합니다.
+필요한 환경은 Git, Python 3.11 이상, Unity **6000.3.25f1**과 Android Build Support(SDK/NDK/OpenJDK), 활성 Unity 라이선스입니다. 구매 에셋은 공개 저장소에 들어 있지 않으므로 권한 있는 원본 또는 비공개 아카이브도 필요합니다.
 
 ```powershell
 git clone https://github.com/ChoiDaeYoung-94/Tamer.git
@@ -102,6 +109,8 @@ if ($LASTEXITCODE -ne 0) { throw 'CLI 설치 실패' }
 - [복원 에셋과 라이선스 범위](docs/revival/dependencies.ko.md)
 - [기준 빌드와 검증 근거](docs/revival/baseline.ko.md)
 - [복구 계획과 단계별 상태](docs/revival/plan.ko.md)
+
+</details>
 
 ## 개인정보처리방침
 

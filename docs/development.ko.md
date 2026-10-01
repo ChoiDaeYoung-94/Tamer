@@ -5,7 +5,7 @@
 
 ## 1. 새 작업본 준비
 
-1. Git, Python 3.11 이상, Unity Hub와 **6000.0.81f1** Editor를 준비한다.
+1. Git, Python 3.11 이상, Unity Hub와 **6000.3.25f1** Editor를 준비한다. Android 기준은 min25/target36/ARM64이며 [도구 잠금](../tools/revival/toolchain.json)을 따른다.
 2. 같은 Editor에 Android Build Support, SDK/NDK Tools, OpenJDK 모듈을 설치하고 Unity 라이선스를 확인한다.
 3. 저장소를 자신의 개발 폴더로 clone한다. 기존 원본은 별도 위치에 보존한다.
 4. 권한 있는 원본 또는 비공개 아카이브를 준비한다. 아카이브 루트 아래에 `Assets/ThirdPartyAssets` 등 manifest와 같은 상대 경로가 있어야 한다.
@@ -73,7 +73,7 @@ APK 메타데이터 검사는 기기 설치/실행, 모든 native 라이브러�
 
 ## 3. Editor와 Pipeline 사용
 
-복원 검증이 끝나면 Unity Hub에서 **자신의 checkout 경로**를 6000.0.81f1로 연다. 여러 작업이 열려 있어도 다른 작업본의 Editor/PID를 조작하지 않는다. 아래 `$projectPath`와 `$unityCli`는 1절에서 설정한 같은 PowerShell 세션의 값이다.
+복원 검증이 끝나면 Unity Hub에서 **자신의 checkout 경로**를 6000.3.25f1로 연다. 여러 작업이 열려 있어도 다른 작업본의 Editor/PID를 조작하지 않는다. 아래 `$projectPath`와 `$unityCli`는 1절에서 설정한 같은 PowerShell 세션의 값이다.
 
 ```powershell
 & $unityCli status --format json
