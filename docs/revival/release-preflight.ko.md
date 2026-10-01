@@ -2,13 +2,14 @@
 
 ## 2026-10-01 결정 반영과 최종 후보 준비 조건
 
-읽기 대조 기준은 main `d0d7dc2d490f3654a4b0add747ec9f41ffedecfd`다.
+읽기 대조 기준은 main `f839d52a061cbc7fb9bc70c090b3b03668ff1c2a`다.
 아래는 기존 증거와 사용자 결정을 정리한 준비 조건이며 새 검사·빌드 결과가 아니다.
 과거 결과는 각 source·산출물 기준으로 보존하고 최신 main의 재실행 결과로 합산하지 않는다.
 
 | 항목 | 확인된 범위 | 남은 준비·검증 |
 | --- | --- | --- |
 | 새 LTS·생성 네이티브 | [PR #284](https://github.com/ChoiDaeYoung-94/Tamer/pull/284)의 실제 개발 APK에서 libil2cpp·FramePacing LOAD/RELRO 통과와 사후 정확 복원·독립 검토 PASS | 새 APK의 prebuilt2·전체 strict/ZIP/서명은 미검사. 최종 AAB와 전달 split, ARM64 native 16KB 실행은 미완료. 개발 APK를 출시 후보로 사용하지 않음 |
+| LTS 오프라인 게임 세션 | [실제 sessionguard 검증](session-gameplay-device.ko.md)의 sourcef839d52·Unity6000.3.25f1 새 APK에서 동일 10개 체크 PASS, Gold1050/Bat 저장·화면 일치. 원복·시험 앱 종료·확인 파일 17개 보존 독립 PASS | 정적 검사 실패1과 전체 로그 E 진단을 보존. Declined XML 표현은 확인했고 런타임 PlayerPrefs 재읽기는 미검증. 합성 오프라인 범위이며 GUI 수정·운영 서비스·전체16KB/RELRO·최종 AAB/스토어 검증으로 확대하지 않음 |
 | 16KB 실행 환경 | ARM64 native 16KB 환경이 없다는 사용자 확인. 10월 1일 번역 AVD 참고 시도는 설치 전 부팅 상태 조회 timeout으로 중단 | 새 PAGE_SIZE·앱 실행은 미검증. 자기 프로세스 정리를 독립 확인했고 추가 시도는 보류함. 번역 관측으로 native 16KB 검증을 대체하지 않고 나머지 복구를 계속함 |
 | PlayFab 수집 | 현재 집중 시간·기기 정보·전체 IP 저장·새 수집 기능 자동 실행 모두 ON을 읽기 확인했고 사용자는 그대로 유지하기로 결정 | [Data Safety 후보](data-safety-draft.ko.md)에 설정과 소스 사실을 구분해 반영. 실제 제공 버전별 전송·필수/선택·목적·제공자 보관 범위는 미확정 |
 | 삭제 문의 | [PR #285](https://github.com/ChoiDaeYoung-94/Tamer/pull/285)에 운영자 기존 메일 직접 처리·2주 이내 메일 처리 목표와 처리 종료 후 자료 삭제 원칙 반영 | 소유 확인·지연/상태 회신 운영, Console 삭제 URL 등록값·공급자 잔존 범위 확인. 2주를 모든 로그·백업 소거 보증으로 사용하지 않음 |

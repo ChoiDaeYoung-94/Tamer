@@ -47,3 +47,40 @@ APK는 **105,575,287 bytes**, SHA256 `08f0dc4d56ec5fdb18fa04718e2c779c04db4a783f
 빌드 후 해당 checkout Editor0, 설정 스냅샷 복원 및 URP/Graphics 줄바꿈 자동 변경 복원, git clean을 확인했다. 검증 앱만 force-stop하여 PID가 없고, 새 앱과 그 증거를 포함한 모든 앱 데이터는 유지했다. 전후 Tamer 패키지 목록은 새 sessionguard 추가 외에 동일하다.
 
 이 결과는 합성 세션의 실제 사망 이벤트·저장·생성기·NavMesh 경계를 확인한다. 실제 인증 전환, 원격 삭제 서비스, 일반 전투 밸런스, 다른 기종, 출시 AAB, #91 광고 정책/스토어 검증까지 완료했다는 의미는 아니다.
+
+## 2026-10-01 LTS에서 같은 오프라인 세션 검증
+
+위 9월 21일 결과는 당시 Unity와 APK의 이력으로 보존한다. 이번에는 실행 checkout
+`ad-production-completion/Tamer`의 실제 소스
+`f839d52a061cbc7fb9bc70c090b3b03668ff1c2a`에서 같은 sessionguard 하네스를 사용했다.
+Unity `6000.3.25f1`(revision `e1dba0a9aba4`), CLI `1.0.0-beta.8`,
+Android min25/target36·versionCode26/version1.0.5·ARM64/IL2CPP·debug development 기준이다.
+
+- 빌드 1회 성공. 새 APK는 **110,643,571 bytes**, SHA-256
+  `55fe46fb19f9e059edd97eda904303e6049f164fde3b6e1e21f665dee2fa010f`이며
+  설치된 base.apk의 해시도 같았다. 이전 APK와 새 APK 모두 보존했다.
+- 정적 검사 1차는 aapt의 Permission denied로 실패했다. 불필요한 DELETE 접근을
+  요구한 파일 pin과의 공유 충돌은 가설이며 확정하지 않았다. 승인된 2차에서는
+  `deletableFalse` 읽기 pin으로 실제 도구 호출 4회 exit0·백업과 기기 전송의
+  제외 규칙 18개(domain/path)·새 APK의 debug 서명을 확인했다.
+  원래 실패 1회와 선행 PASS 보고의 정정 기록을 보존한다.
+- 설치 1회·실행 1회·실제 Declined 선택 1회 후 같은 PID에서 읽기 관찰 1회로
+  위 표의 동일한 **10개 체크를 모두 통과**했다. PASS 마커 1개·FAIL 마커 0개,
+  합성 계정의 최종 Gold1050/AllyBat가 저장과 실제 화면에서 일치했다.
+- `errors=0`은 하네스 구독 구간만 뜻한다. 전체 소유 로그에는 Unity blocking mode
+  2건·multicast 1건, BufferQueueProducer 1건·SurfaceSyncer 2건의 E 진단이 있었다.
+  빌드의 LicensingClient 진단 1건도 별도이며 전체 로그 오류0으로 확대하지 않는다.
+- 원시 `ageDeclinedPersisted=false`는 그대로 보존했다. 원시 XML `1%7Cdeclined`를
+  독립적으로 percent decode한 값은 `1|declined`로 확인했다. 표현 형식의 차이이며
+  앱의 `PlayerPrefs.GetString` 런타임 재읽기는 미검증이다.
+
+빌드 후 원복 대상 8개와 새 파일 2개의 비공개 보관·정리, 보호 대상 6,861개의
+내용·GUID·목록 보존, clean·Editor 종료를 독립 확인했다. 원래 파일 identity까지
+복원됐다고 주장하지 않는다. 최종적으로 이 시험 패키지만 force-stop 1회(exit0)하여
+PID가 없음을 확인했고, 확인 대상 앱 파일 17개의 전후 SHA-256 집합도 같았다.
+앱 삭제·데이터 초기화·재실행은 없었으며 모든 데이터 영역의 불변 검증으로 확대하지 않는다.
+원시 로그·저장·선호 값·화면·복원 증거는 비공개로 보존한다.
+
+이 결과는 같은 합성 세션의 실제 게임 콜백·저장·생성기·이동 경계에 한정된다.
+GUI 수정의 기기 실행, 운영 SDK·로그인·구매·광고·클라우드 삭제,
+전체16KB/RELRO·최종 AAB·기기/스토어 검증은 여전히 미완료다.

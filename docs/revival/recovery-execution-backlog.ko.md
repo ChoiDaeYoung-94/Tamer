@@ -2,9 +2,10 @@
 
 ## 2026-10-01 현재 확인 범위와 남은 조건
 
-대조 main은 `d0d7dc2d490f3654a4b0add747ec9f41ffedecfd`다. [현재 출시 준비 표](release-preflight.ko.md)의 완료 범위와 남은 조건을 따른다. 아래 9월 30일 이하 기록은 당시 소스·산출물 이력이며 새 실행 결과로 합산하지 않는다.
+대조 main은 `f839d52a061cbc7fb9bc70c090b3b03668ff1c2a`다. [현재 출시 준비 표](release-preflight.ko.md)의 완료 범위와 남은 조건을 따른다. 아래 9월 30일 이하 기록은 당시 소스·산출물 이력이며 새 실행 결과로 합산하지 않는다.
 
 - [키 백업 후속](signing-and-private-backup.ko.md)은 Drive 사본 다운로드 무결성과 사용자 Pinentry 입력 후 메모리 복호화 1회·내부 manifest/세 역할 정합·파일 불변·agent 정리까지 독립 PASS다. 평문 파일 쓰기·기존 receipt 수정은 없으며 권위 있는 원본 역할별 대조·기존 키 암호·전체 외부 복구는 미검증으로 관련 false 값을 유지한다.
+- [LTS 오프라인 게임 세션](session-gameplay-device.ko.md)은 sourcef839d52·Unity6000.3.25f1 새 APK에서 동일 10개 체크 PASS와 Gold1050/Bat 저장·화면 일치, 원복·시험 앱 종료·확인 파일 17개 보존을 독립 확인했다. 정적 실패1·전체 로그 E 진단과 원시 ageDeclinedPersisted=false를 보존하며 XML decode 확인과 런타임 PlayerPrefs 재읽기 미검증을 구분한다. GUI 수정·운영 서비스·전체16KB/RELRO·최종 AAB/스토어는 남아 있다.
 - [PR #294](https://github.com/ChoiDaeYoung-94/Tamer/pull/294)/[PR #295](https://github.com/ChoiDaeYoung-94/Tamer/pull/295)의 [UMP 후속](ump-registration-only-plan.ko.md)은 등록 2차 성공·성인 EEA의 동의 12개 OFF/정당한 이익 6개 ON·현재값 Confirm 종료를 기록한다. 전체 거부·광고 게재·전연령 검증은 아니다. 첫 등록 실패와 GUI 오류는 보존하며 GUI 수정은 순수 컴파일/소스 검토만 PASS로 실기기 미검증이다.
 - 운영 광고 gate와 productionContractVerified/binaryVerified/distributable=false를 유지한다. 운영 연령·지역·권한/구매 복원·서명·전체16KB·최종AAB/전달split·스토어/정책 검증은 남아 있고 개인 CI/CD 보류·저장소 이름 변경 마지막 순서도 유지한다. 이번 현황 정리에서는 테스트·복호화·Editor·ADB를 새로 실행하지 않았다.
 
