@@ -1,5 +1,33 @@
 # 출시 후보 사전 검사와 16KB 호스트 준비
 
+## 2026-10-01 결정 반영과 최종 후보 준비 조건
+
+읽기 대조 기준은 main `81b67926f8dccf2e175679076556848ddd2fcfef`다.
+아래는 기존 증거와 사용자 결정을 정리한 준비 조건이며 새 검사·빌드 결과가 아니다.
+과거 결과는 각 source·산출물 기준으로 보존하고 최신 main의 재실행 결과로 합산하지 않는다.
+
+| 항목 | 확인된 범위 | 남은 준비·검증 |
+| --- | --- | --- |
+| 새 LTS·생성 네이티브 | [PR #284](https://github.com/ChoiDaeYoung-94/Tamer/pull/284)의 실제 개발 APK에서 libil2cpp·FramePacing LOAD/RELRO 통과와 사후 정확 복원·독립 검토 PASS | 새 APK의 prebuilt2·전체 strict/ZIP/서명은 미검사. 최종 AAB와 전달 split, ARM64 native 16KB 실행은 미완료. 개발 APK를 출시 후보로 사용하지 않음 |
+| 16KB 실행 환경 | ARM64 native 16KB 환경이 없다는 사용자 확인. 기존 x86_64 게스트 부팅과 번역 계층은 별개 | 대안의 참고 관측을 검토하되 결과 수신 전에는 미실행으로 기록. 번역 관측으로 native 16KB 검증을 대체하지 않고 나머지 복구를 계속함 |
+| PlayFab 수집 | 현재 집중 시간·기기 정보·전체 IP 저장·새 수집 기능 자동 실행 모두 ON을 읽기 확인했고 사용자는 그대로 유지하기로 결정 | [Data Safety 후보](data-safety-draft.ko.md)에 설정과 소스 사실을 구분해 반영. 실제 제공 버전별 전송·필수/선택·목적·제공자 보관 범위는 미확정 |
+| 삭제 문의 | [PR #285](https://github.com/ChoiDaeYoung-94/Tamer/pull/285)에 운영자 기존 메일 직접 처리·2주 이내 메일 처리 목표와 처리 종료 후 자료 삭제 원칙 반영 | 소유 확인·지연/상태 회신 운영, Console 삭제 URL 등록값·공급자 잔존 범위 확인. 2주를 모든 로그·백업 소거 보증으로 사용하지 않음 |
+| 기존 키 백업·서명 | 로컬 암호문·receipt 존재, 기존 기록의 verified/sourceUnchanged=true. 새 백업 암호와 기존 키 암호는 별개 | 사용자 확인으로 Drive 미업로드, offsiteVerified=false·keystorePasswordVerified=false 유지. 외부 사본 복구와 기존 키 사용 가능성·현재 활성 업로드 인증서 대조 필요 |
+| 정책·신고 | 기존 README 정책 URL·시행일 보존, [정책 본문](privacy-policy-release-draft.ko.md)·Data Safety는 검토 초안 | 실제 제공 앱/SDK·처리 목적·보관·암호화 근거를 확정한 뒤 공개 본문과 답안 완성. 공개 전 확인란이 남은 초안을 그대로 게시하거나 Console 제출하지 않음 |
+| 운영 광고·기능 | 기존 rewarded/No Ads 유지, 5초 추가 조사 보류. 준비 receipt·합성 시험과 운영 계약/바이너리는 구분 | 운영 연령·지역·동의·로그인/저장·권한/구매 복원·영수증 권위의 실제 검증 및 알려진 미해결 기록. productionContractVerified/binaryVerified/distributable=false 유지 |
+| 배포·CI | 개인용 CI/CD 보류와 기존 App Center 구성 보존 | 최종 후보 검증·승인 후 트랙/신고/심사·공개 설치 확인. CI 활성화·dispatch·배포 서비스 이행은 하지 않음 |
+
+최종 AAB는 [서명 입력 준비](signing-and-private-backup.ko.md#AAB-빌드-입력-준비)의
+기존 keystore·alias·비공개 암호·현재 활성 업로드 인증서 대조를 먼저 충족해야 한다.
+현재 모든 트랙의 최대 사용 versionCode를 새로 확인하고 후보 번호를 검토하며,
+운영 앱 ID·Login 첫 씬·하네스 심볼 부재·min25/target36/ARM64/IL2CPP를 유지한다.
+실제 후보에 bundle validate·전체 payload 서명/인증서·manifest·전체 ELF/LOAD/RELRO를
+검사하고 전달 split의 ZIP 및 기기 실행도 별도로 확인한다. 검사 도구의
+artifactChecksPassed는 출시 승인이나 releaseReady=true를 뜻하지 않는다.
+이번 문서 작업에서 signing·Unity·Console·메일·운영 삭제·백업 업로드는 실행하지 않는다.
+과거 e5e5 검증은 [LTS 기록](lts-transition-validation.ko.md)의 보고 범위이며,
+해당 비공개 원로그를 현재 접근하거나 다시 확인했다고 주장하지 않는다.
+
 ## 2026-09-30 최신 출시 준비 상태
 
 대조 main은 `5864d5fb49a34068012e7b7c4f4f01605ef1ee1a`다. [PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)은 준비 도구·승인된 감독 합성 주입 1회 성공·원복을 통합했으나 운영 실행은 차단하며 `productionContractVerified=false`, `binaryVerified=false`, `distributable=false`를 유지한다. [PR #277](https://github.com/ChoiDaeYoung-94/Tamer/pull/277)의 RELRO 부재 판정 보정은 아래 기록을 따르며 기존 LTS 끝 정렬 4개 실패와 실제16KB·최종AAB 미검증을 해소하지 않는다.

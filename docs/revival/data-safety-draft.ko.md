@@ -32,6 +32,18 @@
 
 ### 공급자 공식 자료와 적용 한계
 
+2026-10-01 현재 운영 PlayFab의 집중 시간 보고·장치 정보 보고·전체 사용자 IP 저장·
+새 데이터 컬렉션 기능 자동 실행은 모두 ON이며 사용자 결정으로 유지한다.
+이는 Game Manager 설정의 읽기 결과이고 실제 제공 24·최종 AAB의 네트워크 전송이나
+보관기간 증거는 아니다. 설정을 줄였다는 전제로 답안을 작성하지 않는다.
+
+| 유지하는 옵션 | 소스·공식 근거와 답안 준비 범위 |
+| --- | --- |
+| 집중 시간 보고 | SDK의 GatherFocusInfo·DisableFocusTimeCollection 경로가 세션/포커스 이벤트를 제어한다. 앱 상호작용·분석 수집 후보로 실제 제공 버전과 대조한다. [PlayFab 세션 안내](https://learn.microsoft.com/en-us/xbox/playfab/data-analytics/ingest-data/sessions) |
+| 장치 정보 보고 | GatherDeviceInfo·DisableDeviceInfo 경로의 자동 ReportDeviceInfo는 기기·OS·그래픽·메모리 등 정보를 보고한다. 기기 ID·진단 및 목적/필수 여부를 실제 항목별로 대조한다. Login.cs가 직접 보내는 AndroidDeviceId·OS·AndroidDevice는 이 자동 보고와 별개다. 위치 서비스 지원 여부는 GPS 좌표 수집의 증거가 아니다 |
+| 전체 사용자 IP 저장 | 저장 ON 관측과 접속 IP·IP 기반 위치·보안 처리의 실제 범위를 구분한다. 위치 유형·목적·보관기간은 제공 버전/업체 근거로 확정하고 IP 미수집이나 일시 처리로 단정하지 않는다 |
+| 새 수집 기능 자동 실행 | 향후 기능도 자동 활성화할 수 있는 설정이 유지된다. 아직 사용하지 않는 미래 기능을 현재 수집 항목으로 나열하지 않되 SDK·설정 변경 때 실제 수집과 신고를 다시 대조한다 |
+
 - [Unity IAP 5.4 이상 Data Safety 표](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)는 식별자·구매·진단·성능 등의 수집, SDK 전송 암호화 YES, 공유 NO를 안내한다. 대략적 위치·이메일의 일시 처리 표기도 있다. 전체 제품 표이므로 사용하지 않는 Webshop/결제 공급자 항목까지 앱에 있다고 복사하지 않는다. 기본 데이터와 선택 데이터의 구분은 [IAP 개인정보 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)와 실제 호출·설정을 함께 대조한다.
 - [AdMob Android 공식 자료](https://developers.google.com/admob/android/privacy/play-data-disclosure)는 IP·상호작용·진단·식별자의 자동 수집 및 공유와 TLS를 안내한다. **2026-09-30 열람 페이지는 25.5.0 기준**이므로 선언 25.4.0의 상세 표로 확정하지 않는다. 현재 앱의 운영 광고 gate OFF는 관리 코드의 요청 제한이며 SDK의 모든 native 전송 0을 입증하지 않는다. 운영 24에 소급하지 않는다.
 - [PGS 공식 자료](https://developer.android.com/games/pgs/data-collection?hl=en)는 게임 계정 신원과 분석·진단의 자동 수집, 기능별 추가 수집과 HTTPS를 안내한다. 업적·친구·Saved Games 등의 예시를 사용 확인 없이 추가하지 않는다. 일반 core Play services의 수집 없음 안내를 PGS나 AdMob 전체에 적용하지 않는다.
