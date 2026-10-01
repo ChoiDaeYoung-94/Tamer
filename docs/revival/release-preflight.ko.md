@@ -12,7 +12,7 @@
 | 16KB 실행 환경 | ARM64 native 16KB 환경이 없다는 사용자 확인. 10월 1일 번역 AVD 참고 시도는 설치 전 부팅 상태 조회 timeout으로 중단 | 새 PAGE_SIZE·앱 실행은 미검증. 자기 프로세스 정리를 독립 확인했고 추가 시도는 보류함. 번역 관측으로 native 16KB 검증을 대체하지 않고 나머지 복구를 계속함 |
 | PlayFab 수집 | 현재 집중 시간·기기 정보·전체 IP 저장·새 수집 기능 자동 실행 모두 ON을 읽기 확인했고 사용자는 그대로 유지하기로 결정 | [Data Safety 후보](data-safety-draft.ko.md)에 설정과 소스 사실을 구분해 반영. 실제 제공 버전별 전송·필수/선택·목적·제공자 보관 범위는 미확정 |
 | 삭제 문의 | [PR #285](https://github.com/ChoiDaeYoung-94/Tamer/pull/285)에 운영자 기존 메일 직접 처리·2주 이내 메일 처리 목표와 처리 종료 후 자료 삭제 원칙 반영 | 소유 확인·지연/상태 회신 운영, Console 삭제 URL 등록값·공급자 잔존 범위 확인. 2주를 모든 로그·백업 소거 보증으로 사용하지 않음 |
-| 기존 키 백업·서명 | 로컬 암호문·receipt 존재, 기존 기록의 verified/sourceUnchanged=true. 새 백업 암호와 기존 키 암호는 별개 | 사용자 확인으로 Drive 미업로드, offsiteVerified=false·keystorePasswordVerified=false 유지. 외부 사본 복구와 기존 키 사용 가능성·현재 활성 업로드 인증서 대조 필요 |
+| 기존 키 백업·서명 | 로컬 암호문·receipt 존재, 기존 기록의 verified/sourceUnchanged=true. 10월 1일 사용자가 두 파일의 Drive 업로드 완료를 보고함. 새 백업 암호와 기존 키 암호는 별개 | 재다운로드·외부 사본 복구는 미검증으로 offsiteVerified=false·keystorePasswordVerified=false 유지. 업로드 사용자 보고를 독립 복구 성공으로 확대하지 않으며 기존 키 사용 가능성·현재 활성 업로드 인증서 대조 필요 |
 | 정책·신고 | 기존 README 정책 URL·시행일 보존, [정책 본문](privacy-policy-release-draft.ko.md)·Data Safety는 검토 초안 | 실제 제공 앱/SDK·처리 목적·보관·암호화 근거를 확정한 뒤 공개 본문과 답안 완성. 공개 전 확인란이 남은 초안을 그대로 게시하거나 Console 제출하지 않음 |
 | 운영 광고·기능 | 기존 rewarded/No Ads 유지, 5초 추가 조사 보류. 준비 receipt·합성 시험과 운영 계약/바이너리는 구분 | 운영 연령·지역·동의·로그인/저장·권한/구매 복원·영수증 권위의 실제 검증 및 알려진 미해결 기록. productionContractVerified/binaryVerified/distributable=false 유지 |
 | 배포·CI | 개인용 CI/CD 보류와 기존 App Center 구성 보존 | 최종 후보 검증·승인 후 트랙/신고/심사·공개 설치 확인. CI 활성화·dispatch·배포 서비스 이행은 하지 않음 |
