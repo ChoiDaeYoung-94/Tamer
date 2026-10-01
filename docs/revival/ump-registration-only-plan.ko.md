@@ -151,3 +151,20 @@ SDK client·요청·latch·정책 gate는 변경하지 않았다. 순수 컴파�
 실제 기기 APK는 여전히 `433f562`/`bcdef5c3…`로 GUI 수정은 포함되지 않는다.
 GUI 수정의 새 APK·실기기 무오류 검증은 미실시이며 관측 오류 1건을 삭제하지 않는다.
 원시 화면·로그·SDK 해시·기기 식별값·비공개 경로는 공개하지 않는다.
+
+### 후속 SDK 호출 없는 단일 Editor GUI 검사 실패와 원복
+
+실행 소스 `248474a2cf8a47a565dcd6c5defd825bdec25759`, Unity `6000.3.25f1`/CLI
+`1.0.0-beta.8`의 `Revival_AdHarness_LayoutRepaintKeepsControlsAfterLogAndPrivacyStateChange`
+격리 Editor 검사 **1회**에서 Repaint 앞에 자동 Layout이 추가돼 기대 횟수 1과 실제 2가
+달랐다. 검사 경로의 회귀 조건을 충족하지 못해 해당 단일 XML case는 Failed,
+종료 코드 8이었다. 이는 **검사 경로 조건 실패**이며 GUI 원결함 재현이나 수정 효과
+PASS로 판정하지 않는다. 일반 Editor define에 포함되지 않은 publisher 전용 등록 label과
+Android GUI 무오류 검증도 여전히 미실시다.
+SDK·ADB 호출과 자동 재시도는 0회이며 최종 제품 세션의 LTS 계획도 실행하지 않았다.
+
+사전 검토된 원복 1회로 변경 4개를 원래 바이트로 복원하고 생성 4개는 검증된 비공개
+보존본을 남긴 뒤 정리했다. 보호 파일 6,861개 내용·meta/GUID·Assets/ProjectSettings 목록,
+소스·helper·증거와 기존 APK의 동일 handle 전후 identity/해시 보존, Git clean·Editor 종료를
+독립 사후 읽기 PASS로 확인했다. 원래 파일 identity까지 복원됐다고 주장하지 않는다.
+Library·실패 XML·비공개 원자료는 보존하며 이번 문서 추가에서 검사를 반복하지 않았다.
