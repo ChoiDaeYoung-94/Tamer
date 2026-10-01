@@ -14,6 +14,23 @@ public static class RevivalBuild
     public const string SmokeScene = "Assets/Tests/Scenes/RevivalSmoke.unity";
     public const string ApplicationId = "com.AeDeong.MonsterTamer.revival";
 
+    // Shared by the isolated baseline and production builder; never persists the override.
+    public static IDisposable AndroidRelroLinkScope() => new RelroLinkScope();
+
+    private sealed class RelroLinkScope : IDisposable
+    {
+        private readonly string previous = PlayerSettings.GetAdditionalIl2CppArgs();
+        public RelroLinkScope()
+        {
+            if (previous.Contains("--linker-flags") ||
+                !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IL2CPP_ADDITIONAL_ARGS")))
+                throw new BuildFailedException("Review existing IL2CPP linker arguments before the RELRO build.");
+            PlayerSettings.SetAdditionalIl2CppArgs(previous +
+                " --linker-flags=\"-Wl,-z,common-page-size=16384\"");
+        }
+        public void Dispose() => PlayerSettings.SetAdditionalIl2CppArgs(previous);
+    }
+
     public static void RequireSavedScenes()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Edit Mode required.");
@@ -105,7 +122,9 @@ public static class RevivalBuild
             EditorUserBuildSettings.buildAppBundle = appBundle;
             Directory.CreateDirectory("Build/revival");
             var scenes = new[] { SmokeScene }.Concat(EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path)).Distinct().ToArray();
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
+            BuildReport report;
+            using (AndroidRelroLinkScope())
+            report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
                 locationPathName = "Build/revival/Tamer-development." + (appBundle ? "aab" : "apk"),
                 options = BuildOptions.Development | BuildOptions.CompressWithLz4,

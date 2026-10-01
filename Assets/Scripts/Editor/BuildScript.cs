@@ -153,7 +153,8 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
                 PlayerSettings.Android.keyaliasName = uploadSigning.Alias;
                 PlayerSettings.Android.keystorePass = uploadSigning.KeystorePassword;
                 PlayerSettings.Android.keyaliasPass = uploadSigning.AliasPassword;
-                report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+                using (RevivalBuild.AndroidRelroLinkScope())
+                    report = BuildPipeline.BuildPlayer(buildPlayerOptions);
             }
             finally
             {
@@ -165,7 +166,8 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
             }
         }
         else
-            report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            using (RevivalBuild.AndroidRelroLinkScope())
+                report = BuildPipeline.BuildPlayer(buildPlayerOptions);
         BuildSummary summary = report.summary;
 
         if (summary.result == BuildResult.Succeeded)
