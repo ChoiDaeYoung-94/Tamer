@@ -496,7 +496,8 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     {
         if (Application.isBatchMode) return;
         var preparation = ReadPreparation();
-        if (preparation != null && !preparation.OwnsCompletionMarker) return;
+        if (!LegacyBuildPreparation.ShouldExitEditor(preparation,
+            report.summary.result == BuildResult.Succeeded)) return;
         if (File.Exists(CHECK_BUILD))
         {
             File.Delete(CHECK_BUILD);

@@ -1,3 +1,4 @@
+param([switch]$PostprocessOnly)
 $ErrorActionPreference = 'Stop'
 # Compile/run only the pure helper with synthetic paths/defines. No Unity or signing tools.
 $source = Join-Path $PSScriptRoot '../../Assets/Scripts/Editor/LegacyBuildPreparation.cs'
@@ -8,6 +9,30 @@ public static class PreparationChecks
     private static void Check(bool value, string message)
     {
         if (!value) throw new Exception(message);
+    }
+    public static void RunPostprocess()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "tamer-postprocess-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string marker = Path.Combine(root, "aab.txt"), completion = Path.Combine(root, "done.txt");
+        try
+        {
+            File.WriteAllText(completion, "legacy-owner");
+            Check(!LegacyBuildPreparation.ShouldExitEditor(null, true)
+                && File.ReadAllText(completion) == "legacy-owner", "orphan marker preserved");
+            File.Delete(completion);
+            var pending = LegacyBuildPreparation.Capture(marker, completion, "BEFORE", "RELEASE");
+            Check(!LegacyBuildPreparation.ShouldExitEditor(pending, true), "missing completion marker");
+            pending.WriteCompletionMarker();
+            Check(!LegacyBuildPreparation.ShouldExitEditor(pending, false)
+                && File.Exists(completion), "failure/cancellation never schedules success exit");
+            Check(LegacyBuildPreparation.ShouldExitEditor(pending, true), "owned successful build can exit");
+            File.WriteAllText(completion, "replacement-owner");
+            Check(!LegacyBuildPreparation.ShouldExitEditor(pending, true)
+                && File.ReadAllText(completion) == "replacement-owner", "foreign completion marker preserved");
+            Console.WriteLine("PASS: postprocess ownership/result guards (5 cases); Unity/signing/build executions: 0");
+        }
+        finally { Directory.Delete(root, true); }
     }
     public static void Run()
     {
@@ -69,4 +94,5 @@ public static class PreparationChecks
 }
 '@
 Add-Type -TypeDefinition ($helperCode + "`n" + $checksCode)
-[PreparationChecks]::Run()
+if ($PostprocessOnly) { [PreparationChecks]::RunPostprocess() }
+else { [PreparationChecks]::Run() }

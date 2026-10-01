@@ -221,6 +221,10 @@ Unity CLI `1.0.0-beta.8`에서 복원 에셋 4,561개를 검증한 뒤
 실제 변경 C# 두 파일은 Unity `6000.3.25f1`의 Roslyn과 광고 담당의 읽기 전용 캐시 참조 392개로
 Editor 실행 없이 컴파일하여 exit 0을 확인했다(기존 API 사용의 CS0618 경고).
 첫 결과 수집은 Python의 cp949 출력 해독 오류로 실패했고, UTF-8 결과 수집으로 고쳐 두 번째에 exit 0을 기록했다.
+독립 검토 후 빌드 후 처리도 소유 snapshot·완료 토큰과 성공 결과가 모두 있어야 Editor 성공 종료를 예약하도록 보완했다.
+`pwsh -NoProfile -File tools/revival/test_legacy_build_preparation.ps1 -PostprocessOnly`로
+snapshot 없음·완료 표시 없음·실패/취소·소유 성공·다른 소유자의 표시 5조건이 통과했으며,
+이 delta의 실제 두 C# 소스 컴파일도 exit 0이다. 앞선 6개 검사를 변경 없이 반복하지 않았다.
 이 검증은 실제 Unity 이벤트 루프·도메인 리로드 실행이나 릴리스 빌드를 검증한 결과로 대신하지 않는다.
 운영 키 접근·서명·실제 APK/AAB·물리 기기·CI 실행은 모두 0회다.
 

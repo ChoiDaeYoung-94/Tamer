@@ -25,6 +25,8 @@ public sealed class LegacyBuildPreparation
     public void WriteMarker() => WriteNew(MarkerPath);
     public void WriteCompletionMarker() => WriteNew(CompletionMarkerPath);
     public bool OwnsCompletionMarker => Owns(CompletionMarkerPath);
+    public static bool ShouldExitEditor(LegacyBuildPreparation preparation, bool succeeded)
+        => preparation != null && succeeded && preparation.OwnsCompletionMarker;
 
     private void WriteNew(string path)
     {
