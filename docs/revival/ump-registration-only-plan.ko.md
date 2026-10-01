@@ -90,3 +90,17 @@ type/message를 남기지 않아 원인은 확정하지 못했고 정적 조사 
 운영 gate는 false로 유지하며 운영 로그인·저장·구매·managed 광고 초기화/로드/표시는 0회다.
 과거 성인 미국 3차 성공은 유지하고, 새 EEA/연령·전체 16KB·최종 AAB 검증은 미완료다.
 원시 로그·기기 식별값·SDK 해시·비공개 구성과 경로는 공개하지 않는다.
+
+### 정적 조사에서 확인한 null 설정 결함과 수정 준비
+
+실행 소스의 기본 `GoogleUmpConsentClient()`는 `_debugSettings`를 null로 유지하면서
+harness define 경로의 `Update`에서 SDK의 기본 `ConsentDebugSettings` 객체를 null로
+덮어쓴다. 로컬 UMP 11.5.0.0 DLL의 IL과 [공식 Android 변환 소스](https://github.com/googleads/googleads-mobile-unity/blob/v11.5.0/source/plugin/Assets/GoogleMobileAds/Ump/Platforms/Android/Utils.cs)를
+대조하면 이 설정의 `DebugGeography`를 null 검사 없이 읽는다. 이는 확정된 정적 결함이다.
+다만 실제 첫 시도는 상세 예외를 기록하지 않았으므로 이번 예외가 이 지점에서 발생했는지는
+미확정이다. 더 앞선 factory·JNI 초기화 등 다른 지점의 예외 가능성을 배제하지 않는다.
+
+기본 요청에서는 SDK 기본 debug 설정 객체를 보존하고, caller의 강제 geography·test-device
+hash 설정을 넣지 않도록 수정 준비 중이다. 이를 SDK debug 객체 자체가 null이거나 전혀
+전달되지 않는다는 뜻으로 확대하지 않는다. 예외 type만 기록하는 최소 진단도 준비하며,
+새 APK·실제 SDK 등록 재요청·수정 후 런타임 원인 검증은 아직 수행하지 않았다.
