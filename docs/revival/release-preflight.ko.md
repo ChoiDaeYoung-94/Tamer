@@ -2,7 +2,7 @@
 
 ## 2026-10-01 결정 반영과 최종 후보 준비 조건
 
-읽기 대조 기준은 main `81b67926f8dccf2e175679076556848ddd2fcfef`다.
+읽기 대조 기준은 main `d0d7dc2d490f3654a4b0add747ec9f41ffedecfd`다.
 아래는 기존 증거와 사용자 결정을 정리한 준비 조건이며 새 검사·빌드 결과가 아니다.
 과거 결과는 각 source·산출물 기준으로 보존하고 최신 main의 재실행 결과로 합산하지 않는다.
 
@@ -12,7 +12,8 @@
 | 16KB 실행 환경 | ARM64 native 16KB 환경이 없다는 사용자 확인. 10월 1일 번역 AVD 참고 시도는 설치 전 부팅 상태 조회 timeout으로 중단 | 새 PAGE_SIZE·앱 실행은 미검증. 자기 프로세스 정리를 독립 확인했고 추가 시도는 보류함. 번역 관측으로 native 16KB 검증을 대체하지 않고 나머지 복구를 계속함 |
 | PlayFab 수집 | 현재 집중 시간·기기 정보·전체 IP 저장·새 수집 기능 자동 실행 모두 ON을 읽기 확인했고 사용자는 그대로 유지하기로 결정 | [Data Safety 후보](data-safety-draft.ko.md)에 설정과 소스 사실을 구분해 반영. 실제 제공 버전별 전송·필수/선택·목적·제공자 보관 범위는 미확정 |
 | 삭제 문의 | [PR #285](https://github.com/ChoiDaeYoung-94/Tamer/pull/285)에 운영자 기존 메일 직접 처리·2주 이내 메일 처리 목표와 처리 종료 후 자료 삭제 원칙 반영 | 소유 확인·지연/상태 회신 운영, Console 삭제 URL 등록값·공급자 잔존 범위 확인. 2주를 모든 로그·백업 소거 보증으로 사용하지 않음 |
-| 기존 키 백업·서명 | 로컬 암호문·receipt 존재, 기존 기록의 verified/sourceUnchanged=true. 10월 1일 사용자 업로드 후 Drive에서 두 파일을 실제 내려받아 각각 로컬 원본과 SHA-256 일치, metadata not_shared 확인. 새 백업 암호와 기존 키 암호는 별개 | 외부 파일 존재·다운로드 무결성 PASS. 사본 복호화·내용 대조와 기존 키 암호 검증은 미실시로 offsiteVerified=false·keystorePasswordVerified=false 유지. 기존 키 사용 가능성·현재 활성 업로드 인증서 대조 필요 |
+| 기존 키 백업·서명 | Drive 두 파일의 다운로드 무결성·not_shared 확인 후 사용자 Pinentry 입력으로 사본 메모리 복호화 1회 exit0·내부 manifest/세 역할 정합·원본/다운로드 파일 불변·agent 정리 독립 PASS. 평문 파일 쓰기·기존 receipt 수정 없음 | 권위 있는 원본 역할별 직접 대조와 기존 키 암호·개인키 사용 가능성은 미검증. authoritativeOriginalRoleComparison=false·offsiteVerified=false·keystorePasswordVerified=false 유지. 새 백업 암호와 기존 키 암호를 구분하고 현재 활성 업로드 인증서 대조 필요 |
+| 격리 게시자 UMP | [PR #294](https://github.com/ChoiDaeYoung-94/Tamer/pull/294)의 null 수정 후 등록 2차 성공, [PR #295](https://github.com/ChoiDaeYoung-94/Tamer/pull/295)의 성인 EEA 관측은 동의 12개 OFF·정당한 이익 6개 ON·토글 변경 없는 옵션 종료를 확인. 실제 source433f562/APKbcdef5 기준, managed 광고 0회 | 전체 거부·개인 맞춤 광고 동의로 확대하지 않음. 첫 등록 실패 1회와 첫 예외 위치 미확정·GUI 오류 1건 보존. GUI 수정은 순수 컴파일/소스 검토 PASS이며 실기기 미검증. 다른 지역/연령·운영 계약·전체16KB·최종 AAB 미완료 |
 | 정책·신고 | 기존 README 정책 URL·시행일 보존, [정책 본문](privacy-policy-release-draft.ko.md)·Data Safety는 검토 초안 | 실제 제공 앱/SDK·처리 목적·보관·암호화 근거를 확정한 뒤 공개 본문과 답안 완성. 공개 전 확인란이 남은 초안을 그대로 게시하거나 Console 제출하지 않음 |
 | 운영 광고·기능 | 기존 rewarded/No Ads 유지, 5초 추가 조사 보류. 준비 receipt·합성 시험과 운영 계약/바이너리는 구분 | 운영 연령·지역·동의·로그인/저장·권한/구매 복원·영수증 권위의 실제 검증 및 알려진 미해결 기록. productionContractVerified/binaryVerified/distributable=false 유지 |
 | 배포·CI | 개인용 CI/CD 보류와 기존 App Center 구성 보존 | 최종 후보 검증·승인 후 트랙/신고/심사·공개 설치 확인. CI 활성화·dispatch·배포 서비스 이행은 하지 않음 |
@@ -99,7 +100,7 @@ LOAD 부족 실패, `releaseReady=false`를 확인했다. 합성 AAB의 외부 �
 
 5초 닫기 추가 조사는 사용자 결정으로 보류했고 나머지 복구는 계속한다. 실제 닫기·운영 정책 적합성은 미해결 알려진 이슈로 후보와 함께 기록한다. 이를 해결 완료·심사 승인으로 간주하거나 추가 조사를 현재 복구 작업의 필수 선행 단계로 다시 요구하지 않는다. 이 결정으로 운영 광고 gate나 연령·동의 보호를 해제하지 않는다.
 
-[게시자 UMP](publisher-ump-harness-preparation.ko.md)의 PR #270 관측과 PR #271 사전 검사 이후에도 운영 gate는 OFF다. [PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)의 준비 도구·감독 합성 검증은 main에 통합됐으나 운영 실행·주입 계약·출시 바이너리 검증은 미완료다. 합성 산출물을 출시 후보로 사용하지 않는다. 정책/기능·서명·실기기·최종 후보와 스토어 검증을 마친 뒤 시험 자원 정리, 마지막 저장소 이름 소문자 변경 순서를 따른다.
+[게시자 UMP](publisher-ump-harness-preparation.ko.md)의 과거 관측에 더해 [등록·성인 EEA 후속](ump-registration-only-plan.ko.md)을 통합했다. CanRequestAds=True는 요청 가능 신호이며 실제 광고 요청·게재나 전체 거부를 뜻하지 않는다. GUI 수정 실기기 검증과 운영 연령·지역 계약은 남아 있고 운영 gate는 OFF다. [PR #273](https://github.com/ChoiDaeYoung-94/Tamer/pull/273)의 준비 도구·감독 합성 검증은 운영 실행·주입 계약·출시 바이너리 검증을 대신하지 않는다. 정책/기능·서명·실기기·최종 후보와 스토어 검증을 마친 뒤 시험 자원 정리, 마지막 저장소 이름 소문자 변경 순서를 따른다.
 
 이 도구는 설정·산출물을 읽고 결과를 기록한다. 빌드, 서명, 키 생성, 업로드, 정책 게시 또는 Windows 설정 변경은 수행하지 않는다.
 
@@ -197,7 +198,7 @@ checkout `C:/Users/pc_17/.codex/worktrees/7b9b/Tamer`, 기준 `origin/main` `a6a
 기존 [공개 개인정보처리방침](../../README.md#개인정보처리방침)에 운영자 **AeDeong**, 일반 문의 **doeud1410@gmail.com**, 시행일 **2024년 9월 30일**이 명시되어 있다. 이 값은 이미 게시된 사실로 재사용하며 같은 정보를 다시 묻지 않는다. README와 기존 GitHub 정책 URL은 출시 때 사용한 공개 정책 페이지로 보존한다. 기존 정책 URL을 개발 문서로 대체하거나 링크를 깨뜨리지 않는다. 일반 문의 주소가 있다는 사실을 실제 삭제 접수 서비스가 구현됐다는 뜻으로 확대하지 않는다.
 
 1. 재부팅은 완료됐고 2026-09-23 읽기 점검에서 WHPX 사용 가능 및 16KB 격리 x86_64 게스트 부팅을 확인했다. BCD 값은 권한 부족으로 계속 미조회이나 현재 에뮬레이터 가속의 차단 요인은 아니다. 추가 재부팅·BCD 쓰기·OS 기능 변경을 요청하지 않는다. ARM64 네이티브 16KB 기기에서의 실행 확인은 별도로 남아 있다.
-2. [기존 키 로컬 암호화 백업](signing-and-private-backup.ko.md)은 완료됐다. 10월 1일 Drive의 암호문·receipt 두 파일을 내려받아 각각 로컬 원본과 해시 일치를 확인했다. 외부 사본의 복호화·내용 대조는 남아 있으며 offsiteVerified=false를 유지한다. 기존 JKS 암호도 여전히 미확인으로 keystorePasswordVerified=false이며 새 백업 암호와 구분한다. 기존 키 보존 선택을 reset·새 키 생성 승인 질문으로 다시 전환하지 않는다. 최종 서명 단계에는 기존 개인키 사용 가능성과 실제 Console 공개 인증서·versionCode·트랙을 대조한다.
+2. [기존 키 백업](signing-and-private-backup.ko.md)은 로컬 암호화·Drive 사본 무결성과 메모리 복호화 1회·내부 manifest/세 역할 정합까지 확인했다. 권위 있는 원본 역할별 직접 대조는 남아 authoritativeOriginalRoleComparison=false·offsiteVerified=false를 유지한다. 기존 JKS 암호도 여전히 미확인으로 keystorePasswordVerified=false이며 새 백업 암호와 구분한다. 기존 receipt는 수정하지 않았다. 기존 키 보존 선택을 reset·새 키 생성 승인 질문으로 다시 전환하지 않는다. 최종 서명 단계에는 기존 개인키 사용 가능성과 실제 Console 공개 인증서·versionCode·트랙을 대조한다.
 3. Classic CloudScript 접수와 [외부 이메일 요청](../account-deletion.ko.md), 삭제 후 자체 계정·진행 데이터의 별도 보관 사본을 만들지 않고 요청 이메일 원문·소유 확인 자료를 처리 종료 후 삭제하는 원칙은 승인됐다. [운영 연결](cloudscript-operating-activation.ko.md)의 설정 읽기와 [승인된 폐기 계정 1개의 온라인 시험](deletion-online-followup.ko.md)은 구분한다. 후자는 접수·로컬 정리·타이틀 검색 부재와 원복 관측이며 운영 계정의 전체 소거·메일 운영과 공급자 백업·로그·메일 서비스의 잔존 범위·처리 기간은 별도 검증이 필요하다. 구매 복원 기능은 유지하지만 삭제 후 새 게임 계정에서의 실제 No Ads 복원은 미검증이다. 확정된 경로·원칙과 완료한 시험의 승인을 다시 묻지 않는다.
 4. 전용 PlayFab 타이틀·미공개 Google 테스트 앱·catalog·Google add-on·테스터·상품·업로드와 수동 계정 연결은 완료됐다. 격리 앱의 로그인·무료 구매·동일 설치 복원은 [실제 IAP 결과](iap-test-bundle.ko.md#무료-테스트-구매복원재시작-검증-완료)를 따른다. 과거 PlayerCreationDisabled는 현재 차단 요인이 아니다. 남은 독립 acknowledgment 조회에는 해당 앱에 접근 가능한 Android Publisher 인증이, 취소/실패 결제에는 승인된 미구매 테스트 조건이 필요하다. 기존 구매 권한을 삭제하거나 초기화해 조건을 만들지 않는다. 다른 기기·삭제 후 복원은 별도 미검증이다. PlayFab 내장 영수증 검증을 위해 VPS를 새로 요구하지 않는다.
 5. 2026-09-21 사용자가 정상 광고와 No Ads 신규 구매·기존 권한·복원 유지를 확정했다. 광고 차단·신규 판매 중단 임시 출시안은 채택하지 않았으므로 판매 범위를 다시 묻지 않는다. 2026-09-28 사용자는 AdMob 유지·Unity Ads 철회 방향에서 기존 광고형 보상 유지(A)를 확정했고 일반 광고·게임 보상 분리(B)는 채택하지 않았다. [결정 기록과 조기 닫기 조사](admob-product-options.ko.md)를 따르며 제품 선택을 다시 묻지 않는다. 광고 닫기와 SDK 보상 취득 시점은 별개이며 앱 타이머로 보상을 지급하는 변경은 승인되지 않았다. 후속 5초 조사 보류 결정에 따라 나머지 복구를 계속하고 실제 닫기·정책 적합성은 미해결로 기록한다. [확정 실행 기준](ad-recovery-decision.ko.md)의 과거 기술 해결 문구를 추가 조사 재개의 필수 조건이나 새로운 제품 선택 질문으로 사용하지 않는다.
