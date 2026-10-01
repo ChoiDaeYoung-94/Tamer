@@ -81,6 +81,7 @@ if (!$ready -and ((Test-Path $key) -or (Test-Path $passwordFile) -or (Test-Path 
 $pointer = [IntPtr]::Zero
 $snapshot = $null
 $resourceSnapshot = @()
+$previousKeyPath = [Environment]::GetEnvironmentVariable('TAMER_IAP_TEST_KEY_PATH', 'Process')
 try {
     if (!$ready) {
         $random = New-Object byte[] 32
@@ -184,7 +185,8 @@ try {
             }
         }
     } finally {
-    Remove-Item Env:TAMER_IAP_TEST_KEY_PATH, Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue
+    [Environment]::SetEnvironmentVariable('TAMER_IAP_TEST_KEY_PATH', $previousKeyPath, 'Process')
+    Remove-Item Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue
     if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
     $secret = $null
     }
