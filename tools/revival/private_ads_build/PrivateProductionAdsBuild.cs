@@ -48,8 +48,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         }
     }
 
-    // No settings/signing mutators here. A separately authorized owner must prepare
-    // the correct AAB/signing settings before this entry point can run.
+    // Only a scoped IL2CPP linker-argument override is applied here. The authorized
+    // owner must prepare the correct AAB/signing settings before this entry point can run.
     public static void Build()
     {
         try
@@ -68,7 +68,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             injections = loginScenes = 0;
             preprocessed = postprocessed = false;
             CheckSnapshot();
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
+            BuildReport report;
+            using (RevivalBuild.AndroidRelroLinkScope())
+            report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = (string[])snapshot.Scenes.Clone(), locationPathName = snapshot.Output,
                 target = BuildTarget.Android, options = BuildOptions.None,
                 extraScriptingDefines = new string[0] });
