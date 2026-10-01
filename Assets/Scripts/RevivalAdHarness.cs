@@ -305,10 +305,10 @@ public sealed class RevivalAdHarness : MonoBehaviour
                     : "ump_registration_halted update_failed no_retry");
             }));
         }
-        catch (Exception)
+        catch (Exception exception)
         {
             _registrationInFlight = false;
-            Record("ump_registration_halted exception no_retry");
+            Record("ump_registration_halted exception no_retry exception_type=" + exception.GetType().Name);
         }
     }
 #endif

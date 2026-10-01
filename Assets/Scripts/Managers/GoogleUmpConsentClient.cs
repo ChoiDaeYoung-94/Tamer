@@ -35,7 +35,7 @@ namespace AD
         {
             var parameters = new ConsentRequestParameters { TagForUnderAgeOfConsent = underAgeOfConsent };
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
-            parameters.ConsentDebugSettings = _debugSettings;
+            if (_debugSettings != null) parameters.ConsentDebugSettings = _debugSettings;
 #endif
             ConsentInformation.Update(parameters,
                 error => completed(error == null));
