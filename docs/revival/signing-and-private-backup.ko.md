@@ -1,5 +1,20 @@
 # 서명 역할 확인과 비공개 에셋 복구
 
+## 2026-10-01 Drive 사본 존재와 다운로드 무결성 확인
+
+사용자가 기존 키 백업의 두 파일을 직접 업로드한 뒤, Google Drive connector로
+`recovery.zip.gpg`(4,955 bytes)와 `verified-receipt.json`(287 bytes)을 실제 내려받았다.
+두 사본의 SHA-256이 각각 로컬 원본과 일치했으며 Drive metadata의 공유 상태는 둘 다
+`not_shared`였다. 이 결과는 **외부 파일 존재·다운로드 무결성 PASS**다.
+사본과 해시 근거는 비공개로 보존하고 개인 경로·Drive ID·영수증 원문은 공개하지 않는다.
+내려받은 사본의 전용 로컬 폴더 ACL은 현재 Windows 소유자와 SYSTEM의 FullControl
+두 규칙만 남도록 상속을 제한하고 확인했다. 이는 Drive 공유 상태와 별개의 로컬 접근 통제다.
+
+외부 사본의 복호화·내용 대조와 기존 keystore 암호 검증은 수행하지 않았다.
+기존 receipt의 `offsiteVerified=false`, `keystorePasswordVerified=false`는 수정하지 않는다.
+새 백업 암호와 기존 키 암호는 별개이며, 다운로드 성공을 외부 복구·서명 가능성 확인으로
+확대하지 않는다. 아래 미업로드·미다운로드 표현은 각 날짜의 이력이다.
+
 ## 2026-09-30 실제 키의 로컬 암호화 백업 완료
 
 사용자 승인으로 준비된 기존 키·공개 인증서·복구 메모 세 파일의 실제 백업을 한 번
@@ -26,7 +41,7 @@ collect 시점 snapshot 및 종료 시 불변을 검사했으며, 준비 당시 
 
 Drive에는 사용자가 두 파일을 직접 업로드한다. 다시 내려받은 암호문의 SHA-256을
 receipt의 `encryptedSha256`과 비교한 후, 새 로컬 입력으로 복호화·내용 대조가 끝나야
-외부 복구 검증 완료로 기록한다. 현재 Drive 전송·재다운로드는 하지 않았으며
+외부 복구 검증 완료로 기록한다. 9월 30일 이 실행에서는 Drive 전송·재다운로드를 하지 않았으며
 `offsiteVerified=false`, `keystorePasswordVerified=false`를 유지한다. 새 백업 암호는
 기존 JKS 암호를 복구하거나 대체하지 않는다. 아래 준비/미완료 표현은 당시 이력이다.
 
