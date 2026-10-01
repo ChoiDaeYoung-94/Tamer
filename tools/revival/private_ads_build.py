@@ -244,6 +244,42 @@ def execute(root, config, head, version):
     raise ValueError('Execution blocked: Unity and lifecycle readiness incomplete')
 
 
+
+def verify_hook_receipt(root, state):
+    """Bind the disabled callback result to this owned run; never certify a binary."""
+    run = safe_path(root, state['run'])
+    def reject_constant(_):
+        raise ValueError('Invalid receipt constant')
+    receipt = json.loads(safe_path(root, state['run'] + '/hook-receipt.json').read_text(encoding='utf-8'),
+                         object_pairs_hook=unique_object, parse_constant=reject_constant)
+    expected = {'schema': 1, 'runId': state['runId'], 'sourceHead': state['head'],
+                'configSha256': state['configSha256'], 'unityVersion': state['editorVersion'],
+                'injectedManagers': 1, 'loginScenes': 1, 'preprocessed': True, 'postprocessed': True,
+                'buildSceneValueMatched': True, 'compiledEditorGatesDisabled': True,
+                'productionContractVerified': False, 'binaryVerified': False, 'distributable': False}
+    extra = {'artifactSha256', 'configuredAndroidDefines', 'prospectivePlayerDefinePlanSha256'}
+    if not isinstance(receipt, dict) or set(receipt) != set(expected) | extra:
+        raise ValueError('Receipt schema rejected')
+    if any(type(receipt[key]) is not type(value) or receipt[key] != value
+           for key, value in expected.items()):
+        raise ValueError('Receipt run or callback state rejected')
+    if any(not isinstance(receipt[key], str) or not re.fullmatch('[0-9a-f]{64}', receipt[key])
+           for key in ('artifactSha256', 'prospectivePlayerDefinePlanSha256')):
+        raise ValueError('Receipt digest rejected')
+    defines = receipt['configuredAndroidDefines']
+    if not isinstance(defines, str) or any(symbol.startswith('TAMER_') or
+            'TEST' in symbol.upper() or 'HARNESS' in symbol.upper() or symbol == 'DEVELOPMENT_BUILD'
+            for symbol in defines.split(';')):
+        raise ValueError('Receipt configured defines rejected')
+    if digest(safe_path(root, Path(state['config']).relative_to(root)).read_bytes()) != state['configSha256']:
+        raise ValueError('Receipt configuration changed')
+    artifact = safe_path(root, state['run'] + '/disabled-preparation.aab')
+    if not artifact.is_file() or artifact.stat().st_size == 0 or digest(artifact.read_bytes()) != receipt['artifactSha256']:
+        raise ValueError('Receipt artifact mismatch')
+    return {'hookReceiptVerified': True, 'productionContractVerified': False,
+            'binaryVerified': False, 'distributable': False}
+
+
 def _execute_after_contract_review(root, config, head, version):
     """Unreachable draft; not a supported API until contract verification is cleared."""
     pre = preflight(root, config, head, version)
@@ -255,7 +291,8 @@ def _execute_after_contract_review(root, config, head, version):
         for key in list(env):
             if key.startswith('TAMER_PRIVATE_ADS_'):
                 del env[key]
-        env.update(TAMER_PRIVATE_ADS_PREPARE='1', TAMER_PRIVATE_ADS_CONFIG=str(config),
+        env.update(TAMER_PRIVATE_ADS_PREPARE='1', TAMER_PRIVATE_ADS_RUN_ID=state['runId'],
+                   TAMER_PRIVATE_ADS_SOURCE_HEAD=state['head'], TAMER_PRIVATE_ADS_CONFIG=str(config),
                    TAMER_PRIVATE_ADS_SHA256=state['configSha256'],
                    TAMER_PRIVATE_ADS_OUTPUT=str(run / 'disabled-preparation.aab'),
                    TAMER_PRIVATE_ADS_RECEIPT=str(run / 'hook-receipt.json'))
@@ -272,7 +309,7 @@ def _execute_after_contract_review(root, config, head, version):
             result = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT)
         if result.returncode or not (run / 'hook-receipt.json').is_file():
             raise ValueError('Preparation did not complete')
-        return {'hookReceiptPresent': True, 'binaryVerified': False, 'distributable': False}
+        return verify_hook_receipt(root, state)
     finally:
         if state:
             require_editor_closed(root)

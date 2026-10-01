@@ -229,5 +229,58 @@ catch { Console.WriteLine("reject"); }
                   str(expected.count('accept')) + ' accepted, ' + str(expected.count('reject')) + ' rejected.')
 
 
+class HookReceiptTests(unittest.TestCase):
+    def test_receipt_binding_and_fail_closed_flags(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            run = root / 'run'
+            run.mkdir()
+            config = root / 'config.json'
+            config.write_bytes(b'{}')
+            artifact = run / 'disabled-preparation.aab'
+            artifact.write_bytes(b'synthetic artifact only')
+            state = {'run': 'run', 'runId': '1' * 32, 'head': '2' * 40,
+                     'config': str(config), 'configSha256': build.digest(b'{}'), 'editorVersion': '6000.3.25f1'}
+            receipt = {'schema': 1, 'runId': state['runId'], 'sourceHead': state['head'],
+                       'configSha256': state['configSha256'], 'unityVersion': state['editorVersion'],
+                       'artifactSha256': build.digest(artifact.read_bytes()), 'configuredAndroidDefines': '',
+                       'prospectivePlayerDefinePlanSha256': '3' * 64, 'injectedManagers': 1, 'loginScenes': 1,
+                       'preprocessed': True, 'postprocessed': True, 'buildSceneValueMatched': True,
+                       'compiledEditorGatesDisabled': True, 'productionContractVerified': False,
+                       'binaryVerified': False, 'distributable': False}
+            path = run / 'hook-receipt.json'
+            path.write_text(json.dumps(receipt), encoding='utf-8')
+            result = build.verify_hook_receipt(root, state)
+            self.assertTrue(result['hookReceiptVerified'])
+            for key in ('productionContractVerified', 'binaryVerified', 'distributable'):
+                self.assertIs(result[key], False)
+            with self.assertRaises(ValueError):
+                build.execute(root, config, state['head'], state['editorVersion'])
+            cases = [('runId', '4' * 32), ('sourceHead', '5' * 40), ('configSha256', '6' * 64),
+                     ('unityVersion', 'wrong'), ('artifactSha256', '7' * 64), ('injectedManagers', True),
+                     ('loginScenes', 2), ('preprocessed', False), ('postprocessed', False),
+                     ('productionContractVerified', True), ('binaryVerified', True), ('distributable', True),
+                     ('configuredAndroidDefines', 'TAMER_TEST_ADS'), ('prospectivePlayerDefinePlanSha256', 'bad')]
+            malformed = ['{}', '[]', '{', json.dumps(receipt)[:-1] + ',"schema":1}',
+                         json.dumps(dict(receipt, unexpected=True))]
+            for raw in [json.dumps(dict(receipt, **{key: value})) for key, value in cases] + malformed:
+                with self.subTest(raw=raw[:40]):
+                    path.write_text(raw, encoding='utf-8')
+                    with self.assertRaises(ValueError):
+                        build.verify_hook_receipt(root, state)
+            path.write_text(json.dumps(receipt), encoding='utf-8')
+            config.write_bytes(b'changed')
+            with self.assertRaises(ValueError):
+                build.verify_hook_receipt(root, state)
+            config.write_bytes(b'{}')
+            for content in (b'changed', b''):
+                artifact.write_bytes(content)
+                with self.assertRaises(ValueError):
+                    build.verify_hook_receipt(root, state)
+            artifact.unlink()
+            with self.assertRaises(ValueError):
+                build.verify_hook_receipt(root, state)
+
+
 if __name__ == '__main__':
     unittest.main()
