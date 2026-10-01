@@ -20,6 +20,9 @@ Gather·폼·privacy options·Reset·managed Mobile Ads initialize/load/show 호
 
 ## 단계별 실행 계획 — 별도 지시 전 실행 보류
 
+아래는 실행 전 계획이다. 후속 지시로 진행한 빌드·교체 설치·등록 첫 시도의 실제 결과는
+문서 끝에 구분해 기록한다.
+
 1. 변경 커밋과 clean checkout을 고정하고, 해당 checkout Editor 부재를 확인한다.
    기본 검증은 Unity 번들 Roslyn과 기존 publisher player RSP의 참조·소스로 수행하는
    순수 컴파일 1회다. 출력만 ignored 증거 폴더에 저장한다. Editor·assembly load·빌드·기기
@@ -55,3 +58,35 @@ Gather·폼·privacy options·Reset·managed Mobile Ads initialize/load/show 호
 runner가 실패했고, 후속 읽기에서 실제 시작을 확인했다. 이 둘을 구분해 보존한다.
 이번 준비는 Console 설정·운영 광고·로그인·구매·저장·계정·국가 범위 변경을 포함하지 않는다.
 원시 로그·기기 식별값·publisher 설정·SDK 해시는 ignored 폴더 밖에 공개하지 않는다.
+
+## 2026-10-01 실제 빌드·교체 설치와 등록 첫 시도
+
+실행 소스는 `9d215537a77ecc949f4d5e60724b2305609cdaeb`(PR #293), Unity
+`6000.3.25f1`/revision `e1dba0a9aba4`/CLI `1.0.0-beta.8`, min25·target36·ARM64·
+IL2CPP·debug signing·version1.0.5/code26·기존 격리 패키지와 harness 씬이다.
+앞선 순수 Roslyn 컴파일 1회 PASS와 실제 등록 런타임 결과는 별개다.
+
+기존 `BuildUmpPublisher` **1회 exit0**로 새 APK 116,380,113 bytes를 생성했다.
+SHA-256은 `4432efd1cf0018d65c7cc610891486b5b1944490c323514549813b7c0ee6d00c`다.
+player의 네 harness define와 `UNITY_EDITOR` 부재, 실제 게시자 App ID 일치 및 기존
+debug certificate 일치를 확인했다. APK 검사 출력 파싱 실패 1회는 보존했고, 외부 명령을
+재실행하지 않은 기존 출력 재파싱 2차가 PASS였다. 최종 독립 검토도 통과했다.
+변경 파일 8개 복원·신규 파일 2개 비공개 보존 후 정리, 보호 파일 6,861개·Assets 6,827개·
+meta 3,603개의 내용 대조와 Git clean/Editor 종료를 확인했다. 기존 APK의 보존본과 새 APK의
+원본·보존본은 유지했다. 씬 내용·meta/GUID는 일치하나 빌더 저장으로 파일 identity가
+변경됐으므로 원래 파일 identity까지 복원됐다고 주장하지 않는다.
+
+데이터 보존 교체 설치 `adb install -r` **1회**와 앱 시작 **1회** 후, 설치된 APK가
+새 APK와 바이트·해시로 일치하고 해당 앱 PID의 실제 부팅 로그가 있음을 확인했다.
+clear·uninstall·reset·downgrade는 하지 않았다. 앱 데이터 내용을 검사하지 않았으므로
+이 설치 방식만으로 기존 데이터 불변을 보증하지 않는다. 앞선 최초 PID 확인 실패 1회와
+이후 부팅 확인, 이번 등록 실패는 서로 다른 결과로 보존한다.
+
+명시적 등록 버튼 **1회**에서 managed 등록 시작 1건 뒤 catch 예외 중단 1건이 기록됐다.
+완료 콜백·실패 콜백·timeout·SDK 등록 해시는 모두 0건이었다. **등록 첫 시도는 실패**이며,
+실제 네이티브 SDK Update 도달과 네트워크 발생 여부는 미확정이다. 현재 catch가 예외
+type/message를 남기지 않아 원인은 확정하지 못했고 정적 조사 중이다. 자동 재시도·추가
+빌드/SDK 실행·EEA 관측은 하지 않았다. 가짜 해시나 반복 bootstrap으로 진행하지 않는다.
+운영 gate는 false로 유지하며 운영 로그인·저장·구매·managed 광고 초기화/로드/표시는 0회다.
+과거 성인 미국 3차 성공은 유지하고, 새 EEA/연령·전체 16KB·최종 AAB 검증은 미완료다.
+원시 로그·기기 식별값·SDK 해시·비공개 구성과 경로는 공개하지 않는다.
