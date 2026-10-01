@@ -76,6 +76,30 @@ class ReleaseCandidateTests(unittest.TestCase):
                 ensure_output_safe(output,[source])
             self.assertEqual(source.read_bytes(),b'original tool')
 
+    def test_existing_report_rejected_before_candidate_commands(self):
+        with tempfile.TemporaryDirectory() as folder:
+            report=Path(folder)/'report.json'
+            report.write_bytes(b'prior evidence')
+            args=['verify_release_candidate','--output',str(report),'aab','--aab','not-opened.aab',
+                  '--version-code','27','--published-max-code','26','--upload-cert-sha256','0'*64]
+            with patch.object(sys,'argv',args), patch('verify_release_candidate.candidate_checks') as check:
+                with self.assertRaisesRegex(ValueError,'Output already exists'):
+                    main()
+                check.assert_not_called()
+            self.assertEqual(report.read_bytes(),b'prior evidence')
+
+    def test_report_created_during_check_is_preserved(self):
+        with tempfile.TemporaryDirectory() as folder:
+            report=Path(folder)/'report.json'
+            def concurrent_report(root):
+                report.write_bytes(b'concurrent evidence')
+                return {'sourceChecksPassed':True}
+            args=['verify_release_candidate','--output',str(report),'source']
+            with patch.object(sys,'argv',args), patch('verify_release_candidate.source_checks',side_effect=concurrent_report):
+                with self.assertRaises(FileExistsError):
+                    main()
+            self.assertEqual(report.read_bytes(),b'concurrent evidence')
+
     def test_big_endian_aarch64_is_rejected_even_with_aligned_load_and_relro(self):
         segments=[dict(memsz=16384),dict(kind=0x6474E552,memsz=16384)]
         with tempfile.TemporaryDirectory() as folder:
@@ -106,6 +130,10 @@ class ReleaseCandidateTests(unittest.TestCase):
                     self.assertEqual(passed,result['artifactChecksPassed'])
                     self.assertEqual(present,result['libraries'][0]['relroPresent'])
                     self.assertFalse(result['releaseReady'])
+                    self.assertFalse(result['deliveredApkZipAlignmentVerified'])
+                    self.assertFalse(result['arm64NativeRuntimeVerified'])
+                    self.assertFalse(result['productionBinary16KBVerified'])
+                    self.assertIn('AAB',result['artifactCheckScope'])
                     if present:
                         self.assertFalse(result['libraries'][0]['relroPassed'])
                         self.assertTrue(result['libraries'][0]['relroErrors'])
