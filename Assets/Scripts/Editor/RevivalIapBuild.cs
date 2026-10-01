@@ -126,7 +126,11 @@ public static class RevivalIapBuild
             PlayerSettings.Android.useCustomKeystore = false;
             if (storeBundle)
             {
-                string testKey = Path.GetFullPath(".revival-local/iap-signing/test-upload.jks");
+                string selectedKey = Environment.GetEnvironmentVariable("TAMER_IAP_TEST_KEY_PATH");
+                if (!string.IsNullOrEmpty(selectedKey) && !Path.IsPathFullyQualified(selectedKey))
+                    throw new BuildFailedException("Explicit test signing key path must be absolute.");
+                string testKey = Path.GetFullPath(string.IsNullOrEmpty(selectedKey)
+                    ? ".revival-local/iap-signing/test-upload.jks" : selectedKey);
                 string password = Environment.GetEnvironmentVariable("TAMER_IAP_TEST_KEY_PASSWORD");
                 if (!File.Exists(testKey) || string.IsNullOrEmpty(password))
                     throw new BuildFailedException("Dedicated local test signing key/password required.");

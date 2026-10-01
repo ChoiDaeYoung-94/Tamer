@@ -3,12 +3,36 @@ param(
     [string]$ProductionTitle,
     [string]$Catalog = 'iap-test-v1',
     [switch]$PrepareOnly,
-    [switch]$CreateSigningForNewTestApp
+    [switch]$CreateSigningForNewTestApp,
+    [string]$SigningDirectory
 )
 $ErrorActionPreference = 'Stop'
 $project = (Resolve-Path "$PSScriptRoot/../..").Path
 . "$PSScriptRoot/ProjectSettingsSnapshot.ps1"
-$private = Join-Path $project '.revival-local/iap-signing'
+function Assert-IapExistingSigningDirectory {
+    param([Parameter(Mandatory)][string]$Path)
+    if (![IO.Path]::IsPathFullyQualified($Path)) { throw 'Signing directory must be an absolute existing path.' }
+    $directory = [IO.Path]::GetFullPath($Path)
+    $cursor = $directory
+    while ($cursor) {
+        if (!(Test-Path -LiteralPath $cursor -PathType Container) -or
+            ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw 'Signing directory and ancestors must be existing regular directories.'
+        }
+        $cursor = [IO.Path]::GetDirectoryName($cursor)
+    }
+    foreach ($name in @('test-upload.jks', 'password.dpapi', 'test-upload.der', 'test-only.json')) {
+        $path = Join-Path $directory $name
+        if (!(Test-Path -LiteralPath $path -PathType Leaf) -or
+            ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw 'The four existing regular IAP signing files are required.'
+        }
+    }
+    return $directory
+}
+$externalSigning = $PSBoundParameters.ContainsKey('SigningDirectory')
+if ($externalSigning -and $CreateSigningForNewTestApp) { throw 'External signing selection cannot create a new key.' }
+$private = if ($externalSigning) { Assert-IapExistingSigningDirectory -Path $SigningDirectory } else { Join-Path $project '.revival-local/iap-signing' }
 $jdk = 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin'
 $key = Join-Path $private 'test-upload.jks'
 $passwordFile = Join-Path $private 'password.dpapi'
@@ -29,25 +53,28 @@ function Assert-IapSigningPreparation {
 }
 $existingSigningFiles = @(@($key, $passwordFile, $certificate, $marker) | Where-Object { Test-Path -LiteralPath $_ }).Count
 Assert-IapSigningPreparation -ExistingFiles $existingSigningFiles -PrepareOnly ([bool]$PrepareOnly) -CreateSigningForNewTestApp ([bool]$CreateSigningForNewTestApp)
-if (Test-Path $private) {
-    if ((Get-Item -LiteralPath $private).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Signing directory must not be a link.' }
-} else { New-Item -ItemType Directory -Path $private | Out-Null }
 $acl = [Security.AccessControl.DirectorySecurity]::new()
 $acl.SetAccessRuleProtection($true, $false)
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
 $rule = [Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
 $acl.SetAccessRule($rule)
-[IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($private), $acl)
-foreach ($path in @($key, $passwordFile, $certificate, $marker, (Join-Path $private "keytool.log"), (Join-Path $private "certificate.log"))) {
-    if ((Test-Path $path) -and ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Signing files must not be links.' }
-    if (Test-Path $path) {
-        $fileAcl = [Security.AccessControl.FileSecurity]::new()
-        $fileAcl.SetAccessRuleProtection($true, $false)
-        $fileAcl.SetAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'Allow'))
-        [IO.FileSystemAclExtensions]::SetAccessControl([IO.FileInfo]::new($path), $fileAcl)
+if (!$externalSigning) {
+    if (Test-Path -LiteralPath $private) {
+        if ((Get-Item -LiteralPath $private).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Signing directory must not be a link.' }
+    } else { New-Item -ItemType Directory -Path $private | Out-Null }
+    [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($private), $acl)
+    foreach ($path in @($key, $passwordFile, $certificate, $marker, (Join-Path $private "keytool.log"), (Join-Path $private "certificate.log"))) {
+        if ((Test-Path -LiteralPath $path) -and ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Signing files must not be links.' }
+        if (Test-Path -LiteralPath $path) {
+            $fileAcl = [Security.AccessControl.FileSecurity]::new()
+            $fileAcl.SetAccessRuleProtection($true, $false)
+            $fileAcl.SetAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'Allow'))
+            [IO.FileSystemAclExtensions]::SetAccessControl([IO.FileInfo]::new($path), $fileAcl)
+        }
     }
 }
-$ready = (Test-Path $key) -and (Test-Path $passwordFile) -and (Test-Path $certificate) -and (Test-Path $marker)
+$ready = (Test-Path -LiteralPath $key) -and (Test-Path -LiteralPath $passwordFile) -and (Test-Path -LiteralPath $certificate) -and (Test-Path -LiteralPath $marker)
+if ($externalSigning -and !$ready) { throw 'External signing files became unavailable; preserve and inspect.' }
 if (!$ready -and ((Test-Path $key) -or (Test-Path $passwordFile) -or (Test-Path $certificate) -or (Test-Path $marker))) {
     throw 'Partial signing setup exists; preserve it for inspection.'
 }
@@ -64,14 +91,16 @@ try {
         ConvertTo-SecureString $secret -AsPlainText -Force | ConvertFrom-SecureString | Set-Content -LiteralPath $passwordFile
     } else {
         $metadata = Get-Content -LiteralPath $marker -Raw | ConvertFrom-Json
+        if ($externalSigning -and ($metadata.keySha256 -notmatch '^[a-fA-F0-9]{64}$' -or $metadata.certificateSha256 -notmatch '^[a-fA-F0-9]{64}$')) { throw 'External signing marker requires key and certificate SHA-256 fields.' }
         if ($metadata.applicationId -ne 'com.AeDeong.MonsterTamer.iaptest' -or $metadata.alias -ne 'tamer-iap-test-upload') { throw 'Not the dedicated IAP test key.' }
-        if ((Get-FileHash $key -Algorithm SHA256).Hash -ne $metadata.keySha256) { throw 'Test key changed; preserve and inspect.' }
-        if ((Get-FileHash $certificate -Algorithm SHA256).Hash -ne $metadata.certificateSha256) { throw 'Test certificate changed; preserve and inspect.' }
+        if ((Get-FileHash -LiteralPath $key -Algorithm SHA256).Hash -ne $metadata.keySha256) { throw 'Test key changed; preserve and inspect.' }
+        if ((Get-FileHash -LiteralPath $certificate -Algorithm SHA256).Hash -ne $metadata.certificateSha256) { throw 'Test certificate changed; preserve and inspect.' }
         $secure = (Get-Content -LiteralPath $passwordFile -Raw).Trim() | ConvertTo-SecureString
         $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
         $secret = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
     }
     $env:TAMER_IAP_TEST_KEY_PASSWORD = $secret
+    $env:TAMER_IAP_TEST_KEY_PATH = $key
     if (!$ready) {
         & "$jdk/keytool.exe" -genkeypair -keystore $key -storetype JKS -storepass:env TAMER_IAP_TEST_KEY_PASSWORD -keypass:env TAMER_IAP_TEST_KEY_PASSWORD -alias tamer-iap-test-upload -keyalg RSA -keysize 3072 -validity 10000 -dname 'CN=Tamer IAP Test Upload, OU=Isolated Testing, O=Tamer Test, C=KR' *> (Join-Path $private 'keytool.log')
         if ($LASTEXITCODE -ne 0) { throw 'Test key generation failed; inspect private log.' }
@@ -155,7 +184,7 @@ try {
             }
         }
     } finally {
-    Remove-Item Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue
+    Remove-Item Env:TAMER_IAP_TEST_KEY_PATH, Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue
     if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
     $secret = $null
     }
