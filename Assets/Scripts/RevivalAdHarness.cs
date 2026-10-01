@@ -41,6 +41,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private bool _sampleConfigured;
 #if TAMER_UMP_PUBLISHER_HARNESS
     private bool _publisherContextAllowed;
+    private static bool _registrationAttempted;
+    private bool _registrationInFlight;
+    private double _registrationStartedAt;
 #endif
     private double _umpStartedAt;
     private static double Now => (double)System.Diagnostics.Stopwatch.GetTimestamp() /
@@ -126,6 +129,13 @@ public sealed class RevivalAdHarness : MonoBehaviour
     {
         if (UmpOnly)
         {
+#if TAMER_UMP_PUBLISHER_HARNESS
+            if (_registrationInFlight && Now - _registrationStartedAt >= 30)
+            {
+                _registrationInFlight = false;
+                Record("ump_registration_halted timeout no_retry");
+            }
+#endif
             while (_umpCallbacks.TryDequeue(out var callback)) callback();
             if (_ump != null && _ump.IsUpdating && Now - _umpStartedAt >= 30) _ump.ExpireUpdate();
             return;
@@ -225,7 +235,15 @@ public sealed class RevivalAdHarness : MonoBehaviour
         bool previousEnabled = GUI.enabled;
         GUI.enabled = previousEnabled && (_ump == null || !_ump.IsBusy);
 #if TAMER_UMP_PUBLISHER_HARNESS
-        GUI.enabled = GUI.enabled && _publisherContextAllowed;
+        GUI.enabled = GUI.enabled && _publisherContextAllowed && !_registrationAttempted && _ump == null;
+        GUILayout.Label("Registration only: one TFUA=true Update, no debug region/hash or consent form.");
+        if (GUILayout.Button("Explicit UMP registration only (network, once)", GUILayout.Height(52)))
+            StartUmpRegistrationOnly();
+        if (_registrationAttempted)
+            GUILayout.Label(_registrationInFlight ? "Registration pending; all consent controls locked."
+                : "Registration halted. Verify exactly one original SDK hash in private own-PID logs before any next test.");
+        GUI.enabled = previousEnabled && _publisherContextAllowed && !_registrationAttempted &&
+            (_ump == null || !_ump.IsBusy);
 #endif
         foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice)))
             if (GUILayout.Button("Test age: " + age + (_testAge == age ? " [selected]" : "")))
@@ -249,7 +267,8 @@ public sealed class RevivalAdHarness : MonoBehaviour
     {
         if (!UmpOnly || (_ump != null && _ump.IsBusy)) return;
 #if TAMER_UMP_PUBLISHER_HARNESS
-        if (!_publisherContextAllowed) { Record("ump_blocked publisher_context"); return; }
+        if (!_publisherContextAllowed || _registrationAttempted)
+        { Record("ump_blocked publisher_context_or_registration_latch"); return; }
 #endif
         DisposeUmp();
         if (!AgeTreatmentPolicy.TryCreatePlan(_testAge, out var plan))
@@ -263,6 +282,37 @@ public sealed class RevivalAdHarness : MonoBehaviour
         _ump.Request(allowed => Record("ump_finished can_request=" + allowed + " ads_disabled=true"));
     }
 
+#if TAMER_UMP_PUBLISHER_HARNESS
+    private void StartUmpRegistrationOnly()
+    {
+        if (!UmpOnly || !_publisherContextAllowed || _registrationAttempted || _ump != null ||
+            Managers.Instance != null || Application.isEditor || Application.platform != RuntimePlatform.Android ||
+            !Debug.isDebugBuild || Application.identifier != "com.AeDeong.MonsterTamer.revival.umppublisher" ||
+            SceneManager.GetActiveScene().path != "Assets/Tests/Scenes/RevivalAdHarness.unity" ||
+            AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed) return;
+        // Process-lifetime latch survives owner recreation. Neither timeout nor callback permits retry.
+        _registrationAttempted = true;
+        _registrationInFlight = true;
+        _registrationStartedAt = Now;
+        Record("ump_registration_start tfua=true debug_settings=false forms=false ads_disabled=true");
+        try
+        {
+            new GoogleUmpConsentClient().Update(true, succeeded => _umpCallbacks.Enqueue(() =>
+            {
+                if (this == null || !_registrationInFlight) return;
+                _registrationInFlight = false;
+                Record(succeeded ? "ump_registration_halted update_completed await_private_sdk_hash no_retry"
+                    : "ump_registration_halted update_failed no_retry");
+            }));
+        }
+        catch (Exception)
+        {
+            _registrationInFlight = false;
+            Record("ump_registration_halted exception no_retry");
+        }
+    }
+#endif
+
     private void DisposeUmp()
     {
         _ump?.Dispose();
@@ -271,6 +321,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void OnDestroy()
     {
+#if TAMER_UMP_PUBLISHER_HARNESS
+        _registrationInFlight = false;
+#endif
         DisposeUmp();
         if (Ads != null) Ads.HarnessEvent -= OnAdEvent;
         if (_tone != null) Destroy(_tone);
