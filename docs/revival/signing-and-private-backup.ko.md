@@ -190,7 +190,13 @@ GPGS·OAuth·App Links 등 인증서에 묶인 연동은 실제 배포 인증서
 메뉴 선택과 실제 빌드 시작 시 각각 입력을 확인한다. 없는 파일, 상대 경로, Git 폴더 안의 경로,
 심볼릭 링크·정션 경유 경로, 잘못된 alias·지문·저장소 비밀번호 또는 기대 지문과 다른 인증서라면 버전 파일이나
 Player Settings를 변경하기 전에 메뉴 진입을 중단한다. 첫 검사를 통과한 뒤 입력이 바뀌어 두 번째 검사에서
-실패하면 빌드 단계의 버전·서명 설정 변경 전에 중단되지만, 메뉴가 이미 변경한 scripting defines는 남을 수 있다.
+실패하면 빌드 단계의 버전·서명 설정 변경 전에 중단하고 메뉴가 준비한 표시 파일과 scripting defines를 정리한다.
+준비 전 define과 요청 토큰은 Editor의 `SessionState`에 저장하여 define 변경에 따른 도메인 리로드를 견딘다.
+기존 APK/AAB/완료 표시가 있으면 덮어쓰지 않고 새 요청을 거절한다. 정리는 해당 토큰의 표시만 삭제하며,
+현재 define이 이번 요청이 적용한 값일 때만 이전 값으로 복원한다. 사용자가 중간에 변경한 다른 define은 보존한다.
+성공한 빌드의 릴리스 define은 유지한다. 실패·취소 또는 실행 도중 리로드로 중단된 요청은 자동 재시도하지 않는다.
+준비 snapshot이 없는 기존·고아 표시는 자동 빌드로 재개하지 않고 보존하여 오류를 보고한다.
+메뉴 준비는 batch에서 거절하며 기존 CI/CD 보류를 유지한다.
 Unity가 사용하는 JDK의 `keytool -exportcert`로
 alias의 **공개 DER만** 읽어 지문을 비교하며 개인키를 내보내지 않는다. 빌드 중 적용한
 키 경로·alias·비밀번호는 완료 또는 실패 후 이전 Editor 설정으로 복원한다.
@@ -207,6 +213,20 @@ Unity CLI `1.0.0-beta.8`에서 복원 에셋 4,561개를 검증한 뒤
 컴파일에 실패했고, 기존 테스트와 같은 reflection 방식으로 고쳐 두 번째 실행에서 4개 모두 통과했다.
 검사 전후 `ProjectSettings`는 원본 바이트로 복원했다. 검증에는 일회용 합성 JKS만 사용했으며,
 운영 키 서명·APK/AAB 생성·Play Console 제출 또는 reset 활성화 검사는 수행하지 않았다.
+
+2026-10-01의 후속 원자성 수정은 `fce74849106f5606096dd113d62cb3b99c2a872b`에서 분기한
+`codex/release-build-rollback`에서 수행했다. 합성 임시 경로·define으로 기존 표시 보존, 리로드 snapshot의
+두 번째 검사 실패 정리, 취소 정리, 다른 소유자의 표시/define 보존, 성공 define 유지 및 표시 생성 경합을 검증했다.
+`pwsh -NoProfile -File tools/revival/test_legacy_build_preparation.ps1`의 6개 검사가 통과했다.
+실제 변경 C# 두 파일은 Unity `6000.3.25f1`의 Roslyn과 광고 담당의 읽기 전용 캐시 참조 392개로
+Editor 실행 없이 컴파일하여 exit 0을 확인했다(기존 API 사용의 CS0618 경고).
+첫 결과 수집은 Python의 cp949 출력 해독 오류로 실패했고, UTF-8 결과 수집으로 고쳐 두 번째에 exit 0을 기록했다.
+독립 검토 후 빌드 후 처리도 소유 snapshot·완료 토큰과 성공 결과가 모두 있어야 Editor 성공 종료를 예약하도록 보완했다.
+`pwsh -NoProfile -File tools/revival/test_legacy_build_preparation.ps1 -PostprocessOnly`로
+snapshot 없음·완료 표시 없음·실패/취소·소유 성공·다른 소유자의 표시 5조건이 통과했으며,
+이 delta의 실제 두 C# 소스 컴파일도 exit 0이다. 앞선 6개 검사를 변경 없이 반복하지 않았다.
+이 검증은 실제 Unity 이벤트 루프·도메인 리로드 실행이나 릴리스 빌드를 검증한 결과로 대신하지 않는다.
+운영 키 접근·서명·실제 APK/AAB·물리 기기·CI 실행은 모두 0회다.
 
 ### 새 업로드키의 Google Drive 백업 준비
 

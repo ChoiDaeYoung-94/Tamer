@@ -46,6 +46,23 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 
     // build 완료 후 에디터 종료 위함
     private const string CHECK_BUILD = "Build/checkedBuilding.txt";
+    private const string PREPARATION_SESSION = "Tamer.LegacyBuildPreparation";
+    private static bool preparationScheduled;
+
+    private static LegacyBuildPreparation ReadPreparation()
+    {
+        string json = SessionState.GetString(PREPARATION_SESSION, "");
+        return string.IsNullOrEmpty(json) ? null : JsonUtility.FromJson<LegacyBuildPreparation>(json);
+    }
+
+    private static void FinishPreparation(LegacyBuildPreparation preparation, bool succeeded)
+    {
+        // Clear the pending request before restoring defines can trigger another reload.
+        SessionState.EraseString(PREPARATION_SESSION);
+        preparation.Finish(succeeded,
+            () => PlayerSettings.GetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android),
+            value => PlayerSettings.SetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android, value));
+    }
 
     [MenuItem("Build/AOS/APK")]
     static void BuildAOSAPK() => SetAOS(form: CHECK_AOS_SETTING_APK);
@@ -63,19 +80,29 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
         // 입력이 잘못됐다면 빌드 표시 파일이나 PlayerSettings를 바꾸기 전에 중단한다.
         if (isAAB)
             ValidateReleaseUploadSigning();
+        if (Application.isBatchMode)
+            throw new BuildFailedException("메뉴 빌드 준비는 batch 모드에서 실행할 수 없습니다.");
 
-        if (!Directory.Exists("Build"))
-            Directory.CreateDirectory("Build");
-
-        StreamWriter file = File.CreateText(form);
-        file.Close();
-
-        if (isAAB)
-            PlayerSettings.SetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android, DEFINESYMBOLS_AAB);
-        else
-            PlayerSettings.SetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android, DEFINESYMBOLS_APK);
-
-        CheckCI();
+        if (ReadPreparation() != null)
+            throw new BuildFailedException("이미 준비 중인 빌드 요청이 있습니다.");
+        var preparation = LegacyBuildPreparation.Capture(form, CHECK_BUILD,
+            PlayerSettings.GetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android),
+            string.Join(";", isAAB ? DEFINESYMBOLS_AAB : DEFINESYMBOLS_APK),
+            CHECK_AOS_SETTING_APK, CHECK_AOS_SETTING_AAB, CHECK_BUILD);
+        SessionState.SetString(PREPARATION_SESSION, JsonUtility.ToJson(preparation));
+        try
+        {
+            preparation.WriteMarker();
+            preparation.DefinesApplied = true;
+            SessionState.SetString(PREPARATION_SESSION, JsonUtility.ToJson(preparation));
+            PlayerSettings.SetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android, preparation.AppliedDefines);
+            CheckCI();
+        }
+        catch
+        {
+            FinishPreparation(preparation, false);
+            throw;
+        }
     }
 
     /// <summary>
@@ -115,9 +142,14 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
         PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Android, ApiCompatibilityLevel.NET_4_6);
 
-        string filePath = CHECK_BUILD;
-        StreamWriter file = File.CreateText(filePath);
-        file.Close();
+        var preparation = ReadPreparation();
+        if (preparation != null)
+            preparation.WriteCompletionMarker();
+        else
+        {
+            StreamWriter file = File.CreateText(CHECK_BUILD);
+            file.Close();
+        }
 
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
 
@@ -175,6 +207,8 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 
         if (summary.result == BuildResult.Failed)
             Debug.Log("AOSBuild failed");
+        if (summary.result != BuildResult.Succeeded)
+            throw new BuildFailedException("AOS 빌드가 실패하거나 취소되었습니다.");
     }
 
     /// <summary>
@@ -407,17 +441,32 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 
         EditorApplication.delayCall += () =>
         {
-            if (File.Exists(CHECK_AOS_SETTING_APK))
+            var preparation = ReadPreparation();
+            if (preparation != null)
             {
-                File.Delete(CHECK_AOS_SETTING_APK);
-                BuildAOS(isAAB: false);
+                bool succeeded = false;
+                try
+                {
+                    // A reload after execution began is an interrupted request, not a retry.
+                    if (preparation.BuildStarted)
+                        throw new BuildFailedException("중단된 빌드 요청은 다시 메뉴에서 시작해 주세요.");
+                    preparation.RequireMarker();
+                    preparation.BuildStarted = true;
+                    SessionState.SetString(PREPARATION_SESSION, JsonUtility.ToJson(preparation));
+                    BuildAOS(preparation.MarkerPath == CHECK_AOS_SETTING_AAB);
+                    succeeded = true;
+                }
+                finally
+                {
+                    try { FinishPreparation(preparation, succeeded); }
+                    finally { preparationScheduled = false; }
+                }
+                return;
             }
-
-            if (File.Exists(CHECK_AOS_SETTING_AAB))
-            {
-                File.Delete(CHECK_AOS_SETTING_AAB);
-                BuildAOS(isAAB: true);
-            }
+            preparationScheduled = false;
+            // Preserve legacy/orphan markers; without a snapshot their ownership is unknown.
+            if (File.Exists(CHECK_AOS_SETTING_APK) || File.Exists(CHECK_AOS_SETTING_AAB))
+                throw new BuildFailedException("빌드 준비 상태가 없어 기존 표시의 요청을 재개할 수 없습니다.");
         };
     }
 
@@ -431,8 +480,12 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     {
         // Batch tests/builds must never resume the legacy production build route.
         if (Application.isBatchMode) return;
-        if (File.Exists(CHECK_AOS_SETTING_APK) || File.Exists(CHECK_AOS_SETTING_AAB))
+        if (!preparationScheduled && (ReadPreparation() != null
+            || File.Exists(CHECK_AOS_SETTING_APK) || File.Exists(CHECK_AOS_SETTING_AAB)))
+        {
+            preparationScheduled = true;
             EditorCoroutine.StartCoroutine(CheckCompiling());
+        }
     }
 
     /// <summary>
@@ -442,6 +495,9 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     public void OnPostprocessBuild(BuildReport report)
     {
         if (Application.isBatchMode) return;
+        var preparation = ReadPreparation();
+        if (!LegacyBuildPreparation.ShouldExitEditor(preparation,
+            report.summary.result == BuildResult.Succeeded)) return;
         if (File.Exists(CHECK_BUILD))
         {
             File.Delete(CHECK_BUILD);
