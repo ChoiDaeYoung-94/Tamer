@@ -91,17 +91,24 @@ public static class RevivalBuild
         string oldAlias = PlayerSettings.Android.keyaliasName;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
+        string oldIl2CppArgs = PlayerSettings.GetAdditionalIl2CppArgs();
         try
         {
             Directory.CreateDirectory("Logs/revival");
             File.WriteAllText(summaryPath, "{\"result\":\"Started\"}");
             ValidateBaseline();
+            if (oldIl2CppArgs.Contains("--linker-flags") ||
+                !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IL2CPP_ADDITIONAL_ARGS")))
+                throw new BuildFailedException("Review existing IL2CPP linker arguments before the scoped RELRO baseline build.");
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with -buildTarget Android.");
             PrepareSmokeScene();
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, ApplicationId);
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            // Scoped baseline experiment; Unity/prebuilt NDK libraries are not relinked here.
+            PlayerSettings.SetAdditionalIl2CppArgs(oldIl2CppArgs +
+                " --linker-flags=\"-Wl,-z,common-page-size=16384\"");
             EditorUserBuildSettings.buildAppBundle = appBundle;
             Directory.CreateDirectory("Build/revival");
             var scenes = new[] { SmokeScene }.Concat(EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path)).Distinct().ToArray();
@@ -133,6 +140,7 @@ public static class RevivalBuild
             PlayerSettings.Android.useCustomKeystore = oldKey;
             PlayerSettings.Android.keyaliasName = oldAlias;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
+            PlayerSettings.SetAdditionalIl2CppArgs(oldIl2CppArgs);
             EditorUserBuildSettings.buildAppBundle = oldBundle;
             AssetDatabase.SaveAssets();
         }

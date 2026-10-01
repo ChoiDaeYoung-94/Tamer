@@ -49,6 +49,12 @@ android {
         }
         consumerProguardFiles 'proguard-unity.txt'**USER_PROGUARD**
 **DEFAULT_CONFIG_SETUP**
+        externalNativeBuild {
+            cmake {
+                // NDK r27 flexible pages supplies max-page-size only. Also align RELRO.
+                arguments "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,common-page-size=16384"
+            }
+        }
     }
 
     lint {

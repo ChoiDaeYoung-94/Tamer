@@ -1,5 +1,31 @@
 # 테스트 AAB RELRO 3건 분석
 
+## 2026-10-01 소스 링크 설정 보정 준비
+
+main `2e822906`의 격리 `codex/relro-linker-flags`에서 실제 빌드 없이 두 경로를 보정했다.
+기존 LTS APK `9f7cd0be899f436daea7d045e59e3950756d25a3a8936ca3ebe02c0cf516b068`의
+4개 RELRO 실패를 통과로 바꾸거나 재검사하지 않았다. 아래는 기존 캐시의 읽기 조사다.
+
+| 실패 파일 | 공급/빌드 경로 | 최소 조치와 이번 패치 범위 |
+| --- | --- | --- |
+| libil2cpp.so | Unity IL2CPP/Bee로 프로젝트 C++를 링크 | 기존 rsp는 max-page-size=16384만 포함. RevivalBuild의 격리 baseline에 common-page-size=16384를 추가하고 finally에서 추가 인자를 복원. 기존 linker 인자/환경변수가 있으면 충돌 검토 전 중단 |
+| libswappywrapper.so | Unity Source/FramePacing CMake + androidx.games:games-frame-pacing:2.1.2 prefab static lib | flexible page ON인데 실제 build.ninja는 max-page-size만 포함. mainTemplate의 CMAKE_SHARED_LINKER_FLAGS에 common-page-size 추가. 외부 AAR의 완성 .so를 그대로 복사하는 경로가 아님 |
+| libmain.so | Unity 6000.3.25f1 Development ARM64 제공 바이너리 | 기존 APK .so SHA와 설치본이 정확히 일치. 프로젝트 링크 플래그로 재링크 불가. 공급자의 정렬된 동일 역할 바이너리/승인된 별도 수정본 필요. Release variation의 최종 후보는 별도 확인 대상 |
+| libc++_shared.so | 고정 NDK r27c의 사전 빌드 STL, CMake obj 및 merged native 경유 | 프로젝트 링크 플래그로 STL 자체 재링크 불가. 공급자 호환 STL 또는 승인된 별도 NDK 평가가 필요. strip/후속 캐시로 APK와 원본 SHA는 불일치하므로 정확한 원본 동일성까지 확정하지 않음 |
+
+고정 NDK `27.2.12479018`의 android-legacy.toolchain은 flexible page 옵션에서 max-page-size만 추가한다.
+AGP/ZIP 패키징 설정은 사전 빌드 ELF의 RELRO 끝을 바꾸지 않는다.
+[Android 공식 안내](https://developer.android.com/guide/practices/page-sizes#compile-your-app-using-16-kb-elf-alignment)는
+r27 이하에 max-page-size와 common-page-size를 함께 요구하며, 사전 빌드 라이브러리도 별도로 다시 빌드해야 한다.
+[Unity 추가 IL2CPP 인자 API](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/PlayerSettings.SetAdditionalIl2CppArgs.html)와
+설치된 il2cpp.exe의 --help에서 --linker-flags 지원을 확인했다. 추가 인자는 실험적 기능이며 실제 전달/성공은 미검증이다.
+
+현재 패치는 FramePacing과 baseline IL2CPP의 **새 링크 조건 준비**다. 모든 운영 빌더의 IL2CPP 설정을
+전역 변경하거나 공급자 바이너리를 교체하지 않았다. 전체 4개 해결 또는 출시 준비 완료를 뜻하지 않는다.
+기존 실패 횟수의 담당 간 누적은 미확정이며 같은 실패 산출물을 재실행하지 않았다.
+실제 빌드 전에 이 새 source 조건·캐시 재링크 범위와 실패 이력을 총괄 담당이 확인해야 한다.
+이번 구간은 diff 검사만 수행하며 C#/Gradle 컴파일, 새 빌드, 실제 16KB, 서명/키·SDK/Unity 버전 변경은 수행하지 않는다.
+
 2026-09-12, Unity6000.0.81f1 고정. 대상은 [PR146 검증 AAB](iap-test-bundle-validation.json)의 SHA-256 `aef2ec2212b09415294d6b88d5de21c78e7730bf59ecabbc23514a36354aa37a`다. 기존 debug APK 분석을 반복하지 않고 신규 비디버그 AAB의 차이와 생성 경로를 확인했다. 코드·검사기·바이너리·Editor/NDK 설치·운영 설정은 변경하지 않았으며 재링크/기기 조작도 하지 않았다.
 
 ## 결론
