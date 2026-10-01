@@ -1,5 +1,41 @@
 # 테스트 AAB RELRO 3건 분석
 
+## 2026-10-01 새 개발 APK의 소스 생성 라이브러리 2개 검증
+
+아래의 링크 설정 준비 후 실제 격리 개발 APK를 1회 빌드했다. 검증 checkout은
+`C:/Users/pc_17/.codex/worktrees/ad-production-completion/Tamer`, 브랜치는
+`codex/ad-production-compile`, 실행 source는
+`4ba1422850c0bb2bb29182e177d160c5ed5ac0ac`이며 시작 시 미커밋 변경은 없었다.
+이 source의 전체 tree는 통합 main `dfb7b67437a1795e2f49525e24a16ec3e0bf71a8`과 같다.
+Unity `6000.3.25f1`·revision `e1dba0a9aba4`, CLI `1.0.0-beta.8`,
+NDK `27.2.12479018`, Android min25/target36/ARM64를 사용했다.
+
+빌드는 Succeeded·exit0·errors0이다. 최종 APK는 110,899,064바이트,
+SHA-256 `f3efa94bbb12b930231afcb07bf473abcf9687d8dba09ff213e54dbc871d4533`이며
+Build Summary의 집계 크기와 구분한다. 실제 IL2CPP link rsp와 FramePacing의
+생성 `build.ninja`에서 `max-page-size=16384`와 `common-page-size=16384`가
+각각 1회 전달되고 기존 링크 인자가 보존된 것을 확인했다.
+최종 APK에서 읽은 새 소스 생성 파일의 결과는 다음과 같다.
+
+| 파일 | LOAD 정렬 | strict RELRO 끝 조건 |
+| --- | --- | --- |
+| libil2cpp.so | 통과 | 통과, 끝 주소 %16384 = 0 |
+| libswappywrapper.so | 통과 | 통과, 끝 주소 %16384 = 0 |
+
+SDK 담당과 독립 검토자가 원자료를 별도로 읽고 같은 결과를 확인했다.
+빌드 후 자동 변경 11개를 정확한 사전 바이트로 복원하고 새 생성 파일 2개를
+비공개 보존한 뒤 원경로에서 정리했다. 사후 독립 검토에서 보호 파일 4,705개,
+Assets 6,825개·meta 3,602개의 정확한 집합·해시, source/helper·빌드 원증거와
+APK 보존, clean HEAD 및 해당 Editor 종료를 확인했다. Library는 보존했다.
+
+이번 결과는 위 두 파일만의 LOAD/RELRO 검증이다. 새 APK의 사전 빌드
+`libmain.so`·`libc++_shared.so`와 전체 strict·ZIP·서명 검사는 실행하지 않았다.
+아래 과거 산출물의 사전 빌드 파일 미해결 이력은 보존하며, 새 APK에서도 같은
+실패를 확인한 것으로 표현하지 않는다. 실기기·ARM64 16KB 실행·최종 출시 AAB·
+스토어 검증과 전체 해결은 미완료이며 `productionBinary16KBVerified=false`를 유지한다.
+원시 로그·실행 manifest·링크/ELF 읽기·복원 증거는 비공개로 보존한다.
+LTS의 기존 검증과 이번 결과의 구분은 [LTS 전환 검증](lts-transition-validation.ko.md)을 참조한다.
+
 ## 2026-10-01 소스 링크 설정 보정 준비
 
 main `2e822906`의 격리 `codex/relro-linker-flags`에서 실제 빌드 없이 두 경로를 보정했다.

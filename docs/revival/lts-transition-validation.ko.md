@@ -51,6 +51,32 @@ Android13/API33·ARM64·PAGE_SIZE4096 물리 기기에 격리 debug 앱만 새 �
 
 원시 증거는 이 checkout의 비공개 `Logs/revival/lts-*`에 보존했습니다. [공개 요약](lts-transition-validation.json)은 실제 기준·실행 범위·실패/미검증 사항만 기록합니다.
 
+## 2026-10-01 소스 생성 네이티브 링크 조건의 실제 개발 APK 검증
+
+`C:/Users/pc_17/.codex/worktrees/ad-production-completion/Tamer`의
+`codex/ad-production-compile`, clean source
+`4ba1422850c0bb2bb29182e177d160c5ed5ac0ac`에서 격리 개발 APK를 1회 빌드했습니다.
+전체 tree는 통합 main `dfb7b67437a1795e2f49525e24a16ec3e0bf71a8`과 같습니다.
+Unity `6000.3.25f1`·revision `e1dba0a9aba4`, CLI `1.0.0-beta.8`,
+NDK `27.2.12479018`, Android min25/target36/ARM64를 유지했습니다.
+별도 앱 ID·debug 서명·Smoke 첫 씬을 사용했으며 빌드는 Succeeded·exit0·errors0입니다.
+최종 APK는 110,899,064바이트,
+SHA-256 `f3efa94bbb12b930231afcb07bf473abcf9687d8dba09ff213e54dbc871d4533`입니다.
+
+실제 IL2CPP rsp와 FramePacing `build.ninja`에 max/common-page-size=16384가 각각
+1회 전달되고 기존 인자가 보존됐습니다. 최종 APK의 새 `libil2cpp.so`와
+`libswappywrapper.so`는 LOAD 및 strict RELRO 끝 조건에 통과했고 담당자와 독립
+검토자가 원자료를 대조했습니다. 자동 변경 11개와 새 생성 파일 2개의 정확 복원·
+비공개 보존/정리 후 독립 검토에서 보호 4,705개·Assets 6,825개·meta 3,602개의
+집합·해시, source/helper·APK/원증거 보존, clean HEAD·해당 Editor 종료를 확인했습니다.
+Library는 보존했습니다.
+
+새 APK의 사전 빌드 파일 2개와 전체 strict·ZIP·서명 검사는 이번 범위 밖으로
+미실행입니다. 기존 APK의 4건 실패 기록은 당시 근거로 남기며 새 결과로 소급
+변경하지 않습니다. 새 기기 설치/실행·운영 API 호출·최종 출시 AAB·스토어 검증도
+하지 않았고 `productionBinary16KBVerified=false`를 유지합니다.
+[RELRO 분석](iap-relro-analysis.ko.md)에 두 생성 파일의 결과와 남은 범위를 기록했습니다.
+
 
 ## 2026-09-30 저장·삭제 최소 영향 범위 후속 검증
 
