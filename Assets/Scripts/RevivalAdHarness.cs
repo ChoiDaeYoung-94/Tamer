@@ -19,6 +19,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
     public SoundManager Sound;
     public AudioSource Bgm;
     private readonly Queue<string> _events = new Queue<string>();
+    private string[] _layoutEvents = Array.Empty<string>();
     private MonoBehaviour _owner;
     private int _ownerId, _requestId, _rewards, _finishes;
     private AudioClip _tone;
@@ -162,6 +163,8 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void OnGUI()
     {
+        // Keep the same log controls throughout each Layout/input/Repaint cycle.
+        if (Event.current.type == EventType.Layout) _layoutEvents = _events.ToArray();
         var previousMatrix = GUI.matrix;
         GUI.matrix = Matrix4x4.Scale(Vector3.one * (Screen.width / 720f));
         GUILayout.BeginArea(new Rect(16, 16, 688, Screen.height * 720f / Screen.width - 32));
@@ -208,15 +211,17 @@ public sealed class RevivalAdHarness : MonoBehaviour
             }
             GUI.enabled = Ads != null;
             if (GUILayout.Button("Show sample / policy-block control", GUILayout.Height(52))) Show();
-            if (Ads != null && Ads.PrivacyOptionsRequired &&
-                GUILayout.Button("Privacy options", GUILayout.Height(44))) Ads.ShowPrivacyOptions();
+            bool samplePrivacyOptionsRequired = Ads != null && Ads.PrivacyOptionsRequired;
+            GUI.enabled = samplePrivacyOptionsRequired;
+            if (GUILayout.Button("Privacy options", GUILayout.Height(44)) && samplePrivacyOptionsRequired)
+                Ads.ShowPrivacyOptions();
             GUI.enabled = true;
             if (GUILayout.Button("New receipt owner", GUILayout.Height(44))) NewOwner();
             foreach (string action in new[] { "none", "destroy owner", "destroy manager", "scene A-B-A", "replace BGM", "duplicate show" })
                 if (GUILayout.Button("Arm: " + action + (_armedAction == action ? " [selected]" : ""), GUILayout.Height(38))) _armedAction = action;
             GUILayout.Label("Armed action runs >=2s after opened callback when Unity updates; never closes or rewards an ad.");
         }
-        foreach (string line in _events) GUILayout.Label(line);
+        foreach (string line in _layoutEvents) GUILayout.Label(line);
         GUILayout.EndScrollView();
         GUILayout.EndArea();
         GUI.matrix = previousMatrix;
@@ -239,9 +244,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
         GUILayout.Label("Registration only: one TFUA=true Update, no debug region/hash or consent form.");
         if (GUILayout.Button("Explicit UMP registration only (network, once)", GUILayout.Height(52)))
             StartUmpRegistrationOnly();
-        if (_registrationAttempted)
-            GUILayout.Label(_registrationInFlight ? "Registration pending; all consent controls locked."
-                : "Registration halted. Verify exactly one original SDK hash in private own-PID logs before any next test.");
+        GUILayout.Label(!_registrationAttempted ? "Registration has not started."
+            : _registrationInFlight ? "Registration pending; all consent controls locked."
+            : "Registration halted. Verify exactly one original SDK hash in private own-PID logs before any next test.");
         GUI.enabled = previousEnabled && _publisherContextAllowed && !_registrationAttempted &&
             (_ump == null || !_ump.IsBusy);
 #endif
@@ -255,8 +260,12 @@ public sealed class RevivalAdHarness : MonoBehaviour
         string hash = GUILayout.PasswordField(_testDeviceHash, '*', 32);
         if (hash != _testDeviceHash) { DisposeUmp(); _testDeviceHash = hash; }
         if (GUILayout.Button("Explicit UMP Update + required form (network)", GUILayout.Height(52))) StartUmpOnly();
-        if (_ump != null && _ump.PrivacyOptionsRequired && GUILayout.Button("UMP privacy options", GUILayout.Height(44)))
+        bool consentControlsEnabled = GUI.enabled;
+        bool privacyOptionsRequired = _ump != null && _ump.PrivacyOptionsRequired;
+        GUI.enabled = consentControlsEnabled && privacyOptionsRequired;
+        if (GUILayout.Button("UMP privacy options", GUILayout.Height(44)) && privacyOptionsRequired)
             _ump.OpenPrivacyOptions(allowed => Record("ump_privacy_finished can_request=" + allowed));
+        GUI.enabled = consentControlsEnabled;
         GUI.enabled = GUI.enabled && AgeTreatmentPolicy.TryCreatePlan(_testAge, out _);
         if (GUILayout.Button("Reset test consent locally", GUILayout.Height(44)))
         { DisposeUmp(); ConsentInformation.Reset(); Record("ump_test_reset"); }
