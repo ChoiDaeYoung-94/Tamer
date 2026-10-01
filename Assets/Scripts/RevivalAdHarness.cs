@@ -294,7 +294,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
         _registrationAttempted = true;
         _registrationInFlight = true;
         _registrationStartedAt = Now;
-        Record("ump_registration_start tfua=true debug_settings=false forms=false ads_disabled=true");
+        Record("ump_registration_start tfua=true forced_debug_settings=false forms=false ads_disabled=true");
         try
         {
             new GoogleUmpConsentClient().Update(true, succeeded => _umpCallbacks.Enqueue(() =>
