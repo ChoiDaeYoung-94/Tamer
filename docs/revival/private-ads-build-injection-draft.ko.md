@@ -1074,7 +1074,8 @@ archive3개 동일 해시를 확인했다. 복원·cleanup·archive는 각각 �
 계약·승인/출처·동의 분류 및 실제 App/Unit 연계, production callback 등록·pre/scene/post
 실행, Login에 정확1개 manager 주입/원본 씬 불변, 실제 production Player compile plan,
 최종 serialized rewarded field/Player gate/merged manifest·서명 및 정책·기기·스토어
-검증은 완료되지 않았다. 최종 생산 실행 wrapper는 계속 무조건 거절한다. 이전 결과로
+검증은 완료되지 않았다. 당시 최종 생산 실행 wrapper는 무조건 거절했다. 아래 2026-10-01
+Phase A 변경은 검토된 조건부 실행 경로를 추가하며 운영 활성화 승인은 아니다. 이전 결과로
 새 운영 빌드의 검증을 대체하지 않는다. 생산 전용 callback의 엄격한 Player define 검사와
 합성 경로의 제한된 ENABLE_MARSHALLING_TESTS 처리도 별도로 재검토해야 한다.
 
@@ -1118,3 +1119,91 @@ CLI response는 `0d3c67495cb121d04c811011c4c77988cd8c733077c3b1b4dd48b359ca5ca1c
 원 receipt는 `cb60d88888a499b0222aa145f562da02916ac9de912392b22a9d5252cce53404`,
 복원 result는 `6db713eb7d9c1f9bfacb84b77cfc693ba47bcde07121af520240d7cddb3ba892`다.
 원로그·private probe/runner·snapshot·receipt는 공개 커밋에 넣지 않는다.
+
+## Phase A: 비활성 후보 생산 준비 — 2026-10-01
+
+`tools/revival/private_ads_producer.py`는 `prepare`, `build-once`, `recover`를 분리한다.
+기존 네 인자의 `private_ads_build.execute` 호출은 검토 계획·소스 리뷰·기존 릴리스 서명
+근거·명시적인 Unity 실행 허용이 없으면 Assets 변경 전에 거절한다. 기본 audit는 읽기
+전용이며 엄격한 여섯 필드 설정과 모든 운영·지역·연령 gate false 조건을 유지한다.
+
+`prepare`는 clean/closed checkout의 HEAD·브랜치·버전을 대조한 뒤 ignored 근거만 쓴다.
+전체 Assets(구매 에셋·meta 포함), ProjectSettings, Packages, producer helper/config와
+기존 Build/Builds의 APK/AAB를 경로·파일 식별 정보·SHA-256으로 고정한다. 변경 가능한
+원본에는 정확한 바이트 snapshot을 남긴다. 원본 `src/AeDeong.keystore`와 CLI는 변경
+불가 대상으로 식별 정보와 해시를 보호하며 운영키 사본을 만들지 않는다. run 폴더는
+Windows owner+SYSTEM만 full access를 갖는 상속 가능한 protected ACL로 **생성 시**
+보호하고 private evidence를 쓰기 전에 ACL을 확인한다. ignored만으로 비공개라 판단하지
+않는다. snapshot이 복구 대상으로 사용되더라도 공개 커밋에 포함하지 않는다.
+
+준비 계획에는 생산용 callback template과 GUID/meta, 새 private `.bytes` resource의
+정확한 경로·바이트·부재 조건을 미리 고정한다. resource에는 실제 inventory와 설정 해시,
+`disabled_candidate` 및 activation/region/adult 승인 false만 전달한다. checkout 경로나
+서명 비밀번호를 resource에 넣지 않는다. 준비 시 Assets에는 아무 파일도 만들지 않는다.
+`producerPrepared=false`가 기본이며 계획 생성 성공만으로 true가 되지 않는다. 구현,
+변경 관련 최소 검증, 순수 컴파일 및 독립 exact source review를 모두 마친 별도 소스
+준비 판단은 실제 build·운영 승인·binary/distributable 판단과 구분한다.
+
+미래 `build-once`에는 정확한 계획 SHA, 소스 HEAD/helper SHA를 확인한 외부 리뷰 영수증,
+기존 릴리스 키·인증서·alias 확인 영수증과 실행 환경의 비밀번호, 명시적인 실행 허용이
+모두 필요하다. tool manifest는 설치된 Hub Editor의 정확한 절대경로와 Editor/compiler/
+IL2CPP/Android Java·clang 바이너리의 파일 식별 정보·SHA를 담는다. 버전 문자열만으로
+실제 설치를 증명하지 않는다. 설치 도구와 변경 불가 원본은 읽기 핸들로 실행 중 보호하고,
+C# 진입점도 실제 프로세스의 Editor 경로·해시를 다시 비교한다. launch marker는 계획,
+소스 리뷰와 signing receipt 해시를 각각 묶으며 같은 run을 자동 재시도하지 않는다.
+서명키 생성·debug fallback은 없다. 기존 서명키가 없거나 도구 manifest가 없는 준비
+계획은 실제 실행 조건을 만족하지 않는다.
+
+독점 marker/journal 후 run별 고유 Editor callback 폴더와 정확히 소유한 resource/meta만
+stage한다. C# scope는 Android AAB/nondevelopment/noexport/IL2CPP/ARM64와 기존 릴리스
+서명 설정만 일시 적용하고 원래 값을 복원한다. 원래 활성 씬을 유지하며 harness/test
+define을 거절하고 Login의 build-scene 사본에만 manager unit을 한 번 주입한다. 씬이나
+prefab을 저장하지 않는다. callback receipt와 scope 복원 receipt는 별개이며 어느 것도
+전체 소스 복원 또는 최종 binary 검증의 증거가 아니다.
+
+실행 종료 후 actual delta의 전체 inventory·식별 정보·해시·변경된 바이트를 아카이브한다.
+이 단계는 복원·삭제를 하지 않는다. 새 검토 recovery plan은 exact delta SHA와 복원/삭제
+목록에 묶여야 한다. 미리 stage한 파일과 뒤늦게 Unity가 만든 파일은 별도 분류한다. 후자는
+부재-before, 현재 identity/hash, 실제 writer와 정확한 경로를 새로 검토해야 하며 inventory
+관측만으로 삭제 권한을 얻지 않는다. helper/config/키/기존 artifact drift는 복구 대상이
+아니며 중단한다. 알 수 없는 파일, 누락 원본, 교체된 identity나 변경된 아카이브도 거절한다.
+
+복구는 모든 대상/상위 폴더의 핸들을 먼저 검사하고 정확한 snapshot을 같은 핸들에 쓰며,
+아카이브된 stage/승인된 생성 파일만 같은 핸들로 삭제한다. 이전/새 artifact와 근거를
+보존한다. content/inventory·clean/closed 확인 후 journal을 완료 근거로 보존하고 활성
+journal만 제거한다. 빈 폴더·Library·Logs는 보존하며 빈 폴더 자체가 영구 차단 조건은
+아니다. 원본 파일 identity까지 복원했다고 주장하지 않는다. 핸들 보호는 새 파일의 모든
+생성을 막는 보안 경계가 아니며 마지막 inventory 비교는 해당 시점의 확인이다.
+
+현재 source 단계는 실제 Unity build0/SDK0/운영 광고0이다. prospective defines와 compilation
+provenance는 메타데이터 근거다. 추후 실제 AAB의 직렬화된 씬·resource·unit, merged
+manifest, 서명/인증서와 별도 기기·스토어 검증을 정확한 artifact SHA에 연결하기 전에는
+`binaryVerified=false`, `distributable=false`, `productionContractVerified=false`를 유지한다.
+이 소스 PR은 실제 출시 빌드나 정책 충족을 인증하지 않는다.
+
+변경 관련 합성 검증은 새 16개 case에 한정했다. 최초 11개는 첫 실행 PASS였다.
+추가 단일 호출 mock case는 임시 프로젝트의 Editor 상위 폴더가 없어 첫 실행이 실패했고,
+상위 폴더 생성 처리 후 두 번째 실행에서 PASS했다. 실패를 보존하며 실제 Unity 실행
+실패로 표현하지 않는다. ACL/실제 도구 binding을 추가한 뒤 영향받은 단일 호출과 복구
+case만 다시 확인하여 PASS했고, 나머지 신규 helper/ACL/도구 case도 PASS했다. 기존
+59-input parser·GUI·게임·SDK 회귀는 반복하지 않았다. Unity `6000.3.25f1` 참조 392개로
+Editor template를 순수 컴파일했고 최초 scope/resource 변경과 후속 실제 Editor binding
+변경을 각각 한 번 확인하여 둘 다 exit0였다. 컴파일된 assembly를 로드하지 않았고 실제
+build/SDK/광고 요청은 0이다. exact source와 private 실행 로그는 ignored 근거에 보존한다.
+
+### Phase B 계약 계획 — 이번에는 소스 활성화 없음
+
+후속 `Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs`는 Android nondevelopment
+Player에서 하나의 immutable resource만 읽고 엄격한 버전/필드/타입/중복 검사를 한다.
+승인된 activation+region+adult와 app/inventory/country-contract 참조가 모두 일치해야 한다.
+없거나 잘못된 계약, Editor/batch/test/harness, unknown/declined는 false다. PlayerPrefs,
+locale 또는 debug override로 운영 승인을 만들 수 없다. Under13/13–15/16–17 승인은 항상
+false로 제한하고 fullscreen rewarded 후보는 Adult에만 연결한다. 기존 UMP/No Ads/보상
+버프 경로를 유지한다. 실제 inventory 확인이나 EEA 샘플 동의는 지역·성인 출시 승인이 아니다.
+
+후속 생산 mode는 별도로 승인된 계약과 실제 Player 상태를 검증하는 경로가 필요하다.
+disabled candidate의 false gate 검사에 운영 mode를 억지로 통과시키지 않는다. 이번에는
+runtime policy source, 승인 true 계약, 운영 resource를 만들지 않는다. 구체 Phase B 구현과
+승인 근거는 독립 소스 리뷰 후 별도 범위로 진행한다. 일반 출시에는 harness define과
+`UNITY_EDITOR`가 없어 `RevivalAdHarness`/OnGUI가 제외되며 producer가 잘못된 define을
+거절한다. GUI harness의 과거 실행 미검증 상태는 정상 출시 코드의 일괄 차단 사유가 아니다.

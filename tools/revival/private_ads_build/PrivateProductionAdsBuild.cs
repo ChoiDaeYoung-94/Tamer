@@ -23,7 +23,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
 
     private sealed class Snapshot
     {
-        public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan, RunId, SourceHead;
+        public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan, RunId, SourceHead, ResourceHash;
         public readonly PrivateAdsContract Config;
         public readonly string[] Scenes;
         public Snapshot(string root)
@@ -36,6 +36,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             ConfigHash = Required("TAMER_PRIVATE_ADS_SHA256");
             Output = Required("TAMER_PRIVATE_ADS_OUTPUT");
             Receipt = Required("TAMER_PRIVATE_ADS_RECEIPT");
+            ResourceHash = Required("TAMER_PRIVATE_ADS_RESOURCE_SHA256");
             var raw = File.ReadAllBytes(ConfigPath);
             if (Hash(raw) != ConfigHash) throw Rejected();
             Config = PrivateAdsContract.Read(raw, root);
@@ -48,16 +49,86 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         }
     }
 
-    // Only a scoped IL2CPP linker-argument override is applied here. The authorized
-    // owner must prepare the correct AAB/signing settings before this entry point can run.
+    // Only these declared settings may be restored internally. Whole-tree recovery
+    // remains an external exact-delta review even if this scope succeeds.
+    private sealed class SettingsScope : IDisposable
+    {
+        private readonly bool bundle = EditorUserBuildSettings.buildAppBundle;
+        private readonly bool development = EditorUserBuildSettings.development;
+        private readonly bool export = EditorUserBuildSettings.exportAsGoogleAndroidProject;
+        private readonly ScriptingImplementation backend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
+        private readonly AndroidArchitecture architecture = PlayerSettings.Android.targetArchitectures;
+        private readonly bool custom = PlayerSettings.Android.useCustomKeystore;
+        private readonly string key = PlayerSettings.Android.keystoreName, alias = PlayerSettings.Android.keyaliasName;
+        private readonly string keyPassword = PlayerSettings.Android.keystorePass, aliasPassword = PlayerSettings.Android.keyaliasPass;
+        private readonly string receipt = Required("TAMER_PRIVATE_ADS_SETTINGS_RECEIPT");
+        private readonly string runId = Required("TAMER_PRIVATE_ADS_RUN_ID");
+
+        public void Apply()
+        {
+            var existingKey = Required("TAMER_PRIVATE_ADS_KEYSTORE");
+            if (!Path.IsPathRooted(existingKey) || Hash(File.ReadAllBytes(existingKey)) !=
+                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256")) throw Rejected();
+            EditorUserBuildSettings.buildAppBundle = true;
+            EditorUserBuildSettings.development = false;
+            EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
+            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.useCustomKeystore = true;
+            PlayerSettings.Android.keystoreName = existingKey;
+            PlayerSettings.Android.keyaliasName = Required("TAMER_PRIVATE_ADS_KEY_ALIAS");
+            PlayerSettings.Android.keystorePass = Required("TAMER_KEYSTORE_PASS");
+            PlayerSettings.Android.keyaliasPass = Required("TAMER_KEYALIAS_PASS");
+        }
+
+        public void Dispose()
+        {
+            bool restored = false;
+            try
+            {
+                EditorUserBuildSettings.buildAppBundle = bundle;
+                EditorUserBuildSettings.development = development;
+                EditorUserBuildSettings.exportAsGoogleAndroidProject = export;
+                PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, backend);
+                PlayerSettings.Android.targetArchitectures = architecture;
+                PlayerSettings.Android.useCustomKeystore = custom;
+                PlayerSettings.Android.keystoreName = key;
+                PlayerSettings.Android.keyaliasName = alias;
+                PlayerSettings.Android.keystorePass = keyPassword;
+                PlayerSettings.Android.keyaliasPass = aliasPassword;
+                restored = EditorUserBuildSettings.buildAppBundle == bundle &&
+                    EditorUserBuildSettings.development == development &&
+                    EditorUserBuildSettings.exportAsGoogleAndroidProject == export &&
+                    PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) == backend &&
+                    PlayerSettings.Android.targetArchitectures == architecture &&
+                    PlayerSettings.Android.useCustomKeystore == custom &&
+                    PlayerSettings.Android.keystoreName == key && PlayerSettings.Android.keyaliasName == alias &&
+                    PlayerSettings.Android.keystorePass == keyPassword && PlayerSettings.Android.keyaliasPass == aliasPassword;
+            }
+            finally
+            {
+                using (var file = new FileStream(receipt, FileMode.CreateNew, FileAccess.Write))
+                using (var writer = new StreamWriter(file)) writer.Write(JsonUtility.ToJson(
+                    new SettingsReceipt { schema = 1, runId = runId, scopedSettingsRestored = restored }, true));
+            }
+            if (!restored) throw Rejected();
+        }
+    }
+
     public static void Build()
     {
         try
         {
             if (Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_PREPARE") != "1" ||
-                !Application.isBatchMode || !EditorUserBuildSettings.buildAppBundle ||
-                EditorUserBuildSettings.development || EditorUserBuildSettings.exportAsGoogleAndroidProject ||
+                !Application.isBatchMode ||
                 EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android) throw Rejected();
+            var editor = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+            if (!string.Equals(Path.GetFullPath(editor), Path.GetFullPath(Required("TAMER_PRIVATE_ADS_EDITOR")),
+                    StringComparison.OrdinalIgnoreCase) || Hash(File.ReadAllBytes(editor)) !=
+                    Required("TAMER_PRIVATE_ADS_EDITOR_SHA256")) throw Rejected();
+            using (var settings = new SettingsScope())
+            {
+            settings.Apply();
             var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
             snapshot = new Snapshot(root);
             var args = Environment.GetCommandLineArgs();
@@ -82,6 +153,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             var receipt = new Receipt { schema = 1, runId = snapshot.RunId, sourceHead = snapshot.SourceHead,
                 preprocessed = preprocessed, postprocessed = postprocessed, loginScenes = loginScenes,
                 productionContractVerified = false, configSha256 = snapshot.ConfigHash,
+                resourceSha256 = snapshot.ResourceHash,
                 artifactSha256 = Hash(File.ReadAllBytes(snapshot.Output)), unityVersion = Application.unityVersion,
                 configuredAndroidDefines = snapshot.Defines, injectedManagers = injections,
                 prospectivePlayerDefinePlanSha256 = Hash(System.Text.Encoding.UTF8.GetBytes(snapshot.PlayerCompilationPlan)),
@@ -89,6 +161,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
                 binaryVerified = false, distributable = false };
             using (var file = new FileStream(snapshot.Receipt, FileMode.CreateNew, FileAccess.Write))
             using (var writer = new StreamWriter(file)) writer.Write(JsonUtility.ToJson(receipt, true));
+            }
         }
         catch { throw Rejected(); } // Never emit private parser values or identifiers.
         finally { snapshot = null; }
@@ -130,6 +203,12 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     private static void CheckSnapshot()
     {
         if (snapshot == null || Hash(File.ReadAllBytes(snapshot.ConfigPath)) != snapshot.ConfigHash ||
+            Hash(File.ReadAllBytes("Assets/Resources/RevivalPrivateAdsRelease.bytes")) != snapshot.ResourceHash ||
+            !EditorUserBuildSettings.buildAppBundle || EditorUserBuildSettings.development ||
+            EditorUserBuildSettings.exportAsGoogleAndroidProject ||
+            PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) != ScriptingImplementation.IL2CPP ||
+            PlayerSettings.Android.targetArchitectures != AndroidArchitecture.ARM64 ||
+            !PlayerSettings.Android.useCustomKeystore ||
             AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed ||
             Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>().Any(AgeTreatmentPolicy.IsReviewed) ||
             PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android) != snapshot.Defines ||
@@ -143,6 +222,12 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         if (asset == null) throw Rejected();
         var app = new SerializedObject(asset).FindProperty("adMobAndroidAppId");
         if (app == null || app.stringValue != snapshot.Config.AppId) throw Rejected();
+        var resource = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Resources/RevivalPrivateAdsRelease.bytes");
+        if (resource == null || Hash(resource.bytes) != snapshot.ResourceHash ||
+            PlayerSettings.Android.keystoreName != Required("TAMER_PRIVATE_ADS_KEYSTORE") ||
+            PlayerSettings.Android.keyaliasName != Required("TAMER_PRIVATE_ADS_KEY_ALIAS") ||
+            Hash(File.ReadAllBytes(PlayerSettings.Android.keystoreName)) !=
+                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256")) throw Rejected();
     }
     private static string ReadPlayerCompilationPlan()
     {
@@ -211,8 +296,10 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     [Serializable] private sealed class Receipt
     {
         public string runId, sourceHead, configSha256, artifactSha256, unityVersion, configuredAndroidDefines,
-            prospectivePlayerDefinePlanSha256;
+            prospectivePlayerDefinePlanSha256, resourceSha256;
         public int schema, injectedManagers, loginScenes;
         public bool preprocessed, postprocessed, productionContractVerified, buildSceneValueMatched, compiledEditorGatesDisabled, binaryVerified, distributable;
     }
+    [Serializable] private sealed class SettingsReceipt
+    { public int schema; public string runId; public bool scopedSettingsRestored; }
 }
