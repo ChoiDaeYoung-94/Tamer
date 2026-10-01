@@ -1,6 +1,6 @@
 # Data Safety 변경안 — 미제출 검토 초안
 
-2026-09-30. 이 문서는 Console 입력 준비용이며 저장·제출·게시하지 않았다. 개인정보처리방침 본문 후보는 [출시 수정안](privacy-policy-release-draft.ko.md)에 있다. 과거 초안은 Git 이력에서 확인할 수 있으며 당시 미완료 상태를 현재 구현 상태로 재사용하지 않는다.
+2026-10-01 공식 근거 보완. 이 문서는 Console 입력 준비용이며 저장·제출·게시하지 않았다. 개인정보처리방침 본문 후보는 [출시 수정안](privacy-policy-release-draft.ko.md)에 있다. 과거 초안은 Git 이력에서 확인할 수 있으며 당시 미완료 상태를 현재 구현 상태로 재사용하지 않는다.
 
 ## 기준과 현재 신고의 차이
 
@@ -44,8 +44,8 @@
 | 전체 사용자 IP 저장 | 저장 ON 관측과 접속 IP·IP 기반 위치·보안 처리의 실제 범위를 구분한다. 위치 유형·목적·보관기간은 제공 버전/업체 근거로 확정하고 IP 미수집이나 일시 처리로 단정하지 않는다 |
 | 새 수집 기능 자동 실행 | 향후 기능도 자동 활성화할 수 있는 설정이 유지된다. 아직 사용하지 않는 미래 기능을 현재 수집 항목으로 나열하지 않되 SDK·설정 변경 때 실제 수집과 신고를 다시 대조한다 |
 
-- [Unity IAP 5.4 이상 Data Safety 표](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)는 식별자·구매·진단·성능 등의 수집, SDK 전송 암호화 YES, 공유 NO를 안내한다. 대략적 위치·이메일의 일시 처리 표기도 있다. 전체 제품 표이므로 사용하지 않는 Webshop/결제 공급자 항목까지 앱에 있다고 복사하지 않는다. 기본 데이터와 선택 데이터의 구분은 [IAP 개인정보 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)와 실제 호출·설정을 함께 대조한다.
-- [AdMob Android 공식 자료](https://developers.google.com/admob/android/privacy/play-data-disclosure)는 IP·상호작용·진단·식별자의 자동 수집 및 공유와 TLS를 안내한다. **2026-09-30 열람 페이지는 25.5.0 기준**이므로 선언 25.4.0의 상세 표로 확정하지 않는다. 현재 앱의 운영 광고 gate OFF는 관리 코드의 요청 제한이며 SDK의 모든 native 전송 0을 입증하지 않는다. 운영 24에 소급하지 않는다.
+- 후보 Unity IAP 5.4.3에는 [5.4 이상 Data Safety 표](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)와 [개인정보 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)가 적용된다. 기본 플레이어·설치·세션 식별자, 기기·국가 정보와 공식 신고표의 구매·진단·성능 처리를 근거로 사용한다. 선택 식별자·이메일은 실제 연동별 확인이 필요하다. SDK 전송 암호화 YES·공유 NO 및 대략적 위치·이메일의 일시 처리 안내를 전체 앱으로 확대하지 않는다. 미사용 Webshop/추가 결제 공급자를 복사하지 않으며 IAPManager의 Connect 전 광고·분석 Unspecified→Denied 기본값이 기본 처리를 모두 중단한다는 주장은 하지 않는다.
+- [AdMob Android 공식 자료](https://developers.google.com/admob/android/privacy/play-data-disclosure)는 IP·상호작용·진단·식별자의 자동 수집 및 공유와 TLS를 안내한다. **2026-09-30 및 10월 1일 열람 페이지는 25.5.0 기준**이므로 선언 25.4.0의 동일 버전 상세 표로 확정할 수 없다. 현재 앱의 운영 광고 gate OFF는 관리 코드의 요청 제한이며 SDK의 모든 native 전송 0을 입증하지 않는다. 운영 24에 소급하지 않는다.
 - [PGS 공식 자료](https://developer.android.com/games/pgs/data-collection?hl=en)는 게임 계정 신원과 분석·진단의 자동 수집, 기능별 추가 수집과 HTTPS를 안내한다. 업적·친구·Saved Games 등의 예시를 사용 확인 없이 추가하지 않는다. 일반 core Play services의 수집 없음 안내를 PGS나 AdMob 전체에 적용하지 않는다.
 
 ## 공유·보호·삭제 답안
@@ -54,7 +54,7 @@
 | --- | --- |
 | 제3자 공유 | AdMob 공식 공유 자료를 반영할 후보다. PlayFab·Unity·Google을 이름만으로 모두 공유 YES 또는 모두 예외 NO로 묶지 않는다. PlayFab 위탁 처리, Unity 처리자/독립 처리 활동, PGS·Play 이용자 요청, 광고 파트너의 실제 전달·목적·계약을 구분해 유형별 선택 |
 | 서비스 제공자 예외 | 개발자의 지시로 대신 처리하는 범위에만 적용. 해당 계약과 처리 활동 확인 필요. 독립 목적의 분석·광고를 단순 위탁으로 가정하지 않음 |
-| 전송 중 암호화 | PlayFab 기본 HTTPS, SDK 공식 HTTPS/TLS 안내는 있음. 최종 빌드 설정·전체 엔드포인트·제공 24 대조 후 전체 YES 여부 결정. 암호화 저장·종단 간 암호화와 구분. 소스 검토만으로 기존 Console NO를 자동 변경하지 않음 |
+| 전송 중 암호화 | PlayFab 기본 HTTPS는 설정 override 가능. 후보 삭제 gateway의 HTTPS 주소 제한, PGS 공식 HTTPS·AdMob TLS·IAP 공식 전송 암호화 YES는 확인 근거. 최종 AAB 설정·전체 엔드포인트·제공 24 대조 후 전체 YES 여부 결정. 암호화 저장·종단 간 암호화와 구분하고 기존 Console NO를 자동 변경하지 않음 |
 | 삭제 요청 수단 | 기존 이메일과 공개 웹 안내는 준비됨. 운영자가 기존 문의 이메일을 직접 처리하며 메일 요청은 2주 이내 처리 목표로 확정. 공급자 전체 소거 기한 보증은 아님. 앱 자동 접수 경로는 구현·시험 근거와 실제 제공 버전을 구분. Console 삭제 URL 등록·메일 수신/소유 확인·상태 회신 운영은 확인 필요 |
 | Families | 현재 Console YES는 관측 사실. 9+ 선택·MaxAdContentRating G·시험 광고 성공만으로 아동 데이터/광고/동의 전 항목 적합성을 확정하지 않음 |
 
@@ -64,9 +64,11 @@ Unity는 활동별로 처리자 또는 독립 처리자 역할이 달라진다�
 
 정상 접수가 확인되면 앱은 로그아웃하며 소유가 확인된 현재 진행·생성 백업·귀속 inventory와 형식/소유가 확인된 과거 권한 사본을 정리한다. 삭제 때 새 `.deletion-entitlement-*` 사본을 만들지 않는다. 소유 불명·타인·형식 불량 파일 및 접근 불가 기기의 파일까지 지웠다고 안내하지 않는다. 새 계정에서 기존 No Ads가 실제 복원되는지는 미검증이다.
 
-CloudScript의 Server/DeletePlayer는 title 데이터 삭제를 비동기 접수한다. PlayStream 이벤트·publisher 계정·연결 등의 범위는 별도로 확인한다. 접수 응답은 전체 소거 완료가 아니다. [PlayFab API 범위](https://learn.microsoft.com/en-us/rest/api/playfab/server/account-management/delete-player?view=playfab-rest).
+CloudScript의 Server/DeletePlayer는 title 플레이어 데이터 삭제를 대기열에 비동기 접수하며 PlayStream 이력·publisher 계정과 연결 정보는 제외된다. 접수 응답은 전체 소거 완료가 아니다. [PlayFab API 범위](https://learn.microsoft.com/en-us/rest/api/playfab/server/account-management/delete-player?view=playfab-rest). PGS의 개별 게임 데이터는 Play Games 프로필, 계정 관련 자료는 Google 계정 관리에서 삭제할 수 있다. [PGS 공식 안내](https://developer.android.com/games/pgs/data-collection). Unity IAP 5.4 이상 수동 요청 창구는 `unity-iap-contact@unity3d.com`이며 개발자 대신 처리하는 IAP·거래 자료는 운영자의 확인·지시, Unity 독립 목적 자료는 이용자 직접 요청으로 구분한다. [IAP 역할별 요청](https://docs.unity.com/en-us/iap/privacy-and-consent/overview). 실제 공급자 자료의 잔존·기간·운영 처리 완료는 여전히 미확정이다.
 
 운영자는 삭제 후 자체 계정·진행 보관용 사본을 만들지 않으며 이메일 원문·소유 확인 자료는 처리 종료 후 삭제하고 별도로 보관하지 않는 원칙이 승인됐다. 2026-10-01 사용자 결정으로 운영자가 기존 문의 이메일을 직접 처리하고 메일 요청은 2주 이내 처리를 목표로 한다. 이 원칙과 담당·처리 목표를 다시 결정 요청하지 않는다. 2주를 공급자의 모든 기록·로그·백업 소거 보증으로 확대하지 않는다. 공급자 로그·백업의 실제 잔존과 삭제 절차·기간, 실제 메일 정리·회신 가능성은 별도 확인 대상이다. [기존 운영 절차](account-deletion-email-draft.ko.md).
+
+9세 이상·성인 포함·178개 국가/지역 유지와 기존 rewarded·No Ads 유지도 사용자 확정 방향이다. PlayFab 네 옵션 ON·메일 담당/처리 목표·처리 후 보관 없음과 함께 재결정 질문을 하지 않는다. 이 결정만으로 Console 심사·실제 제공 변경·연령별 운영 계약이나 메일 정리 완료를 주장하지 않는다.
 
 ## 남은 확인과 제출 순서
 
