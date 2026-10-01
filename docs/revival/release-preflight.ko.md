@@ -17,7 +17,7 @@
 | 운영 광고·기능 | 기존 rewarded/No Ads 유지, 5초 추가 조사 보류. 준비 receipt·합성 시험과 운영 계약/바이너리는 구분 | 운영 연령·지역·동의·로그인/저장·권한/구매 복원·영수증 권위의 실제 검증 및 알려진 미해결 기록. productionContractVerified/binaryVerified/distributable=false 유지 |
 | 배포·CI | 개인용 CI/CD 보류와 기존 App Center 구성 보존 | 최종 후보 검증·승인 후 트랙/신고/심사·공개 설치 확인. CI 활성화·dispatch·배포 서비스 이행은 하지 않음 |
 
-최종 AAB는 [서명 입력 준비](signing-and-private-backup.ko.md#AAB-빌드-입력-준비)의
+최종 AAB는 [서명 입력 준비](signing-and-private-backup.ko.md#aab-빌드-입력-준비)의
 기존 keystore·alias·비공개 암호·현재 활성 업로드 인증서 대조를 먼저 충족해야 한다.
 현재 모든 트랙의 최대 사용 versionCode를 새로 확인하고 후보 번호를 검토하며,
 운영 앱 ID·Login 첫 씬·하네스 심볼 부재·min25/target36/ARM64/IL2CPP를 유지한다.
