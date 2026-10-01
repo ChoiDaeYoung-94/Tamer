@@ -103,24 +103,39 @@ try {
     } finally {
     try {
         if ($resourceSnapshot.Count -gt 0) {
-            if (Get-RevivalProjectEditor -ProjectPath $project) {
-                throw 'Project Editor is still running; PlayFab resource backup preserved without overwrite.'
-            }
-            # Check every backup before writing any original, including its GUID metadata.
+            $editorRunning = [bool](Get-RevivalProjectEditor -ProjectPath $project)
+            $resourceChecks = @()
             foreach ($entry in $resourceSnapshot) {
-                if ((Get-FileHash -LiteralPath $entry.Backup -Algorithm SHA256).Hash -ne $entry.Sha256) {
-                    throw 'PlayFab resource recovery copy changed; originals were not overwritten.'
+                $exists = Test-Path -LiteralPath $entry.Path -PathType Leaf
+                $unsafePath = $false
+                $cursor = [IO.Path]::GetDirectoryName($entry.Path)
+                while ($cursor) {
+                    if (!(Test-Path -LiteralPath $cursor -PathType Container) -or
+                        ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                        $unsafePath = $true
+                        break
+                    }
+                    $cursor = [IO.Path]::GetDirectoryName($cursor)
                 }
-                if ((Test-Path -LiteralPath $entry.Path) -and
-                    ((Get-Item -LiteralPath $entry.Path).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-                    throw 'PlayFab resource path changed; recovery backup preserved.'
+                $item = if ($exists -and !$unsafePath) { Get-Item -LiteralPath $entry.Path } else { $null }
+                $link = $null -ne $item -and [bool]($item.Attributes -band [IO.FileAttributes]::ReparsePoint)
+                $afterHash = if ($null -ne $item -and !$link) { (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash } else { $null }
+                $backupMatches = (Get-FileHash -LiteralPath $entry.Backup -Algorithm SHA256).Hash -eq $entry.Sha256
+                $resourceChecks += [pscustomobject]@{
+                    Path=$entry.Path; Exists=$exists; UnsafePath=$unsafePath; Link=$link
+                    AfterSha256=$afterHash; OriginalSha256=$entry.Sha256; BackupMatches=$backupMatches
+                    Bytes=$(if ($null -ne $item) { $item.Length } else { $null })
+                    CreationTimeUtc=$(if ($null -ne $item) { $item.CreationTimeUtc.ToString('o') } else { $null })
+                    MatchesOriginal=($exists -and !$unsafePath -and !$link -and $backupMatches -and $afterHash -eq $entry.Sha256)
                 }
             }
-            foreach ($entry in $resourceSnapshot) {
-                [IO.File]::WriteAllBytes($entry.Path, [IO.File]::ReadAllBytes($entry.Backup))
-                if ((Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash -ne $entry.Sha256) {
-                    throw 'PlayFab resource restoration verification failed; private backup preserved.'
-                }
+            $manualRecoveryRequired = $editorRunning -or [bool]($resourceChecks | Where-Object { !$_.MatchesOriginal })
+            @{ EditorRunning=$editorRunning; ManualRecoveryRequired=$manualRecoveryRequired; Files=$resourceChecks } |
+                ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $resourceBackup 'after-state.private.json') -Encoding utf8
+            # The C# scope restores files. Never recreate or overwrite a changed
+            # file here; retain the private originals for separately reviewed recovery.
+            if ($manualRecoveryRequired) {
+                throw 'PlayFab resource restoration is unverified; private evidence and backups preserved for reviewed recovery without overwrite.'
             }
         }
     } finally {
