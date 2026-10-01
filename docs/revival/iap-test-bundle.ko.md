@@ -4,7 +4,9 @@
 
 ## 빌드와 서명
 
-`tools/revival/Run-IapTestBundle.ps1 -PrepareOnly`는 고정된 `.revival-local/iap-signing`에 전용 RSA3072/JKS 업로드 키를 생성한다. 사용자 SID만 허용하는 DACL을 적용하고 암호는 현재 Windows 사용자 DPAPI로 암호화한다. 재실행 시 키·인증서 해시와 테스트앱 표식을 검사하며, 불완전한 생성 결과는 덮어쓰지 않는다. 비공개 폴더와 키를 운영 keystore와 혼용하지 않는다. 암호는 명령행 인자로 넘기지 않고 프로세스 환경 변수로 전달한 뒤 정리한다.
+기본 실행과 `-PrepareOnly`는 기존 `.revival-local/iap-signing`의 `test-upload.jks`, `password.dpapi`, `test-upload.der`, `test-only.json` 네 파일을 재사용한다. 전부 없거나 일부만 있으면 디렉터리 생성·ACL 변경·암호 복호화·keytool·Editor 실행 전에 중단한다. 파일이 없다는 이유로 기존 시험 앱의 키를 새로 만들지 않는다.
+
+**새로 승인된 시험 앱의 최초 서명 준비에만** `tools/revival/Run-IapTestBundle.ps1 -PrepareOnly -CreateSigningForNewTestApp`을 명시하여 전용 RSA3072/JKS 업로드 키를 생성할 수 있다. 이 플래그는 비어 있는 서명 준비 경로와 `-PrepareOnly`를 함께 요구한다. 기존 앱의 서명 분실 복구·키 교체·Play 업로드 키 재설정 승인이나 실행을 대신하지 않는다. 이 문서의 사용 예만으로 새 키 생성을 승인하지 않는다. 사용자 SID만 허용하는 DACL을 적용하고 암호는 현재 Windows 사용자 DPAPI로 암호화한다. 재실행 시 키·인증서 해시와 테스트앱 표식을 검사하며, 불완전한 생성 결과는 덮어쓰지 않는다. 비공개 폴더와 키를 운영 keystore와 혼용하지 않는다. 암호는 명령행 인자로 넘기지 않고 프로세스 환경 변수로 전달한 뒤 정리한다.
 
 `-TestTitle <테스트 타이틀> -ProductionTitle <운영 타이틀> -Catalog iap-test-v1`은 명시한 별도 타이틀 설정으로 번들을 빌드한다. `RevivalIapBuild.BuildStoreTestBundle`은 기존 debug APK 경로와 별도로 비디버그 AAB를 생성한다. 빌드 한정 `TAMER_IAP_STORE_TEST`가 비디버그 하네스를 허용하며 기존 패키지/타이틀 검사, 원래 로그인·광고 차단, 수동 구매 버튼과 메모리 게임 서버는 유지한다. C# finally와 외부 ProjectSettingsSnapshot이 서명·프로젝트 설정을 복원한다.
 
