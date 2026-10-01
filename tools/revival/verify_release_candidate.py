@@ -29,6 +29,8 @@ def ensure_output_safe(output, inputs):
         source=Path(source).resolve()
         if output == source or (output.exists() and source.exists() and output.samefile(source)):
             raise ValueError('Output collides with an input file; original bytes preserved')
+    if output.exists():
+        raise ValueError('Output already exists; select a new private report path')
 
 
 def inspect_bundle_libraries(aab):
@@ -111,6 +113,9 @@ def candidate_checks(aab, version_code, published_max, certificate, bundletool, 
     libraries=inspect_bundle_libraries(aab)
     return dict(schema=1,mode='aab',artifactSha256=digest(aab),manifest=metadata,signature=signature,
                 libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroPassed'] for x in libraries),
+                artifactCheckScope='AAB bundle validation, base manifest, payload signature and all bundled ARM64 ELF LOAD/RELRO only',
+                deliveredApkZipAlignmentVerified=False, arm64NativeRuntimeVerified=False,
+                productionBinary16KBVerified=False,
                 releaseReady=False,unverified=UNVERIFIED,
                 note='Supplied certificate/version claims still require Console confirmation. Static RELRO failure is not proof of runtime crash.')
 
@@ -134,7 +139,9 @@ def main():
     ensure_output_safe(args.output,inputs)
     result=source_checks(ROOT) if args.mode=='source' else candidate_checks(args.aab,args.version_code,args.published_max_code,args.upload_cert_sha256,args.bundletool,args.java)
     args.output.parent.mkdir(parents=True,exist_ok=True)
-    args.output.write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
+    # Exclusive creation also preserves evidence created after the preflight check.
+    with args.output.open('x',encoding='utf-8') as report:
+        report.write(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result))
     return 0 if result.get('sourceChecksPassed',result.get('artifactChecksPassed',False)) else 1
 
