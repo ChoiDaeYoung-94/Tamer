@@ -302,9 +302,10 @@ MobileAdsInitProvider·AD_ID 권한도 존재하므로 전체 네이티브 통�
 원자료는 ignored `Logs/revival/publisher-ump-current-build/33aa621dcef34cd08c2080898242b7b1/`의
 manifest·receipt·APK 검사·player response·복원 결과에 보존한다. 최종 사후 독립 검토도 PASS다.
 
-10월 1일 기존 로그인 Console의 읽기에서는 유럽 영어 메시지의 9월 28일 게시 상태와
-해당 Android package·기존 개인정보처리방침 URL 일치, 미국 영어 메시지의 9월 29일
-게시 상태와 앱 이름 일치를 확인했다. 미국의 정확한 package·URL은 이 읽기에서 미확인이다.
+10월 1일 기존 로그인 Console의 읽기에서는 유럽 영어 메시지의 게시됨 상태와
+마지막 수정일 표시 9월 28일, 해당 Android package·기존 개인정보처리방침 URL 일치를 확인했다.
+미국 영어 메시지의 게시됨 상태와 마지막 수정일 표시 9월 29일, 앱 이름 일치도 확인했다.
+실제 게시일과 미국의 정확한 package·URL은 이 읽기에서 미확인이다.
 미국 preview의 원본 메시지 없음·유사 광고 선택 표시는 실제 제공 변형이나 런타임 동작의
 확정 근거가 아니다. Console 설정·게시를 변경하거나 파트너 원식별값을 공개하지 않았다.
 
