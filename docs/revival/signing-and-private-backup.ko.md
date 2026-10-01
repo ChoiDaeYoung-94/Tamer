@@ -7,6 +7,8 @@
 두 사본의 SHA-256이 각각 로컬 원본과 일치했으며 Drive metadata의 공유 상태는 둘 다
 `not_shared`였다. 이 결과는 **외부 파일 존재·다운로드 무결성 PASS**다.
 사본과 해시 근거는 비공개로 보존하고 개인 경로·Drive ID·영수증 원문은 공개하지 않는다.
+내려받은 사본의 전용 로컬 폴더 ACL은 현재 Windows 소유자와 SYSTEM의 FullControl
+두 규칙만 남도록 상속을 제한하고 확인했다. 이는 Drive 공유 상태와 별개의 로컬 접근 통제다.
 
 외부 사본의 복호화·내용 대조와 기존 keystore 암호 검증은 수행하지 않았다.
 기존 receipt의 `offsiteVerified=false`, `keystorePasswordVerified=false`는 수정하지 않는다.
