@@ -274,3 +274,42 @@ SDK 비교 분기, 다음 실제 SDK 상태·화면을 함께 확인했다. 앱 
 `Logs/revival/publisher-ump-device-20260929/us-third-*`에 비공개로 보존한다.
 이 결과는 운영 광고 활성화, 지역 정책 전체 승인, 16KB 기기·최종 AAB·스토어 검증을
 대신하지 않는다.
+
+### 2026-10-01 현재 소스의 새 게시자 격리 APK
+
+기존 9월 29일 기기 관측에 사용한 소스 `7f5e24723a2f955b19aad26f18c2f8dddb83131f`와
+APK SHA `570bc882…`는 위 이력대로 보존한다. 이번 산출물은 별도의 현재 소스
+`d41bb22e7f77e49baf8f88e34fb61d9cf10f0fe1`, checkout
+`C:/Users/pc_17/.codex/worktrees/ad-production-completion/Tamer`,
+`codex/publisher-ump-current-build`에서 시작 시 clean/own Editor0을 확인하고 만든 새 APK다.
+Unity `6000.3.25f1` / revision `e1dba0a9aba4` / CLI `1.0.0-beta.8`,
+Android min25·target36·ARM64·IL2CPP 기준이며 제품 소스 수정은 없다.
+
+기존 `BuildUmpPublisher`를 **1회** 실행하여 exit0,
+`AD_HARNESS_BUILD_OK variant=ump-publisher`, `AD_HARNESS_IDENTITY_RESTORED`를 확인했다.
+`Build/revival/Tamer-ads-ump-publisher.apk`는 **98,520,632 bytes**, SHA-256
+`06ae4ff09fb515bde71813b05200b63928e19915392145c7716335d01b4fb21e`다.
+실제 APK의 기존 오프라인 verifier 1회 검사에서 비샘플 게시자 App ID와 비공개 설정의 일치,
+별도 package `com.AeDeong.MonsterTamer.revival.umppublisher`, debug certificate·debuggable,
+version1.0.5/code26/min25/target36/ARM64-only를 확인했다. 운영 식별값은 공개하지 않는다.
+실제 player response에는 `TAMER_REVIVAL_SMOKE`, `TAMER_AD_TEST_HARNESS`,
+`TAMER_UMP_ONLY_HARNESS`, `TAMER_UMP_PUBLISHER_HARNESS`가 모두 있고 `UNITY_EDITOR`는 없었다.
+MobileAdsInitProvider·AD_ID 권한도 존재하므로 전체 네이티브 통신·수집0을 보증하지 않는다.
+
+승인된 복원 계획에 따라 변경된 보호 파일 8개를 원래 바이트로 복원했다. 새 파일 2개는
+검증된 비공개 보존본을 남긴 뒤 정리했다. 보호 파일 6,861개와 전체 Assets 6,827개의
+원본 일치, Git clean/own Editor 종료, APK·비공개 설정·Library 보존을 확인했다.
+원자료는 ignored `Logs/revival/publisher-ump-current-build/33aa621dcef34cd08c2080898242b7b1/`의
+manifest·receipt·APK 검사·player response·복원 결과에 보존한다. 최종 사후 독립 검토도 PASS다.
+
+10월 1일 기존 로그인 Console의 읽기에서는 유럽 영어 메시지의 게시됨 상태와
+마지막 수정일 표시 9월 28일, 해당 Android package·기존 개인정보처리방침 URL 일치를 확인했다.
+미국 영어 메시지의 게시됨 상태와 마지막 수정일 표시 9월 29일, 앱 이름 일치도 확인했다.
+실제 게시일과 미국의 정확한 package·URL은 이 읽기에서 미확인이다.
+미국 preview의 원본 메시지 없음·유사 광고 선택 표시는 실제 제공 변형이나 런타임 동작의
+확정 근거가 아니다. Console 설정·게시를 변경하거나 파트너 원식별값을 공개하지 않았다.
+
+이번 새 APK의 기기 설치·UMP Update·EEA/연령 사례·미국 반복 관측·운영 로그인·저장·구매·광고는
+**실행하지 않았다**. strict native 검사를 새로 실행하지 않았고 전체 16KB·지역/연령 계약·
+최종 서명 AAB·스토어 검증은 미완료다. 과거 성인 미국 3차의 거부 저장·재진입 성공은
+과거 APK의 별도 결과로 유지하며 이번 빌드의 동의 동작 성공으로 대체하지 않는다.
