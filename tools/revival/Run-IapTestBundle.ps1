@@ -37,6 +37,7 @@ if (!$ready -and ((Test-Path $key) -or (Test-Path $passwordFile) -or (Test-Path 
 }
 $pointer = [IntPtr]::Zero
 $snapshot = $null
+$resourceSnapshot = @()
 try {
     if (!$ready) {
         $random = New-Object byte[] 32
@@ -65,6 +66,30 @@ try {
     if (!$PrepareOnly) {
         if ($TestTitle -notmatch '^[a-fA-F0-9]{3,32}$' -or $ProductionTitle -notmatch '^[a-fA-F0-9]{3,32}$' -or $TestTitle -eq $ProductionTitle -or [string]::IsNullOrWhiteSpace($Catalog)) { throw 'Explicit separate test title and catalog required.' }
         $snapshot = Save-RevivalProjectSettings -ProjectPath $project
+        # Capture before Editor startup/import as well as the C# build's own finally.
+        # This private backup may contain restored configuration; never print it.
+        $resourcePaths = @(
+            'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset',
+            'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset.meta'
+        )
+        foreach ($relative in $resourcePaths) {
+            $path = Join-Path $project $relative
+            if (!(Test-Path -LiteralPath $path -PathType Leaf) -or
+                ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                throw 'Existing regular PlayFab resource and metadata required; restore approved assets first.'
+            }
+        }
+        $resourceBackup = Join-Path $project ('Logs/revival/iap-resource-snapshots/' + [Guid]::NewGuid().ToString('N'))
+        [IO.Directory]::CreateDirectory($resourceBackup) | Out-Null
+        [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($resourceBackup), $acl)
+        foreach ($relative in $resourcePaths) {
+            $path = Join-Path $project $relative
+            $backup = Join-Path $resourceBackup ([IO.Path]::GetFileName($path) + '.backup')
+            $bytes = [IO.File]::ReadAllBytes($path)
+            $stream = [IO.File]::Open($backup, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+            try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
+            $resourceSnapshot += [pscustomobject]@{ Path=$path; Backup=$backup; Sha256=(Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash }
+        }
         $env:TAMER_IAP_TEST_TITLE = $TestTitle
         $env:TAMER_IAP_PRODUCTION_TITLE = $ProductionTitle
         $env:TAMER_IAP_TEST_CATALOG = $Catalog
@@ -76,8 +101,47 @@ try {
     try {
         if ($null -ne $snapshot) { Restore-RevivalProjectSettings -Snapshot $snapshot }
     } finally {
+    try {
+        if ($resourceSnapshot.Count -gt 0) {
+            $editorRunning = [bool](Get-RevivalProjectEditor -ProjectPath $project)
+            $resourceChecks = @()
+            foreach ($entry in $resourceSnapshot) {
+                $exists = Test-Path -LiteralPath $entry.Path -PathType Leaf
+                $unsafePath = $false
+                $cursor = [IO.Path]::GetDirectoryName($entry.Path)
+                while ($cursor) {
+                    if (!(Test-Path -LiteralPath $cursor -PathType Container) -or
+                        ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                        $unsafePath = $true
+                        break
+                    }
+                    $cursor = [IO.Path]::GetDirectoryName($cursor)
+                }
+                $item = if ($exists -and !$unsafePath) { Get-Item -LiteralPath $entry.Path } else { $null }
+                $link = $null -ne $item -and [bool]($item.Attributes -band [IO.FileAttributes]::ReparsePoint)
+                $afterHash = if ($null -ne $item -and !$link) { (Get-FileHash -LiteralPath $entry.Path -Algorithm SHA256).Hash } else { $null }
+                $backupMatches = (Get-FileHash -LiteralPath $entry.Backup -Algorithm SHA256).Hash -eq $entry.Sha256
+                $resourceChecks += [pscustomobject]@{
+                    Path=$entry.Path; Exists=$exists; UnsafePath=$unsafePath; Link=$link
+                    AfterSha256=$afterHash; OriginalSha256=$entry.Sha256; BackupMatches=$backupMatches
+                    Bytes=$(if ($null -ne $item) { $item.Length } else { $null })
+                    CreationTimeUtc=$(if ($null -ne $item) { $item.CreationTimeUtc.ToString('o') } else { $null })
+                    MatchesOriginal=($exists -and !$unsafePath -and !$link -and $backupMatches -and $afterHash -eq $entry.Sha256)
+                }
+            }
+            $manualRecoveryRequired = $editorRunning -or [bool]($resourceChecks | Where-Object { !$_.MatchesOriginal })
+            @{ EditorRunning=$editorRunning; ManualRecoveryRequired=$manualRecoveryRequired; Files=$resourceChecks } |
+                ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $resourceBackup 'after-state.private.json') -Encoding utf8
+            # The C# scope restores files. Never recreate or overwrite a changed
+            # file here; retain the private originals for separately reviewed recovery.
+            if ($manualRecoveryRequired) {
+                throw 'PlayFab resource restoration is unverified; private evidence and backups preserved for reviewed recovery without overwrite.'
+            }
+        }
+    } finally {
     Remove-Item Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue
     if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
     $secret = $null
+    }
     }
 }
