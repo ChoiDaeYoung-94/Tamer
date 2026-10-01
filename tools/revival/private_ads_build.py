@@ -94,7 +94,9 @@ def protected_paths(root):
 
 def preflight(root, config, expected_head, editor_version):
     safe_path(root, JOURNAL)
-    if (root / JOURNAL).exists() or (root / HOOK).exists() or (root / (HOOK + '.meta')).exists():
+    hook = safe_path(root, HOOK)
+    if ((root / JOURNAL).exists() or (root / (HOOK + '.meta')).exists() or
+            (hook.exists() and (not hook.is_dir() or any(hook.iterdir())))):
         raise ValueError('Stale journal/hook: manual recovery required')
     if git(root, 'rev-parse', '--show-toplevel').replace('\\', '/').lower() != root.as_posix().lower():
         raise ValueError('Checkout root mismatch')
@@ -238,10 +240,14 @@ def finalize(root, state):
             return result
 
 
-def execute(root, config, head, version):
-    # The authorized third synthetic contract check passed for its 59 inputs.
-    # Unity compatibility, binary verification and retained-directory review remain incomplete.
-    raise ValueError('Execution blocked: Unity and lifecycle readiness incomplete')
+def execute(root, config, head, version, *, plan=None, reviewed_sha256=None,
+            source_review=None, signing=None, allow_unity_build=False):
+    # The legacy four-argument call cannot authorize a build or mutate Assets.
+    if plan is None or reviewed_sha256 is None or source_review is None or signing is None or not allow_unity_build:
+        raise ValueError('Reviewed plan/source/signing and explicit Unity launch permission required')
+    from private_ads_producer import build_once
+    return build_once(root, config, head, version, plan, reviewed_sha256,
+                      source_review, signing, allow_unity_build=True)
 
 
 
@@ -258,6 +264,8 @@ def verify_hook_receipt(root, state):
                 'buildSceneValueMatched': True, 'compiledEditorGatesDisabled': True,
                 'productionContractVerified': False, 'binaryVerified': False, 'distributable': False}
     extra = {'artifactSha256', 'configuredAndroidDefines', 'prospectivePlayerDefinePlanSha256'}
+    if 'resourceSha256' in state:
+        expected['resourceSha256'] = state['resourceSha256']
     if not isinstance(receipt, dict) or set(receipt) != set(expected) | extra:
         raise ValueError('Receipt schema rejected')
     if any(type(receipt[key]) is not type(value) or receipt[key] != value
@@ -278,44 +286,6 @@ def verify_hook_receipt(root, state):
         raise ValueError('Receipt artifact mismatch')
     return {'hookReceiptVerified': True, 'productionContractVerified': False,
             'binaryVerified': False, 'distributable': False}
-
-
-def _execute_after_contract_review(root, config, head, version):
-    """Unreachable draft; not a supported API until contract verification is cleared."""
-    pre = preflight(root, config, head, version)
-    state = {}
-    try:
-        stage(root, config, pre, head, version, state)
-        run = safe_path(root, state['run'])
-        env = dict(os.environ)
-        for key in list(env):
-            if key.startswith('TAMER_PRIVATE_ADS_'):
-                del env[key]
-        env.update(TAMER_PRIVATE_ADS_PREPARE='1', TAMER_PRIVATE_ADS_RUN_ID=state['runId'],
-                   TAMER_PRIVATE_ADS_SOURCE_HEAD=state['head'], TAMER_PRIVATE_ADS_CONFIG=str(config),
-                   TAMER_PRIVATE_ADS_SHA256=state['configSha256'],
-                   TAMER_PRIVATE_ADS_OUTPUT=str(run / 'disabled-preparation.aab'),
-                   TAMER_PRIVATE_ADS_RECEIPT=str(run / 'hook-receipt.json'))
-        cli = root / 'tools/.local/unity-cli/1.0.0-beta.8/unity.exe'
-        command = [str(cli), 'build', str(root), '--target', 'Android', '--execute-method',
-                   'PrivateProductionAdsBuild.Build', '--output-path', env['TAMER_PRIVATE_ADS_OUTPUT'],
-                   '--editor-version', version, '--log-file', str(run / 'editor.private.log'),
-                   '--no-tail', '--non-interactive', '--allow-dirty-build']
-        # Dirty allowance is solely for journal-owned hooks. The entire original tree
-        # was clean at preflight; Editor must still be closed before launch.
-        require_editor_closed(root)
-        require_staged_tree(root, state)
-        with (run / 'cli.private.log').open('wb') as log:
-            result = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT)
-        if result.returncode or not (run / 'hook-receipt.json').is_file():
-            raise ValueError('Preparation did not complete')
-        return verify_hook_receipt(root, state)
-    finally:
-        if state:
-            require_editor_closed(root)
-            cleanup = finalize(root, state)
-            if cleanup['manualRecoveryRequired']:
-                raise ValueError('Owned files cleaned; retained directory/journal require manual review')
 
 
 def main():
