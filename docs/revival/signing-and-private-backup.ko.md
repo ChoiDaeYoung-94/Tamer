@@ -1,5 +1,19 @@
 # 서명 역할 확인과 비공개 에셋 복구
 
+## 2026-10-01 다운로드 사본의 메모리 복호화와 내부 정합 확인
+
+사용자가 Pinentry에서 새 백업 암호를 직접 입력한 뒤 다운로드 사본을 **1회** 복호화했고
+exit0과 독립 읽기 검토 PASS를 확인했다. 보관 파일 manifest와 certificate·keystore·
+recovery-note 세 역할의 내부 목록·내용 해시 정합이 확인됐다. 원본과 다운로드 파일
+4개의 identity·SHA 불변, 전용 agent 정리 성공을 확인했으며 완료 후 Pinentry와 소유
+GPG agent는 남지 않았다. 평문 파일을 쓰거나 기존 receipt를 수정하지 않았다.
+
+이 결과는 다운로드 사본의 복호화·보관 파일 내부 정합 검증이다. 권위 있는 원본 세 역할과
+직접 대조한 것은 아니므로 `authoritativeOriginalRoleComparison=false`이며, 기존
+keystore 암호·개인키 사용 가능성도 검증하지 않아 `keystorePasswordVerified=false`다.
+전체 외부 복구 완료로 확대하지 않고 기존 receipt의 `offsiteVerified=false`를 유지한다.
+민감 경로·해시·영수증 원문·평문·암호는 공개하지 않는다. 아래 기록은 각 실행 시점 이력이다.
+
 ## 2026-10-01 Drive 사본 존재와 다운로드 무결성 확인
 
 사용자가 기존 키 백업의 두 파일을 직접 업로드한 뒤, Google Drive connector로
@@ -10,7 +24,7 @@
 내려받은 사본의 전용 로컬 폴더 ACL은 현재 Windows 소유자와 SYSTEM의 FullControl
 두 규칙만 남도록 상속을 제한하고 확인했다. 이는 Drive 공유 상태와 별개의 로컬 접근 통제다.
 
-외부 사본의 복호화·내용 대조와 기존 keystore 암호 검증은 수행하지 않았다.
+이 다운로드 확인 시점에는 외부 사본의 복호화·내용 대조와 기존 keystore 암호 검증을 하지 않았다.
 기존 receipt의 `offsiteVerified=false`, `keystorePasswordVerified=false`는 수정하지 않는다.
 새 백업 암호와 기존 키 암호는 별개이며, 다운로드 성공을 외부 복구·서명 가능성 확인으로
 확대하지 않는다. 아래 미업로드·미다운로드 표현은 각 날짜의 이력이다.
