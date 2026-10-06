@@ -194,6 +194,11 @@ UI 컴포넌트를 저장하지 않는다. 실제 `DeletionSettingsEntry`, `Dele
 `AgePrivacyOptionsEntry`, `AgeChoicePresenter`를 구성한 검증용 설정 host다.
 운영 설정 prefab과 전체 게임 설정 메뉴 배치를 검증한 것은 아니다.
 
+사용 CLI는 `1.0.0-beta.8`, Android AAPT2/apksigner는 Build Tools `36.0.0`이다.
+APK는 min25/target36/ARM64, version 1.0.5/code26이며 크기는 98,536,379바이트다.
+`Tamer-privacy-ui.apk` SHA-256:
+`52c2e05b1c534a730e1163d215229f3513060194145fa7f924ffc228201e5246`.
+
 비활성 Managers에 UI 참조만 연결하고 Init·운영 서비스·로그인·store 연결·UMP·광고
 초기화를 요청하지 않는다. 로컬 helper 생성자·UnityConsent·UGS registry 구성과
 AndroidX WorkManager/Lifecycle/ProfileInstaller 초기화는 남는다. 빌드 동안만
