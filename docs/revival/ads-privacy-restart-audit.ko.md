@@ -267,6 +267,8 @@ multicast 설정 오류가 보였지만 대상 버튼과 상태 안내를 가리
 
 ## 후속 소스 준비: 개인정보 SDK 환경 제외 조건 (2026-10-06)
 
+이번 검증 소스는 `852f2b7f1bc4650bfe4ed0fe27ac184e8ad6205d`이며,
+Unity 6000.3.25f1의 Roslyn과 cached Unity 참조를 사용한 소스 검사다.
 `AgeTreatmentPolicy.IsPrivacySdkContext`를 새 개인정보 SDK owner 생성 경계에만
 연결했다. 기존 ProjectSettings의 Android package와 정확히 일치하는 Android 일반
 빌드만 환경 후보이며 Editor·batch·development·명시적 테스트·하네스는 제외한다.
