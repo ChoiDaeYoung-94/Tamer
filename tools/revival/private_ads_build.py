@@ -92,7 +92,7 @@ def protected_paths(root):
     return sorted(paths)
 
 
-def preflight(root, config, expected_head, editor_version):
+def preflight(root, config, expected_head, editor_version, *, audit_contract=True):
     safe_path(root, JOURNAL)
     hook = safe_path(root, HOOK)
     if ((root / JOURNAL).exists() or (root / (HOOK + '.meta')).exists() or
@@ -111,7 +111,7 @@ def preflight(root, config, expected_head, editor_version):
     if not git(root, 'check-ignore', '--', str(config)):
         raise ValueError('Configuration must be ignored')
     require_editor_closed(root)
-    return audit(root, config)
+    return audit(root, config) if audit_contract else None
 
 
 def meta(folder=False):
@@ -258,14 +258,18 @@ def verify_hook_receipt(root, state):
         raise ValueError('Invalid receipt constant')
     receipt = json.loads(safe_path(root, state['run'] + '/hook-receipt.json').read_text(encoding='utf-8'),
                          object_pairs_hook=unique_object, parse_constant=reject_constant)
+    approved = state.get('mode') == 'approved_adult_release'
     expected = {'schema': 1, 'runId': state['runId'], 'sourceHead': state['head'],
                 'configSha256': state['configSha256'], 'unityVersion': state['editorVersion'],
                 'injectedManagers': 1, 'loginScenes': 1, 'preprocessed': True, 'postprocessed': True,
-                'buildSceneValueMatched': True, 'compiledEditorGatesDisabled': True,
+                'buildSceneValueMatched': True, 'compiledEditorGatesDisabled': not approved,
                 'productionContractVerified': False, 'binaryVerified': False, 'distributable': False}
     extra = {'artifactSha256', 'configuredAndroidDefines', 'prospectivePlayerDefinePlanSha256'}
     if 'resourceSha256' in state:
         expected['resourceSha256'] = state['resourceSha256']
+    if state.get('receiptModeVersion') == 1:
+        expected['mode'] = state['mode']
+        expected['approvedBuildContractMatched'] = approved
     if not isinstance(receipt, dict) or set(receipt) != set(expected) | extra:
         raise ValueError('Receipt schema rejected')
     if any(type(receipt[key]) is not type(value) or receipt[key] != value

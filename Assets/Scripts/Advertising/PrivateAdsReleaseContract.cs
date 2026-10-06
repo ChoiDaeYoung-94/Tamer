@@ -22,6 +22,54 @@ namespace AD.Advertising
         private static readonly Binding ApprovedRelease = null;
         private static bool loaded;
         private static Contract cached;
+        private static bool manifestRead;
+        private static string manifestAppId;
+
+        // Pure gate runs before resource or JNI access. It does not grant UMP
+        // consent, entitlement or a reward, and cannot be overridden by JSON.
+        public static bool CanInspectProductionContext(AgeChoice age) =>
+            AdRequestPolicy.ProductionAdsEnabled && AgeTreatmentPolicy.IsReviewed(age) &&
+            ApprovedRelease != null && RuntimeEligible(Application.isEditor, Debug.isDebugBuild,
+                Application.isBatchMode, Application.platform == RuntimePlatform.Android, age);
+
+        public static bool AllowsCurrentAndroidRelease(string rewardedUnit, AgeChoice age)
+        {
+#if !UNITY_ANDROID || UNITY_EDITOR || DEVELOPMENT_BUILD || TAMER_TEST_ADS || TAMER_REVIVAL_SMOKE || TAMER_AD_TEST_HARNESS || TAMER_AD_SAMPLE_CLOSE_HARNESS || TAMER_UMP_PUBLISHER_HARNESS || TAMER_UMP_ONLY_HARNESS || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS || TAMER_IAP_STORE_TEST || TAMER_SESSION_HARNESS || TAMER_GAMESAVE_HARNESS || TAMER_PGS_HARNESS || TAMER_PROGRESS_HARNESS || TAMER_JOURNAL_HARNESS || TAMER_DELETION_HARNESS || TAMER_RECEIPT_HARNESS
+            return false;
+#else
+            if (!CanInspectProductionContext(age)) return false;
+            if (!manifestRead)
+            {
+                manifestRead = true;
+                try
+                {
+                    using (var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                    using (var activity = player.GetStatic<AndroidJavaObject>("currentActivity"))
+                    using (var manager = activity.Call<AndroidJavaObject>("getPackageManager"))
+                    using (var info = manager.Call<AndroidJavaObject>("getApplicationInfo", Application.identifier, 128))
+                    using (var metadata = info.Get<AndroidJavaObject>("metaData"))
+                        manifestAppId = metadata.Call<string>("getString", "com.google.android.gms.ads.APPLICATION_ID");
+                }
+                catch { manifestAppId = null; }
+            }
+            return AllowsAdultRelease(Application.identifier, manifestAppId, rewardedUnit, age);
+#endif
+        }
+
+        // Build-source validation only. Runtime environment and UMP/entitlement
+        // eligibility remain separate; no binding is accepted from environment.
+        public static bool TryReadApprovedBuildContract(byte[] bytes, string packageId,
+            string androidAppId, out string rewardedUnit)
+        {
+            rewardedUnit = null;
+            if (!AdRequestPolicy.ProductionAdsEnabled || !AgeTreatmentPolicy.RegionalConsentReviewed ||
+                !AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult) ||
+                AgeTreatmentPolicy.IsReviewed(AgeChoice.Under13) || AgeTreatmentPolicy.IsReviewed(AgeChoice.From13To15) ||
+                AgeTreatmentPolicy.IsReviewed(AgeChoice.From16To17) ||
+                !TryRead(bytes, ApprovedRelease, out var contract) || !contract.MatchesApplication(packageId, androidAppId)) return false;
+            rewardedUnit = contract.RewardedUnit;
+            return true;
+        }
 
         public static bool AllowsAdultRelease(string packageId, string androidAppId,
             string rewardedUnit, AgeChoice age)
@@ -76,6 +124,8 @@ namespace AD.Advertising
             { packageId = package; appId = app; rewardedUnit = unit; }
             internal bool Matches(string package, string app, string unit) =>
                 packageId == package && appId == app && rewardedUnit == unit;
+            internal bool MatchesApplication(string package, string app) => packageId == package && appId == app;
+            internal string RewardedUnit => rewardedUnit;
         }
 
         private static readonly string[] Fields = {

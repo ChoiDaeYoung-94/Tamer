@@ -76,3 +76,52 @@ Unity API를 inert stub으로 대체한 순수 실행 fixture가 새 20개 check
 열거나 assembly를 로드하지 않았다. source 및 원 manifest/result/log는 ignored 근거에
 보존한다. 실제 Unity build·SDK·광고 요청·private 승인 자료 수정은 0이며, source 준비와
 실제 승인·binary·runtime/privacy 검증을 구분한다.
+
+## consumer 연결과 운영 생산 모드의 소스 준비 — 2026-10-06
+
+manager의 운영 환경은 기존 production policy **그리고** immutable 계약을 요구한다.
+`AllowsCurrentAndroidRelease`는 master/성인·지역 검토/compiled binding/Android nondev를
+순수 조건으로 먼저 확인하고 test/harness를 거절한다. 그 뒤에만 실제 설치 앱 manifest의
+`com.google.android.gms.ads.APPLICATION_ID`를 JNI로 한 번 읽는다. resource의 자기 App ID를
+SDK 설정의 증거로 삼지 않는다. 실패/불일치를 캐시하고 package/App/Unit을 정확히 비교한다.
+현재 master/지역/성인 false와 binding null을 유지하므로 실제 JNI/resource 읽기도 없다.
+
+No Ads는 `CanRequestAds`, 초기화와 로드를 차단하며 UMP 상태를 직전에 재확인한다.
+`CanBeginConsent`와 privacy entry는 No Ads로 막지 않아 동의 관리와 Required privacy
+발견 경로를 유지한다. 기존 즉시 reward 분기와 session/buff 처리는 그대로다. 성인 선택과
+계약은 UMP 동의나 보상 완료를 대신하지 않는다. privacy 선택 후 자동 load도 하지 않는다.
+
+producer는 기본 `disabled_candidate`와 별도 `approved_adult_release`를 구분한다.
+비활성 여섯 필드 parser/false audit는 그대로이며, 운영 mode에는 외부 승인된 18필드 raw
+resource와 별도 `private_ads_approved.py` preflight가 필요하다. 실제 source master/지역/성인
+true·미성년 세 gate false, 정확한 일곱 literal binding, package/App/inventory 일치를 요구한다.
+source 선언은 단일 무조건 선언만 허용하며 문자열/주석 위장·조건부·불균형 지시문을 거절한다.
+JSON/env/CLI로 compiled 승인을 만들 수 없다. 현재 false/null에서는 staging/marker 전에 거절한다.
+
+prepare/build-once의 mode와 integer `receiptModeVersion=1`은 exact 검토 계획에 묶인다.
+운영 mode는 승인 resource 원본 바이트를 수정 없이 전달한다. 별도
+`BuildApprovedAdultRelease`는 settings 변경 전 compiled gate/binding과 strict parser를 다시
+검사한다. settings scope/원래 씬·injection/보호 inventory/actual delta·별도 검토 복구는
+공유하되 config 검증을 섞지 않는다. receipt의 mode와 `approvedBuildContractMatched`를
+대조하고 운영 callback의 `compiledEditorGatesDisabled=false`를 명시한다. 이는 실제 Player
+전체 또는 최종 artifact 검증이 아니므로 productionContract/binary/distributable false다.
+
+실제 운영 실행에는 승인 자료와 별도 source 변경 검토, exact plan/source/tools/signing
+검토와 명시적인 단일 실행 허용이 필요하다. 실제 callback/복구와 최종 resource·serialized
+unit·merged manifest·인증서, 개인정보·기기·스토어 검증을 artifact SHA에 연결해야 한다.
+이번 source 경로 연결을 실제 운영 executor·privacy/runtime 검증 PASS로 표현하지 않는다.
+운영 승인 true 자료/resource/Unit을 생성하거나 주입하지 않았다.
+
+새 Python 검사 최초 5개, binding/spoof·mode version 후속 2개, receipt mode 혼용 거절 1개가
+각각 첫 실행 PASS였다. 기존 회귀는 반복하지 않았다. 순수 JNI stub 5개는 false/null에서
+객체/resource 접근0을 확인했다. isolated ignored 합성 source만 true/literal binding으로
+변환한 fixture는 정상/context 불일치/manifest 불일치/예외 4개 시나리오에서 1회 캐시와
+재시도 차단을 확인했다. tracked 실제 source hash는 불변이며 실제 JNI/SDK0다. Python의
+No Ads/privacy 검사는 guard 순서 읽기이며 실기기 동작 검증은 아니다.
+
+manager 순수 compile1은 별도 assembly에서 internal UMP client를 참조하여 `CS0122`로
+실패했다. compile2는 작성자가 client의 경로를 Advertising으로 잘못 지정하여 `CS2001`로
+실패했다. 두 근거를 보존하고 규칙에 따라 중단했으며, 사용자 명시 승인 후 실제
+`Assets/Scripts/Managers/GoogleUmpConsentClient.cs`를 같은 source assembly에 포함한
+compile3 1회가 exit0이었다. 의존 producer 템플릿은 첫 순수 compile exit0였다. assembly
+load/본문 실행은 없고 실제 Editor/build·native SDK·광고·운영 승인 자료 변경은 0이다.

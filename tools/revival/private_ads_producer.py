@@ -116,9 +116,12 @@ def resource_bytes(config, root):
                     'adultConsentReviewed': False, 'configSha256': base.digest(raw)})
 
 
-def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_manifest=None):
+def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_manifest=None,
+                 mode='disabled_candidate'):
     """No subprocess or Assets write; caller supplies the read-only preflight result."""
-    if preflight_result.get('disabledPreparationValid') is not True:
+    if mode not in ('disabled_candidate', 'approved_adult_release'):
+        raise ValueError('Producer mode rejected')
+    if preflight_result.get('approvedSourceContractValid' if mode == 'approved_adult_release' else 'disabledPreparationValid') is not True:
         raise ValueError('Read-only preflight required')
     if base.digest(config.read_bytes()) != preflight_result.get('configSha256'):
         raise ValueError('Configuration changed')
@@ -134,7 +137,12 @@ def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_
     for name in base.TEMPLATES:
         staged[hook + '/' + name] = (Path(__file__).parent / 'private_ads_build' / name).read_bytes()
         staged[hook + '/' + name + '.meta'] = base.meta()
-    staged[RESOURCE] = resource_bytes(config, root)
+    if mode == 'approved_adult_release':
+        from private_ads_approved import read_approved
+        read_approved(config.read_bytes())
+        staged[RESOURCE] = config.read_bytes() # Exact externally approved bytes; no approval edits.
+    else:
+        staged[RESOURCE] = resource_bytes(config, root)
     staged[RESOURCE + '.meta'] = ('fileFormatVersion: 2\nguid: ' + uuid.uuid4().hex +
         '\nTextScriptImporter:\n  externalObjects: {}\n  userData: \n'
         '  assetBundleName: \n  assetBundleVariant: \n').encode()
@@ -159,7 +167,7 @@ def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_
         owned[path] = {'sha256': base.digest(raw), 'payload': payload.relative_to(root).as_posix(),
                        'absentBefore': True, 'writer': 'producer'}
     tools = installed_tool_inventory(tool_manifest, version) if tool_manifest is not None else None
-    plan = {'schema': 2, 'mode': 'disabled_candidate', 'checkout': str(root), 'head': head,
+    plan = {'schema': 2, 'mode': mode, 'receiptModeVersion': 1, 'checkout': str(root), 'head': head,
             'branch': branch, 'editorVersion': version, 'runId': run_id, 'run': run_rel,
             'hook': hook, 'config': str(config), 'configSha256': preflight_result['configSha256'],
             'resourceSha256': owned[RESOURCE]['sha256'], 'before': before, 'owned': owned, 'installedTools': tools,
@@ -176,7 +184,8 @@ def load_plan(root, path, reviewed_sha):
     if not path.is_relative_to(root / '.revival-local') or base.digest(path.read_bytes()) != reviewed_sha:
         raise ValueError('Exact private plan review required')
     plan = read_json(path)
-    if (plan.get('schema') != 2 or plan.get('mode') != 'disabled_candidate' or
+    if (plan.get('schema') != 2 or type(plan.get('receiptModeVersion')) is not int or plan['receiptModeVersion'] != 1 or
+            plan.get('mode') not in ('disabled_candidate', 'approved_adult_release') or
             plan.get('checkout') != str(root) or plan.get('producerPrepared') is not False or
             plan.get('binaryVerified') is not False or plan.get('distributable') is not False):
         raise ValueError('Candidate plan rejected')
@@ -191,7 +200,13 @@ def load_plan(root, path, reviewed_sha):
         expected_owned.update((plan['hook'] + '/' + name, plan['hook'] + '/' + name + '.meta'))
     if set(plan['owned']) != expected_owned:
         raise ValueError('Exact producer staging scope required')
-    if plan['resourceSha256'] != base.digest(resource_bytes(Path(plan['config']), root)):
+    if plan['mode'] == 'approved_adult_release':
+        from private_ads_approved import read_approved
+        raw_resource = Path(plan['config']).read_bytes()
+        read_approved(raw_resource)
+    else:
+        raw_resource = resource_bytes(Path(plan['config']), root)
+    if plan['resourceSha256'] != base.digest(raw_resource):
         raise ValueError('Disabled resource contract mismatch')
     for p, entry in plan['owned'].items():
         payload = base.safe_path(root, entry['payload'])
@@ -282,7 +297,11 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
     require_private(base.safe_path(root, plan['run']))
     if plan['head'] != head or plan['editorVersion'] != version or plan['config'] != str(config):
         raise ValueError('Invocation mismatch')
-    base.preflight(root, config, head, version)
+    if plan['mode'] == 'approved_adult_release':
+        from private_ads_approved import preflight_approved
+        preflight_approved(root, config, head, version)
+    else:
+        base.preflight(root, config, head, version)
     if base.git(root, 'branch', '--show-current') != plan['branch']:
         raise ValueError('Branch changed')
     require_unchanged(root, plan)
@@ -317,7 +336,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
                   for p, e in plan['owned'].items()}
         write_new(run / 'staged-owned.private.json', encoded(staged))
         env = {k: v for k, v in os.environ.items() if not k.startswith('TAMER_PRIVATE_ADS_')}
-        env.update(TAMER_PRIVATE_ADS_PREPARE='1', TAMER_PRIVATE_ADS_RUN_ID=plan['runId'],
+        env.update(TAMER_PRIVATE_ADS_PREPARE='1', TAMER_PRIVATE_ADS_MODE=plan['mode'], TAMER_PRIVATE_ADS_RUN_ID=plan['runId'],
                    TAMER_PRIVATE_ADS_SOURCE_HEAD=head, TAMER_PRIVATE_ADS_CONFIG=str(config),
                    TAMER_PRIVATE_ADS_SHA256=plan['configSha256'],
                    TAMER_PRIVATE_ADS_OUTPUT=str(run / 'disabled-preparation.aab'),
@@ -331,7 +350,8 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
                    TAMER_PRIVATE_ADS_KEY_ALIAS=sign['alias'])
         # Never let credentials go to CLI output/receipt; C# consumes execution-only env.
         command = [str(base.safe_path(root, CLI)), 'build', str(root), '--target', 'Android',
-                   '--execute-method', 'PrivateProductionAdsBuild.Build', '--output-path',
+                   '--execute-method', ('PrivateProductionAdsBuild.BuildApprovedAdultRelease' if
+                   plan['mode'] == 'approved_adult_release' else 'PrivateProductionAdsBuild.Build'), '--output-path',
                    env['TAMER_PRIVATE_ADS_OUTPUT'], '--editor-version', version,
                    '--log-file', str(run / 'editor.private.log'), '--no-tail', '--non-interactive',
                    '--allow-dirty-build']
@@ -470,6 +490,7 @@ def main():
     parser.add_argument('--reviewed-plan-sha256')
     parser.add_argument('--source-review', type=Path)
     parser.add_argument('--tool-manifest', type=Path)
+    parser.add_argument('--mode', choices=('disabled_candidate', 'approved_adult_release'), default='disabled_candidate')
     parser.add_argument('--signing', type=Path)
     parser.add_argument('--allow-unity-build', action='store_true')
     parser.add_argument('--recovery', type=Path)
@@ -481,10 +502,14 @@ def main():
         base.safe_path(args.checkout, '.')
         root = args.checkout.resolve()
         if args.action == 'prepare':
-            pre = base.preflight(root, args.config, args.expected_head, args.editor_version)
+            if args.mode == 'approved_adult_release':
+                from private_ads_approved import preflight_approved
+                pre = preflight_approved(root, args.config, args.expected_head, args.editor_version)
+            else:
+                pre = base.preflight(root, args.config, args.expected_head, args.editor_version)
             result = prepare_plan(root, args.config, args.expected_head, args.editor_version,
                                   branch=base.git(root, 'branch', '--show-current'), preflight_result=pre,
-                                  tool_manifest=args.tool_manifest)
+                                  tool_manifest=args.tool_manifest, mode=args.mode)
         elif args.action == 'build-once':
             result = base.execute(root, args.config, args.expected_head, args.editor_version,
                                   plan=args.plan, reviewed_sha256=args.reviewed_plan_sha256,
