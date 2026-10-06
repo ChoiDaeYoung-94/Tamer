@@ -58,6 +58,35 @@ SDK·정책 검토가 필요하다. 이 문서는 그 안을 구현하거나 운
 명시적 개인정보 상태 확인 진입점을 항상 제공하는 대안도 있다. 어느 방식이든
 진입점 표시를 현재 SDK Required 또는 표시 가능한 native form의 증거로 취급하지 않는다.
 
+## SDK 조사로 좁힌 조건
+
+[Unity GDPR 안내](https://developers.google.com/admob/unity/privacy/gdpr)는 TFUA=true
+갱신을 지원하지만, 과거 성인 동의의 철회 양식을 현재 미성년에게 다시 제공하거나
+기존 동의를 삭제한다는 보장은 확인하지 못했다. Unknown/Declined는 앱 선택 상태이며
+공식 SDK 연령 매핑이 아니다. 기존 성인 태그를 재사용하거나 임의로 true에 매핑할
+근거로 사용할 수 없다. 현재 16–17의 TFUA=false도 모든 미성년=true로 바꾸지 않는다.
+
+[Android ConsentInformation 참조](https://developers.google.com/admob/android/reference/privacy/kotlin/com/google/android/ump/ConsentInformation)에
+따르면 Update 시작 직후 과거 실행의 status가 나타날 수 있다. 이번 명시 요청의
+성공 callback 이후에만 최신 status를 읽는다. 실패 후 읽힌 Required를 근거로
+양식을 열지 않는다. 성공+Required만 Show 후보이며 NotRequired는 현재 SDK 양식이
+요구되지 않는다는 뜻이지 과거 동의 철회 완료가 아니다. Unknown/실패는 확인 실패다.
+
+[Android UserMessagingPlatform 참조](https://developers.google.com/admob/android/reference/privacy/kotlin/com/google/android/ump/UserMessagingPlatform)는
+개인정보 양식 자동 preload와 미준비·표시 실패 오류를 구분한다. Required여도 실제
+표시 성공을 보장하지 않는다. 개인정보 경로에서 Gather를 preload 용도로 호출하지
+않으며 같은 클릭의 자동 재시도 없이 이후 명시 요청으로만 재시도한다.
+
+공식 [v11.5.0 Android bridge](https://github.com/googleads/googleads-mobile-unity/blob/v11.5.0/source/plugin/Assets/GoogleMobileAds/Ump/Platforms/Android/ConsentFormClient.cs)는
+UI runnable 예외를 로그로 남기고 dismissed callback을 호출하지 않는 경로가 있다.
+callback 부재를 host timeout으로 native form 종료라고 처리하거나 다른 owner의
+양식을 겹쳐서는 안 된다. 새 gate 생성도 native consent reset을 뜻하지 않는다.
+
+현재 별도 개인정보 SDK 환경·연령 검토 조건은 정의되지 않았다. 광고 unit이나
+광고용 승인 계약을 개인정보 호출의 승인 근거로 사용해서는 안 된다. 미검토 상태의
+plumbing과 실제 운영 refresh 활성화 완료를 구분해야 한다. 명시 요청만 허용하는
+안은 기본 매 실행 Update 지침을 전체 구현했다고 주장하지 않는다.
+
 ## 후속 검증 범위
 
 처리 조건이 결정되면 실제 manager에 합성 consent client를 연결해 연령 변경,
