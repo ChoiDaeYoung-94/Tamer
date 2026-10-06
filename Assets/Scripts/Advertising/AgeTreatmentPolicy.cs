@@ -22,6 +22,19 @@ namespace AD.Advertising
         // Privacy-only SDK calls require a separate reviewed environment.
         public static bool PrivacySdkEnvironmentReviewed => false;
 
+        // Matches the existing Android applicationIdentifier; this is only a
+        // context exclusion, not App ID/artifact binding or regional approval.
+        public static bool IsPrivacySdkContext(bool isEditor, bool isDevelopment,
+            bool isBatchMode, bool explicitTest, bool isAndroid, string packageId)
+        {
+#if DEVELOPMENT_BUILD || TAMER_TEST_ADS || TAMER_REVIVAL_SMOKE || TAMER_AD_TEST_HARNESS || TAMER_AD_SAMPLE_CLOSE_HARNESS || TAMER_UMP_PUBLISHER_HARNESS || TAMER_UMP_ONLY_HARNESS || TAMER_PRIVACY_UI_HARNESS || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS || TAMER_IAP_STORE_TEST || TAMER_SESSION_HARNESS || TAMER_GAMESAVE_HARNESS || TAMER_PGS_HARNESS || TAMER_PROGRESS_HARNESS || TAMER_JOURNAL_HARNESS || TAMER_DELETION_HARNESS || TAMER_RECEIPT_HARNESS
+            return false;
+#else
+            return isAndroid && !isEditor && !isDevelopment && !isBatchMode && !explicitTest &&
+                string.Equals(packageId, "com.AeDeong.MonsterTamer", System.StringComparison.Ordinal);
+#endif
+        }
+
         public static bool TryCreatePrivacyPlan(AgeChoice choice, bool editing,
             bool environmentReviewed, bool ageReviewed, out AgeTreatmentPlan plan)
         {

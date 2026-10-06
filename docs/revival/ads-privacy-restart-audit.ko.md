@@ -264,3 +264,19 @@ multicast 설정 오류가 보였지만 대상 버튼과 상태 안내를 가리
 운영 설정 메뉴 전체·native UMP 갱신·지역별 개인정보 흐름·모든 SDK 통신 부재를
 검증한 것은 아니다. 기존 publisher UMP 앱·prefs와 로그인·결제에 접근하지 않았다.
 운영 검토 false와 `runtimePrivacyVerified/binaryVerified/distributable=false`는 유지한다.
+
+## 후속 소스 준비: 개인정보 SDK 환경 제외 조건 (2026-10-06)
+
+이번 검증 소스는 `852f2b7f1bc4650bfe4ed0fe27ac184e8ad6205d`이며,
+Unity 6000.3.25f1의 Roslyn과 cached Unity 참조를 사용한 소스 검사다.
+`AgeTreatmentPolicy.IsPrivacySdkContext`를 새 개인정보 SDK owner 생성 경계에만
+연결했다. 기존 ProjectSettings의 Android package와 정확히 일치하는 Android 일반
+빌드만 환경 후보이며 Editor·batch·development·명시적 테스트·하네스는 제외한다.
+기존 warm-session Required 옵션 접근과 Unknown/Declined 연령 안내는 이 경계 앞에
+유지했다. 환경 후보 true는 호출 승인이나 동의가 아니며 개인정보 환경·지역·네 연령·
+운영 광고 검토는 모두 false다. 새 경계만 선택하는 기존 순수 fixture 모드의 첫
+실행과 실제 manager를 포함한 Unity 참조 소스 컴파일의 첫 실행이 통과했다. 기존
+11개 성공 사례는 재실행하지 않았다. 컴파일에는 cached RSP의 UNITY_EDITOR 정의와
+참조를 사용했으며 새 Player 빌드·assembly 로드·Editor·SDK·기기 실행은 없다.
+App ID·소스/APK·지역/TFUA 계약 전체 binding과 운영 개인정보 검증은 미완료이고
+`runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
