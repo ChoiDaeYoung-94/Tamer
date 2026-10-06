@@ -297,3 +297,32 @@ cached UNITY_EDITOR 참조 컴파일이며 실제 build callback,
 staging·Editor·SDK·기기·새 APK 실행과 기존 성공 suite 재실행은 없다.
 독립 개인정보 환경의 App ID·소스/APK·지역/TFUA 근거 연결과 native 검증은 남아 있고,
 모든 runtime 검토 값 및 `runtimePrivacyVerified/binaryVerified/distributable`은 false다.
+
+## 실제 관리자 native 갱신의 격리 시험 소스 준비 (2026-10-06)
+
+운영 가드 뒤의 SDK owner 생성·갱신 블록을 private 공유 메서드로 분리했다. SDK
+factory는 가드 통과 뒤 평가하며 기존 warm Required·연령 안내는 유지한다. 새 시험
+define의 진입점은 별도 package·기존 harness scene·Android debug·nonEditor/nonBatch·
+Managers 부재·광고/기존 owner 부재·개인정보/지역/네 cohort 미승인을 확인한다.
+고정 합성 Adult/EEA를 사용하며 SDK 생성 전 프로세스 one-shot을 소비한다. 연령을
+저장하거나 Managers.Init을 호출하지 않는다. 해시 입력은 32hex 형식 검사뿐이고
+실제 등록 기기 일치 근거는 후속 실행 계획에서 확인해야 한다.
+
+기존 publisher UMP 빌드 함수에 별도 opt-in·package·출력·define 선택을 추가하고
+실제 manager 하나의 활성 상태와 harness 참조·Managers 부재를 확인하도록 했다.
+기존 private App ID 입력과 PGS manifest 격리·복원 경로를 재사용한다. 기존 harness의
+새 define 경로에는 명시적 manager 개인정보 버튼과 결과만 제공하며 registration·
+Gather·reset 조작은 제공하지 않는다. 운영 환경 판정은 이 define을 계속 거절한다.
+
+소스 `0d68e0bebcafdce240c34bb1a9ccd23672b6573e`의 새 순수 context 검사 한 개는
+첫 실행에 통과했다. 일반 조합의 첫 컴파일은 새 builder의 SceneManager 이름 모호성
+CS0104로 실패해 시험 조합을 실행하지 않았다. 한 줄을 Unity 타입으로 명확히 지정한
+`33f6d90a01f7339302abfe862a8c7954b5bda356`에서 일반 조합 두 번째와 시험 조합 첫 번째
+참조 컴파일이 통과했다. 첫 실패를 보존하고 순수 성공은 재실행하지 않았다.
+cached UNITY_EDITOR 참조를 사용한 컴파일이며 일반 조합의 동명 builder CS0436 경고
+한 개와 시험 조합의 CS0436·기존 smoke 초기화 분기 CS0162 경고 두 개를 기록한다.
+
+이는 소스 준비와 순수 context·참조 컴파일 검증이다. 실제 SDK factory·one-shot·
+callback queue·timeout·build callback 실행, 새 APK·App ID/산출물/기기 binding과 native
+폼은 미검증이다. Editor·SDK·ADB·빌드·assembly 로드는 없고 모든 운영 검토 값과
+`runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
