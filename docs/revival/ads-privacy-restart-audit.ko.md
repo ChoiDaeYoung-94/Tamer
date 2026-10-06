@@ -139,3 +139,10 @@ Unity가 새 RSP를 생성한 증거가 아니다. 합성 실행은 manager·게
 실제 화면의 label 높이·배치, manager lifecycle/클릭 동작, 실제 SDK refresh와 native form,
 cold-process 재시작은 미검증이다. 운영 개인정보 refresh 활성화도 미완료다.
 `runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
+
+동일한 공개 fixture는 Windows와 Unity 6000.3.25f1의 기존 Roslyn/.NET 참조가 있는
+clone에서 `python tools/revival/test_private_ads_privacy_restart.py --output <새 Logs 하위 경로>`로
+재현할 수 있다. wrapper는 신규 비공개 증거 폴더에 컴파일·실행 로그와 source hash를 남기고
+기존 결과를 덮어쓰지 않는다. 이번 11 PASS는 위 공개 C# 원문을 private 실행 도구로
+검사한 결과다. 나중에 추가한 공개 Python wrapper는 구문·읽기 검토만 했고 재실행하지 않았다.
+동일 시험 두 번 실패 시 중단하고 원자료를 보존하는 기존 작업 규칙을 유지한다.
