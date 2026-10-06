@@ -19,6 +19,15 @@ namespace AD.Advertising
         // A source-reviewed release contract, never a PlayerPrefs/locale/debug override.
         // Supported regions, age treatment and published messages remain unreviewed.
         public static bool RegionalConsentReviewed => false;
+        // Privacy-only SDK calls require a separate reviewed environment.
+        public static bool PrivacySdkEnvironmentReviewed => false;
+
+        public static bool TryCreatePrivacyPlan(AgeChoice choice, bool editing,
+            bool environmentReviewed, bool ageReviewed, out AgeTreatmentPlan plan)
+        {
+            plan = null;
+            return !editing && environmentReviewed && ageReviewed && TryCreatePlan(choice, out plan);
+        }
         // Each cohort needs its own reviewed release decision. Opening the master
         // gate must never implicitly approve every age after an adult-only check.
         private const bool Under13ConsentReviewed = false;

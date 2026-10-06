@@ -78,7 +78,7 @@ namespace AD
             return button;
         }
 
-        private static TMP_Text Label(string name, Transform parent, string caption, TMP_FontAsset font, int size, float height)
+        internal static TMP_Text Label(string name, Transform parent, string caption, TMP_FontAsset font, int size, float height)
         {
             var rect = Rect(name, parent);
             var label = rect.gameObject.AddComponent<TextMeshProUGUI>();

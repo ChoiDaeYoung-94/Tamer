@@ -2,6 +2,15 @@ using System;
 
 namespace AD.Advertising
 {
+    public enum AdPrivacyRequirement { Unknown, NotRequired, Required }
+    public enum AdPrivacyResult
+    { None, Checking, AgeRequired, Unavailable, Busy, UpdateFailed, Unknown, NotRequired, FormFailed, OptionsClosed, Cancelled }
+
+    public interface IAdPrivacyStatusClient
+    {
+        AdPrivacyRequirement PrivacyRequirement { get; }
+    }
+
     public interface IAdConsentClient
     {
         bool CanRequestAds { get; }
@@ -23,6 +32,8 @@ namespace AD.Advertising
         private int _version;
         private Action<bool> _pendingCompletion;
         private bool _privacyOnly;
+        private bool _privacyRefreshOwner, _freshPrivacyStatus;
+        private Action<AdPrivacyResult> _privacyCompletion;
 
         public AdConsentGate(IAdConsentClient client, bool underAgeOfConsent,
             Action<Action> dispatch, Action<string> trace = null)
@@ -35,6 +46,7 @@ namespace AD.Advertising
 
         public bool IsUpdating => _stage == Stage.Updating;
         public bool IsPrivacyOnly => _privacyOnly;
+        public bool IsPrivacyRefreshOwner => _privacyRefreshOwner;
         public bool IsBusy => _stage == Stage.Updating || _stage == Stage.Gathering || _stage == Stage.Privacy;
         public bool CanRequestAds => !_privacyOnly && _stage == Stage.Ready && ReadCanRequestAds();
         public bool PrivacyOptionsRequired
@@ -42,6 +54,7 @@ namespace AD.Advertising
             get
             {
                 if (_stage == Stage.Idle || _stage == Stage.Disposed) return false;
+                if (_privacyRefreshOwner && !_freshPrivacyStatus) return false;
                 try { return _client.PrivacyOptionsRequired; }
                 catch (Exception) { return false; }
             }
@@ -86,11 +99,17 @@ namespace AD.Advertising
             return true;
         }
 
-        public bool OpenPrivacyOptions(Action<bool> completed)
+        public bool OpenPrivacyOptions(Action<bool> completed, Action<AdPrivacyResult> privacyCompleted = null)
         {
             if (_stage == Stage.Disposed || IsBusy || !PrivacyOptionsRequired) return false;
             int version = ++_version;
-            _pendingCompletion = completed;
+            bool formSuccess = false;
+            Action<bool> completion = allowed =>
+            {
+                completed(allowed);
+                privacyCompleted?.Invoke(formSuccess ? AdPrivacyResult.OptionsClosed : AdPrivacyResult.FormFailed);
+            };
+            _pendingCompletion = completion;
             _stage = Stage.Privacy;
             _trace("privacy_options_call");
             try
@@ -98,11 +117,63 @@ namespace AD.Advertising
                 _client.ShowPrivacyOptions(success => _dispatch(() =>
                 {
                     if (!Current(version, Stage.Privacy)) return;
-                    Finish(success && ReadCanRequestAds(), completed);
+                    formSuccess = success;
+                    Finish(success && ReadCanRequestAds(), completion);
                 }));
             }
-            catch (Exception) { if (Current(version, Stage.Privacy)) Finish(false, completed); }
+            catch (Exception) { if (Current(version, Stage.Privacy)) Finish(false, completion); }
             return true;
+        }
+
+        // Explicit privacy discovery only. Never Gather or restore ad eligibility.
+        // Failed/expired updates must not expose the SDK's previous-session Required.
+        public bool RefreshPrivacyOptions(Action<AdPrivacyResult> completed)
+        {
+            if (_stage == Stage.Disposed || IsBusy) return false;
+            SuspendForPrivacy();
+            _privacyRefreshOwner = true;
+            _freshPrivacyStatus = false;
+            _privacyCompletion = completed;
+            int version = ++_version;
+            _stage = Stage.Updating;
+            try
+            {
+                _client.Update(_underAgeOfConsent, success => _dispatch(() =>
+                {
+                    if (!Current(version, Stage.Updating)) return;
+                    if (!success) { FinishPrivacyRefresh(AdPrivacyResult.UpdateFailed); return; }
+                    AdPrivacyRequirement status;
+                    try { status = (_client as IAdPrivacyStatusClient)?.PrivacyRequirement ?? AdPrivacyRequirement.Unknown; }
+                    catch (Exception) { status = AdPrivacyRequirement.Unknown; }
+                    _freshPrivacyStatus = status == AdPrivacyRequirement.Required;
+                    if (status != AdPrivacyRequirement.Required)
+                    {
+                        FinishPrivacyRefresh(status == AdPrivacyRequirement.NotRequired
+                            ? AdPrivacyResult.NotRequired : AdPrivacyResult.Unknown);
+                        return;
+                    }
+                    _stage = Stage.Privacy;
+                    try
+                    {
+                        _client.ShowPrivacyOptions(shown => _dispatch(() =>
+                        {
+                            if (Current(version, Stage.Privacy)) FinishPrivacyRefresh(shown
+                                ? AdPrivacyResult.OptionsClosed : AdPrivacyResult.FormFailed);
+                        }));
+                    }
+                    catch (Exception) { if (Current(version, Stage.Privacy)) FinishPrivacyRefresh(AdPrivacyResult.FormFailed); }
+                }));
+            }
+            catch (Exception) { if (Current(version, Stage.Updating)) FinishPrivacyRefresh(AdPrivacyResult.UpdateFailed); }
+            return true;
+        }
+
+        private void FinishPrivacyRefresh(AdPrivacyResult result)
+        {
+            var completed = _privacyCompletion;
+            _privacyCompletion = null;
+            _stage = Stage.Blocked;
+            completed?.Invoke(result);
         }
 
         private bool Current(int version, Stage stage) => _version == version && _stage == stage;
@@ -127,10 +198,12 @@ namespace AD.Advertising
             if (_stage == Stage.Disposed) return;
             _privacyOnly = true;
             _pendingCompletion = null;
+            _privacyCompletion = null;
             if (_stage == Stage.Updating)
             {
                 ++_version;
                 _stage = Stage.Blocked;
+                if (_privacyRefreshOwner) _freshPrivacyStatus = false;
             }
             else if (_stage == Stage.Ready)
                 _stage = Stage.Blocked;
@@ -161,6 +234,7 @@ namespace AD.Advertising
             if (!IsUpdating) return false;
             ++_version;
             _trace("consent_update_timeout");
+            if (_privacyRefreshOwner) { FinishPrivacyRefresh(AdPrivacyResult.UpdateFailed); return true; }
             Finish(false, _pendingCompletion);
             return true;
         }
@@ -169,6 +243,7 @@ namespace AD.Advertising
         {
             ++_version;
             _pendingCompletion = null;
+            _privacyCompletion = null;
             _stage = Stage.Disposed;
         }
     }

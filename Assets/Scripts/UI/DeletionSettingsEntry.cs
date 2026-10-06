@@ -29,10 +29,12 @@ namespace AD
             var age = DeletionView.Button("AgeChoice", view.Message.transform.parent, "연령대 다시 선택", font);
             age.transform.SetSiblingIndex(view.Message.transform.GetSiblingIndex() + 1);
             age.onClick.AddListener(() => manager.GetComponent<AgeChoicePresenter>()?.Open());
-            var privacy = DeletionView.Button("AdPrivacyOptions", view.Message.transform.parent, "광고 개인정보 선택", font);
+            var privacy = DeletionView.Button("AdPrivacyOptions", view.Message.transform.parent, "광고 개인정보 설정 확인", font);
             privacy.transform.SetSiblingIndex(age.transform.GetSiblingIndex() + 1);
-            privacy.onClick.AddListener(() => Managers.GoogleAdMobM?.ShowPrivacyOptions());
-            panel.gameObject.AddComponent<AgePrivacyOptionsEntry>().Bind(age, privacy);
+            var privacyStatus = DeletionView.Label("AdPrivacyStatus", view.Message.transform.parent, "", font, 28, 110);
+            privacyStatus.transform.SetSiblingIndex(privacy.transform.GetSiblingIndex() + 1);
+            panel.gameObject.AddComponent<AgePrivacyOptionsEntry>().Bind(age, privacy, privacyStatus,
+                manager.GetComponent<AgeChoicePresenter>());
             panel.gameObject.AddComponent<DeletionPresenter>().Bind(view);
             panel.gameObject.AddComponent<PopupObject>();
             button.onClick.AddListener(() =>
