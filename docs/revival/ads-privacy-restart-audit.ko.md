@@ -184,3 +184,50 @@ PASS였으며 세 번째 실행과 성공 재실행은 없다. 최초 XML·로�
 manager 재생성 검증이다. 실제 터치 입력·전체 설정 메뉴 배치·label 높이·자동 Unity
 생명주기·PlayerPrefs 저장 복구·앱 프로세스 재시작·native 개인정보 갱신은 미검증이다.
 운영 검토 값은 계속 false이며 `runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
+
+## 오프라인 Android 화면·터치와 재시작 검사 (2026-10-06)
+
+APK를 실제 빌드한 소스는 `093722c8cb46108407e93d7398235d5ef505a0ff`이다.
+Unity 6000.3.25f1 (`e1dba0a9aba4`)로 별도 debug package의 단일 smoke scene을
+빌드했다. 빌드 복사본에만 기존 하네스와 기존 한글 font를 연결하며 원 scene에
+UI 컴포넌트를 저장하지 않는다. 실제 `DeletionSettingsEntry`, `DeletionView`,
+`AgePrivacyOptionsEntry`, `AgeChoicePresenter`를 구성한 검증용 설정 host다.
+운영 설정 prefab과 전체 게임 설정 메뉴 배치를 검증한 것은 아니다.
+
+비활성 Managers에 UI 참조만 연결하고 Init·운영 서비스·로그인·store 연결·UMP·광고
+초기화를 요청하지 않는다. 로컬 helper 생성자·UnityConsent·UGS registry 구성과
+AndroidX WorkManager/Lifecycle/ProfileInstaller 초기화는 남는다. 빌드 동안만
+Analytics의 enabled/startup 두 값을 끄고 원래 값으로 복원한다. 실제 APK에서
+MobileAds/PGS 초기화 provider와 INTERNET/ACCESS_NETWORK_STATE·BILLING·
+`com.google.android.gms.permission.AD_ID` 제거, 기본 Application,
+backup 비활성, debug ARM64와 컴파일된 privacy 전용 분기를 확인했다. 남아 있는
+서비스·receiver 선언 및 ACCESS_ADSERVICES 등의 권한도 비공개 정적 기록에 포함한다.
+모든 SDK 객체 생성·백그라운드 동작·native 쓰기·통신이 없다는 주장은 하지 않는다.
+
+최초 빌드·정적 검사는 PASS였다. Editor 종료 후 재저장된 입력 10개의 원래 내용·
+메타데이터를 복원하고 생성 PGS 설정 2개는 보관 후 동일 핸들로 제거했다. 보호 입력
+6,860개와 기존 APK 두 개·새 APK·릴리스 키 파일 상태를 확인했다. Unity가 교체한
+입력 8개의 원래 파일 ID 복원을 주장하지 않고 관측된 현재 객체 ID를 유지했다.
+
+SM-N986N/API33의 1080×2316 화면에서 신규 설치 1회와 첫 실행으로 실제 터치했다.
+개인정보 버튼 → 미선택 연령 안내 모달 → 검증용 13세 미만 선택 → 명시적인 재확인
+→ Unavailable 안내 → 설정으로 닫기를 확인했다. 모달의 다섯 선택지와 한글 설명,
+개인정보 버튼·상태 문장 전체가 보였고 이 구성에서 누락·겹침은 관측되지 않았다.
+한글 단어 중간 줄바꿈은 남아 있다. 선택 직후 기존 AgeRequired 문구가 유지되며
+자동 요청은 재개하지 않는다. Under13 실제 상태와 이후 Unavailable 안내를 별도로
+확인했으며 선택 직후 문구 자체를 저장 성공 증거로 사용하지 않았다.
+
+재시작 검사는 두 번 실패해 종속 터치를 중단했다. 첫 실패는 검사 도구가 XML의
+plain `1|under13`만 가정해 실제 저장 표현 `1%7Cunder13`을 거부한 것으로, 종료·
+재실행 전에 발생했다. 표현 검사를 최소 수정한 두 번째 검사는 자기 앱 종료 1회·
+전체 실행 2회와 새 PID 부팅까지 진행했지만 공유 XML 전체 바이트·inode 불변 조건에서
+실패했다. 수집한 자료에서 연령 키의 타입·저장값은 동일하고 새 부팅 로그도 Under13이다.
+변경된 키는 Unity의 session count/session ID 계열 4개였으며 키 추가·삭제는 없다.
+연령 데이터 소실이 관측된 것이 아니라 검사 도구의 전체 파일 보존 조건이 실패한
+것이다. 원래 실패 두 개·도구·로그·화면은 보존하며 PASS로 변경하지 않는다.
+
+새 프로세스의 바깥 설정 진입 버튼은 화면에 보인다. 재시작 후 해당 버튼을 다시
+열고 개인정보 안내를 확인하는 두 터치는 실행하지 않았다. 동일 검사의 세 번째
+시도와 그 종속 실행은 사용자의 명시 승인이 필요하다. 승인 전 추가 종료·실행·
+터치는 없으며 기존 publisher UMP 앱·prefs 접근과 로그인·결제도 없다. 현재의
+운영 검토 false와 `runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
