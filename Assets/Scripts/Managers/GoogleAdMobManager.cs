@@ -28,6 +28,7 @@ namespace AD
         private RewardedAdSession _closingSession;
         private Action _resumeBgm;
         private AdConsentGate _consent;
+        private AdConsentGate _privacyConsent;
         private bool _initialized;
         private bool _initializing;
         private bool _loading;
@@ -112,8 +113,7 @@ namespace AD
             ++_loadVersion;
             ++_sceneVersion; // Also invalidate a closed impression's delayed reward receipt.
             _session?.Invalidate(); // Keep native fullscreen ownership until its real close.
-            _consent?.Dispose();
-            _consent = null;
+            AdConsentGate.SuspendAndRetainPrivacy(ref _consent, ref _privacyConsent);
             _loading = _initializing = _initialized = false;
             DestroyLoadedAd();
             if (_subscribed) BeginConsent(false);
@@ -137,18 +137,21 @@ namespace AD
         }
 
         public bool IsInProgress => _session != null;
-        public bool IsConsentBusy => _consent != null && _consent.IsBusy;
-        public bool PrivacyOptionsRequired => HasConsentAge &&
-            _consent != null && _consent.PrivacyOptionsRequired;
+        public bool IsConsentBusy => (_consent != null && _consent.IsBusy) ||
+            (_privacyConsent != null && _privacyConsent.IsBusy);
+        private AdConsentGate PrivacyConsent => _consent != null && _consent.PrivacyOptionsRequired
+            ? _consent : (_privacyConsent != null && _privacyConsent.PrivacyOptionsRequired ? _privacyConsent : null);
+        public bool PrivacyOptionsRequired => PrivacyConsent != null;
 
         public void ShowPrivacyOptions()
         {
-            if (_destroyed || !HasConsentAge || IsInProgress || _loading || _initializing || _consent == null) return;
-            if (!PrivacyOptionsRequired || IsConsentBusy) return;
+            if (_destroyed || IsInProgress || _loading || _initializing || IsConsentBusy) return;
+            var privacy = PrivacyConsent;
+            if (privacy == null) return;
             ++_loadVersion;
             ++_sceneVersion; // Withdrawn choices also invalidate delayed reward receipts.
             DestroyLoadedAd();
-            _consent.OpenPrivacyOptions(_ => { }); // Never auto-load after a privacy choice.
+            privacy.OpenPrivacyOptions(_ => { }); // Never auto-load after a privacy choice.
         }
 
         // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
@@ -289,6 +292,12 @@ namespace AD
         {
             if (_destroyed || !CanBeginConsent || IsInProgress || _loading || _initializing || IsConsentBusy ||
                 !AgeTreatmentPolicy.TryCreatePlan(ConsentAge, out var plan)) return;
+            if (_consent != null && _consent.IsPrivacyOnly)
+            {
+                // Both native owners have settled (IsConsentBusy above). Keep one
+                // existing entry and create a fresh consent owner/treatment below.
+                AdConsentGate.SuspendAndRetainPrivacy(ref _consent, ref _privacyConsent);
+            }
             int version = ++_loadVersion;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
             _initializing = true;
@@ -544,6 +553,7 @@ namespace AD
         {
             if (_ageSelection != null) _ageSelection.Changed -= InvalidateAgeContext;
             _consent?.Dispose();
+            _privacyConsent?.Dispose();
             lock (_callbackLock) _destroyed = true;
             _loadVersion++;
             UnitySceneManager.activeSceneChanged -= OnSceneChanged;
