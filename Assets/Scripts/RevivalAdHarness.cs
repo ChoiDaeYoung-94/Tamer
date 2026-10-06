@@ -65,7 +65,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
         DeletionSettingsEntry.Ensure(settings.gameObject, popups);
         new GameObject("UI touch input", typeof(UnityEngine.EventSystems.EventSystem),
             typeof(UnityEngine.EventSystems.StandaloneInputModule));
-        Record("privacy_ui_ready age=" + Ads.AgeSelection.Value + " services_started=false sdk_init=false");
+        Record("privacy_ui_ready age=" + Ads.AgeSelection.Value + " managers_init=false store_login_ads_init=false");
     }
 
     private void ObservePrivacyUi()

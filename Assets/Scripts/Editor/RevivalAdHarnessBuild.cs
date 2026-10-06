@@ -77,6 +77,9 @@ public static class RevivalAdHarnessBuild
                 AD.Advertising.AdRequestPolicy.ProductionAdsEnabled ||
                 AD.Advertising.AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed)
                 throw new BuildFailedException("Disabled policy and clean Android baseline required.");
+            if (File.Exists("ProjectSettings/Packages/com.unity.pipeline/RuntimePipelineConfig.json") ||
+                File.Exists("Assets/Settings/Pipeline/Resources/RuntimePipelineConfig.asset"))
+                throw new BuildFailedException("Existing runtime Pipeline configuration requires review.");
             string catalog = File.ReadAllText("Assets/Resources/IAPProductCatalog.json");
             if (Regex.IsMatch(catalog, "\"enableCodelessAutoInitialization\"\\s*:\\s*true") ||
                 Regex.IsMatch(catalog, "\"enableUnityGamingServicesAutoInitialization\"\\s*:\\s*true"))
@@ -88,6 +91,7 @@ public static class RevivalAdHarnessBuild
             EditorUserBuildSettings.buildAppBundle = false;
             Directory.CreateDirectory("Build/revival");
             using (var scope = new IsolatedManifestScope(PrivacyUiManifest))
+            using (var analytics = new PrivacyUiAnalyticsScope())
             using (RevivalBuild.AndroidRelroLinkScope())
             {
                 PrivacyUiBuildActive = true;
@@ -126,6 +130,44 @@ public static class RevivalAdHarnessBuild
         app.SetAttributeValue(android + "allowBackup", "false");
         app.SetAttributeValue(tools + "replace", "android:allowBackup");
         return document.ToString();
+    }
+
+    private sealed class PrivacyUiAnalyticsScope : IDisposable
+    {
+        private readonly SerializedObject settings;
+        private readonly string[] names = { "UnityAnalyticsSettings.m_Enabled", "UnityAnalyticsSettings.m_InitializeOnStartup" };
+        private readonly bool[] previous;
+        public PrivacyUiAnalyticsScope()
+        {
+            var target = Unsupported.GetSerializedAssetInterfaceSingleton("UnityConnectSettings");
+            if (target == null) throw new BuildFailedException("Unity service settings unavailable.");
+            settings = new SerializedObject(target);
+            previous = names.Select(name =>
+            {
+                var value = settings.FindProperty(name);
+                if (value == null || value.propertyType != SerializedPropertyType.Boolean)
+                    throw new BuildFailedException("Exact Analytics initialization settings required.");
+                return value.boolValue;
+            }).ToArray();
+            try
+            {
+                foreach (string name in names) settings.FindProperty(name).boolValue = false;
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                settings.Update();
+                if (names.Any(name => settings.FindProperty(name).boolValue))
+                    throw new BuildFailedException("Analytics startup must be disabled for this artifact.");
+            }
+            catch { Dispose(); throw; }
+        }
+        public void Dispose()
+        {
+            settings.Update();
+            for (int i = 0; i < names.Length; i++) settings.FindProperty(names[i]).boolValue = previous[i];
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            settings.Update();
+            if (names.Where((name, i) => settings.FindProperty(name).boolValue != previous[i]).Any())
+                throw new BuildFailedException("Analytics settings restoration failed.");
+        }
     }
 
     public static string IsolatedUmpManifest(string original)
