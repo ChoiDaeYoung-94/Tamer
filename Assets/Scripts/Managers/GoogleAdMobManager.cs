@@ -175,7 +175,8 @@ namespace AD
 #else
             false,
 #endif
-            Application.platform == RuntimePlatform.Android, Application.isBatchMode);
+            Application.platform == RuntimePlatform.Android, Application.isBatchMode) &&
+            PrivateAdsReleaseContract.AllowsCurrentAndroidRelease(_productionRewardedAdUnit, ConsentAge);
 
         private bool CanBeginConsent =>
             HasConsentAge && (AgeTreatmentPolicy.IsReviewed(ConsentAge)
@@ -190,7 +191,7 @@ namespace AD
             AdRequestPolicy.TrySelectRewardedAdUnit(IsTestAdEnvironment, IsProductionAdEnvironment,
                 Application.platform == RuntimePlatform.IPhonePlayer, _productionRewardedAdUnit, out adUnit);
 
-        public bool CanRequestAds => CanBeginConsent && CanUseRewardedFormat &&
+        public bool CanRequestAds => !HasNoAds && CanBeginConsent && CanUseRewardedFormat &&
             TryGetRewardedAdUnit(out _);
 
         public bool HasNoAds
@@ -343,6 +344,9 @@ namespace AD
 
         private void InitializeConfiguredSdk(int version)
         {
+            if (_destroyed || version != _loadVersion || !CanRequestAds ||
+                _consent == null || !_consent.CanRequestAds)
+            { _initializing = false; return; }
             try
             {
                 TraceHarness("initialize_call");
@@ -367,7 +371,8 @@ namespace AD
 
         private void LoadConfiguredAd(int version)
         {
-            if (!CanRequestAds || !TryGetRewardedAdUnit(out var adUnit))
+            if (!CanRequestAds || _consent == null || !_consent.CanRequestAds ||
+                !TryGetRewardedAdUnit(out var adUnit))
             { _initializing = false; return; }
             _loading = true;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;

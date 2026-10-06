@@ -19,12 +19,13 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     private static Snapshot snapshot;
     private static int injections, loginScenes;
     private static bool preprocessed, postprocessed;
+    private static bool approvedProduction;
     public int callbackOrder => int.MaxValue;
 
     private sealed class Snapshot
     {
         public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan, RunId, SourceHead, ResourceHash;
-        public readonly PrivateAdsContract Config;
+        public readonly string AppId, RewardedUnit;
         public readonly string[] Scenes;
         public Snapshot(string root)
         {
@@ -39,7 +40,20 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             ResourceHash = Required("TAMER_PRIVATE_ADS_RESOURCE_SHA256");
             var raw = File.ReadAllBytes(ConfigPath);
             if (Hash(raw) != ConfigHash) throw Rejected();
-            Config = PrivateAdsContract.Read(raw, root);
+            if (approvedProduction)
+            {
+                var asset = AssetDatabase.LoadMainAssetAtPath("Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset");
+                var app = asset == null ? null : new SerializedObject(asset).FindProperty("adMobAndroidAppId");
+                if (app == null || !PrivateAdsReleaseContract.TryReadApprovedBuildContract(raw,
+                    PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), app.stringValue, out var unit)) throw Rejected();
+                AppId = app.stringValue; RewardedUnit = unit;
+                if (Hash(raw) != ResourceHash) throw Rejected();
+            }
+            else
+            {
+                var config = PrivateAdsContract.Read(raw, root);
+                AppId = config.AppId; RewardedUnit = config.RewardedUnit;
+            }
             Defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
             PlayerCompilationPlan = ReadPlayerCompilationPlan();
             Scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
@@ -116,12 +130,31 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     }
 
     public static void Build()
+    { BuildMode(false); }
+
+    // Separate entry/schema. It cannot interpret a disabled six-key configuration
+    // as approval, nor accept approval bindings from environment variables.
+    public static void BuildApprovedAdultRelease()
+    { BuildMode(true); }
+
+    private static void BuildMode(bool approved)
     {
+        approvedProduction = approved;
         try
         {
             if (Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_PREPARE") != "1" ||
                 !Application.isBatchMode ||
+                Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_MODE") !=
+                    (approved ? "approved_adult_release" : "disabled_candidate") ||
                 EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android) throw Rejected();
+            if (approved)
+            {
+                var asset = AssetDatabase.LoadMainAssetAtPath("Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset");
+                var app = asset == null ? null : new SerializedObject(asset).FindProperty("adMobAndroidAppId");
+                if (app == null || !PrivateAdsReleaseContract.TryReadApprovedBuildContract(
+                    File.ReadAllBytes(Required("TAMER_PRIVATE_ADS_CONFIG")),
+                    PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), app.stringValue, out _)) throw Rejected();
+            }
             var editor = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
             if (!string.Equals(Path.GetFullPath(editor), Path.GetFullPath(Required("TAMER_PRIVATE_ADS_EDITOR")),
                     StringComparison.OrdinalIgnoreCase) || Hash(File.ReadAllBytes(editor)) !=
@@ -157,14 +190,16 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
                 artifactSha256 = Hash(File.ReadAllBytes(snapshot.Output)), unityVersion = Application.unityVersion,
                 configuredAndroidDefines = snapshot.Defines, injectedManagers = injections,
                 prospectivePlayerDefinePlanSha256 = Hash(System.Text.Encoding.UTF8.GetBytes(snapshot.PlayerCompilationPlan)),
-                buildSceneValueMatched = true, compiledEditorGatesDisabled = true,
-                binaryVerified = false, distributable = false };
+                buildSceneValueMatched = true, compiledEditorGatesDisabled = !approved,
+                binaryVerified = false, distributable = false,
+                mode = approved ? "approved_adult_release" : "disabled_candidate",
+                approvedBuildContractMatched = approved };
             using (var file = new FileStream(snapshot.Receipt, FileMode.CreateNew, FileAccess.Write))
             using (var writer = new StreamWriter(file)) writer.Write(JsonUtility.ToJson(receipt, true));
             }
         }
         catch { throw Rejected(); } // Never emit private parser values or identifiers.
-        finally { snapshot = null; }
+        finally { snapshot = null; approvedProduction = false; }
     }
 
     public void OnPreprocessBuild(BuildReport report)
@@ -179,7 +214,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         Guard(report);
         if (!preprocessed || postprocessed || !snapshot.Scenes.Contains(scene.path)) throw Rejected();
         if (scene.path == Login && ++loginScenes != 1) throw Rejected();
-        injections += PrivateAdsSceneInjection.Apply(scene, Login, snapshot.Config.RewardedUnit);
+        injections += PrivateAdsSceneInjection.Apply(scene, Login, snapshot.RewardedUnit);
         if (injections > 1) throw Rejected();
 
     }
@@ -209,8 +244,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) != ScriptingImplementation.IL2CPP ||
             PlayerSettings.Android.targetArchitectures != AndroidArchitecture.ARM64 ||
             !PlayerSettings.Android.useCustomKeystore ||
-            AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed ||
-            Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>().Any(AgeTreatmentPolicy.IsReviewed) ||
+            (!approvedProduction && (AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed ||
+            Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>().Any(AgeTreatmentPolicy.IsReviewed))) ||
             PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android) != snapshot.Defines ||
             ReadPlayerCompilationPlan() != snapshot.PlayerCompilationPlan ||
             !EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).SequenceEqual(snapshot.Scenes))
@@ -221,7 +256,10 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         var asset = AssetDatabase.LoadMainAssetAtPath("Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset");
         if (asset == null) throw Rejected();
         var app = new SerializedObject(asset).FindProperty("adMobAndroidAppId");
-        if (app == null || app.stringValue != snapshot.Config.AppId) throw Rejected();
+        if (app == null || app.stringValue != snapshot.AppId) throw Rejected();
+        if (approvedProduction && (!PrivateAdsReleaseContract.TryReadApprovedBuildContract(
+                File.ReadAllBytes(snapshot.ConfigPath), PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android),
+                app.stringValue, out var unit) || unit != snapshot.RewardedUnit)) throw Rejected();
         var resource = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Resources/RevivalPrivateAdsRelease.bytes");
         if (resource == null || Hash(resource.bytes) != snapshot.ResourceHash ||
             PlayerSettings.Android.keystoreName != Required("TAMER_PRIVATE_ADS_KEYSTORE") ||
@@ -296,9 +334,10 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     [Serializable] private sealed class Receipt
     {
         public string runId, sourceHead, configSha256, artifactSha256, unityVersion, configuredAndroidDefines,
-            prospectivePlayerDefinePlanSha256, resourceSha256;
+            prospectivePlayerDefinePlanSha256, resourceSha256, mode;
         public int schema, injectedManagers, loginScenes;
-        public bool preprocessed, postprocessed, productionContractVerified, buildSceneValueMatched, compiledEditorGatesDisabled, binaryVerified, distributable;
+        public bool preprocessed, postprocessed, productionContractVerified, buildSceneValueMatched, compiledEditorGatesDisabled,
+            approvedBuildContractMatched, binaryVerified, distributable;
     }
     [Serializable] private sealed class SettingsReceipt
     { public int schema; public string runId; public bool scopedSettingsRestored; }
