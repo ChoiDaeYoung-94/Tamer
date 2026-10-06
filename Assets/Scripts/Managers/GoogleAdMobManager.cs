@@ -37,6 +37,8 @@ namespace AD
         private int _loadVersion;
         private int _sceneVersion;
         private float _loadDeadline;
+        private float _privacyUpdateDeadline;
+        public AdPrivacyResult PrivacySettingsResult { get; private set; }
         private LocalAgeChoice _ageSelection;
         // Blank in tracked scenes. Populate only through the reviewed private release build.
         [SerializeField] private string _productionRewardedAdUnit = "";
@@ -114,6 +116,8 @@ namespace AD
             ++_sceneVersion; // Also invalidate a closed impression's delayed reward receipt.
             _session?.Invalidate(); // Keep native fullscreen ownership until its real close.
             AdConsentGate.SuspendAndRetainPrivacy(ref _consent, ref _privacyConsent);
+            _privacyConsent?.SuspendForPrivacy();
+            if (PrivacySettingsResult == AdPrivacyResult.Checking) PrivacySettingsResult = AdPrivacyResult.Cancelled;
             _loading = _initializing = _initialized = false;
             DestroyLoadedAd();
             if (_subscribed) BeginConsent(false);
@@ -142,6 +146,54 @@ namespace AD
         private AdConsentGate PrivacyConsent => _consent != null && _consent.PrivacyOptionsRequired
             ? _consent : (_privacyConsent != null && _privacyConsent.PrivacyOptionsRequired ? _privacyConsent : null);
         public bool PrivacyOptionsRequired => PrivacyConsent != null;
+        public bool CanCheckPrivacySettings => CanChangeAge && !_loading && !_initializing;
+
+        // An always-available discovery entry is not an assertion of SDK Required.
+        // Existing warm-session options remain accessible after an age refusal.
+        public void RequestPrivacySettings()
+        {
+            if (!CanCheckPrivacySettings) { PrivacySettingsResult = AdPrivacyResult.Busy; return; }
+            var existing = PrivacyConsent;
+            if (existing != null && !existing.IsPrivacyRefreshOwner)
+            {
+                PrivacySettingsResult = AdPrivacyResult.Checking;
+                ShowPrivacyOptions();
+                return;
+            }
+            if (!AgeSelection.HasAge)
+            {
+                PrivacySettingsResult = AdPrivacyResult.AgeRequired;
+                return;
+            }
+            bool environment = AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
+                !Application.isEditor && !Application.isBatchMode &&
+                Application.platform == RuntimePlatform.Android;
+            if (!AgeTreatmentPolicy.TryCreatePrivacyPlan(AgeSelection.Value, AgeSelection.IsEditing,
+                environment, AgeTreatmentPolicy.IsReviewed(AgeSelection.Value), out var plan))
+            {
+                PrivacySettingsResult = AdPrivacyResult.Unavailable;
+                return;
+            }
+            ++_loadVersion;
+            ++_sceneVersion;
+            DestroyLoadedAd();
+            AdConsentGate.SuspendAndRetainPrivacy(ref _consent, ref _privacyConsent);
+            _privacyConsent?.Dispose();
+            _privacyConsent = null;
+            try
+            {
+                _privacyConsent = new AdConsentGate(new GoogleUmpConsentClient(), plan.UmpUnderAgeOfConsent,
+                    callback => Enqueue(callback));
+            }
+            catch (Exception)
+            {
+                PrivacySettingsResult = AdPrivacyResult.UpdateFailed;
+                return;
+            }
+            PrivacySettingsResult = AdPrivacyResult.Checking;
+            _privacyUpdateDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
+            _privacyConsent.RefreshPrivacyOptions(result => PrivacySettingsResult = result);
+        }
 
         public void ShowPrivacyOptions()
         {
@@ -151,7 +203,8 @@ namespace AD
             ++_loadVersion;
             ++_sceneVersion; // Withdrawn choices also invalidate delayed reward receipts.
             DestroyLoadedAd();
-            privacy.OpenPrivacyOptions(_ => { }); // Never auto-load after a privacy choice.
+            privacy.OpenPrivacyOptions(_ => { }, result => PrivacySettingsResult = result);
+            // Never auto-load after a privacy choice.
         }
 
         // This project has no iOS AdMob app ID/native validation. Keep device tests Android-only.
@@ -237,6 +290,9 @@ namespace AD
                 }
                 catch (Exception exception) { Debug.LogException(exception); }
             }
+            if (_privacyConsent != null && _privacyConsent.IsPrivacyRefreshOwner &&
+                _privacyConsent.IsUpdating && Time.realtimeSinceStartup >= _privacyUpdateDeadline)
+                _privacyConsent.ExpireUpdate(); // A displayed native form has no host timeout.
             // Drain a same-frame reward/close batch before releasing fullscreen state.
             // Android's separate callback threads may still deliver an earned reward
             // in a later frame; that receipt is independent of presentation cleanup.

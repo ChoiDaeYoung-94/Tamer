@@ -97,3 +97,45 @@ plumbing과 실제 운영 refresh 활성화 완료를 구분해야 한다. 명�
 실제 게임 UI와 프로세스 재시작 검증은 별도 목적·기기 보존 계획이 필요하다.
 PR #314의 기존 기기 등록·부트·EEA 폼 시험을 반복하거나 재시작 증거로 사용하지 않는다.
 이번 조사로 runtimePrivacyVerified·binaryVerified·distributable을 true로 올리지 않는다.
+
+## 후속 구현: 명시적 확인 진입점과 합성 검증
+
+위 내용은 PR #315의 조사 기록이다. 이후 `645ac25bdc0cc367c31bcf36ec6683bf51175b99`
+기준으로 기존 설정 메뉴의 개인정보 확인 버튼을 항상 표시하도록 연결했다.
+새 진입점은 현재 Required나 native form 준비 상태를 뜻하지 않으며 힌트를 저장하지 않는다.
+manager가 없거나 작업 중이면 버튼을 사용할 수 없다. 현재 확인 결과는 계정 삭제 상태와
+별도 label에 표시한다. 같은 component의 재바인딩은 자기 listener만 교체한다.
+
+기존 warm-session Required owner가 있으면 기존 명시적 옵션 접근을 유지한다.
+cold-session의 연령 미선택·거절·편집 상태에서는 기존 연령 선택 화면으로 안내하고
+네트워크 요청을 하지 않는다. 선택이 끝나도 이전 클릭을 자동으로 이어가지 않는다.
+알려진 연령도 별도 `PrivacySdkEnvironmentReviewed=false`와 기존 regional/cohort review가
+차단하므로 현재 운영 SDK 호출은 0이다. 광고 unit/광고 release contract는 개인정보
+호출의 허용 근거로 사용하지 않는다. No Ads 권한·계정·키 데이터 경로는 변경하지 않았다.
+
+검토된 환경과 연령을 가정한 순수 경로는 명시 Update 한 번 → 이번 성공 callback →
+fresh Required → Show 순서다. 이전 bool Required는 성공 전·실패·Unknown·interface
+부재·getter 예외 뒤에 접근 허용으로 사용하지 않는다. fresh refresh owner는 항상
+privacy-only이며 광고 Request와 eligibility를 복구하지 않는다. Gather·Mobile Ads
+init/load·자동 재시도는 없다. 이번 refresh를 위해 이전 active 광고 owner도 중단한다.
+
+Update timeout과 연령 변경은 늦은 Update callback을 버린다. 표시 중인 native form은
+실제 callback까지 busy를 유지하며 host timeout이나 연령 변경으로 닫혔다고 가정하지
+않는다. 결과 안내는 양식 불필요·상태 확인 실패·양식 표시 실패·창 닫힘을 구분하고
+어느 결과도 과거 동의 철회 완료라고 표시하지 않는다. SDK client 생성 예외도 확인 실패로 안내한다.
+
+`PrivateAdsPrivacyRestartChecks.cs`의 신규 순수 상태 시나리오 11개가 첫 실행에서 통과했다.
+실제 gate/policy와 합성 client로 fresh status 순서, 실패 뒤 cached Required 차단,
+Unknown/interface 부재/getter 예외, 기존 TFUA 유지, 중복·늦은 callback, timeout 후
+명시 재시도, 연령 변경 중 busy 소유권, Dispose/새 gate 경계와 warm 결과 구분을 확인했다.
+운영 false 조건과 연령 미선택·거절·편집 차단도 순수 정책에서 확인했다.
+
+실제 manager/UI를 포함한 현재 runtime source와 Advertising source는 Unity 참조를
+사용한 Roslyn 컴파일을 통과했다. 기존 Bee RSP는 참조 입력으로만 사용했으며 이번에
+Unity가 새 RSP를 생성한 증거가 아니다. 합성 실행은 manager·게임 UI를 직접 실행하지
+않았고, 컴파일한 Unity runtime assembly도 로드하지 않았다. 새 tests 성공으로 기존
+실패 기록을 지우거나 이전 기기 성공을 반복하지 않았다.
+
+실제 화면의 label 높이·배치, manager lifecycle/클릭 동작, 실제 SDK refresh와 native form,
+cold-process 재시작은 미검증이다. 운영 개인정보 refresh 활성화도 미완료다.
+`runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.

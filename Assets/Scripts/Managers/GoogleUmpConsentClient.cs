@@ -5,7 +5,7 @@ using GoogleMobileAds.Ump.Api;
 namespace AD
 {
     /// <summary>SDK adapter only; it is never constructed by startup or a blocked release request.</summary>
-    internal sealed class GoogleUmpConsentClient : IAdConsentClient
+    internal sealed class GoogleUmpConsentClient : IAdConsentClient, IAdPrivacyStatusClient
     {
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
         private readonly ConsentDebugSettings _debugSettings;
@@ -30,6 +30,11 @@ namespace AD
         public bool CanRequestAds => ConsentInformation.CanRequestAds();
         public bool PrivacyOptionsRequired => ConsentInformation.PrivacyOptionsRequirementStatus ==
             PrivacyOptionsRequirementStatus.Required;
+        public AdPrivacyRequirement PrivacyRequirement =>
+            ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required
+                ? AdPrivacyRequirement.Required
+                : ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.NotRequired
+                    ? AdPrivacyRequirement.NotRequired : AdPrivacyRequirement.Unknown;
 
         public void Update(bool underAgeOfConsent, Action<bool> completed)
         {
