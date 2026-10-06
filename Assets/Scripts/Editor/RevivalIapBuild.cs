@@ -98,9 +98,19 @@ public static class RevivalIapBuild
         string oldAliasPass = PlayerSettings.Android.keyaliasPass;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
+        int oldVersionCode = PlayerSettings.Android.bundleVersionCode;
         try
         {
             RevivalBuild.ValidateBaseline();
+            string selectedVersionCode = Environment.GetEnvironmentVariable("TAMER_IAP_TEST_VERSION_CODE");
+            if (selectedVersionCode != null)
+            {
+                if (!storeBundle || !int.TryParse(selectedVersionCode,
+                    System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture,
+                    out int testVersionCode) || testVersionCode <= 26 || testVersionCode > 2100000000)
+                    throw new BuildFailedException("Explicit test bundle version code must exceed baseline 26 within Android limits.");
+                PlayerSettings.Android.bundleVersionCode = testVersionCode;
+            }
             UseTestPlayFabResource(config.testTitle);
             File.WriteAllText(configPath, JsonUtility.ToJson(config));
             AssetDatabase.ImportAsset(configPath, ImportAssetOptions.ForceUpdate);
@@ -143,7 +153,9 @@ public static class RevivalIapBuild
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = storeBundle;
             Directory.CreateDirectory("Build/revival");
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            BuildReport report;
+            using (RevivalBuild.AndroidRelroLinkScope())
+            report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
                 locationPathName = "Build/revival/Tamer-iap-test." + (storeBundle ? "aab" : "apk"),
@@ -161,6 +173,7 @@ public static class RevivalIapBuild
         {
             try
             {
+                PlayerSettings.Android.bundleVersionCode = oldVersionCode;
                 AssetDatabase.DeleteAsset(configPath);
                 PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
                 PlayerSettings.Android.useCustomKeystore = oldKey;
