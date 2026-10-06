@@ -14,7 +14,7 @@ function Assert-IapTestVersionCode {
     param([bool]$Specified, [string]$Value, [bool]$PrepareOnly)
     if (!$Specified) { return }
     $parsed = 0
-    if ($PrepareOnly -or $Value -notmatch '^[0-9]+$' -or
+    if ($PrepareOnly -or $Value -notmatch '\A[0-9]+\z' -or
         ![int]::TryParse($Value, [ref]$parsed) -or $parsed -le 26 -or $parsed -gt 2100000000) {
         throw 'Explicit test version code requires a bundle build and a value above baseline 26 within Android limits.'
     }
