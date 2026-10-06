@@ -192,6 +192,20 @@ public static class RevivalAdHarnessBuild
         return document.ToString();
     }
 
+    private static string NativePrivacyManagerManifest(string original)
+    {
+        var document = XDocument.Parse(IsolatedUmpManifest(original));
+        XNamespace android = "http://schemas.android.com/apk/res/android";
+        XNamespace tools = "http://schemas.android.com/tools";
+        var app = document.Root.Element("application");
+        app.SetAttributeValue(android + "allowBackup", "false");
+        var replacements = ((string)app.Attribute(tools + "replace") ?? "")
+            .Split(',').Select(value => value.Trim()).Where(value => value.Length != 0);
+        app.SetAttributeValue(tools + "replace", string.Join(",", replacements
+            .Concat(new[] { "android:allowBackup" }).Distinct()));
+        return document.ToString();
+    }
+
     private sealed class IsolatedManifestScope : IDisposable
     {
         private const string PathName = "Assets/Plugins/Android/AndroidManifest.xml";
@@ -334,7 +348,7 @@ public static class RevivalAdHarnessBuild
         string variant = publisher ? "ump-publisher" : umpOnly ? "ump-sample" : development ? "sample" : "control";
         if (privacyAge) variant += "-privacy-age";
         if (isolatePgs) variant += "-pgs-isolated";
-        if (nativePrivacyManager) variant += "-privacy-manager";
+        if (nativePrivacyManager) variant += "-privacy-manager-no-backup";
         string applicationId = nativePrivacyManager ? AD.Advertising.AgeTreatmentPolicy.NativePrivacyHarnessPackage :
             publisher ? "com.AeDeong.MonsterTamer.revival.umppublisher" : umpOnly ? "com.AeDeong.MonsterTamer.revival.ump" :
             development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";
@@ -387,7 +401,9 @@ public static class RevivalAdHarnessBuild
                 if (!development || !umpOnly || !publisher || !privacyAge ||
                     PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != applicationId)
                     throw new BuildFailedException("Play Games isolation requires the explicit UMP privacy debug variant.");
-                isolatedManifest = new IsolatedManifestScope();
+                isolatedManifest = nativePrivacyManager
+                    ? new IsolatedManifestScope(NativePrivacyManagerManifest)
+                    : new IsolatedManifestScope();
             }
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = new[] { ScenePath }, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
