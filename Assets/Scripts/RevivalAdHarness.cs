@@ -34,6 +34,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private static bool UmpOnly => false;
 #endif
     private AdConsentGate _ump;
+    private AdConsentGate _umpPrivacy;
+    private bool _privacyAgeScenario, _privacyAgeArmed, _privacyWasBusy;
+    private double _privacyAgeAt = double.PositiveInfinity;
     private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _umpCallbacks =
         new System.Collections.Concurrent.ConcurrentQueue<Action>();
     private AgeChoice _testAge = AgeChoice.Unknown;
@@ -102,6 +105,12 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void Record(string value)
     {
+        if (UmpOnly && _privacyAgeArmed &&
+            (value == "consent_form_call" || value == "privacy_options_call"))
+        {
+            _privacyAgeArmed = false;
+            _privacyAgeAt = Now + 2;
+        }
         string line = Now.ToString("F3", CultureInfo.InvariantCulture) + " " + value;
         _events.Enqueue(line);
         while (_events.Count > 14) _events.Dequeue();
@@ -138,6 +147,17 @@ public sealed class RevivalAdHarness : MonoBehaviour
             }
 #endif
             while (_umpCallbacks.TryDequeue(out var callback)) callback();
+            if (Now >= _privacyAgeAt)
+            {
+                _privacyAgeAt = double.PositiveInfinity;
+                SuspendUmpAge();
+            }
+            bool privacyBusy = (_ump != null && _ump.IsBusy) || (_umpPrivacy != null && _umpPrivacy.IsBusy);
+            if (_privacyAgeScenario && _testAge == AgeChoice.Declined && _privacyWasBusy && !privacyBusy)
+                Record("ump_age_native_settled required=" + (UmpPrivacyOwner != null)
+                    + " can_request=" + ((_ump != null && _ump.CanRequestAds) ||
+                        (_umpPrivacy != null && _umpPrivacy.CanRequestAds)));
+            _privacyWasBusy = privacyBusy;
             if (_ump != null && _ump.IsUpdating && Now - _umpStartedAt >= 30) _ump.ExpireUpdate();
             return;
         }
@@ -250,6 +270,8 @@ public sealed class RevivalAdHarness : MonoBehaviour
         GUI.enabled = previousEnabled && _publisherContextAllowed && !_registrationAttempted &&
             (_ump == null || !_ump.IsBusy);
 #endif
+        bool originalControlsEnabled = GUI.enabled;
+        GUI.enabled = originalControlsEnabled && !_privacyAgeScenario;
         foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice)))
             if (GUILayout.Button("Test age: " + age + (_testAge == age ? " [selected]" : "")))
             { DisposeUmp(); _testAge = age; }
@@ -259,13 +281,30 @@ public sealed class RevivalAdHarness : MonoBehaviour
         GUILayout.Label("Local UMP test-device hash (not saved or logged):");
         string hash = GUILayout.PasswordField(_testDeviceHash, '*', 32);
         if (hash != _testDeviceHash) { DisposeUmp(); _testDeviceHash = hash; }
+        GUI.enabled = originalControlsEnabled && (!_privacyAgeScenario ||
+            (_privacyAgeArmed && _testAge == AgeChoice.Adult && _ump == null));
         if (GUILayout.Button("Explicit UMP Update + required form (network)", GUILayout.Height(52))) StartUmpOnly();
-        bool consentControlsEnabled = GUI.enabled;
-        bool privacyOptionsRequired = _ump != null && _ump.PrivacyOptionsRequired;
+        bool consentControlsEnabled = previousEnabled &&
+            (_ump == null || !_ump.IsBusy) && (_umpPrivacy == null || !_umpPrivacy.IsBusy);
+        bool privacyOptionsRequired = UmpPrivacyOwner != null;
         GUI.enabled = consentControlsEnabled && privacyOptionsRequired;
         if (GUILayout.Button("UMP privacy options", GUILayout.Height(44)) && privacyOptionsRequired)
-            _ump.OpenPrivacyOptions(allowed => Record("ump_privacy_finished can_request=" + allowed));
-        GUI.enabled = consentControlsEnabled;
+            UmpPrivacyOwner.OpenPrivacyOptions(allowed => Record("ump_privacy_finished can_request=" + allowed));
+        GUI.enabled = originalControlsEnabled && consentControlsEnabled && !_privacyAgeScenario &&
+            _testAge == AgeChoice.Adult && (_ump == null || privacyOptionsRequired);
+        if (GUILayout.Button("Arm Declined age change 2s into next native form", GUILayout.Height(44)))
+        {
+            _privacyAgeScenario = true;
+            _privacyAgeArmed = true;
+            Record("ump_age_arm explicit_native_form_required no_auto_network");
+        }
+        GUI.enabled = consentControlsEnabled && !_privacyAgeScenario &&
+            _testAge == AgeChoice.Adult && privacyOptionsRequired;
+        if (GUILayout.Button("Preserve existing privacy owner; change age to Declined", GUILayout.Height(44)))
+            SuspendUmpAge();
+        GUILayout.Label("Privacy preservation: " + (_privacyAgeScenario ? "locked until restart" : "not started")
+            + "; Required=" + privacyOptionsRequired);
+        GUI.enabled = consentControlsEnabled && !_privacyAgeScenario;
         GUI.enabled = GUI.enabled && AgeTreatmentPolicy.TryCreatePlan(_testAge, out _);
         if (GUILayout.Button("Reset test consent locally", GUILayout.Height(44)))
         { DisposeUmp(); ConsentInformation.Reset(); Record("ump_test_reset"); }
@@ -274,7 +313,8 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void StartUmpOnly()
     {
-        if (!UmpOnly || (_ump != null && _ump.IsBusy)) return;
+        if (!UmpOnly || (_ump != null && _ump.IsBusy) || (_umpPrivacy != null && _umpPrivacy.IsBusy) ||
+            (_privacyAgeScenario && (!_privacyAgeArmed || _testAge != AgeChoice.Adult || _ump != null))) return;
 #if TAMER_UMP_PUBLISHER_HARNESS
         if (!_publisherContextAllowed || _registrationAttempted)
         { Record("ump_blocked publisher_context_or_registration_latch"); return; }
@@ -326,6 +366,24 @@ public sealed class RevivalAdHarness : MonoBehaviour
     {
         _ump?.Dispose();
         _ump = null;
+        _umpPrivacy?.Dispose();
+        _umpPrivacy = null;
+    }
+
+    private AdConsentGate UmpPrivacyOwner => _ump != null && _ump.PrivacyOptionsRequired ? _ump
+        : _umpPrivacy != null && _umpPrivacy.PrivacyOptionsRequired ? _umpPrivacy : null;
+
+    private void SuspendUmpAge()
+    {
+        if (!UmpOnly || _testAge != AgeChoice.Adult || _ump == null) return;
+        bool busyBefore = _ump.IsBusy;
+        _privacyAgeScenario = true;
+        _testAge = AgeChoice.Declined;
+        AdConsentGate.SuspendAndRetainPrivacy(ref _ump, ref _umpPrivacy);
+        _privacyWasBusy = (_ump != null && _ump.IsBusy) || (_umpPrivacy != null && _umpPrivacy.IsBusy);
+        Record("ump_age_suspended declined=true busy_before=" + busyBefore + " busy_after=" + _privacyWasBusy
+            + " required=" + (UmpPrivacyOwner != null) + " can_request=" +
+            ((_ump != null && _ump.CanRequestAds) || (_umpPrivacy != null && _umpPrivacy.CanRequestAds)));
     }
 
     private void OnDestroy()
