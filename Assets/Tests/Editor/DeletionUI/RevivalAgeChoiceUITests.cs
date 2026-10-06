@@ -99,7 +99,12 @@ public class RevivalAgeChoiceUITests
             Assert.That(Result(ads), Is.EqualTo("Unavailable"));
             AssertNoSdk(ads);
 
-            UnityEngine.Object.DestroyImmediate(adsObject); // Actual manager OnDestroy.
+            // Normal MonoBehaviours do not guarantee automatic lifecycle dispatch
+            // in EditMode. Exercise the real handler explicitly, then remove its object.
+            Call(ads, "OnDestroy");
+            Assert.That(ads.GetType().GetField("_destroyed", Flags).GetValue(ads), Is.True);
+            Assert.That(selection.GetType().GetField("Changed", Flags).GetValue(selection), Is.Null);
+            UnityEngine.Object.DestroyImmediate(adsObject);
             Call(entry, "Refresh");
             Assert.That(privacy.gameObject.activeSelf, Is.True);
             Assert.That(privacy.interactable, Is.False);
@@ -115,7 +120,8 @@ public class RevivalAgeChoiceUITests
             AssertNoSdk(ads);
 
             int beforeDestroy = externalCalls;
-            UnityEngine.Object.DestroyImmediate(entry); // Actual owned listener cleanup.
+            Call(entry, "OnDestroy"); // Real handler, explicitly dispatched in EditMode.
+            UnityEngine.Object.DestroyImmediate(entry);
             Assert.That(RuntimeListeners(privacy), Is.EqualTo(1));
             privacy.onClick.Invoke();
             Assert.That(externalCalls, Is.EqualTo(beforeDestroy + 1));
