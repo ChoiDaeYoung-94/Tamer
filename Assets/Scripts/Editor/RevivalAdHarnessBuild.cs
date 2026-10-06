@@ -55,6 +55,8 @@ public static class RevivalAdHarnessBuild
     // Sample identity only. This cannot validate this publisher's configured messages.
     public static void BuildUmpSample() => Build(true, true);
     public static void BuildUmpPublisher() => Build(true, true, true);
+    // A separate artifact preserves the earlier publisher APK and its evidence.
+    public static void BuildUmpPrivacyAge() => Build(true, true, true, true);
 
     private static string ReadPrivatePublisherAppId()
     {
@@ -83,7 +85,7 @@ public static class RevivalAdHarnessBuild
         return config.androidAppId;
     }
 
-    private static void Build(bool development, bool umpOnly = false, bool publisher = false)
+    private static void Build(bool development, bool umpOnly = false, bool publisher = false, bool privacyAge = false)
     {
         int exitCode = 1;
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
@@ -94,6 +96,7 @@ public static class RevivalAdHarnessBuild
         byte[] settingsBytes = File.ReadAllBytes(SettingsPath), manifestBytes = File.ReadAllBytes(ManifestPath);
         byte[] publisherSceneBytes = null, publisherSceneMetaBytes = null;
         string variant = publisher ? "ump-publisher" : umpOnly ? "ump-sample" : development ? "sample" : "control";
+        if (privacyAge) variant += "-privacy-age";
         string applicationId = publisher ? "com.AeDeong.MonsterTamer.revival.umppublisher" : umpOnly ? "com.AeDeong.MonsterTamer.revival.ump" :
             development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";
         try
