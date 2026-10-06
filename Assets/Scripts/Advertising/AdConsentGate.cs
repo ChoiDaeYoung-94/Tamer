@@ -22,6 +22,7 @@ namespace AD.Advertising
         private Stage _stage;
         private int _version;
         private Action<bool> _pendingCompletion;
+        private bool _privacyOnly;
 
         public AdConsentGate(IAdConsentClient client, bool underAgeOfConsent,
             Action<Action> dispatch, Action<string> trace = null)
@@ -33,8 +34,9 @@ namespace AD.Advertising
         }
 
         public bool IsUpdating => _stage == Stage.Updating;
+        public bool IsPrivacyOnly => _privacyOnly;
         public bool IsBusy => _stage == Stage.Updating || _stage == Stage.Gathering || _stage == Stage.Privacy;
-        public bool CanRequestAds => _stage == Stage.Ready && ReadCanRequestAds();
+        public bool CanRequestAds => !_privacyOnly && _stage == Stage.Ready && ReadCanRequestAds();
         public bool PrivacyOptionsRequired
         {
             get
@@ -53,7 +55,7 @@ namespace AD.Advertising
 
         public bool Request(Action<bool> completed)
         {
-            if (_stage == Stage.Disposed || IsBusy) return false;
+            if (_privacyOnly || _stage == Stage.Disposed || IsBusy) return false;
             if (CanRequestAds) { completed(true); return true; }
             int version = ++_version;
             _pendingCompletion = completed;
@@ -107,10 +109,50 @@ namespace AD.Advertising
 
         private void Finish(bool allowed, Action<bool> completed)
         {
+            // Suspension discards the prior owner's completion, but a native form
+            // still owns its busy state until this real callback settles it.
+            bool deliver = _pendingCompletion != null;
             _pendingCompletion = null;
+            allowed = allowed && !_privacyOnly;
             _stage = allowed ? Stage.Ready : Stage.Blocked;
             _trace(allowed ? "consent_allowed" : "consent_blocked");
-            completed(allowed);
+            if (deliver) completed(allowed);
+        }
+
+        // Preserve only an existing privacy entry. Never starts Update/Gather or
+        // restores ad eligibility. Gathering/Privacy cannot be timed out/closed by
+        // an age change; their real callbacks settle native form ownership.
+        public void SuspendForPrivacy()
+        {
+            if (_stage == Stage.Disposed) return;
+            _privacyOnly = true;
+            _pendingCompletion = null;
+            if (_stage == Stage.Updating)
+            {
+                ++_version;
+                _stage = Stage.Blocked;
+            }
+            else if (_stage == Stage.Ready)
+                _stage = Stage.Blocked;
+        }
+
+        // Share the exact owner transfer rule with the manager and pure checks.
+        // An unready replacement must not erase an earlier Required entry.
+        public static void SuspendAndRetainPrivacy(ref AdConsentGate active, ref AdConsentGate retained)
+        {
+            if (active == null) return;
+            active.SuspendForPrivacy();
+            if (ReferenceEquals(active, retained)) { active = null; return; }
+            if (retained != null && (retained.IsBusy ||
+                (retained.PrivacyOptionsRequired && !active.PrivacyOptionsRequired)))
+            {
+                // Native form owners settle themselves, even on direct age edits.
+                if (!active.IsBusy) { active.Dispose(); active = null; }
+                return;
+            }
+            retained?.Dispose();
+            retained = active;
+            active = null;
         }
 
         // Only the network update has a host deadline. Never time out an open form.
