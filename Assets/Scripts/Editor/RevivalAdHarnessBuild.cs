@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Runtime.InteropServices;
 using AD;
 using UnityEditor;
 using UnityEditor.Build;
@@ -85,7 +86,7 @@ public static class RevivalAdHarnessBuild
     {
         private const string PathName = "Assets/Plugins/Android/AndroidManifest.xml";
         private FileStream manifest, meta;
-        private byte[] original, originalMeta;
+        private byte[] original, originalMeta, expected;
         private string guid;
 
         public IsolatedManifestScope()
@@ -93,15 +94,17 @@ public static class RevivalAdHarnessBuild
             try
             {
                 // No delete sharing: retain each original file object through import/build/restoration.
-                manifest = new FileStream(PathName, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+                manifest = new FileStream(PathName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 meta = new FileStream(PathName + ".meta", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 original = ReadBytes(manifest);
+                expected = original;
                 originalMeta = ReadBytes(meta);
                 guid = AssetDatabase.AssetPathToGUID(PathName);
                 if (string.IsNullOrEmpty(guid)) throw new BuildFailedException("Manifest GUID missing.");
                 string transformed = IsolatedUmpManifest(System.Text.Encoding.UTF8.GetString(original));
-                WriteBytes(manifest, System.Text.Encoding.UTF8.GetBytes(transformed));
+                WriteBytes(System.Text.Encoding.UTF8.GetBytes(transformed));
                 AssetDatabase.ImportAsset(PathName, ImportAssetOptions.ForceUpdate);
+                VerifyUnchanged();
             }
             catch
             {
@@ -118,14 +121,54 @@ public static class RevivalAdHarnessBuild
             using (var copy = new MemoryStream()) { stream.CopyTo(copy); return copy.ToArray(); }
         }
 
-        private static void WriteBytes(FileStream stream, byte[] bytes)
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FileInformation
         {
-            stream.Position = 0; stream.Write(bytes, 0, bytes.Length); stream.SetLength(bytes.Length); stream.Flush(true);
+            public uint Attributes;
+            public System.Runtime.InteropServices.ComTypes.FILETIME Creation, Access, Write;
+            public uint Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByHandle(IntPtr handle, out FileInformation information);
+
+        private static string Identity(FileStream stream)
+        {
+            FileInformation info;
+            if (!GetFileInformationByHandle(stream.SafeFileHandle.DangerousGetHandle(), out info))
+                throw new BuildFailedException("Manifest file identity unavailable.");
+            return info.Volume + ":" + info.IndexHigh + ":" + info.IndexLow;
+        }
+
+        private void VerifyUnchanged()
+        {
+            if (expected != null && (!ReadBytes(manifest).SequenceEqual(expected) ||
+                !File.ReadAllBytes(PathName).SequenceEqual(expected)))
+                throw new BuildFailedException("Concurrent manifest byte change; preserve for external recovery.");
+            if (originalMeta != null && (!ReadBytes(meta).SequenceEqual(originalMeta) ||
+                !File.ReadAllBytes(PathName + ".meta").SequenceEqual(originalMeta) ||
+                AssetDatabase.AssetPathToGUID(PathName) != guid))
+                throw new BuildFailedException("Concurrent manifest metadata change; preserve for external recovery.");
+        }
+
+        private void WriteBytes(byte[] bytes)
+        {
+            VerifyUnchanged();
+            // Unity's ordinary readers can coexist with a read anchor, but not a long-lived write handle.
+            using (var writer = new FileStream(PathName, FileMode.Open, FileAccess.Write, FileShare.Read))
+            {
+                if (Identity(writer) != Identity(manifest)) throw new BuildFailedException("Manifest file object changed.");
+                if (!ReadBytes(manifest).SequenceEqual(expected))
+                    throw new BuildFailedException("Concurrent manifest change before exclusive write; preserve for external recovery.");
+                writer.Write(bytes, 0, bytes.Length); writer.SetLength(bytes.Length); writer.Flush(true);
+            }
+            expected = bytes;
         }
 
         private void Restore()
         {
-            if (original != null) { WriteBytes(manifest, original); AssetDatabase.ImportAsset(PathName, ImportAssetOptions.ForceUpdate); }
+            if (original != null) { WriteBytes(original); AssetDatabase.ImportAsset(PathName, ImportAssetOptions.ForceUpdate); }
             if (original != null && (!ReadBytes(manifest).SequenceEqual(original) || !File.ReadAllBytes(PathName).SequenceEqual(original)))
                 throw new BuildFailedException("UMP manifest byte restoration failed.");
             if (originalMeta != null && (!ReadBytes(meta).SequenceEqual(originalMeta) ||
