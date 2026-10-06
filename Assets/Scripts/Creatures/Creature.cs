@@ -112,10 +112,10 @@ public abstract class Creature : MonoBehaviour
         {
             Dictionary<string, object> monsterInformation = AD.Managers.DataM.MonsterData[CreatureType.ToString()] as Dictionary<string, object>;
 
-            _hp = _originalHp = float.Parse(monsterInformation["Hp"].ToString());
-            _power = float.Parse(monsterInformation["Power"].ToString());
-            _attackSpeed = float.Parse(monsterInformation["AttackSpeed"].ToString());
-            _moveSpeed = float.Parse(monsterInformation["MoveSpeed"].ToString());
+            _hp = _originalHp = float.Parse(monsterInformation["Hp"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            _power = float.Parse(monsterInformation["Power"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            _attackSpeed = float.Parse(monsterInformation["AttackSpeed"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            _moveSpeed = float.Parse(monsterInformation["MoveSpeed"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
         }
     }
 

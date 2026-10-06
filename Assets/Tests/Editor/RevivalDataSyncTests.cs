@@ -8,9 +8,105 @@ using System.Globalization;
 using NUnit.Framework;
 using UnityEngine;
 
-// Reflection avoids an Assembly-CSharp dependency. No Managers, PlayerPrefs, SDK calls, or live saves.
+// Reflection avoids an Assembly-CSharp dependency. Isolated inactive components never initialize services;
+// no SDK calls or live saves. Static manager ownership and culture are restored after each case.
 public class RevivalDataSyncTests
 {
+    [TestCase("en-US", "Bat", 50f, 5f, 0.3f, 2f)]
+    [TestCase("de-DE", "Bat", 50f, 5f, 0.3f, 2f)]
+    [TestCase("ko-KR", "Bat", 50f, 5f, 0.3f, 2f)]
+    [TestCase("en-US", "Magma", 70f, 10f, 0.5f, 1.5f)]
+    [TestCase("de-DE", "Magma", 70f, 10f, 0.5f, 1.5f)]
+    [TestCase("ko-KR", "Magma", 70f, 10f, 0.5f, 1.5f)]
+    public void Revival_MonsterJsonStatsUseInvariantCulture(string culture, string monster,
+        float hp, float power, float attackSpeed, float moveSpeed)
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        var managerType = RuntimeType("AD.Managers");
+        var instance = managerType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var previousManager = instance.GetValue(null);
+        var root = new GameObject("Isolated monster JSON stats");
+        root.SetActive(false);
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+            var json = File.ReadAllText(Path.Combine(Application.dataPath, "Resources/Data/MonstersData.json"));
+            var values = (Dictionary<string, object>)Invoke(RuntimeType("AD.Utility"), "DeserializeFromJson", json);
+            var data = root.AddComponent(RuntimeType("AD.DataManager"));
+            data.GetType().GetField("MonsterData").SetValue(data, values);
+            var manager = root.AddComponent(managerType);
+            managerType.GetField("_dataM", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(manager, data);
+            instance.SetValue(null, manager);
+            var subject = root.AddComponent(RuntimeType("Monster"));
+            var creature = RuntimeType("Creature");
+            var kind = creature.GetField("CreatureType");
+            kind.SetValue(subject, Enum.Parse(kind.FieldType, monster));
+            creature.GetMethod("Settings", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(subject, null);
+            Assert.That(creature.GetProperty("Hp").GetValue(subject), Is.EqualTo(hp));
+            Assert.That(creature.GetProperty("OriginalHP").GetValue(subject), Is.EqualTo(hp));
+            Assert.That(creature.GetProperty("Power").GetValue(subject), Is.EqualTo(power));
+            Assert.That(creature.GetProperty("AttackSpeed").GetValue(subject), Is.EqualTo(attackSpeed));
+            Assert.That(creature.GetProperty("MoveSpeed").GetValue(subject), Is.EqualTo(moveSpeed));
+        }
+        finally
+        {
+            instance.SetValue(null, previousManager);
+            UnityEngine.Object.DestroyImmediate(root);
+            CultureInfo.CurrentCulture = previousCulture;
+        }
+    }
+
+    [TestCase("en-US")]
+    [TestCase("de-DE")]
+    [TestCase("ko-KR")]
+    public void Revival_EquipmentJsonStatsRoundTripAcrossCultures(string culture)
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        var managerType = RuntimeType("AD.Managers");
+        var instance = managerType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var previousManager = instance.GetValue(null);
+        var root = new GameObject("Isolated equipment JSON stats");
+        root.SetActive(false);
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+            var data = root.AddComponent(RuntimeType("AD.DataManager"));
+            var json = File.ReadAllText(Path.Combine(Application.dataPath, "Resources/Data/ItemsData.json"));
+            data.GetType().GetField("ItemData").SetValue(data,
+                Invoke(RuntimeType("AD.Utility"), "DeserializeFromJson", json));
+            data.GetType().GetField("LocalPlayerData").SetValue(data, new Dictionary<string, string>
+                { ["Power"] = "11", ["AttackSpeed"] = "0.6", ["MoveSpeed"] = "3.2" });
+            var manager = root.AddComponent(managerType);
+            managerType.GetField("_dataM", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(manager, data);
+            instance.SetValue(null, manager);
+            var subject = root.AddComponent(RuntimeType("Player"));
+            var creature = RuntimeType("Creature");
+            var kind = creature.GetField("CreatureType");
+            kind.SetValue(subject, Enum.Parse(kind.FieldType, "Player"));
+            creature.GetMethod("Settings", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(subject, null);
+            Invoke(subject, "ApplyEquipment", "SimpleSword");
+            Assert.That(creature.GetProperty("Hp").GetValue(subject), Is.EqualTo(100f));
+            Assert.That(creature.GetProperty("Power").GetValue(subject), Is.EqualTo(31f));
+            Assert.That((float)creature.GetProperty("AttackSpeed").GetValue(subject), Is.EqualTo(0.8f).Within(0.00001f));
+            Assert.That(creature.GetProperty("MoveSpeed").GetValue(subject), Is.EqualTo(3.2f));
+            Invoke(subject, "UnequipEquipment", "SimpleSword");
+            Invoke(subject, "ApplyEquipment", "SimpleShield");
+            Assert.That(creature.GetProperty("Hp").GetValue(subject), Is.EqualTo(150f));
+            Invoke(subject, "UnequipEquipment", "SimpleShield");
+            Assert.That(creature.GetProperty("Hp").GetValue(subject), Is.EqualTo(100f));
+            Assert.That(creature.GetProperty("OriginalHP").GetValue(subject), Is.EqualTo(100f));
+            Assert.That(creature.GetProperty("Power").GetValue(subject), Is.EqualTo(11f));
+            Assert.That((float)creature.GetProperty("AttackSpeed").GetValue(subject), Is.EqualTo(0.6f).Within(0.00001f));
+            Assert.That(creature.GetProperty("MoveSpeed").GetValue(subject), Is.EqualTo(3.2f));
+        }
+        finally
+        {
+            instance.SetValue(null, previousManager);
+            UnityEngine.Object.DestroyImmediate(root);
+            CultureInfo.CurrentCulture = previousCulture;
+        }
+    }
+
     [TestCase("en-US", 1)]
     [TestCase("de-DE", 1)]
     [TestCase("fr-FR", 2)]
