@@ -10,6 +10,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>Sample identity is temporary and restored even after a failed build.</summary>
 public static class RevivalAdHarnessBuild
@@ -60,6 +61,72 @@ public static class RevivalAdHarnessBuild
     // A separate artifact preserves the earlier publisher APK and its evidence.
     public static void BuildUmpPrivacyAge() => Build(true, true, true, true);
     public static void BuildUmpPrivacyAgeIsolated() => Build(true, true, true, true, true);
+    internal static bool PrivacyUiBuildActive { get; private set; }
+
+    public static void BuildPrivacyUi()
+    {
+        string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
+        bool oldKey = PlayerSettings.Android.useCustomKeystore, oldBundle = EditorUserBuildSettings.buildAppBundle;
+        var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
+        int code = 1;
+        try
+        {
+            RevivalBuild.ValidateBaseline();
+            if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android ||
+                PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android).Contains("TAMER_") ||
+                AD.Advertising.AdRequestPolicy.ProductionAdsEnabled ||
+                AD.Advertising.AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed)
+                throw new BuildFailedException("Disabled policy and clean Android baseline required.");
+            string catalog = File.ReadAllText("Assets/Resources/IAPProductCatalog.json");
+            if (Regex.IsMatch(catalog, "\"enableCodelessAutoInitialization\"\\s*:\\s*true") ||
+                Regex.IsMatch(catalog, "\"enableUnityGamingServicesAutoInitialization\"\\s*:\\s*true"))
+                throw new BuildFailedException("Automatic purchasing/services must be disabled.");
+            RevivalBuild.PrepareSmokeScene();
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.AeDeong.MonsterTamer.revival.privacyui");
+            PlayerSettings.Android.useCustomKeystore = false;
+            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            EditorUserBuildSettings.buildAppBundle = false;
+            Directory.CreateDirectory("Build/revival");
+            using (var scope = new IsolatedManifestScope(PrivacyUiManifest))
+            using (RevivalBuild.AndroidRelroLinkScope())
+            {
+                PrivacyUiBuildActive = true;
+                var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
+                    scenes = new[] { RevivalBuild.SmokeScene }, target = BuildTarget.Android,
+                    targetGroup = BuildTargetGroup.Android, locationPathName = "Build/revival/Tamer-privacy-ui.apk",
+                    options = BuildOptions.Development | BuildOptions.CompressWithLz4,
+                    extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_PRIVACY_UI_HARNESS" }
+                });
+                if (report.summary.result != BuildResult.Succeeded)
+                    throw new BuildFailedException("Offline privacy UI build failed.");
+            }
+            Debug.Log("PRIVACY_UI_BUILD_OK single_scene=true sdk_init_not_requested=true");
+            code = 0;
+        }
+        catch (Exception error) { Debug.LogException(error); }
+        finally
+        {
+            PrivacyUiBuildActive = false;
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
+            PlayerSettings.Android.useCustomKeystore = oldKey;
+            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
+            EditorUserBuildSettings.buildAppBundle = oldBundle;
+            AssetDatabase.SaveAssets();
+        }
+        if (Application.isBatchMode) EditorApplication.Exit(code);
+        else if (code != 0) throw new BuildFailedException("Offline privacy UI build failed; inspect preserved log.");
+    }
+
+    private static string PrivacyUiManifest(string original)
+    {
+        var document = XDocument.Parse(RevivalGameplayBuild.OfflineManifest(IsolatedUmpManifest(original)));
+        XNamespace android = "http://schemas.android.com/apk/res/android";
+        XNamespace tools = "http://schemas.android.com/tools";
+        var app = document.Root.Element("application");
+        app.SetAttributeValue(android + "allowBackup", "false");
+        app.SetAttributeValue(tools + "replace", "android:allowBackup");
+        return document.ToString();
+    }
 
     public static string IsolatedUmpManifest(string original)
     {
@@ -89,7 +156,7 @@ public static class RevivalAdHarnessBuild
         private byte[] original, originalMeta, expected;
         private string guid;
 
-        public IsolatedManifestScope()
+        public IsolatedManifestScope(Func<string, string> transform = null)
         {
             try
             {
@@ -101,7 +168,8 @@ public static class RevivalAdHarnessBuild
                 originalMeta = ReadBytes(meta);
                 guid = AssetDatabase.AssetPathToGUID(PathName);
                 if (string.IsNullOrEmpty(guid)) throw new BuildFailedException("Manifest GUID missing.");
-                string transformed = IsolatedUmpManifest(System.Text.Encoding.UTF8.GetString(original));
+                string input = System.Text.Encoding.UTF8.GetString(original);
+                string transformed = transform == null ? IsolatedUmpManifest(input) : transform(input);
                 WriteBytes(System.Text.Encoding.UTF8.GetBytes(transformed));
                 AssetDatabase.ImportAsset(PathName, ImportAssetOptions.ForceUpdate);
                 VerifyUnchanged();
@@ -324,5 +392,31 @@ public static class RevivalAdHarnessBuild
     {
         public string checkout, androidAppId;
         public bool productionActivationApproved, regionalReviewApproved;
+    }
+}
+
+// Only the build copy is changed. The original smoke scene remains behaviour-free.
+public sealed class RevivalPrivacyUiBuildScene : IProcessSceneWithReport
+{
+    public int callbackOrder => 0;
+    public void OnProcessScene(Scene scene, BuildReport report)
+    {
+        if (report == null || !BuildPipeline.isBuildingPlayer ||
+            PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != "com.AeDeong.MonsterTamer.revival.privacyui") return;
+        if (!RevivalAdHarnessBuild.PrivacyUiBuildActive || scene.path != RevivalBuild.SmokeScene ||
+            (report.summary.options & BuildOptions.Development) == 0)
+            throw new BuildFailedException("Privacy UI requires only the isolated development smoke scene.");
+        var font = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>("Assets/Fonts/DungGeunMo SDF.asset");
+        if (font == null || font.material == null || font.atlasTextures == null || font.atlasTextures.Length == 0 ||
+            font.atlasTextures.Any(texture => texture == null) || font.sourceFontFile == null ||
+            AssetDatabase.AssetPathToGUID("Assets/Fonts/DungGeunMo SDF.asset") != "6b62d0bbc19501141b40b8d32a134954")
+            throw new BuildFailedException("Existing Korean font, material, atlas and source are required.");
+        foreach (var root in scene.GetRootGameObjects())
+            if (root.GetComponentsInChildren<MonoBehaviour>(true).Length != 0)
+                throw new BuildFailedException("Unexpected original smoke behaviour.");
+        var created = new GameObject("Offline actual privacy UI fixture");
+        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(created, scene);
+        created.AddComponent<RevivalAdHarness>().PrivacyUiFont = font;
+        Debug.Log("PRIVACY_UI_BUILD_SCENE_READY font_guid_preserved=true original_scene_saved=false");
     }
 }

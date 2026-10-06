@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
+#if UNITY_EDITOR || TAMER_AD_TEST_HARNESS || TAMER_PRIVACY_UI_HARNESS
 #if TAMER_UMP_PUBLISHER_HARNESS && !TAMER_UMP_ONLY_HARNESS
 #error Publisher UMP harness requires the UMP-only path.
 #endif
@@ -18,6 +18,72 @@ public sealed class RevivalAdHarness : MonoBehaviour
     public GoogleAdMobManager Ads;
     public SoundManager Sound;
     public AudioSource Bgm;
+    public TMPro.TMP_FontAsset PrivacyUiFont;
+#if TAMER_PRIVACY_UI_HARNESS
+    private Managers _privacyBridge;
+    private string _privacyObservation;
+
+    private void StartPrivacyUi()
+    {
+        if (Application.isEditor || Application.platform != RuntimePlatform.Android || !Debug.isDebugBuild ||
+            Application.identifier != "com.AeDeong.MonsterTamer.revival.privacyui" ||
+            SceneManager.GetActiveScene().path != "Assets/Tests/Scenes/RevivalSmoke.unity" ||
+            Managers.Instance != null || PrivacyUiFont == null ||
+            AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed)
+            throw new InvalidOperationException("Isolated offline privacy UI context required.");
+        var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var inactive = new GameObject("Inactive UI references");
+        inactive.SetActive(false);
+        _privacyBridge = inactive.AddComponent<Managers>(); // Awake/Init never dispatched.
+        if ((bool)typeof(Managers).GetField("_initialized", fields).GetValue(_privacyBridge) ||
+            (bool)typeof(Managers).GetField("_ownsServices", fields).GetValue(_privacyBridge))
+            throw new InvalidOperationException("Service bootstrap detected.");
+        var canvasObject = new GameObject("Actual settings UI", typeof(RectTransform), typeof(Canvas),
+            typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
+        canvasObject.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+        var scaler = canvasObject.GetComponent<UnityEngine.UI.CanvasScaler>();
+        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1080, 1920);
+        scaler.matchWidthOrHeight = .5f;
+        var popups = canvasObject.AddComponent<PopupManager>();
+        typeof(PopupManager).GetField("_isException", fields).SetValue(popups, false);
+        Ads = new GameObject("Uninitialized actual ad manager").AddComponent<GoogleAdMobManager>();
+        typeof(Managers).GetField("_googleAdMobM", fields).SetValue(_privacyBridge, Ads);
+        typeof(Managers).GetField("_popupM", fields).SetValue(_privacyBridge, popups);
+        typeof(Managers).GetField("instance", System.Reflection.BindingFlags.Static |
+            System.Reflection.BindingFlags.NonPublic).SetValue(null, _privacyBridge);
+        DeletionPresenter.RuntimeFlowFactory = () => new AD.Privacy.DeletionFlow(
+            new AD.Privacy.UnavailableDeletionGateway(), () => null);
+        var settings = DeletionView.Rect("Settings", canvasObject.transform);
+        settings.anchorMin = Vector2.zero; settings.anchorMax = Vector2.one;
+        settings.offsetMin = settings.offsetMax = Vector2.zero;
+        var template = DeletionView.Label("SettingsTitle", settings, "설정", PrivacyUiFont, 42, 0);
+        template.rectTransform.anchorMin = new Vector2(.1f, .85f);
+        template.rectTransform.anchorMax = new Vector2(.9f, .95f);
+        template.rectTransform.offsetMin = template.rectTransform.offsetMax = Vector2.zero;
+        canvasObject.AddComponent<AgeChoicePresenter>().Bind(settings.gameObject, popups, Ads);
+        DeletionSettingsEntry.Ensure(settings.gameObject, popups);
+        new GameObject("UI touch input", typeof(UnityEngine.EventSystems.EventSystem),
+            typeof(UnityEngine.EventSystems.StandaloneInputModule));
+        Record("privacy_ui_ready age=" + Ads.AgeSelection.Value + " services_started=false sdk_init=false");
+    }
+
+    private void ObservePrivacyUi()
+    {
+        var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        foreach (string name in new[] { "_consent", "_privacyConsent", "_rewardedAd", "_showingAd" })
+            if (typeof(GoogleAdMobManager).GetField(name, fields).GetValue(Ads) != null)
+                throw new InvalidOperationException("SDK ownership appeared in offline UI.");
+        foreach (string name in new[] { "_initialized", "_initializing", "_loading" })
+            if ((bool)typeof(GoogleAdMobManager).GetField(name, fields).GetValue(Ads))
+                throw new InvalidOperationException("SDK initialization appeared in offline UI.");
+        string current = Ads.AgeSelection.Value + ":" + Ads.PrivacySettingsResult;
+        if (current == _privacyObservation) return;
+        _privacyObservation = current;
+        Record("privacy_ui_state=" + current + " sdk_init=false");
+    }
+#endif
+#if !TAMER_PRIVACY_UI_HARNESS
     private readonly Queue<string> _events = new Queue<string>();
     private string[] _layoutEvents = Array.Empty<string>();
     private MonoBehaviour _owner;
@@ -395,5 +461,15 @@ public sealed class RevivalAdHarness : MonoBehaviour
         if (Ads != null) Ads.HarnessEvent -= OnAdEvent;
         if (_tone != null) Destroy(_tone);
     }
+#else
+    private void Start() => StartPrivacyUi();
+    private void Update() { if (Ads != null) ObservePrivacyUi(); }
+    private void Record(string value) => Debug.Log("PRIVACY_UI " + value);
+    private void OnDestroy()
+    {
+        DeletionPresenter.RuntimeFlowFactory = null;
+        if (_privacyBridge != null) Destroy(_privacyBridge.gameObject);
+    }
+#endif
 }
 #endif
