@@ -244,6 +244,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) != ScriptingImplementation.IL2CPP ||
             PlayerSettings.Android.targetArchitectures != AndroidArchitecture.ARM64 ||
             !PlayerSettings.Android.useCustomKeystore ||
+            AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed ||
             (!approvedProduction && (AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed ||
             Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>().Any(AgeTreatmentPolicy.IsReviewed))) ||
             PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android) != snapshot.Defines ||

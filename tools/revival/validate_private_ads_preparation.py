@@ -92,6 +92,8 @@ def audit(checkout, config_path):
     age = data[paths[3]].decode('utf-8-sig')
     require_disabled_declaration(age, 'RegionalConsentReviewed',
                                  'public static bool RegionalConsentReviewed => false;')
+    require_disabled_declaration(age, 'PrivacySdkEnvironmentReviewed',
+                                 'public static bool PrivacySdkEnvironmentReviewed => false;')
     for cohort in ('Under13', 'From13To15', 'From16To17', 'Adult'):
         require_disabled_declaration(age, cohort + 'ConsentReviewed',
                                      'private const bool ' + cohort + 'ConsentReviewed = false;')

@@ -280,3 +280,20 @@ Unity 6000.3.25f1의 Roslyn과 cached Unity 참조를 사용한 소스 검사다
 참조를 사용했으며 새 Player 빌드·assembly 로드·Editor·SDK·기기 실행은 없다.
 App ID·소스/APK·지역/TFUA 계약 전체 binding과 운영 개인정보 검증은 미완료이고
 `runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
+
+## 광고 빌드 검증과 별도 개인정보 환경 승인 분리 (2026-10-06)
+
+기존 disabled 사전 검사와 approved adult 광고 사전 검사에
+`PrivacySdkEnvironmentReviewed=false`의 단일·무조건 선언 검사를 추가했다.
+기존 C# 빌드 hook도 두 mode 모두 해당 값이 true이면 snapshot 검사를 거절한다.
+광고 계약으로 별도 개인정보 SDK 환경을 승인하지 않도록 하는 조건 강화이며,
+runtime 호출·운영 승인 값이나 App ID·소스·산출물 binding을 변경하지 않았다.
+검증 소스 `6807c5eb49c0f8ebcbf55aac9308c84dfe3f068b`에서 신규 단일 순수 검사가
+첫 실행에 통과했다. 두 mode의 false 후보와 true·누락·주석·조건부·중복 선언을
+대조했으며 합성 approved 후보의 immutable binding은 mock이므로 실제 승인 증거가
+아니다. 수정된 hook과 현재 Advertising 소스의 Unity 6000.3.25f1 참조 컴파일도
+첫 실행에 통과했고 Editor 분기의 미사용 필드 경고 네 개가 있었다.
+cached UNITY_EDITOR 참조 컴파일이며 실제 build callback,
+staging·Editor·SDK·기기·새 APK 실행과 기존 성공 suite 재실행은 없다.
+독립 개인정보 환경의 App ID·소스/APK·지역/TFUA 근거 연결과 native 검증은 남아 있고,
+모든 runtime 검토 값 및 `runtimePrivacyVerified/binaryVerified/distributable`은 false다.
