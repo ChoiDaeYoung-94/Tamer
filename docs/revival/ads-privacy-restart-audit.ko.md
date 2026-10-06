@@ -326,3 +326,46 @@ cached UNITY_EDITOR 참조를 사용한 컴파일이며 일반 조합의 동명 
 callback queue·timeout·build callback 실행, 새 APK·App ID/산출물/기기 binding과 native
 폼은 미검증이다. Editor·SDK·ADB·빌드·assembly 로드는 없고 모든 운영 검토 값과
 `runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
+
+
+## 실제 관리자 시험 APK 빌드와 백업 차단 (2026-10-06)
+
+병합 소스 `d7b73fbfef51030df38926b7872a3e8a6a4606a5`의 첫 실제 Android 빌드는
+CLI exit 0으로 완료됐다. 첫 APK SHA-256은
+`e463efc95c32e66fcb1f38b8058a12139eff06ba77393558445b6f186250dbb7`이다.
+동일한 16개 정적 조건 중 백업 차단만 실패했다. merged manifest에 allowBackup이
+없어 기본 백업 허용 상태였으며 첫 APK·정적 FAIL·빌드 기록은 보존했다.
+
+native manager 시험 variant에만 allowBackup=false와 manifest merge override를
+적용했다. 기존 tools:replace 항목과 다른 publisher variant는 유지하고 수정 APK는
+별도 `Tamer-ads-ump-publisher-privacy-age-pgs-isolated-privacy-manager-no-backup.apk`로
+출력한다. 수정 소스의 cached Unity Editor 참조 컴파일 첫 실행은 exit 0,
+CS0436 동명 builder 경고 한 개였다. 이 컴파일의 독립 검토는 실행 후 진행했으며
+사전 검토로 표현하지 않는다. 미푸시 최신 커밋의 제목만 한국어로 수정했으며
+기존 미실행 계획과 같은 tree의 원 소스·컴파일 기록은 보존했다.
+
+수정 소스 `dee0a6bc12d010cb5cf86b6b218ad33105c3045d`의 두 번째 실제 빌드가
+CLI exit 0으로 완료됐고 같은 16개 정적 조건이 모두 통과했다. 새 APK는
+98,544,171 bytes, SHA-256
+`f1531aab1b0bc0f746881bf1b494560618349a3c873994468fe95adf9da966cd`이다.
+Android debug·ARM64·min 25/target 36·version 1.0.5/code 26·기존 private App ID
+일치와 실제 관리자 시험 분기를 확인했다. PGS provider와 games.APP_ID는 없고
+GMA MobileAdsInitProvider 및 검토한 AndroidX 초기화 항목은 남는다.
+네트워크 권한을 포함한 전체 권한 10개·컴포넌트 33개 목록은 private 증거에 보존했다.
+
+첫 실제 Player RSP/DLL은 Android·시험 define·현재 runtime 소스에 연결됐다.
+두 번째 빌드는 그 RSP/DLL 및 변경 없는 runtime 소스 hash가 동일한 incremental
+재사용이며 두 번째 신규 컴파일로 주장하지 않는다. 새 Gradle 입력의 GMA 25.4.0/
+UMP 4.0.0, 현재 builder 소스와 새 빌드 진입점 완료도 확인했다.
+각 빌드 후 관측된 9개 파일의 원 bytes/.meta를 해당 현재 객체에서 복원하고
+생성 PGS 파일 두 개는 고정 archive 후 개별 검증 handle로 제거했다.
+전체 보호 입력 6,860개의 원 내용·파일 집합·관측 현재 ID와 clean/Editor 종료,
+기존 및 새 APK 5개·서명 키 metadata 보존을 검증했다. 각 빌드에서 원 객체 7개가
+교체됐으므로 originalFileIdentitiesRestored=false이며 파일 시간 복원을 주장하지 않는다.
+
+새 APK의 설치·실행·UMP Update/PrivacyShow·폼 터치는 아직 없다. 백업 차단과
+정적 통과는 실제 native provider 동작·전체 SDK 통신·운영 개인정보/지역/연령 승인
+검증이 아니다. 후속 기기 계획은 기존 등록 해시의 같은 물리 기기 연결을 확인하고
+별도로 검토해야 한다. 모든 운영 검토와 runtimePrivacyVerified/binaryVerified/
+distributable=false를 유지한다. 같은 백업 조건의 두 번째 실패 시 종속 작업 중단
+규칙과 첫 실패 기록을 유지하며 성공 빌드·검사는 반복하지 않았다.
