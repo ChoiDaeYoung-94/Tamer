@@ -31,6 +31,26 @@ internal static class PrivateAdsPrivacyRestartChecks
     }
     public static int Main(string[] args)
     {
+#if TAMER_PRIVACY_MANAGER_HARNESS
+        if (args.Length == 1 && args[0] == "--native-context-only")
+        {
+            string package = AgeTreatmentPolicy.NativePrivacyHarnessPackage;
+            const string scene = "Assets/Tests/Scenes/RevivalAdHarness.unity";
+            Require(AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, false, package, scene, false));
+            Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(true, true, true, false, package, scene, false));
+            Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, false, true, false, package, scene, false));
+            Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, false, false, package, scene, false));
+            Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, true, package, scene, false));
+            Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, false, package, scene, true));
+            foreach (var other in new[] { null, "", "com.AeDeong.MonsterTamer", package + " ", package.ToUpperInvariant() })
+                Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, false, other, scene, false));
+            Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, false, package, "Assets/Tests/Scenes/RevivalSmoke.unity", false));
+            Require(AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled);
+            Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, true, "com.AeDeong.MonsterTamer"));
+            Console.WriteLine("PASS native_privacy_context_boundaries_reviews_false_release_context_blocked");
+            return 0;
+        }
+#endif
         if (args.Length == 1 && args[0] == "--context-only")
         {
             const string package = "com.AeDeong.MonsterTamer";

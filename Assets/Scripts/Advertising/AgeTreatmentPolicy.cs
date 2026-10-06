@@ -27,7 +27,7 @@ namespace AD.Advertising
         public static bool IsPrivacySdkContext(bool isEditor, bool isDevelopment,
             bool isBatchMode, bool explicitTest, bool isAndroid, string packageId)
         {
-#if DEVELOPMENT_BUILD || TAMER_TEST_ADS || TAMER_REVIVAL_SMOKE || TAMER_AD_TEST_HARNESS || TAMER_AD_SAMPLE_CLOSE_HARNESS || TAMER_UMP_PUBLISHER_HARNESS || TAMER_UMP_ONLY_HARNESS || TAMER_PRIVACY_UI_HARNESS || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS || TAMER_IAP_STORE_TEST || TAMER_SESSION_HARNESS || TAMER_GAMESAVE_HARNESS || TAMER_PGS_HARNESS || TAMER_PROGRESS_HARNESS || TAMER_JOURNAL_HARNESS || TAMER_DELETION_HARNESS || TAMER_RECEIPT_HARNESS
+#if DEVELOPMENT_BUILD || TAMER_TEST_ADS || TAMER_REVIVAL_SMOKE || TAMER_AD_TEST_HARNESS || TAMER_AD_SAMPLE_CLOSE_HARNESS || TAMER_UMP_PUBLISHER_HARNESS || TAMER_UMP_ONLY_HARNESS || TAMER_PRIVACY_UI_HARNESS || TAMER_PRIVACY_MANAGER_HARNESS || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS || TAMER_IAP_STORE_TEST || TAMER_SESSION_HARNESS || TAMER_GAMESAVE_HARNESS || TAMER_PGS_HARNESS || TAMER_PROGRESS_HARNESS || TAMER_JOURNAL_HARNESS || TAMER_DELETION_HARNESS || TAMER_RECEIPT_HARNESS
             return false;
 #else
             return isAndroid && !isEditor && !isDevelopment && !isBatchMode && !explicitTest &&
@@ -47,6 +47,18 @@ namespace AD.Advertising
         private const bool From13To15ConsentReviewed = false;
         private const bool From16To17ConsentReviewed = false;
         private const bool AdultConsentReviewed = false;
+
+        public const string NativePrivacyHarnessPackage = "com.AeDeong.MonsterTamer.revival.privacymanager";
+#if TAMER_PRIVACY_MANAGER_HARNESS
+        public static bool NativePrivacyHarnessReviewsDisabled => !PrivacySdkEnvironmentReviewed &&
+            !RegionalConsentReviewed && !Under13ConsentReviewed && !From13To15ConsentReviewed &&
+            !From16To17ConsentReviewed && !AdultConsentReviewed;
+
+        public static bool NativePrivacyHarnessContextAllowed(bool editor, bool android, bool development,
+            bool batch, string package, string scene, bool hasManagers) =>
+            !editor && android && development && !batch && !hasManagers &&
+            package == NativePrivacyHarnessPackage && scene == "Assets/Tests/Scenes/RevivalAdHarness.unity";
+#endif
 
         public static bool IsReviewed(AgeChoice choice)
         {
