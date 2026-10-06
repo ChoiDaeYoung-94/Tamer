@@ -50,12 +50,12 @@ internal static class PrivateAdsPrivacyRestartChecks
             }
             foreach (bool success in new[] { false, true })
             {
-                var c = new StatusClient { Status = AdPrivacyRequirement.Unknown };
-                using (var g = Gate(c))
+                var unknownClient = new StatusClient { Status = AdPrivacyRequirement.Unknown };
+                using (var g = Gate(unknownClient))
                 {
-                    g.RefreshPrivacyOptions(_ => { }); c.Updated(success);
+                    g.RefreshPrivacyOptions(_ => { }); unknownClient.Updated(success);
                     Require(!g.PrivacyOptionsRequired && !g.OpenPrivacyOptions(_ => { }) &&
-                        c.Shows == 0 && !g.CanRequestAds);
+                        unknownClient.Shows == 0 && !g.CanRequestAds);
                 }
             }
             Console.WriteLine("PASS fresh_required_owner_reopens_without_update_gather_or_ad_permission");
