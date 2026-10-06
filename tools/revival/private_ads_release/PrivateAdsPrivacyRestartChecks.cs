@@ -29,8 +29,24 @@ internal static class PrivateAdsPrivacyRestartChecks
     {
         test(); checks++; Console.WriteLine("PASS " + name);
     }
-    public static int Main()
+    public static int Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == "--context-only")
+        {
+            const string package = "com.AeDeong.MonsterTamer";
+            Require(AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, true, package));
+            Require(!AgeTreatmentPolicy.IsPrivacySdkContext(true, false, false, false, true, package));
+            Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, true, false, false, true, package));
+            Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, true, false, true, package));
+            Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, true, true, package));
+            Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, false, package));
+            foreach (var other in new[] { null, "", package + ".revival.privacyui", package.ToLowerInvariant(), package + " " })
+                Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, true, other));
+            Require(!AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed && !AgeTreatmentPolicy.RegionalConsentReviewed);
+            foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice))) Require(!AgeTreatmentPolicy.IsReviewed(age));
+            Console.WriteLine("PASS privacy_context_boundaries_and_reviews_remain_false");
+            return 0;
+        }
         Check("production_false_and_no_age_never_start_discovery", () =>
         {
             foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice)))

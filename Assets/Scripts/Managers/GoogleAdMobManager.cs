@@ -166,8 +166,9 @@ namespace AD
                 return;
             }
             bool environment = AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
-                !Application.isEditor && !Application.isBatchMode &&
-                Application.platform == RuntimePlatform.Android;
+                AgeTreatmentPolicy.IsPrivacySdkContext(Application.isEditor, Debug.isDebugBuild,
+                    Application.isBatchMode, false, Application.platform == RuntimePlatform.Android,
+                    Application.identifier);
             if (!AgeTreatmentPolicy.TryCreatePrivacyPlan(AgeSelection.Value, AgeSelection.IsEditing,
                 environment, AgeTreatmentPolicy.IsReviewed(AgeSelection.Value), out var plan))
             {
