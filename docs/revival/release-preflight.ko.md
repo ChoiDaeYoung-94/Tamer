@@ -1,5 +1,26 @@
 # 출시 후보 사전 검사와 16KB 호스트 준비
 
+## 2026-10-06 소스 준비 후속 대조
+
+원격 main `d213eb7bb6aa5a898b889fbd2a5e861ffb0582c1`(PR #305)을 읽기로
+대조했다. 아래는 PR #300~#305에서 이미 기록한 범위의 정리이며 최신 main 전체를
+재검증한 결과가 아니다. 이전 날짜의 실패·시도·산출물 이력은 그대로 보존한다.
+
+| 항목 | 통합된 준비·기록 | 남은 실행·검증 |
+| --- | --- | --- |
+| LTS 오프라인 세션 기록 | [PR #300](https://github.com/ChoiDaeYoung-94/Tamer/pull/300)은 [sessionguard 기기 기록](session-gameplay-device.ko.md)의 sourcef839d52·동일 10개 체크와 저장/화면 일치, 원복·종료·확인 파일 보존을 문서에 반영 | 당시 APK와 합성 오프라인 범위다. GUI 수정의 기기 검증·운영 서비스·전체 16KB/RELRO·최종 AAB/스토어 완료로 확대하지 않음 |
+| IAP 설정 격리 | [PR #301](https://github.com/ChoiDaeYoung-94/Tamer/pull/301)은 시험 빌드의 PlayFab 설정을 격리하고 원본 바이트를 복원하며, 외부 래퍼에서 원복 불일치를 확인하면 덮어쓰지 않고 중단하도록 보강. 소스 검토·순수 컴파일 범위 확인 | 실제 Unity의 설정 저장/원복과 새 빌드·기기·구매·삭제 후 복원은 미검증. 순수 컴파일을 Unity 빌드 완료로 사용하지 않음 |
+| IAP 서명 입력 보호 | [PR #302](https://github.com/ChoiDaeYoung-94/Tamer/pull/302)·[PR #303](https://github.com/ChoiDaeYoung-94/Tamer/pull/303)은 기존 서명 네 파일 누락/불완전 시 사전 중단과 승인된 외부 디렉터리 선택을 추가. [시험 번들 안내](iap-test-bundle.ko.md)의 기존 표식·해시·경로 검사를 유지 | 새 키 생성·기존 시험 앱의 업로드 키 재설정·Google 인증서 적용·DPAPI 복호화·실제 빌드 검증의 증거가 아님. 새 앱 전용 생성 플래그를 기존 앱 복구에 사용하지 않으며, 복구 키는 Google의 인증서 적용 확인 전 빌드하지 않음 |
+| 비활성 광고 후보 생산 준비 | [PR #304](https://github.com/ChoiDaeYoung-94/Tamer/pull/304)의 [Phase A](private-ads-build-injection-draft.ko.md)는 준비·단일 빌드·검토된 복구 단계를 분리하고 소스/도구/설정 및 실제 변경 범위를 고정하는 도구를 통합. 합성 검사와 순수 컴파일 범위 확인 | 실제 Unity 빌드·SDK·운영 광고 실행은 미수행. 실제 승인된 생산 mode·기기·개인정보·최종 산출물 검증은 미완료이며 준비 계획을 실행 완료로 사용하지 않음 |
+| 성인 전용 승인 계약 판독기 | [PR #305](https://github.com/ChoiDaeYoung-94/Tamer/pull/305)의 [계약 소스](private-ads-adult-contract.ko.md)는 엄격한 입력·바이트 binding 검사와 성인 외 연령 거절을 추가. 합성 20개 체크와 실제 Unity 참조를 사용한 순수 컴파일 범위 확인 | compiled 승인 binding은 readonly null이며 실제 승인 자료·resource·운영 caller 연결은 없음. 기존 UMP·No Ads·보상 조건의 결합, 실제 생산 mode·빌드·지역/개인정보·배포 검증은 미완료. 해시를 정책 승인·위치 판정·동의 완료로 사용하지 않음 |
+
+운영 master·지역·연령 gate는 OFF이며 `productionContractVerified=false`,
+`binaryVerified=false`, `distributable=false`를 유지한다. 진행 중인 백업·IAP·광고의
+후속 결과는 이 정리에 합산하지 않는다. 기존 공개 정책 URL·시행일을 보존하고,
+개인 CI/CD는 보류한다. 최종 검증 뒤 임시 시험 자원을 정리하고 저장소 이름 변경은
+마지막에 수행한다. 이번 변경은 문서 한 개의 상태 정리이며 Unity·키·SDK·기기·메일·
+Console·새 APK/AAB 검증을 실행하지 않았다.
+
 ## 2026-10-01 결정 반영과 최종 후보 준비 조건
 
 읽기 대조 기준은 main `f839d52a061cbc7fb9bc70c090b3b03668ff1c2a`다.
