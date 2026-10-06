@@ -31,6 +31,36 @@ internal static class PrivateAdsPrivacyRestartChecks
     }
     public static int Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == "--required-owner-reopen-only")
+        {
+            var c = new StatusClient(); using (var g = Gate(c))
+            {
+                int refreshCallbacks = 0, reopenCallbacks = 0;
+                g.RefreshPrivacyOptions(r => { Require(r == AdPrivacyResult.FormFailed); refreshCallbacks++; });
+                c.Updated(true); var firstShow = c.Closed; firstShow(false);
+                Require(refreshCallbacks == 1 && g.PrivacyOptionsRequired && g.IsPrivacyRefreshOwner &&
+                    g.IsPrivacyOnly && !g.IsBusy && !g.CanRequestAds);
+                Require(c.Updates == 1 && c.Shows == 1 && c.Gathers == 0);
+                Require(g.OpenPrivacyOptions(allowed => { Require(!allowed); reopenCallbacks++; },
+                    r => Require(r == AdPrivacyResult.OptionsClosed)));
+                Require(g.IsBusy && c.Updates == 1 && c.Shows == 2 && c.Gathers == 0);
+                firstShow(true); Require(g.IsBusy && reopenCallbacks == 0 && refreshCallbacks == 1);
+                c.Closed(true); c.Closed(false);
+                Require(reopenCallbacks == 1 && !g.IsBusy && g.PrivacyOptionsRequired && !g.CanRequestAds);
+            }
+            foreach (bool success in new[] { false, true })
+            {
+                var unknownClient = new StatusClient { Status = AdPrivacyRequirement.Unknown };
+                using (var g = Gate(unknownClient))
+                {
+                    g.RefreshPrivacyOptions(_ => { }); unknownClient.Updated(success);
+                    Require(!g.PrivacyOptionsRequired && !g.OpenPrivacyOptions(_ => { }) &&
+                        unknownClient.Shows == 0 && !g.CanRequestAds);
+                }
+            }
+            Console.WriteLine("PASS fresh_required_owner_reopens_without_update_gather_or_ad_permission");
+            return 0;
+        }
 #if TAMER_PRIVACY_MANAGER_HARNESS
         if (args.Length == 1 && args[0] == "--native-context-only")
         {

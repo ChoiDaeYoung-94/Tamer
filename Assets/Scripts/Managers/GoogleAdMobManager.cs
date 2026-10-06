@@ -157,7 +157,8 @@ namespace AD
         {
             if (!CanCheckPrivacySettings) { PrivacySettingsResult = AdPrivacyResult.Busy; return; }
             var existing = PrivacyConsent;
-            if (existing != null && !existing.IsPrivacyRefreshOwner)
+            // A failed form can retain fresh Required; a new click opens that owner without another Update.
+            if (existing != null)
             {
                 PrivacySettingsResult = AdPrivacyResult.Checking;
                 ShowPrivacyOptions();
