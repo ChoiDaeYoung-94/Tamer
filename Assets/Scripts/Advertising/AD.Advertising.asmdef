@@ -1,5 +1,5 @@
 {
   "name": "AD.Advertising",
   "rootNamespace": "AD.Advertising",
-  "noEngineReferences": true
+  "noEngineReferences": false
 }
