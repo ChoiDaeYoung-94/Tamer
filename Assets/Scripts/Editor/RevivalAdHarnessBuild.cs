@@ -365,7 +365,7 @@ public static class RevivalAdHarnessBuild
             PrepareScene();
             if (nativePrivacyManager)
             {
-                var behaviours = SceneManager.GetActiveScene().GetRootGameObjects()
+                var behaviours = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects()
                     .SelectMany(go => go.GetComponentsInChildren<MonoBehaviour>(true)).ToArray();
                 var manager = behaviours.OfType<GoogleAdMobManager>().SingleOrDefault();
                 var harness = behaviours.OfType<RevivalAdHarness>().SingleOrDefault();
