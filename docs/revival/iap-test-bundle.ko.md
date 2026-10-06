@@ -12,11 +12,15 @@
 
 시험 앱의 업로드 키 복구에 이 옵션을 사용하는 경우 **Google Play에서 새 업로드 인증서의 적용이 확인되기 전에는 빌드를 실행하지 않는다.** 경로 선택만으로 기존 앱의 키 재설정·새 키 생성·업로드 준비 완료가 승인되거나 확인된 것은 아니다.
 
+시험 앱의 모든 트랙에서 최대 사용 versionCode를 실행 직전에 확인하고, 그보다 큰 후보를 검토한 뒤 `-TestVersionCode <검토한 번호>`를 명시한다. 이 옵션은 번들 빌드에만 사용할 수 있으며 `-PrepareOnly`에서는 중단한다. 기존 기준 설정인 1.0.5/code26을 먼저 검사하고 시험 AAB에만 번호를 임시 적용한 뒤 원래 값을 복원한다. 옵션을 생략하면 기존 code26 동작을 유지하며, 도구가 Console 최대 번호나 다음 번호를 자동 추정하지 않는다. 허용 범위는 27~2100000000이며 현재 시험 앱의 최대 번호보다 크다는 확인을 대신하지 않는다. 빌드는 기존 공통 RELRO 링크 설정을 일시 적용하고 원래 IL2CPP 인자를 복원한다. 이 설정 사용만으로 실제 ELF 정렬·RELRO 검증이 통과한 것으로 판단하지 않는다.
+
 `-TestTitle <테스트 타이틀> -ProductionTitle <운영 타이틀> -Catalog iap-test-v1`은 명시한 별도 타이틀 설정으로 번들을 빌드한다. `RevivalIapBuild.BuildStoreTestBundle`은 기존 debug APK 경로와 별도로 비디버그 AAB를 생성한다. 빌드 한정 `TAMER_IAP_STORE_TEST`가 비디버그 하네스를 허용하며 기존 패키지/타이틀 검사, 원래 로그인·광고 차단, 수동 구매 버튼과 메모리 게임 서버는 유지한다. C# finally와 외부 ProjectSettingsSnapshot이 서명·프로젝트 설정을 복원한다.
 
 ## 검증
 
 `python tools/revival/verify_iap_test_bundle.py`는 고정 bundletool로 구조·manifest를 검사하고 기존 `VerifyAabSignature.java`로 모든 payload의 서명 및 로컬 테스트 인증서 일치를 확인한다. `.iaptest`, 비디버그, testOnly 아님, target36, ARM64, INTERNET/BILLING 필수, GMS AD_ID/MobileAdsInitProvider 없음이 조건이다. AdServices 관련 권한은 별도로 남아 있을 수 있다. 네이티브 ELF LOAD와 RELRO 결과는 서명/manifest 성공과 구분한다.
+
+외부 복구 폴더로 빌드했다면 검증에도 `--signing-directory '<빌드에 사용한 절대 경로>' --expected-version-code <동일한 번호>`를 전달한다. 검증 도구는 네 기존 일반 파일과 상위 경로의 링크 여부, 앱·alias 표식과 키/인증서 SHA-256을 검사하고 해당 폴더의 DER을 직접 사용한다. 파일을 복사하거나 변경하지 않는다. 기본 검증은 기존 로컬 DER 및 code26을 사용한다. 경로·해시 검사는 검사 시점의 정합 확인이며 동시 파일 교체를 완전히 차단하거나 Google의 활성 인증서·개인키 사용 가능성을 확인하지 않는다. 원래 생성 마커를 변경하여 활성화나 준비 완료로 표시하지 않는다.
 
 전용 업로드 서명은 기존 debug APK 서명과 다르므로 기기의 같은 패키지에 직접 업데이트할 수 없다. Play App Signing으로 배포된 APK 역시 별도 인증서를 사용할 수 있다. 기존 앱 삭제는 테스트 식별자/저장 파일을 잃을 수 있으므로, 현재 CustomID 연결과 보존 절차 확인 전에는 삭제·재설치하지 않는다. 이 작업에서는 기기 설치를 하지 않았다.
 

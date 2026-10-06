@@ -4,11 +4,23 @@ param(
     [string]$Catalog = 'iap-test-v1',
     [switch]$PrepareOnly,
     [switch]$CreateSigningForNewTestApp,
-    [string]$SigningDirectory
+    [string]$SigningDirectory,
+    [string]$TestVersionCode
 )
 $ErrorActionPreference = 'Stop'
 $project = (Resolve-Path "$PSScriptRoot/../..").Path
 . "$PSScriptRoot/ProjectSettingsSnapshot.ps1"
+function Assert-IapTestVersionCode {
+    param([bool]$Specified, [string]$Value, [bool]$PrepareOnly)
+    if (!$Specified) { return }
+    $parsed = 0
+    if ($PrepareOnly -or $Value -notmatch '^[0-9]+$' -or
+        ![int]::TryParse($Value, [ref]$parsed) -or $parsed -le 26 -or $parsed -gt 2100000000) {
+        throw 'Explicit test version code requires a bundle build and a value above baseline 26 within Android limits.'
+    }
+}
+$versionCodeSpecified = $PSBoundParameters.ContainsKey('TestVersionCode')
+Assert-IapTestVersionCode -Specified $versionCodeSpecified -Value $TestVersionCode -PrepareOnly ([bool]$PrepareOnly)
 function Assert-IapExistingSigningDirectory {
     param([Parameter(Mandatory)][string]$Path)
     if (![IO.Path]::IsPathFullyQualified($Path)) { throw 'Signing directory must be an absolute existing path.' }
@@ -82,7 +94,11 @@ $pointer = [IntPtr]::Zero
 $snapshot = $null
 $resourceSnapshot = @()
 $previousKeyPath = [Environment]::GetEnvironmentVariable('TAMER_IAP_TEST_KEY_PATH', 'Process')
+$previousVersionCode = [Environment]::GetEnvironmentVariable('TAMER_IAP_TEST_VERSION_CODE', 'Process')
 try {
+    # Do not inherit an unrelated process override when the option is omitted.
+    if ($versionCodeSpecified) { $env:TAMER_IAP_TEST_VERSION_CODE = $TestVersionCode }
+    else { Remove-Item Env:TAMER_IAP_TEST_VERSION_CODE -ErrorAction SilentlyContinue }
     if (!$ready) {
         $random = New-Object byte[] 32
         $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
@@ -186,6 +202,8 @@ try {
         }
     } finally {
     [Environment]::SetEnvironmentVariable('TAMER_IAP_TEST_KEY_PATH', $previousKeyPath, 'Process')
+    if ([string]::IsNullOrEmpty($previousVersionCode)) { Remove-Item Env:TAMER_IAP_TEST_VERSION_CODE -ErrorAction SilentlyContinue }
+    else { $env:TAMER_IAP_TEST_VERSION_CODE = $previousVersionCode }
     Remove-Item Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue
     if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
     $secret = $null
