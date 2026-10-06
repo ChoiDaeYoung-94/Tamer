@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading;
 
 using UnityEngine;
@@ -283,20 +284,20 @@ public class Player : Creature
     {
         Dictionary<string, object> itemData = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
 
-        _itemAdditionalHp = _hp += float.Parse(itemData["Hp"].ToString());
-        _power += float.Parse(itemData["Power"].ToString());
-        _attackSpeed += float.Parse(itemData["AttackSpeed"].ToString());
-        _moveSpeed += float.Parse(itemData["MoveSpeed"].ToString());
+        _itemAdditionalHp = _hp += float.Parse(itemData["Hp"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        _power += float.Parse(itemData["Power"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        _attackSpeed += float.Parse(itemData["AttackSpeed"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        _moveSpeed += float.Parse(itemData["MoveSpeed"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
     }
 
     public void UnequipEquipment(string item)
     {
         Dictionary<string, object> itemData = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
 
-        _itemAdditionalHp = _hp -= float.Parse(itemData["Hp"].ToString());
-        _power -= float.Parse(itemData["Power"].ToString());
-        _attackSpeed -= float.Parse(itemData["AttackSpeed"].ToString());
-        _moveSpeed -= float.Parse(itemData["MoveSpeed"].ToString());
+        _itemAdditionalHp = _hp -= float.Parse(itemData["Hp"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        _power -= float.Parse(itemData["Power"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        _attackSpeed -= float.Parse(itemData["AttackSpeed"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        _moveSpeed -= float.Parse(itemData["MoveSpeed"].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
     }
 
     #endregion
