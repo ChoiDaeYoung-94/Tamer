@@ -111,6 +111,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private bool _sampleConfigured;
 #if TAMER_UMP_PUBLISHER_HARNESS
     private bool _publisherContextAllowed;
+#if TAMER_PRIVACY_MANAGER_HARNESS
+    private string _nativePrivacyObservation;
+#endif
     private static bool _registrationAttempted;
     private bool _registrationInFlight;
     private double _registrationStartedAt;
@@ -129,8 +132,13 @@ public sealed class RevivalAdHarness : MonoBehaviour
         if (UmpOnly)
         {
 #if TAMER_UMP_PUBLISHER_HARNESS
+#if TAMER_PRIVACY_MANAGER_HARNESS
+            const string publisherHarnessPackage = AgeTreatmentPolicy.NativePrivacyHarnessPackage;
+#else
+            const string publisherHarnessPackage = "com.AeDeong.MonsterTamer.revival.umppublisher";
+#endif
             if (Application.isEditor || Application.platform != RuntimePlatform.Android ||
-                !Debug.isDebugBuild || Application.identifier != "com.AeDeong.MonsterTamer.revival.umppublisher" ||
+                !Debug.isDebugBuild || Application.identifier != publisherHarnessPackage ||
                 SceneManager.GetActiveScene().path != "Assets/Tests/Scenes/RevivalAdHarness.unity" ||
                 AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed)
                 throw new InvalidOperationException("Isolated disabled publisher UMP context required.");
@@ -315,6 +323,29 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void DrawUmpOnly()
     {
+#if TAMER_PRIVACY_MANAGER_HARNESS
+        GUILayout.Label("Actual manager privacy refresh / synthetic Adult / EEA / no ad initialization");
+        GUILayout.Label("One explicit network request per process. No reset, Gather or automatic retry.");
+        bool enabled = GUI.enabled;
+        GUI.enabled = enabled && _publisherContextAllowed && Ads != null &&
+            !GoogleAdMobManager.NativePrivacyHarnessAttempted;
+        GUILayout.Label("Local registered UMP test-device input (not saved or logged):");
+        _testDeviceHash = GUILayout.PasswordField(_testDeviceHash, '*', 32);
+        if (GUILayout.Button("Explicit manager privacy refresh (network, once)", GUILayout.Height(52)))
+            Record("manager_privacy_request_accepted=" + Ads.RequestPrivacySettingsForNativeHarness(_testDeviceHash));
+        GUI.enabled = enabled;
+        if (Ads != null)
+        {
+            if (!Ads.NativePrivacyHarnessNoAdsState) throw new InvalidOperationException("Ad ownership appeared in privacy harness.");
+            GUILayout.Label("Manager privacy result: " + Ads.PrivacySettingsResult);
+            string observed = Ads.PrivacySettingsResult.ToString();
+            if (_nativePrivacyObservation != observed)
+            {
+                _nativePrivacyObservation = observed;
+                Record("manager_privacy_result=" + observed + " ads_init_load=false");
+            }
+        }
+#else
 #if TAMER_UMP_PUBLISHER_HARNESS
         GUILayout.Label("UMP ONLY / PUBLISHER APP / no managed Mobile Ads initialize, load or show");
         GUILayout.Label("Explicit Update contacts the publisher's UMP service; this is not an ad activation.");
@@ -375,6 +406,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
         if (GUILayout.Button("Reset test consent locally", GUILayout.Height(44)))
         { DisposeUmp(); ConsentInformation.Reset(); Record("ump_test_reset"); }
         GUI.enabled = previousEnabled;
+#endif
     }
 
     private void StartUmpOnly()

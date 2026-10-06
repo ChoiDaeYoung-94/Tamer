@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using AD.Advertising;
 using GoogleMobileAds.Api;
-#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS || TAMER_PRIVACY_MANAGER_HARNESS
 using GoogleMobileAds.Ump.Api;
+#endif
+#if TAMER_PRIVACY_MANAGER_HARNESS && (!TAMER_AD_TEST_HARNESS || !TAMER_UMP_ONLY_HARNESS || !TAMER_UMP_PUBLISHER_HARNESS || TAMER_PRIVACY_UI_HARNESS)
+#error Native privacy manager harness requires the isolated publisher UMP-only defines.
 #endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -175,6 +178,12 @@ namespace AD
                 PrivacySettingsResult = AdPrivacyResult.Unavailable;
                 return;
             }
+            BeginPrivacyRefresh(plan, () => new GoogleUmpConsentClient());
+        }
+
+        private void BeginPrivacyRefresh(AgeTreatmentPlan plan, Func<IAdConsentClient> createClient,
+            Action<string> trace = null)
+        {
             ++_loadVersion;
             ++_sceneVersion;
             DestroyLoadedAd();
@@ -183,8 +192,8 @@ namespace AD
             _privacyConsent = null;
             try
             {
-                _privacyConsent = new AdConsentGate(new GoogleUmpConsentClient(), plan.UmpUnderAgeOfConsent,
-                    callback => Enqueue(callback));
+                _privacyConsent = new AdConsentGate(createClient(), plan.UmpUnderAgeOfConsent,
+                    callback => Enqueue(callback), trace);
             }
             catch (Exception)
             {
@@ -195,6 +204,33 @@ namespace AD
             _privacyUpdateDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
             _privacyConsent.RefreshPrivacyOptions(result => PrivacySettingsResult = result);
         }
+
+#if TAMER_PRIVACY_MANAGER_HARNESS
+        // Test-only entry: never grants production approval or changes saved age.
+        // The process latch survives manager recreation and is consumed before SDK construction.
+        private static bool _nativePrivacyHarnessAttempted;
+        public static bool NativePrivacyHarnessAttempted => _nativePrivacyHarnessAttempted;
+        public bool NativePrivacyHarnessNoAdsState => !_initialized && !_initializing && !_loading &&
+            _consent == null && _rewardedAd == null && _showingAd == null && _session == null && _closingSession == null;
+
+        public bool RequestPrivacySettingsForNativeHarness(string testDeviceHash)
+        {
+            if (_nativePrivacyHarnessAttempted || _destroyed || !CanCheckPrivacySettings ||
+                !NativePrivacyHarnessNoAdsState || _privacyConsent != null ||
+                AdRequestPolicy.ProductionAdsEnabled || !AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled ||
+                !AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(Application.isEditor,
+                    Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
+                    Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
+                    Managers.Instance != null)) return false;
+            try { GoogleUmpConsentClient.CreateDebugSettings(DebugGeography.EEA, testDeviceHash); }
+            catch (ArgumentException) { return false; }
+            if (!AgeTreatmentPolicy.TryCreatePlan(AgeChoice.Adult, out var plan)) return false;
+            _nativePrivacyHarnessAttempted = true;
+            BeginPrivacyRefresh(plan, () => new GoogleUmpConsentClient(DebugGeography.EEA, testDeviceHash),
+                value => Debug.Log("PRIVACY_MANAGER " + value));
+            return true;
+        }
+#endif
 
         public void ShowPrivacyOptions()
         {
