@@ -146,3 +146,41 @@ clone에서 `python tools/revival/test_private_ads_privacy_restart.py --output <
 기존 결과를 덮어쓰지 않는다. 이번 11 PASS는 위 공개 C# 원문을 private 실행 도구로
 검사한 결과다. 나중에 추가한 공개 Python wrapper는 구문·읽기 검토만 했고 재실행하지 않았다.
 동일 시험 두 번 실패 시 중단하고 원자료를 보존하는 기존 작업 규칙을 유지한다.
+
+## 후속 Editor 실행: 클릭과 수동 종료 핸들러
+
+PR #317 병합 `d7de2e17ff5dba4ee1525363d0dfb5fcddda9de7`에서 출발해 기존
+`RevivalAgeChoiceUITests.cs`에 신규 단일 EditMode 시험을 추가했다. 실제 실행을
+통과한 소스는 `934c343cbbba139e9e757b031bd04c263cde8e27`이다. Unity
+6000.3.25f1 (`e1dba0a9aba4`)과 고정 CLI로 그 시험만 실행했다.
+
+실제 `GoogleAdMobManager`, `AgePrivacyOptionsEntry`, `Button`, TMP 상태 label과
+연령 선택 presenter를 실행했다. 메모리 `LocalAgeChoice`를 reflection으로 주입하고
+실제 Changed 핸들러를 연결했다. 비활성 Managers 대역은 서비스 초기화를 하지 않으며
+시험 종료 후 이전 singleton과 time scale을 복원한다. fixture의 PlayerPrefs 읽기·쓰기,
+게임 서비스·로그인·광고 SDK·기기·APK 빌드·Play 실행은 없다. Editor 전체의 내부
+설정 접근이나 통신을 모두 없었다고 주장하는 것은 아니다.
+
+확인한 범위는 `Button.onClick.Invoke` → 실제 manager 결과 → 연령 선택 모달·상태
+안내다. 연령 미선택·거절은 연령 안내, 성인·13세 미만은 현재 false 검토 조건에 따라
+Unavailable이며 consent/ad 객체를 생성하지 않는다. 실제 연령 선택 뒤 자동 확인
+요청이 없고, 같은 프로세스에서 manager를 제거·재생성해도 확인 버튼이 남는다.
+중복 Bind는 자기 listener 하나만 유지하며 종료 핸들러 뒤에는 외부 listener만 남는다.
+
+최초 실행은 종료 직후 listener 수 `Expected 1 / Actual 2`로 실패했다. 일반
+MonoBehaviour의 EditMode 자동 OnDestroy 호출을 시험이 가정한 것이므로 운영 코드는
+변경하지 않고 실제 종료 메서드를 reflection으로 명시 호출하도록 fixture만 수정했다.
+manager의 `_destroyed=true`와 Changed 해제도 확인했다. 같은 시험의 두 번째 실행은
+PASS였으며 세 번째 실행과 성공 재실행은 없다. 최초 XML·로그·소스와 실패 이력은 보존한다.
+
+각 실행 후 Editor가 변경한 입력 5개는 원래 내용으로 복구하고 생성 PGS 설정 파일
+2개는 비공개 보관 후 동일 핸들로 제거했다. 보호한 입력 6,860개의 내용·메타데이터,
+기존 APK 두 개와 Editor 종료를 확인했다. 첫 복구의 엄격한 원래 파일 ID 검사는
+실패했다. Unity가 교체한 URP 품질 설정 두 개·ProjectSettings·TimeManager 객체의
+원래 ID를 복원했다고 표시하지 않는다. 내용·메타데이터 복원과 관측된 현재 객체 ID
+유지를 구분한 새 기준점으로 검증했으며 원래 실패 기록도 남긴다.
+
+이 결과는 실제 컴포넌트의 클릭 메서드·상태·수동 종료 핸들러와 같은 프로세스의
+manager 재생성 검증이다. 실제 터치 입력·전체 설정 메뉴 배치·label 높이·자동 Unity
+생명주기·PlayerPrefs 저장 복구·앱 프로세스 재시작·native 개인정보 갱신은 미검증이다.
+운영 검토 값은 계속 false이며 `runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
