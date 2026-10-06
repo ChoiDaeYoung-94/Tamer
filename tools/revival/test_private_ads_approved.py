@@ -21,6 +21,48 @@ def fixture():
     return value
 
 class ApprovedModeTests(unittest.TestCase):
+    def test_both_ad_preflights_reject_separate_privacy_approval(self):
+        from validate_private_ads_preparation import audit
+        declaration = 'public static bool PrivacySdkEnvironmentReviewed => false;'
+        invalid = [declaration.replace('false', 'true'), '', '// ' + declaration,
+                   '#if UNUSED\n' + declaration + '\n#endif', declaration + '\n' + declaration]
+        for is_approved in (False, True):
+            with self.subTest(approved=is_approved), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                value = fixture() if is_approved else dict(checkout=str(root),
+                    androidAppId=fixture()['androidAppId'], productionRewardedAdUnit=fixture()['productionRewardedAdUnit'],
+                    consoleInventoryConfirmed=True, productionActivationApproved=False, regionalReviewApproved=False)
+                config = root / 'synthetic.json'; config.write_text(json.dumps(value))
+                advertising = root / 'Assets/Scripts/Advertising'; advertising.mkdir(parents=True)
+                (advertising / 'AdRequestPolicy.cs').write_text(
+                    'public const bool ProductionAdsEnabled = ' + ('true' if is_approved else 'false') + ';')
+                age_prefix = 'public static bool RegionalConsentReviewed => ' + ('true' if is_approved else 'false') + ';\n'
+                age_prefix += '\n'.join('private const bool ' + cohort + 'ConsentReviewed = ' +
+                    ('true' if is_approved and cohort == 'Adult' else 'false') + ';'
+                    for cohort in ('Under13', 'From13To15', 'From16To17', 'Adult')) + '\n'
+                files = {
+                    'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset': 'adMobAndroidAppId: ' + value['androidAppId'],
+                    'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml':
+                        '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application>'
+                        '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="' +
+                        value['androidAppId'] + '"/></application></manifest>',
+                    'ProjectSettings/ProjectSettings.asset': 'Android: com.synthetic.contract',
+                    'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs': 'synthetic binding input'}
+                for name, content in files.items():
+                    path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(content)
+                age = advertising / 'AgeTreatmentPolicy.cs'
+                with patch.object(base, 'preflight'), patch.object(approved, 'require_immutable_binding') as binding:
+                    invoke = lambda: approved.preflight_approved(root, config, 'a' * 40, 'synthetic') if is_approved else audit(root, config)
+                    age.write_text(age_prefix + declaration)
+                    self.assertFalse(invoke()['binaryVerified'])
+                    binding.reset_mock()
+                    for source in invalid:
+                        with self.subTest(source=source), self.assertRaises(ValueError):
+                            age.write_text(age_prefix + source); invoke()
+                        binding.assert_not_called()
+                    self.assertFalse((root / base.JOURNAL).exists())
+                    self.assertFalse((root / producer.RESOURCE).exists())
+
     def test_callback_receipt_cannot_cross_accept_producer_mode(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp).resolve(); run = root / '.revival-local/run'; run.mkdir(parents=True)

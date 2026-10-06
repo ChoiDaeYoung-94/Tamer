@@ -73,7 +73,8 @@ class PrivateAdsSourceAuditTests(unittest.TestCase):
                     '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="'
                     + config['androidAppId'] + '"/></application></manifest>',
                 'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs':
-                    'public static bool RegionalConsentReviewed => false;\n' + '\n'.join(
+                    'public static bool RegionalConsentReviewed => false;\n'
+                    'public static bool PrivacySdkEnvironmentReviewed => false;\n' + '\n'.join(
                         'private const bool ' + cohort + 'ConsentReviewed = false;'
                         for cohort in ('Under13', 'From13To15', 'From16To17', 'Adult'))}
             for name, content in files.items():

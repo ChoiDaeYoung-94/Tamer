@@ -96,6 +96,9 @@ def preflight_approved(root, config, head, version):
     require_disabled_declaration(request, 'ProductionAdsEnabled', 'public const bool ProductionAdsEnabled = true;')
     require_disabled_declaration(age, 'RegionalConsentReviewed', 'public static bool RegionalConsentReviewed => true;')
     require_disabled_declaration(age, 'AdultConsentReviewed', 'private const bool AdultConsentReviewed = true;')
+    # An adult advertising contract cannot authorize the separate privacy SDK environment.
+    require_disabled_declaration(age, 'PrivacySdkEnvironmentReviewed',
+                                 'public static bool PrivacySdkEnvironmentReviewed => false;')
     for cohort in ('Under13', 'From13To15', 'From16To17'):
         require_disabled_declaration(age, cohort + 'ConsentReviewed', 'private const bool ' + cohort + 'ConsentReviewed = false;')
     source = (root / 'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs').read_text(encoding='utf-8-sig')
