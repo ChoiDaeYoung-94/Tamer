@@ -7,6 +7,7 @@ import argparse
 from contextlib import ExitStack
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import uuid
@@ -18,6 +19,7 @@ from private_ads_evidence import create_private_directory, require_private
 
 RESOURCE = 'Assets/Resources/RevivalPrivateAdsRelease.bytes'
 PRIVACY_RESOURCE = 'Assets/Resources/RevivalPrivatePrivacyRelease.bytes'
+PLAYFAB_SETTINGS = 'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset'
 MODES = ('disabled_candidate', 'approved_adult_release', 'privacy_only_adult')
 
 
@@ -313,6 +315,19 @@ def observe(root, plan):
     return receipt
 
 
+def reviewed_playfab_binding(root, plan):
+    entry = plan['before'].get(PLAYFAB_SETTINGS)
+    if entry is None:
+        raise ValueError('Private PlayFab settings missing from reviewed plan')
+    raw = base.safe_path(root, entry['backup']).read_bytes()
+    if base.digest(raw) != entry['sha256']:
+        raise ValueError('Private PlayFab settings snapshot changed')
+    titles = re.findall(r'^  TitleId: ([0-9A-Fa-f]+)\r?$', raw.decode('utf-8-sig'), re.M)
+    if len(titles) != 1 or len(re.findall(r'^  TitleId:', raw.decode('utf-8-sig'), re.M)) != 1:
+        raise ValueError('Private PlayFab title missing or invalid')
+    return titles[0], entry['sha256']
+
+
 def build_once(root, config, head, version, plan_path, reviewed_sha, source_review, signing,
                *, allow_unity_build=False):
     if not allow_unity_build:
@@ -329,6 +344,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
     if base.git(root, 'branch', '--show-current') != plan['branch']:
         raise ValueError('Branch changed')
     require_unchanged(root, plan)
+    playfab = reviewed_playfab_binding(root, plan) if plan['mode'] == 'privacy_only_adult' else None
     bindings = {}
     for path in (Path(plan_path), Path(source_review), Path(signing)):
         path = base.safe_path(root, path.relative_to(root))
@@ -372,6 +388,9 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
                    TAMER_PRIVATE_ADS_KEYSTORE=str(base.safe_path(root, KEY)),
                    TAMER_PRIVATE_ADS_KEYSTORE_SHA256=sign['keystoreSha256'],
                    TAMER_PRIVATE_ADS_KEY_ALIAS=sign['alias'])
+        if playfab is not None:
+            env['TAMER_PRIVATE_ADS_PLAYFAB_TITLE'] = playfab[0]
+            env['TAMER_PRIVATE_ADS_PLAYFAB_SETTINGS_SHA256'] = playfab[1]
         # Never let credentials go to CLI output/receipt; C# consumes execution-only env.
         command = [str(base.safe_path(root, CLI)), 'build', str(root), '--target', 'Android',
                    '--execute-method', build_entry(plan['mode']), '--output-path',
