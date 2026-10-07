@@ -65,6 +65,7 @@ namespace AD
         private readonly LoginOperationGate _operations = new LoginOperationGate();
         private string _selectedGpgsId;
         private string _loginFailureMessage;
+        private string _diagnosticPhase = "Idle";
         private bool _accountDeleted;
         private bool _accountDeletedContactBound;
         private int _loginGeneration;
@@ -188,6 +189,7 @@ namespace AD
 
         private async UniTask RunLoginAsync(CancellationToken token)
         {
+            _diagnosticPhase = "Network";
             ShowLoading("LogIn...");
             _loginFailureMessage = "Sign-in failed. Please try again.";
 
@@ -200,6 +202,7 @@ namespace AD
                 }
 
                 bool loggedIn;
+                _diagnosticPhase = "Authentication";
 #if UNITY_EDITOR
                 loggedIn = false;
                 _loginFailureMessage = "Use the isolated test harness in the Editor.";
@@ -219,20 +222,25 @@ namespace AD
                 }
 
                 // A successful initial read is required before any nickname/progress write.
+                _diagnosticPhase = "FirstServerRead";
+                LogStep("Login phase: FirstServerRead");
                 AD.Managers.DataM.UpdatePlayerData();
                 if (!await WaitForServerAsync(token))
                     return;
 
+                _diagnosticPhase = "Profile";
+                LogStep("Login phase: Profile");
                 await ResolveProfileAsync(token);
             }
             catch (OperationCanceledException)
             {
+                LogStep("Login phase cancelled: " + _diagnosticPhase);
                 // scene 이동 / 오브젝트 파괴 -> 정상 종료
             }
             catch (Exception e)
             {
                 // 예외로 인해 로딩 화면에 갇히는 상황을 막는다
-                LogStep($"로그인 처리 중 예외 -> {e.GetType().Name}");
+                LogStep("Login phase exception: " + _diagnosticPhase + "; " + DescribeRequestException(e));
                 ShowRetry(_loginFailureMessage);
             }
             finally
@@ -366,7 +374,8 @@ namespace AD
         /// </summary>
         private async UniTask<SignInStatus> RequestGpgsSignInAsync(bool manual, CancellationToken token)
         {
-            if (LoginCancelled(token)) return SignInStatus.InternalError;
+            LogStep(manual ? "GPGS: ManualRequested" : "GPGS: AutomaticRequested");
+            if (LoginCancelled(token)) { LogStep("GPGS: Cancelled"); return SignInStatus.InternalError; }
             SignInStatus status = SignInStatus.InternalError;
             var pending = new LoginCallbackGate();
             try
@@ -375,16 +384,20 @@ namespace AD
                 {
                     if (!pending.TryComplete(LoginCancelled(token))) return;
                     status = result;
+                    LogStep("GPGS: CallbackReceived");
                 };
                 if (manual) PlayGamesPlatform.Instance.ManuallyAuthenticate(callback);
                 else PlayGamesPlatform.Instance.Authenticate(callback);
                 if (!await WaitUntilAsync(() => pending.IsCompleted, GpgsTimeout, token))
+                {
+                    LogStep(LoginCancelled(token) ? "GPGS: Cancelled" : "GPGS: Timeout");
                     return SignInStatus.InternalError;
+                }
                 return status;
             }
             catch (Exception e)
             {
-                LogStep($"GPGS request exception: {e.GetType().Name}");
+                LogStep("GPGS: RequestException");
                 return SignInStatus.InternalError;
             }
             finally { pending.Expire(); }
@@ -488,6 +501,7 @@ namespace AD
 
         private async UniTask<bool> LoginWithNativeGoogleAsync(CancellationToken token)
         {
+            _diagnosticPhase = "ServerCode";
             _loginFailureMessage = "Google Play account is not linked or sign-in is unavailable. Retry or contact support for account recovery.";
 #if UNITY_ANDROID && !UNITY_EDITOR
             string code = await RequestGoogleServerCodeAsync(token);
@@ -499,6 +513,8 @@ namespace AD
             // Auth codes are single-use. A user retry must acquire a fresh code;
             // never pass this exchange through CallWithRetryAsync.
             var request = CreateGoogleLoginRequest(code);
+            _diagnosticPhase = "PlayFabExchange";
+            LogStep("Login phase: PlayFabExchange");
             var login = await CallAsync<LoginResult>((onOk, onError) =>
                 PlayFabClientAPI.LoginWithGooglePlayGamesServices(request, onOk, onError),
                 "LoginWithGooglePlayGamesServices", token);
@@ -524,7 +540,7 @@ namespace AD
             // CopyFrom exposes the returned authentication context to gameplay.
             OnLoggedIn(login.Result.PlayFabId, false, "GooglePlayGamesServices",
                 login.Result.AuthenticationContext, LoginModeGpgs);
-            LogStep("Google login: ExistingAccountAccepted");
+            LogStep("Google login: ExistingAccountResponseReturned");
             return true;
 #else
             await UniTask.CompletedTask;
@@ -546,24 +562,31 @@ namespace AD
 #if UNITY_ANDROID && !UNITY_EDITOR
         private async UniTask<string> RequestGoogleServerCodeAsync(CancellationToken token)
         {
-            if (LoginCancelled(token)) return null;
+            if (LoginCancelled(token)) { LogStep("ServerCode: Cancelled"); return null; }
             var callback = new LoginCallbackGate();
             string code = null;
             try
             {
                 // The pinned plugin rejects a missing WebClientId. Its exception
                 // is handled without exposing configuration or authentication data.
+                LogStep("ServerCode: Requested");
                 PlayGamesPlatform.Instance.RequestServerSideAccess(false, value =>
                 {
                     if (!callback.TryComplete(LoginCancelled(token))) return;
                     code = value;
+                    LogStep(string.IsNullOrWhiteSpace(value) ? "ServerCode: CallbackEmpty" : "ServerCode: CallbackReceived");
                 });
                 if (!await WaitUntilAsync(() => callback.IsCompleted, GpgsTimeout, token)
-                    || LoginCancelled(token)) return null;
+                    || LoginCancelled(token))
+                {
+                    LogStep(LoginCancelled(token) ? "ServerCode: Cancelled" : "ServerCode: Timeout");
+                    return null;
+                }
                 return code;
             }
             catch (Exception)
             {
+                LogStep("ServerCode: RequestException");
                 _loginFailureMessage = "Google Play server sign-in is not configured or unavailable. Contact support.";
                 return null;
             }
@@ -573,15 +596,19 @@ namespace AD
 
         private void OnLoggedIn(string playFabId, bool isNewAccount, string method, PlayFabAuthenticationContext context, string loginMode = null)
         {
-            if (!LoginCurrent()) return;
+            _diagnosticPhase = "SessionAdoption";
+            if (!LoginCurrent()) { LogStep("Session: StaleRejected"); return; }
+            LogStep("Session: AdoptionStarted");
             AD.Managers.DataM.BeginAccountSession(playFabId);
             _loginGeneration = _dataOwner.AccountGeneration;
             PlayFabSettings.staticPlayer.CopyFrom(context);
+            LogStep("Session: ContextApplied");
             if (_dataOwner.DeletionInProgress)
             {
                 // Do not refresh the login deletion epoch or allow normal profile/scene work.
                 // This authenticated context is used only to recover the original deletion intent.
                 ShowDeletionRecovery();
+                LogStep("Session: DeletionRecoveryHeld");
                 return;
             }
             PlayerPrefs.DeleteKey(AD.DataManager.DeletionLoginPauseKey);
