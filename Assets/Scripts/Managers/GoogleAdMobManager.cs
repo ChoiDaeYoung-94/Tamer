@@ -273,7 +273,8 @@ namespace AD
 #endif
             AgeTreatmentPolicy.AllowsFullscreenRewarded(ConsentAge);
 
-        private bool IsTestAdEnvironment => AdRequestPolicy.CanRequestTestAds(
+        private bool IsTestAdEnvironment => !AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
+            AdRequestPolicy.CanRequestTestAds(
             Application.isEditor, Debug.isDebugBuild,
 #if TAMER_TEST_ADS
             true,
