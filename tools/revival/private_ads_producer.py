@@ -17,6 +17,25 @@ from windows_owned_files import LockedFile, locked_directories, verified_files
 from private_ads_evidence import create_private_directory, require_private
 
 RESOURCE = 'Assets/Resources/RevivalPrivateAdsRelease.bytes'
+PRIVACY_RESOURCE = 'Assets/Resources/RevivalPrivatePrivacyRelease.bytes'
+MODES = ('disabled_candidate', 'approved_adult_release', 'privacy_only_adult')
+
+
+def resource_path(mode):
+    if mode not in MODES: raise ValueError('Producer mode rejected')
+    return PRIVACY_RESOURCE if mode == 'privacy_only_adult' else RESOURCE
+
+
+def artifact_name(mode):
+    if mode not in MODES: raise ValueError('Producer mode rejected')
+    return 'privacy-only-adult.apk' if mode == 'privacy_only_adult' else 'disabled-preparation.aab'
+
+
+def build_entry(mode):
+    if mode not in MODES: raise ValueError('Producer mode rejected')
+    return {'disabled_candidate': 'PrivateProductionAdsBuild.Build',
+            'approved_adult_release': 'PrivateProductionAdsBuild.BuildApprovedAdultRelease',
+            'privacy_only_adult': 'PrivateProductionAdsBuild.BuildApprovedAdultPrivacy'}[mode]
 CLI = 'tools/.local/unity-cli/1.0.0-beta.8/unity.exe'
 KEY = 'src/AeDeong.keystore'
 
@@ -119,14 +138,18 @@ def resource_bytes(config, root):
 def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_manifest=None,
                  mode='disabled_candidate'):
     """No subprocess or Assets write; caller supplies the read-only preflight result."""
-    if mode not in ('disabled_candidate', 'approved_adult_release'):
+    if mode not in MODES:
         raise ValueError('Producer mode rejected')
-    if preflight_result.get('approvedSourceContractValid' if mode == 'approved_adult_release' else 'disabledPreparationValid') is not True:
+    preflight_key = {'disabled_candidate': 'disabledPreparationValid', 'approved_adult_release': 'approvedSourceContractValid', 'privacy_only_adult': 'approvedPrivacySourceContractValid'}[mode]
+    if preflight_result.get(preflight_key) is not True:
         raise ValueError('Read-only preflight required')
     if base.digest(config.read_bytes()) != preflight_result.get('configSha256'):
         raise ValueError('Configuration changed')
     if base.safe_path(root, base.JOURNAL).exists():
         raise ValueError('Active recovery required')
+    resource = resource_path(mode)
+    if mode == 'privacy_only_adult' and any((root / 'Assets').rglob('RevivalPrivateAdsRelease.*')):
+        raise ValueError('Advertising resource collision')
     run_id = uuid.uuid4().hex
     run_rel = '.revival-local/private-ads-build/' + run_id
     run = base.safe_path(root, run_rel)
@@ -137,13 +160,13 @@ def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_
     for name in base.TEMPLATES:
         staged[hook + '/' + name] = (Path(__file__).parent / 'private_ads_build' / name).read_bytes()
         staged[hook + '/' + name + '.meta'] = base.meta()
-    if mode == 'approved_adult_release':
+    if mode in ('approved_adult_release', 'privacy_only_adult'):
         from private_ads_approved import read_approved
-        read_approved(config.read_bytes())
-        staged[RESOURCE] = config.read_bytes() # Exact externally approved bytes; no approval edits.
+        read_approved(config.read_bytes(), privacy_only=mode == 'privacy_only_adult')
+        staged[resource] = config.read_bytes() # Exact externally approved bytes; no approval edits.
     else:
-        staged[RESOURCE] = resource_bytes(config, root)
-    staged[RESOURCE + '.meta'] = ('fileFormatVersion: 2\nguid: ' + uuid.uuid4().hex +
+        staged[resource] = resource_bytes(config, root)
+    staged[resource + '.meta'] = ('fileFormatVersion: 2\nguid: ' + uuid.uuid4().hex +
         '\nTextScriptImporter:\n  externalObjects: {}\n  userData: \n'
         '  assetBundleName: \n  assetBundleVariant: \n').encode()
     for path in staged:
@@ -170,7 +193,7 @@ def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_
     plan = {'schema': 2, 'mode': mode, 'receiptModeVersion': 1, 'checkout': str(root), 'head': head,
             'branch': branch, 'editorVersion': version, 'runId': run_id, 'run': run_rel,
             'hook': hook, 'config': str(config), 'configSha256': preflight_result['configSha256'],
-            'resourceSha256': owned[RESOURCE]['sha256'], 'before': before, 'owned': owned, 'installedTools': tools,
+            'resourceSha256': owned[resource]['sha256'], 'before': before, 'owned': owned, 'installedTools': tools,
             'producerPrepared': False, 'binaryVerified': False, 'distributable': False}
     file = run / 'plan.private.json'
     write_new(file, encoded(plan))
@@ -185,7 +208,7 @@ def load_plan(root, path, reviewed_sha):
         raise ValueError('Exact private plan review required')
     plan = read_json(path)
     if (plan.get('schema') != 2 or type(plan.get('receiptModeVersion')) is not int or plan['receiptModeVersion'] != 1 or
-            plan.get('mode') not in ('disabled_candidate', 'approved_adult_release') or
+            plan.get('mode') not in MODES or
             plan.get('checkout') != str(root) or plan.get('producerPrepared') is not False or
             plan.get('binaryVerified') is not False or plan.get('distributable') is not False):
         raise ValueError('Candidate plan rejected')
@@ -195,15 +218,16 @@ def load_plan(root, path, reviewed_sha):
             plan['run'] != '.revival-local/private-ads-build/' + plan['runId'] or
             plan['hook'] != base.HOOK + '_' + plan['runId']):
         raise ValueError('Owned run identity rejected')
-    expected_owned = {plan['hook'] + '.meta', RESOURCE, RESOURCE + '.meta'}
+    resource = resource_path(plan['mode'])
+    expected_owned = {plan['hook'] + '.meta', resource, resource + '.meta'}
     for name in base.TEMPLATES:
         expected_owned.update((plan['hook'] + '/' + name, plan['hook'] + '/' + name + '.meta'))
     if set(plan['owned']) != expected_owned:
         raise ValueError('Exact producer staging scope required')
-    if plan['mode'] == 'approved_adult_release':
+    if plan['mode'] in ('approved_adult_release', 'privacy_only_adult'):
         from private_ads_approved import read_approved
         raw_resource = Path(plan['config']).read_bytes()
-        read_approved(raw_resource)
+        read_approved(raw_resource, privacy_only=plan['mode'] == 'privacy_only_adult')
     else:
         raw_resource = resource_bytes(Path(plan['config']), root)
     if plan['resourceSha256'] != base.digest(raw_resource):
@@ -213,7 +237,7 @@ def load_plan(root, path, reviewed_sha):
         if (not payload.is_relative_to(path.parent) or entry['absentBefore'] is not True or
                 entry['writer'] != 'producer' or base.digest(payload.read_bytes()) != entry['sha256']):
             raise ValueError('Owned payload binding rejected')
-        if p == RESOURCE and entry['sha256'] != plan['resourceSha256']:
+        if p == resource and entry['sha256'] != plan['resourceSha256']:
             raise ValueError('Resource payload mismatch')
         if p.endswith('.cs') and payload.read_bytes() != (Path(__file__).parent / 'private_ads_build' / Path(p).name).read_bytes():
             raise ValueError('Template source mismatch')
@@ -278,7 +302,7 @@ def observe(root, plan):
         write_new(archive, raw)
         entry['archive'] = archive.relative_to(root).as_posix()
     artifacts = {}
-    candidate = run / 'disabled-preparation.aab'
+    candidate = run / artifact_name(plan['mode'])
     if candidate.exists():
         artifacts[candidate.relative_to(root).as_posix()] = {
             'identity': list(base.identity(candidate)), 'sha256': base.digest(candidate.read_bytes())}
@@ -297,9 +321,9 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
     require_private(base.safe_path(root, plan['run']))
     if plan['head'] != head or plan['editorVersion'] != version or plan['config'] != str(config):
         raise ValueError('Invocation mismatch')
-    if plan['mode'] == 'approved_adult_release':
+    if plan['mode'] in ('approved_adult_release', 'privacy_only_adult'):
         from private_ads_approved import preflight_approved
-        preflight_approved(root, config, head, version)
+        preflight_approved(root, config, head, version, privacy_only=plan['mode'] == 'privacy_only_adult')
     else:
         base.preflight(root, config, head, version)
     if base.git(root, 'branch', '--show-current') != plan['branch']:
@@ -317,7 +341,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
     if CLI not in plan['before']:
         raise ValueError('Exact CLI missing from review')
     run = base.safe_path(root, plan['run'])
-    for name in ('launch-once.private.json', 'hook-receipt.json', 'disabled-preparation.aab',
+    for name in ('launch-once.private.json', 'hook-receipt.json', artifact_name(plan['mode']),
                  'actual-delta.private.json', 'settings-restoration.json'):
         if (run / name).exists():
             raise ValueError('Run already attempted or output exists')
@@ -339,7 +363,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
         env.update(TAMER_PRIVATE_ADS_PREPARE='1', TAMER_PRIVATE_ADS_MODE=plan['mode'], TAMER_PRIVATE_ADS_RUN_ID=plan['runId'],
                    TAMER_PRIVATE_ADS_SOURCE_HEAD=head, TAMER_PRIVATE_ADS_CONFIG=str(config),
                    TAMER_PRIVATE_ADS_SHA256=plan['configSha256'],
-                   TAMER_PRIVATE_ADS_OUTPUT=str(run / 'disabled-preparation.aab'),
+                   TAMER_PRIVATE_ADS_OUTPUT=str(run / artifact_name(plan['mode'])),
                    TAMER_PRIVATE_ADS_RECEIPT=str(run / 'hook-receipt.json'),
                    TAMER_PRIVATE_ADS_RESOURCE_SHA256=plan['resourceSha256'],
                    TAMER_PRIVATE_ADS_EDITOR=plan['installedTools']['editorExecutable'],
@@ -350,8 +374,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
                    TAMER_PRIVATE_ADS_KEY_ALIAS=sign['alias'])
         # Never let credentials go to CLI output/receipt; C# consumes execution-only env.
         command = [str(base.safe_path(root, CLI)), 'build', str(root), '--target', 'Android',
-                   '--execute-method', ('PrivateProductionAdsBuild.BuildApprovedAdultRelease' if
-                   plan['mode'] == 'approved_adult_release' else 'PrivateProductionAdsBuild.Build'), '--output-path',
+                   '--execute-method', build_entry(plan['mode']), '--output-path',
                    env['TAMER_PRIVATE_ADS_OUTPUT'], '--editor-version', version,
                    '--log-file', str(run / 'editor.private.log'), '--no-tail', '--non-interactive',
                    '--allow-dirty-build']
@@ -490,7 +513,7 @@ def main():
     parser.add_argument('--reviewed-plan-sha256')
     parser.add_argument('--source-review', type=Path)
     parser.add_argument('--tool-manifest', type=Path)
-    parser.add_argument('--mode', choices=('disabled_candidate', 'approved_adult_release'), default='disabled_candidate')
+    parser.add_argument('--mode', choices=MODES, default='disabled_candidate')
     parser.add_argument('--signing', type=Path)
     parser.add_argument('--allow-unity-build', action='store_true')
     parser.add_argument('--recovery', type=Path)
@@ -502,9 +525,9 @@ def main():
         base.safe_path(args.checkout, '.')
         root = args.checkout.resolve()
         if args.action == 'prepare':
-            if args.mode == 'approved_adult_release':
+            if args.mode in ('approved_adult_release', 'privacy_only_adult'):
                 from private_ads_approved import preflight_approved
-                pre = preflight_approved(root, args.config, args.expected_head, args.editor_version)
+                pre = preflight_approved(root, args.config, args.expected_head, args.editor_version, privacy_only=args.mode == 'privacy_only_adult')
             else:
                 pre = base.preflight(root, args.config, args.expected_head, args.editor_version)
             result = prepare_plan(root, args.config, args.expected_head, args.editor_version,

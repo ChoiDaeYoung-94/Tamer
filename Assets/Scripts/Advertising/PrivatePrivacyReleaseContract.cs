@@ -14,6 +14,18 @@ namespace AD.Advertising
         private static bool loaded;
         private static Contract cached;
 
+        // Compiled source approval is checked in the Editor entry as well as in
+        // the player. Build metadata is not runtime consent or artifact verification.
+        public static bool TryReadApprovedBuildContract(byte[] bytes, string packageId, string androidAppId)
+        {
+            return !AdRequestPolicy.ProductionAdsEnabled && AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
+                AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult) &&
+                !AgeTreatmentPolicy.IsReviewed(AgeChoice.Under13) &&
+                !AgeTreatmentPolicy.IsReviewed(AgeChoice.From13To15) &&
+                !AgeTreatmentPolicy.IsReviewed(AgeChoice.From16To17) &&
+                TryRead(bytes, ApprovedPrivacy, out var contract) && contract.Matches(packageId, androidAppId);
+        }
+
         public static bool AllowsCurrentAndroidPrivacy(AgeChoice age)
         {
             // No resource, JNI or SDK access before immutable approval and context checks.

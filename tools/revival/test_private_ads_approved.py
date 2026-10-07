@@ -154,8 +154,134 @@ class ApprovedModeTests(unittest.TestCase):
         self.assertIn('PrivateAdsReleaseContract.AllowsCurrentAndroidRelease(_productionRewardedAdUnit, ConsentAge)', source)
         template = (ROOT / 'tools/revival/private_ads_build/PrivateProductionAdsBuild.cs').read_text()
         self.assertIn('public static void BuildApprovedAdultRelease()', template)
-        self.assertIn('compiledEditorGatesDisabled = !approved', template)
-        self.assertIn('approvedBuildContractMatched = approved', template)
+        self.assertIn('receipt.compiledEditorGatesDisabled = !approved && !privacy', template)
+        self.assertIn('receipt.approvedBuildContractMatched = approved', template)
         self.assertIn('PrivateAdsContract.Read(raw, root)', template)
+
+class PrivacyProducerTests(unittest.TestCase):
+    def value(self):
+        value = {k: v for k, v in fixture().items() if k in approved.PRIVACY_FIELDS}
+        value.update(mode='privacy_only_adult', privacyEnvironmentReviewSha256='b' * 64)
+        value.update({k: True for k in approved.PRIVACY_TRUE_FLAGS})
+        value.update({k: False for k in approved.PRIVACY_FALSE_FLAGS})
+        return value
+
+    def source_tree(self, root):
+        value = self.value(); config = root / 'synthetic.json'; config.write_bytes(producer.encoded(value))
+        pins = [base.digest(config.read_bytes()), value['sourceHead'], *(value[k] for k in approved.PRIVACY_REFERENCES)]
+        files = {
+            'Assets/Scripts/Advertising/AdRequestPolicy.cs': 'public const bool ProductionAdsEnabled = false;',
+            'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs':
+                'public static bool PrivacySdkEnvironmentReviewed => true;\npublic static bool RegionalConsentReviewed => true;\n' +
+                '\n'.join('private const bool ' + c + 'ConsentReviewed = ' + ('true' if c == 'Adult' else 'false') + ';'
+                          for c in ('Adult', 'Under13', 'From13To15', 'From16To17')),
+            'Assets/Scripts/Advertising/PrivatePrivacyReleaseContract.cs':
+                'private static readonly Binding ApprovedPrivacy = new Binding(' + ', '.join('"' + p + '"' for p in pins) + ');',
+            'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset': 'adMobAndroidAppId: ' + value['androidAppId'],
+            'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml':
+                '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><meta-data '
+                'android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="' + value['androidAppId'] + '"/></application></manifest>',
+            'ProjectSettings/ProjectSettings.asset': 'Android: ' + value['packageId']}
+        for name, text in files.items():
+            p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(text, encoding='utf-8')
+        return config, files
+
+    def test_privacy_schema_and_cross_mode_types(self):
+        value = self.value(); self.assertEqual(approved.read_approved(producer.encoded(value), privacy_only=True), value)
+        with self.assertRaises(ValueError): approved.read_approved(producer.encoded(value))
+        with self.assertRaises(ValueError): approved.read_approved(producer.encoded(fixture()), privacy_only=True)
+        for key in approved.PRIVACY_FIELDS:
+            invalid = dict(value); invalid[key] = None
+            with self.subTest(key=key), self.assertRaises(ValueError): approved.read_approved(producer.encoded(invalid), privacy_only=True)
+        for key in approved.PRIVACY_TRUE_FLAGS + approved.PRIVACY_FALSE_FLAGS:
+            invalid = dict(value); invalid[key] = not invalid[key]
+            with self.subTest(key=key), self.assertRaises(ValueError): approved.read_approved(producer.encoded(invalid), privacy_only=True)
+
+    def test_source_binding_gates_and_manifest_package(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(base, 'preflight'):
+            root = Path(tmp).resolve(); config, files = self.source_tree(root)
+            invoke = lambda: approved.preflight_approved(root, config, 'a' * 40, 'synthetic', privacy_only=True)
+            self.assertTrue(invoke()['approvedPrivacySourceContractValid'])
+            alterations = [('AdRequestPolicy.cs', 'false', 'true'), ('AgeTreatmentPolicy.cs', '=> true', '=> false'),
+                           ('AgeTreatmentPolicy.cs', 'AdultConsentReviewed = true', 'AdultConsentReviewed = false'),
+                           ('AgeTreatmentPolicy.cs', 'Under13ConsentReviewed = false', 'Under13ConsentReviewed = true'),
+                           ('PrivatePrivacyReleaseContract.cs', 'new Binding(', 'null; // new Binding(')]
+            for name, old, new in alterations:
+                p = root / 'Assets/Scripts/Advertising' / name; original = p.read_text(encoding='utf-8')
+                p.write_text(original.replace(old, new), encoding='utf-8')
+                with self.subTest(name=name, old=old), self.assertRaises(ValueError): invoke()
+                p.write_text(original, encoding='utf-8')
+            for name in ('Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset',
+                         'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml',
+                         'ProjectSettings/ProjectSettings.asset'):
+                p = root / name; original = p.read_text(encoding='utf-8'); p.write_text(original.replace('1111111111111111', '4444444444444444').replace('com.synthetic.contract', 'com.other'), encoding='utf-8')
+                with self.subTest(name=name), self.assertRaises(ValueError): invoke()
+                p.write_text(original, encoding='utf-8')
+            p = root / producer.RESOURCE; p.parent.mkdir(parents=True); p.write_bytes(b'synthetic collision')
+            with self.assertRaises(ValueError): invoke()
+
+    def test_current_default_stops_before_staging_or_launch(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(base, 'preflight'), patch.object(producer, 'require_private'), patch.object(producer.subprocess, 'run', side_effect=AssertionError('No launch')):
+            root = Path(tmp).resolve(); config, files = self.source_tree(root)
+            (root / 'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs').write_bytes((ROOT / 'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs').read_bytes())
+            plan = {'mode': 'privacy_only_adult', 'head': 'a' * 40, 'editorVersion': 'synthetic', 'config': str(config), 'run': '.revival-local/run'}
+            with patch.object(producer, 'load_plan', return_value=plan), self.assertRaises(ValueError):
+                producer.build_once(root, config, 'a' * 40, 'synthetic', config, 'b' * 64, config, config, allow_unity_build=True)
+            self.assertFalse((root / base.JOURNAL).exists()); self.assertFalse((root / producer.PRIVACY_RESOURCE).exists())
+
+    def test_exact_resource_payload_and_mode_specific_plan(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(producer, 'inventory', return_value={}):
+            root = Path(tmp).resolve(); config, _ = self.source_tree(root); raw = config.read_bytes()
+            pre = {'approvedPrivacySourceContractValid': True, 'configSha256': base.digest(raw)}
+            result = producer.prepare_plan(root, config, 'a' * 40, 'synthetic', branch='synthetic', preflight_result=pre, mode='privacy_only_adult')
+            plan = producer.load_plan(root, Path(result['plan']), result['planSha256'])
+            self.assertIn(producer.PRIVACY_RESOURCE, plan['owned']); self.assertNotIn(producer.RESOURCE, plan['owned'])
+            self.assertEqual((root / plan['owned'][producer.PRIVACY_RESOURCE]['payload']).read_bytes(), raw)
+            self.assertFalse((root / producer.PRIVACY_RESOURCE).exists())
+            self.assertEqual(producer.artifact_name(plan['mode']), 'privacy-only-adult.apk')
+            self.assertEqual(producer.build_entry(plan['mode']), 'PrivateProductionAdsBuild.BuildApprovedAdultPrivacy')
+            path = Path(result['plan']); plan['mode'] = 'approved_adult_release'; path.write_bytes(producer.encoded(plan))
+            with self.assertRaises(ValueError): producer.load_plan(root, path, base.digest(path.read_bytes()))
+            self.assertEqual(producer.artifact_name('disabled_candidate'), 'disabled-preparation.aab')
+
+    def test_private_apk_receipt_and_legacy_cross_acceptance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve(); run = root / '.revival-local/run'; run.mkdir(parents=True)
+            config = root / 'synthetic.json'; config.write_bytes(producer.encoded(self.value())); artifact = run / 'privacy-only-adult.apk'; artifact.write_bytes(b'synthetic artifact')
+            state = {'run': '.revival-local/run', 'config': str(config), 'mode': 'privacy_only_adult', 'receiptModeVersion': 1,
+                     'runId': 'a' * 32, 'head': 'b' * 40, 'configSha256': base.digest(config.read_bytes()), 'resourceSha256': 'd' * 64, 'editorVersion': 'synthetic'}
+            receipt = dict(schema=1, runId=state['runId'], sourceHead=state['head'], configSha256=state['configSha256'], resourceSha256='d' * 64,
+                unityVersion='synthetic', injectedManagers=1, loginScenes=1, preprocessed=True, postprocessed=True, buildSceneValueMatched=True,
+                compiledEditorGatesDisabled=False, productionContractVerified=False, binaryVerified=False, distributable=False, configuredAndroidDefines='',
+                artifactSha256=base.digest(artifact.read_bytes()), prospectivePlayerDefinePlanSha256='f' * 64, mode='privacy_only_adult', approvedBuildContractMatched=False,
+                approvedPrivacyBuildContractMatched=True, productionAdsEnabled=False)
+            p = run / 'hook-receipt.json'; p.write_bytes(producer.encoded(receipt)); self.assertTrue(base.verify_hook_receipt(root, state)['hookReceiptVerified'])
+            for key, value in [('mode', 'approved_adult_release'), ('productionAdsEnabled', True), ('approvedPrivacyBuildContractMatched', False)]:
+                invalid = dict(receipt); invalid[key] = value; p.write_bytes(producer.encoded(invalid))
+                with self.subTest(key=key), self.assertRaises(ValueError): base.verify_hook_receipt(root, state)
+            p.write_bytes(producer.encoded(receipt)); artifact.write_bytes(b'changed')
+            with self.assertRaises(ValueError): base.verify_hook_receipt(root, state)
+
+    def test_build_template_compiles_without_editor_launch(self):
+        import subprocess
+        from private_ads_evidence import create_private_directory
+        output = ROOT / 'Logs/revival/privacy-only-build-route-pure-1007'; create_private_directory(output)
+        editor = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data')
+        api = editor / 'UnityReferenceAssemblies/unity-4.8-api'; managed = editor / 'Managed'
+        sources = ['Assets/Scripts/Advertising/PrivatePrivacyReleaseContract.cs', 'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs',
+                   'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs', 'Assets/Scripts/Advertising/AdRequestPolicy.cs', 'Assets/Scripts/Advertising/LocalAgeChoice.cs']
+        sources += ['tools/revival/private_ads_build/' + name for name in base.TEMPLATES]
+        stub = output / 'compile-stubs.cs'; stub.write_text('namespace AD { public class GoogleAdMobManager : UnityEngine.MonoBehaviour {} } public static class RevivalBuild { public static System.IDisposable AndroidRelroLinkScope() { return null; } }')
+        refs = [api / name for name in ('mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Xml.dll')]
+        refs += list(managed.glob('Unity*.dll')) + list((managed / 'UnityEngine').glob('*.dll'))
+        refs += [ROOT / 'Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.dll', api / 'Facades/netstandard.dll']
+        args = ['-nologo', '-langversion:9.0', '-target:library', '-define:UNITY_EDITOR', '-out:"' + str(output / 'template.dll') + '"']
+        args += ['-r:"' + str(p) + '"' for p in refs] + ['"' + str(ROOT / p) + '"' for p in sources] + ['"' + str(stub) + '"']
+        rsp = output / 'compile.rsp'; rsp.write_text('\n'.join(args))
+        with (output / 'compile.private.log').open('xb') as log:
+            result = subprocess.run([str(editor / 'netcorerun/netcorerun.exe'), str(editor / 'DotNetSdkRoslyn/csc.dll'), '@' + str(rsp)], stdout=log, stderr=subprocess.STDOUT)
+        (output / 'result.private.json').write_text(json.dumps({'compileExit':result.returncode, 'unityBuilds':0, 'sdkCalls':0, 'realApprovalRecordsModified':0, 'binaryVerified':False, 'runtimePrivacyVerified':False,
+            'sourceSha256':{p:base.digest((ROOT/p).read_bytes()) for p in sources}}, indent=2))
+        self.assertEqual(result.returncode, 0, 'Pure template compilation failed; preserve private log')
 
 if __name__ == '__main__': unittest.main()
