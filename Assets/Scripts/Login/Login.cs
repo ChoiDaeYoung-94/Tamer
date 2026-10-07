@@ -823,10 +823,27 @@ namespace AD
             }
             catch (Exception e)
             {
-                LogStep($"{label} request exception: {e.GetType().Name}");
+                LogStep($"{label} request exception: {DescribeRequestException(e)}");
                 return new ApiResult<T> { IsTimeout = true };
             }
             finally { callback.Expire(); }
+        }
+
+        private static string DescribeRequestException(Exception exception)
+        {
+            // Only fixed SDK code labels may leave this boundary. Messages,
+            // stacks and request/account values must never enter this log.
+            if (!(exception is PlayFabException playFab)) return "NonPlayFabException";
+            switch (playFab.Code)
+            {
+                case PlayFabExceptionCode.AuthContextRequired: return "PlayFabException: AuthContextRequired";
+                case PlayFabExceptionCode.BuildError: return "PlayFabException: BuildError";
+                case PlayFabExceptionCode.DeveloperKeyNotSet: return "PlayFabException: DeveloperKeyNotSet";
+                case PlayFabExceptionCode.EntityTokenNotSet: return "PlayFabException: EntityTokenNotSet";
+                case PlayFabExceptionCode.NotLoggedIn: return "PlayFabException: NotLoggedIn";
+                case PlayFabExceptionCode.TitleNotSet: return "PlayFabException: TitleNotSet";
+                default: return "PlayFabException: UnknownCode";
+            }
         }
 
         /// <summary>
