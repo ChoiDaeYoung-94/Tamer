@@ -197,6 +197,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             CheckSnapshot();
             if (privacy)
             {
+                failureStage = "D13";
+                ValidatePlayFabSettings(Required("TAMER_PRIVATE_ADS_PLAYFAB_TITLE"),
+                    Required("TAMER_PRIVATE_ADS_PLAYFAB_SETTINGS_SHA256"));
                 failureStage = "D12";
                 PrepareGooglePlaySettings();
                 CheckSnapshot();
@@ -236,6 +239,22 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         catch { throw new BuildFailedException("Private preparation rejected (" + failureStage + "). Output is not distributable."); }
         // Emit only fixed stage/plan codes, never the original exception or private values.
         finally { snapshot = null; approvedProduction = approvedPrivacy = false; }
+    }
+
+    private static void ValidatePlayFabSettings(string expectedTitle, string expectedSettingsHash)
+    {
+        const string path = "Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset";
+        // Local service settings stay private. Reject missing or inconsistent
+        // settings before building a player that cannot start its login request.
+        if (string.IsNullOrWhiteSpace(expectedTitle) || expectedTitle != expectedTitle.Trim() ||
+            Hash(File.ReadAllBytes(path)) != expectedSettingsHash) throw Rejected();
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+        var asset = AssetDatabase.LoadAssetAtPath<PlayFabSharedSettings>(path);
+        var resources = Resources.LoadAll<PlayFabSharedSettings>("PlayFabSharedSettings");
+        if (asset == null || resources.Length != 1 || resources[0] != asset ||
+            string.IsNullOrWhiteSpace(asset.TitleId) || asset.TitleId != asset.TitleId.Trim() ||
+            !string.Equals(asset.TitleId, expectedTitle, StringComparison.Ordinal) ||
+            !string.Equals(asset.TitleId, PlayFab.PlayFabSettings.TitleId, StringComparison.Ordinal)) throw Rejected();
     }
 
     private static void PrepareGooglePlaySettings()
