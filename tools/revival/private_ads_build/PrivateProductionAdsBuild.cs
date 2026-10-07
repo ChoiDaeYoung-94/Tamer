@@ -243,13 +243,19 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         const string path = "Assets/GooglePlayGames/Resources/PlayGamesSettings.asset";
         // The plugin's post-build migration is too late for Resources serialization.
         // Reuse its existing project configuration; never invent an OAuth client.
+        var existing = GooglePlayGames.Editor.GPGSProjectSettings.Instance;
+        var appId = existing.Get(GooglePlayGames.Editor.GPGSUtil.APPIDKEY, string.Empty);
+        var webClientId = existing.Get(GooglePlayGames.Editor.GPGSUtil.WEBCLIENTIDKEY, string.Empty);
+        if (string.IsNullOrWhiteSpace(appId) || string.IsNullOrWhiteSpace(webClientId)) throw Rejected();
         GooglePlayGames.Editor.GPGSUtil.UpdateGameInfo();
         AssetDatabase.SaveAssets();
         AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
         var asset = AssetDatabase.LoadAssetAtPath<GooglePlayGames.PlayGamesSettings>(path);
         var resource = Resources.Load<GooglePlayGames.PlayGamesSettings>("PlayGamesSettings");
         if (asset == null || resource != asset || string.IsNullOrWhiteSpace(asset.AppId) ||
-            string.IsNullOrWhiteSpace(asset.WebClientId)) throw Rejected();
+            string.IsNullOrWhiteSpace(asset.WebClientId) ||
+            !string.Equals(asset.AppId, appId, StringComparison.Ordinal) ||
+            !string.Equals(asset.WebClientId, webClientId, StringComparison.Ordinal)) throw Rejected();
     }
 
     public void OnPreprocessBuild(BuildReport report)

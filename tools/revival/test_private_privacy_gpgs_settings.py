@@ -27,20 +27,30 @@ namespace GooglePlayGames {
  public class PlayGamesSettings { public string AppId = "synthetic-game", WebClientId = "synthetic-client"; }
 }
 namespace GooglePlayGames.Editor {
- public static class GPGSUtil { public static void UpdateGameInfo() { Probe.Step(0); } }
+ public class GPGSProjectSettings {
+  public static readonly GPGSProjectSettings Instance = new GPGSProjectSettings();
+  public string Get(string key, string fallback) {
+   Probe.Step(key == GPGSUtil.APPIDKEY ? 0 : 1);
+   return key == GPGSUtil.APPIDKEY ? "synthetic-game" : "synthetic-client";
+  }
+ }
+ public static class GPGSUtil {
+  public const string APPIDKEY = "game", WEBCLIENTIDKEY = "client";
+  public static void UpdateGameInfo() { Probe.Step(2); }
+ }
 }
 namespace UnityEditor {
  public enum ImportAssetOptions { ForceSynchronousImport }
  public static class AssetDatabase {
-  public static void SaveAssets() { Probe.Step(1); }
-  public static void ImportAsset(string p, ImportAssetOptions o) { Probe.Step(2); Probe.Imported = true; }
-  public static T LoadAssetAtPath<T>(string p) where T:class { Probe.Step(3); return Probe.Asset as T; }
+  public static void SaveAssets() { Probe.Step(3); }
+  public static void ImportAsset(string p, ImportAssetOptions o) { Probe.Step(4); Probe.Imported = true; }
+  public static T LoadAssetAtPath<T>(string p) where T:class { Probe.Step(5); return Probe.Asset as T; }
  }
 }
 namespace UnityEngine {
  public static class Resources {
   public static T Load<T>(string p) where T:class {
-   Probe.Step(4); if (!Probe.Imported || p != "PlayGamesSettings") throw new Exception();
+   Probe.Step(6); if (!Probe.Imported || p != "PlayGamesSettings") throw new Exception();
    return Probe.Resource as T;
   }
  }
@@ -53,7 +63,7 @@ class Probe {
  private static Exception Rejected() => new InvalidOperationException();
 METHOD
  public static int Main() {
-  for (int c = 0; c < 6; c++) {
+  for (int c = 0; c < 8; c++) {
    next = 0; Imported = false;
    Asset = new GooglePlayGames.PlayGamesSettings(); Resource = Asset;
    if (c == 1) Asset = null;
@@ -61,12 +71,14 @@ METHOD
    if (c == 3) Resource = new GooglePlayGames.PlayGamesSettings();
    if (c == 4) Asset.AppId = " ";
    if (c == 5) Asset.WebClientId = " ";
+   if (c == 6) Asset.AppId = "different-game";
+   if (c == 7) Asset.WebClientId = "different-client";
    bool built = false;
    try { PrepareGooglePlaySettings(); built = true; }
    catch (InvalidOperationException) { }
-   if (built != (c == 0) || next != 5 || !Imported) return 1;
+   if (built != (c == 0) || next != 7 || !Imported) return 1;
   }
-  Console.WriteLine(6); return 0;
+  Console.WriteLine(8); return 0;
  }
 }'''.replace('METHOD', method)
         file = output / 'probe.cs'
@@ -82,8 +94,8 @@ METHOD
         executed = subprocess.run([str(exe)], capture_output=True)
         (output / 'execute.log').write_bytes(executed.stdout + executed.stderr)
         self.assertEqual(executed.returncode, 0)
-        self.assertEqual(executed.stdout.decode().strip(), '6')
-        (output / 'result.json').write_text(json.dumps({'casesPassed': 6,
+        self.assertEqual(executed.stdout.decode().strip(), '8')
+        (output / 'result.json').write_text(json.dumps({'casesPassed': 8,
             'meaning': 'Actual method with inert import/resource probes; no Unity build, SDK, OAuth mapping or device verification.'}))
 
 
