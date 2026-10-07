@@ -51,3 +51,35 @@ actual production artifact/runtime privacy는 미충족 또는 미검증이다. 
 false/null과 production prelaunch 거절을 유지한다. 실제 승인 직전에 사용자에게는 식별된
 원본 기록/해시·source 변경·단일 실행 범위와 남은 한계를 함께 제시하며, 확정된 제품 선택을
 다시 묻지 않는다.
+
+## 개인정보 전용 새 owner의 승인 연결 준비
+
+`PrivatePrivacyReleaseContract`는 `RequestPrivacySettings`의 새 owner 경로에만 추가된다.
+기존 Required owner의 재열기와 No Ads의 접근 경로는 유지한다. `ApprovedPrivacy=null`과
+모든 운영 gate false를 유지하며 실제 승인 resource는 생성하지 않는다. 이 준비 코드는
+운영 개인정보 검증 완료 또는 SDK 실행 허용을 의미하지 않는다.
+
+별도 `RevivalPrivatePrivacyRelease`는 schema 1, `privacy_only_adult`의 정확한 18필드다.
+문자열은 mode/packageId/androidAppId/sourceHead와 inventorySha256/countryContractSha256/
+regionalReviewSha256/adultReviewSha256/privacyEnvironmentReviewSha256이다.
+privacySdkEnvironmentApproved/regionalReviewApproved/adultConsentReviewed만 true이어야 하며,
+under13ConsentReviewed/from13To15ConsentReviewed/from16To17ConsentReviewed/
+umpUnderAgeOfConsent/productionAdsAuthorized는 false이어야 한다. 이는 미래 검토 자료의
+형식이며 현재 실제 승인값이 아니다. 미성년 TFUA 후보를 성인 계약으로 승인하지 않는다.
+전체 raw resource SHA와 source baseline 및 다섯 검토 원본 SHA를 readonly binding에 고정한다.
+광고 unit이나 광고 활성화 권한은 반환하지 않으며 `ProductionAdsEnabled`와 독립적이다.
+
+환경·성인 검토·binding을 resource/JNI 접근 전에 확인하고, 승인 resource는 한 개만 허용한다.
+실제 merged manifest App ID와 실행 package를 대조한다. 엄격한 JSON/UTF-8/타입/중복/크기/
+해시 검사를 광고 계약과 공유하며 resource 실패는 해당 프로세스에서 재시도하지 않는다.
+sourceHead는 검토 기준 소스다. 최종 APK/AAB의 자기 해시를 런타임 계약으로 검증하는 기능은
+없으며 향후 artifact receipt가 실제 빌드 소스·resource·merged manifest·artifact SHA를 연결해야 한다.
+현재 producer의 privacy 환경 false 요구는 유지되고 개인정보 전용 승인 빌드 mode는 추가하지 않는다.
+
+국가 원본 해시는 명시 국가뿐 아니라 `기타 국가`와 묶음 지역 범위까지 포함해야 한다.
+현재 관측 178행 중 177개 명칭은 고정 Unicode CLDR 한국어 명칭과 일치하며, `기타 국가`는
+별도 rest-of-world 선택이다. NO/DK/US/FR/FI 묶음의 하위 지역 이름은 아직 확인되지 않았다.
+따라서 177코드를 전체 관할 목록으로 간주하거나 `기타 국가`를 ZZ로 치환하지 않는다.
+국가 해시는 배포 선언을 참조하며 기기 위치 또는 지역별 동의를 판단하지 않는다.
+근거: [Google Play country availability](https://developers.google.com/android-publisher/api-ref/rest/v3/edits.countryavailability),
+[고정 CLDR 한국어 명칭](https://raw.githubusercontent.com/unicode-org/cldr/ae413bb57079c50b8b259fe92169b6e8e170bb78/common/main/ko.xml).

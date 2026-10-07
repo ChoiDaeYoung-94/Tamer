@@ -38,6 +38,15 @@ namespace AD.Advertising
             return false;
 #else
             if (!CanInspectProductionContext(age)) return false;
+            return AllowsAdultRelease(Application.identifier, ReadCurrentAndroidAppId(), rewardedUnit, age);
+#endif
+        }
+
+        // Called only after an approval/context gate. Shared by privacy-only review;
+        // reading metadata does not initialize an advertising or consent SDK.
+        internal static string ReadCurrentAndroidAppId()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
             if (!manifestRead)
             {
                 manifestRead = true;
@@ -52,7 +61,9 @@ namespace AD.Advertising
                 }
                 catch { manifestAppId = null; }
             }
-            return AllowsAdultRelease(Application.identifier, manifestAppId, rewardedUnit, age);
+            return manifestAppId;
+#else
+            return null;
 #endif
         }
 
@@ -145,17 +156,7 @@ namespace AD.Advertising
                     !Regex.IsMatch(binding.SourceHead ?? "", @"\A[0-9a-f]{40}\z") ||
                     new[] { binding.InventorySha256, binding.CountryContractSha256, binding.ActivationReviewSha256,
                         binding.RegionalReviewSha256, binding.AdultReviewSha256 }.Any(s => !Digest(s))) return false;
-                var text = new UTF8Encoding(false, true).GetString(bytes);
-                if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
-                new FlatJson(text).Validate();
-                JObject root;
-                using (var input = new StringReader(text))
-                using (var reader = new JsonTextReader(input) { DateParseHandling = DateParseHandling.None, MaxDepth = 2 })
-                {
-                    root = JObject.Load(reader, new JsonLoadSettings {
-                        DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
-                    if (reader.Read()) return false;
-                }
+                var root = ReadFlatObject(bytes);
                 if (root.Count != Fields.Length || !root.Properties().Select(p => p.Name).OrderBy(s => s, StringComparer.Ordinal)
                     .SequenceEqual(Fields.OrderBy(s => s, StringComparer.Ordinal)) ||
                     root["schema"].Type != JTokenType.Integer || (long)root["schema"] != 1 ||
@@ -188,17 +189,33 @@ namespace AD.Advertising
             catch { contract = null; return false; }
         }
 
-        private static string String(JObject root, string name)
+        internal static JObject ReadFlatObject(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0 || bytes.Length > 16384) throw new InvalidDataException();
+            var text = new UTF8Encoding(false, true).GetString(bytes);
+            if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
+            new FlatJson(text).Validate();
+            using (var input = new StringReader(text))
+            using (var reader = new JsonTextReader(input) { DateParseHandling = DateParseHandling.None, MaxDepth = 2 })
+            {
+                var root = JObject.Load(reader, new JsonLoadSettings {
+                    DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+                if (reader.Read()) throw new InvalidDataException();
+                return root;
+            }
+        }
+
+        internal static string String(JObject root, string name)
         {
             var value = root[name];
             if (value == null || value.Type != JTokenType.String || ((string)value).Length == 0)
                 throw new InvalidDataException();
             return (string)value;
         }
-        private static bool Boolean(JObject root, string name, bool expected) =>
+        internal static bool Boolean(JObject root, string name, bool expected) =>
             root[name] != null && root[name].Type == JTokenType.Boolean && (bool)root[name] == expected;
-        private static bool Digest(string value) => Regex.IsMatch(value ?? "", @"\A[0-9a-f]{64}\z");
-        private static string Hash(byte[] bytes)
+        internal static bool Digest(string value) => Regex.IsMatch(value ?? "", @"\A[0-9a-f]{64}\z");
+        internal static string Hash(byte[] bytes)
         { using (var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); }
 
         // Only the versioned flat object grammar is accepted. Newtonsoft's comments,
