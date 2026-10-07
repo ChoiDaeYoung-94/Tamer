@@ -80,6 +80,16 @@ class ApprovedModeTests(unittest.TestCase):
             (run / 'hook-receipt.json').write_bytes(producer.encoded(receipt))
             with self.assertRaises(ValueError): base.verify_hook_receipt(root, state)
 
+    def test_binding_comparisons_are_not_second_assignments(self):
+        pins = ['a' * 64, 'b' * 40, *(['c' * 64] * 5)]
+        for name in ('ApprovedRelease', 'ApprovedPrivacy'):
+            declaration = 'private static readonly Binding ' + name + ' = new Binding(' + ', '.join('"' + pin + '"' for pin in pins) + ');'
+            for comparison in (name + ' == null', name + ' != null', name + ' == other'):
+                approved.require_immutable_binding(declaration + '\nif (' + comparison + ') return;', pins, name)
+            for assignment in (name + ' = null;', name + ' = new Binding();', declaration):
+                with self.assertRaises(ValueError):
+                    approved.require_immutable_binding(declaration + '\n' + assignment, pins, name)
+
     def test_binding_conditional_string_spoof_and_malformed_directives_rejected(self):
         pins = ['a' * 64, 'b' * 40, *(['c' * 64] * 5)]
         declaration = 'private static readonly Binding ApprovedRelease = new Binding(' + ', '.join('"' + pin + '"' for pin in pins) + ');'

@@ -23,8 +23,8 @@ def require_immutable_binding(source, pins, binding_name='ApprovedRelease'):
     code = token.sub(lambda m: re.sub(r'[^\r\n]', ' ', m.group()), source)
     if re.search(r'/\*|\*/|["\']', code):
         raise ValueError('Unsupported or incomplete binding source token')
-    declarations = list(re.finditer(r'\bprivate\s+static\s+readonly\s+Binding\s+' + binding_name + r'\s*=', code))
-    if len(declarations) != 1 or len(re.findall(r'\b' + binding_name + r'\s*=', code)) != 1:
+    declarations = list(re.finditer(r'\bprivate\s+static\s+readonly\s+Binding\s+' + binding_name + r'\s*=(?!=|>)', code))
+    if len(declarations) != 1 or len(re.findall(r'\b' + binding_name + r'\s*=(?!=|>)', code)) != 1:
         raise ValueError('One immutable binding declaration required')
     declaration = declarations[0]
     end = code.find(';', declaration.end())
