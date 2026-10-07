@@ -384,6 +384,14 @@ namespace AD
         private async UniTask<bool> LoginWithDeviceAsync(CancellationToken token)
         {
             if (LoginCancelled(token)) return false;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            // Restored device/custom modes must not create accounts in the private trial.
+            if (AD.Advertising.PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial)
+            {
+                _loginFailureMessage = "This privacy check requires your existing Google Play account.";
+                return false;
+            }
+#endif
             ShowLoading("LogIn...");
             string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
             string customId = PlayerPrefs.GetString(PrefsKeyCustomId, string.Empty);

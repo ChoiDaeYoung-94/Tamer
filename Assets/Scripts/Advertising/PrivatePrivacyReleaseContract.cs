@@ -14,6 +14,10 @@ namespace AD.Advertising
         private static bool loaded;
         private static Contract cached;
 
+        // Only the private privacy-only build has this immutable source binding.
+        // This marker reads no resources, age choice, preferences or native SDK.
+        public static bool IsPrivatePrivacyTrial => ApprovedPrivacy != null;
+
         // Compiled source approval is checked in the Editor entry as well as in
         // the player. Build metadata is not runtime consent or artifact verification.
         public static bool TryReadApprovedBuildContract(byte[] bytes, string packageId, string androidAppId)
