@@ -83,3 +83,26 @@ sourceHead는 검토 기준 소스다. 최종 APK/AAB의 자기 해시를 런타
 국가 해시는 배포 선언을 참조하며 기기 위치 또는 지역별 동의를 판단하지 않는다.
 근거: [Google Play country availability](https://developers.google.com/android-publisher/api-ref/rest/v3/edits.countryavailability),
 [고정 CLDR 한국어 명칭](https://raw.githubusercontent.com/unicode-org/cldr/ae413bb57079c50b8b259fe92169b6e8e170bb78/common/main/ko.xml).
+
+
+## 2026-10-07 Console 읽기 관측 후속
+
+국가/지역 178행은 명시 CLDR 지역 177개와 별도 `기타 국가` 선택이다. NO/DK/US/FR/FI
+묶음의 하위 이름·코드 22개를 원본 tooltip에서 확인했으며 이번 명시 177개와 코드 중복은 없다.
+이 관측 코드 합집합을 전체 배포 범위나 법적 관할 수로 해석하지 않는다. `기타 국가` 범위는
+열거되지 않았고, 묶음 지역별 법·동의 처리 검토도 별도로 남아 있다.
+
+현재 선택 파트너 198개(이름 198개 고유)와 게시 유럽 메시지의 편집기 미리보기 210개
+(이름 209개 고유)를 각각 전체 원본에서 확인했다. 미리보기에는 TCF vendors 155개와
+Ad partners 55개 항목이 있으며 동명이름 한 개가 두 섹션에 나온다. 이는 실제 Player 메시지나
+동일 업체의 중복 등록을 확인한 근거가 아니다. 원본별 정확한 이름 일치는 71개이며 별칭이나
+법인명 차이를 임의 통합하지 않았다. 전체 공급업체 카탈로그는 선택 상태를 증명하지 않는다.
+
+저장된 미리보기 snapshot에 정책 URL이 없었고, 실제 DOM의 정책 링크 210개에도 href·id
+속성값이 없었다. 선택 버튼 272개 중 72개에서 DOM id를 읽어 이름·섹션·등장 순서와 연결했지만,
+이 값이 vendor/ATP ID라는 근거 및 전체 210개 식별 근거는 미충족이다. 업체 단위 구성 대조와
+198/210 차이 원인은 미확인이다. 다음은 선택 UI·게시 메시지의 권위 있는 정책 URL·vendor/ATP
+식별 자료와 계정 결합 범위를 대조하는 단계다.
+[공식 설명](https://support.google.com/admob/answer/10113004?hl=en)은 선택 목록 반영·계정 목록
+결합·자동 갱신을 설명하지만 이번 계정 차이의 원인을 확정하지 않는다.
+설정 변경·게시·SDK·기기·빌드는 없으며 운영 gate false/null과 검증 상태를 유지한다.
