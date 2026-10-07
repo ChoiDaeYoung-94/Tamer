@@ -265,22 +265,32 @@ namespace AD
             string cachedGpgsId = PlayerPrefs.GetString(PrefsKeyGpgsId, string.Empty);
             string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
             if (mode == "device" && !string.IsNullOrEmpty(cachedGpgsId))
+            {
+                LogStep("Google login: ConflictingSavedMode");
                 return false; // Conflicting legacy selection has no reliable winner.
+            }
             if (LoginContinuityPolicy.IsDeviceMode(mode))
                 return await LoginWithDeviceAsync(token);
             if (!string.IsNullOrEmpty(mode) && mode != LoginModeGpgs && mode != "gpgs-pending")
+            {
+                LogStep("Google login: UnsupportedSavedMode");
                 return false;
+            }
 
             if (!LoginContinuityPolicy.CanAttemptNativeGoogle(_dataOwner.HasKnownAccount,
                 HasLocalProgress(), mode, cachedGpgsId))
             {
+                LogStep("Google login: LocalOwnershipUnverified");
                 _loginFailureMessage = "Account ownership could not be verified. Contact support to recover your existing account.";
                 return false;
             }
 
             string authenticatedId = await AuthenticateGooglePlayAsync(token);
             if (LoginCancelled(token))
+            {
+                LogStep("Google login: CancelledAfterAuthentication");
                 return false;
+            }
 
             string selectedId = LoginContinuityPolicy.SelectGoogleId(cachedGpgsId, authenticatedId);
             if (!string.IsNullOrEmpty(cachedGpgsId) && !string.IsNullOrEmpty(authenticatedId)
@@ -293,6 +303,7 @@ namespace AD
 
             if (string.IsNullOrEmpty(selectedId))
             {
+                LogStep("Google login: MissingSelectedIdentity");
                 _loginFailureMessage = "Google Play sign-in is required. Retry with your original account.";
                 return false;
             }
@@ -480,21 +491,32 @@ namespace AD
             _loginFailureMessage = "Google Play account is not linked or sign-in is unavailable. Retry or contact support for account recovery.";
 #if UNITY_ANDROID && !UNITY_EDITOR
             string code = await RequestGoogleServerCodeAsync(token);
-            if (LoginCancelled(token) || string.IsNullOrWhiteSpace(code)) return false;
+            if (LoginCancelled(token) || string.IsNullOrWhiteSpace(code))
+            {
+                LogStep(LoginCancelled(token) ? "Google login: CancelledBeforeExchange" : "Google login: EmptyServerCode");
+                return false;
+            }
             // Auth codes are single-use. A user retry must acquire a fresh code;
             // never pass this exchange through CallWithRetryAsync.
             var request = CreateGoogleLoginRequest(code);
             var login = await CallAsync<LoginResult>((onOk, onError) =>
                 PlayFabClientAPI.LoginWithGooglePlayGamesServices(request, onOk, onError),
                 "LoginWithGooglePlayGamesServices", token);
-            if (LoginCancelled(token)) return false;
+            if (LoginCancelled(token))
+            {
+                LogStep("Google login: CancelledAfterExchange");
+                return false;
+            }
             if (!login.IsSuccess || login.Result == null || login.Result.NewlyCreated)
             {
+                LogStep("Google login: " + DescribeGoogleLoginOutcome(login.IsTimeout, login.Error,
+                    login.Result != null, login.Result != null && login.Result.NewlyCreated));
                 NoteLoginError(login.Error);
                 return false;
             }
             if (!LoginContinuityPolicy.MatchesKnownPlayFabAccount(_dataOwner.PlayFabId, login.Result.PlayFabId))
             {
+                LogStep("Google login: OwnerMismatch");
                 _loginFailureMessage = "The linked account differs from your saved account. Contact support for account recovery.";
                 return false;
             }
@@ -502,6 +524,7 @@ namespace AD
             // CopyFrom exposes the returned authentication context to gameplay.
             OnLoggedIn(login.Result.PlayFabId, false, "GooglePlayGamesServices",
                 login.Result.AuthenticationContext, LoginModeGpgs);
+            LogStep("Google login: ExistingAccountAccepted");
             return true;
 #else
             await UniTask.CompletedTask;
@@ -734,15 +757,25 @@ namespace AD
         private async UniTask<bool> WaitForServerAsync(CancellationToken token)
         {
             var server = AD.Managers.ServerM;
-            if (server == null || LoginCancelled(token)) return false;
+            if (server == null || LoginCancelled(token))
+            {
+                LogStep(server == null ? "Initial server read: MissingServer" : "Initial server read: Cancelled");
+                return false;
+            }
             bool completed = await WaitUntilAsync(() => !server.IsInProgress, ServerSyncTimeout, token);
-            if (LoginCancelled(token)) return false;
+            if (LoginCancelled(token))
+            {
+                LogStep("Initial server read: Cancelled");
+                return false;
+            }
             if (!completed) server.CancelPendingRequests();
             if (!completed || server.HasFailed)
             {
+                LogStep(!completed ? "Initial server read: Timeout" : "Initial server read: Failed");
                 ShowRetry("Could not load your saved progress. Please try again.");
                 return false;
             }
+            LogStep("Initial server read: Completed");
             return true;
         }
 
@@ -818,7 +851,10 @@ namespace AD
                         apiError = error;
                     });
                 if (!await WaitUntilAsync(() => callback.IsCompleted, ApiTimeout, token))
+                {
+                    LogStep($"{label} result: " + (LoginCancelled(token) ? "Cancelled" : "Timeout"));
                     return new ApiResult<T> { IsTimeout = true };
+                }
                 return new ApiResult<T> { Result = apiResult, Error = apiError };
             }
             catch (Exception e)
@@ -827,6 +863,17 @@ namespace AD
                 return new ApiResult<T> { IsTimeout = true };
             }
             finally { callback.Expire(); }
+        }
+
+        private static string DescribeGoogleLoginOutcome(bool timeout, PlayFabError error, bool hasResult, bool newlyCreated)
+        {
+            if (timeout) return "TimeoutOrRequestException";
+            if (error != null)
+                return Enum.IsDefined(typeof(PlayFabErrorCode), error.Error)
+                    ? "ServerError: " + error.Error.ToString() : "ServerError: UnknownCode";
+            if (!hasResult) return "NullResult";
+            if (newlyCreated) return "NewAccountRejected";
+            return "ExistingAccountResponse";
         }
 
         private static string DescribeRequestException(Exception exception)
