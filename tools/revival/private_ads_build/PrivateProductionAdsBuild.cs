@@ -152,6 +152,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     {
         approvedProduction = approved;
         approvedPrivacy = privacy;
+        string failureStage = "D01";
         try
         {
             if (Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_PREPARE") != "1" ||
@@ -159,6 +160,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
                 Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_MODE") !=
                     Mode ||
                 EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android) throw Rejected();
+            failureStage = "D02";
             if (approved || privacy)
             {
                 var asset = AssetDatabase.LoadMainAssetAtPath("Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset");
@@ -170,15 +172,19 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
                     : !PrivateAdsReleaseContract.TryReadApprovedBuildContract(raw, package, app.stringValue, out _)) throw Rejected();
                 CheckSourceManifest(app.stringValue);
             }
+            failureStage = "D03";
             var editor = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
             if (!string.Equals(Path.GetFullPath(editor), Path.GetFullPath(Required("TAMER_PRIVATE_ADS_EDITOR")),
                     StringComparison.OrdinalIgnoreCase) || Hash(File.ReadAllBytes(editor)) !=
                     Required("TAMER_PRIVATE_ADS_EDITOR_SHA256")) throw Rejected();
+            failureStage = "D04";
             using (var settings = new SettingsScope())
             {
             settings.Apply();
             var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            failureStage = "D05";
             snapshot = new Snapshot(root);
+            failureStage = "D06";
             var args = Environment.GetCommandLineArgs();
             var outputs = Enumerable.Range(0, args.Length - 1).Where(i => args[i] == "-buildOutput").ToArray();
             if (outputs.Length != 1 || Path.GetFullPath(args[outputs[0] + 1]) != snapshot.Output ||
@@ -187,14 +193,18 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
                 File.Exists(snapshot.Output) || File.Exists(snapshot.Receipt)) throw Rejected();
             injections = loginScenes = 0;
             preprocessed = postprocessed = false;
+            failureStage = "D07";
             CheckSnapshot();
+            failureStage = "D08";
             BuildReport report;
             using (RevivalBuild.AndroidRelroLinkScope())
             report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                 scenes = (string[])snapshot.Scenes.Clone(), locationPathName = snapshot.Output,
                 target = BuildTarget.Android, options = BuildOptions.None,
                 extraScriptingDefines = new string[0] });
+            failureStage = "D09";
             CheckSnapshot();
+            failureStage = "D10";
             if (report.summary.result != BuildResult.Succeeded || !preprocessed || !postprocessed ||
                 injections != 1 || loginScenes != 1 || !File.Exists(snapshot.Output)) throw Rejected();
             // This confirms callbacks only. It does NOT prove the final serialized
@@ -211,11 +221,14 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             receipt.buildSceneValueMatched = true; receipt.compiledEditorGatesDisabled = !approved && !privacy;
             receipt.binaryVerified = false; receipt.distributable = false;
             receipt.mode = Mode; receipt.approvedBuildContractMatched = approved;
+            failureStage = "D11";
             using (var file = new FileStream(snapshot.Receipt, FileMode.CreateNew, FileAccess.Write))
             using (var writer = new StreamWriter(file)) writer.Write(JsonUtility.ToJson(receipt, true));
             }
         }
-        catch { throw Rejected(); } // Never emit private parser values or identifiers.
+        catch (PlayerPlanRejectedException failure) { throw new BuildFailedException(failure.Message); }
+        catch { throw new BuildFailedException("Private preparation rejected (" + failureStage + "). Output is not distributable."); }
+        // Emit only fixed stage/plan codes, never the original exception or private values.
         finally { snapshot = null; approvedProduction = approvedPrivacy = false; }
     }
 
