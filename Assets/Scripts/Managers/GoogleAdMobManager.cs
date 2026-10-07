@@ -172,7 +172,8 @@ namespace AD
             bool environment = AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
                 AgeTreatmentPolicy.IsPrivacySdkContext(Application.isEditor, Debug.isDebugBuild,
                     Application.isBatchMode, false, Application.platform == RuntimePlatform.Android,
-                    Application.identifier);
+                    Application.identifier) &&
+                PrivatePrivacyReleaseContract.AllowsCurrentAndroidPrivacy(AgeSelection.Value);
             if (!AgeTreatmentPolicy.TryCreatePrivacyPlan(AgeSelection.Value, AgeSelection.IsEditing,
                 environment, AgeTreatmentPolicy.IsReviewed(AgeSelection.Value), out var plan))
             {
