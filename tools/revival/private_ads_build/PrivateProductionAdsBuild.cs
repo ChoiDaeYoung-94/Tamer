@@ -298,10 +298,41 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         if (approvedPrivacy) CheckSourceManifest(app.stringValue);
         var resource = AssetDatabase.LoadAssetAtPath<TextAsset>(ResourcePath);
         if (resource == null || Hash(resource.bytes) != snapshot.ResourceHash ||
-            PlayerSettings.Android.keystoreName != Required("TAMER_PRIVATE_ADS_KEYSTORE") ||
             PlayerSettings.Android.keyaliasName != Required("TAMER_PRIVATE_ADS_KEY_ALIAS") ||
-            Hash(File.ReadAllBytes(PlayerSettings.Android.keystoreName)) !=
-                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256")) throw Rejected();
+            !MatchesApprovedKeystore(Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
+                PlayerSettings.Android.keystoreName, Required("TAMER_PRIVATE_ADS_KEYSTORE"),
+                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256"))) throw Rejected();
+    }
+    // Unity returns a project-relative display path even after an absolute setter.
+    // Only the reviewed original project key may match; never infer a dedicated location.
+    private static bool MatchesApprovedKeystore(string projectRoot, string reported,
+        string expected, string expectedHash)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(reported) || string.IsNullOrEmpty(expected) ||
+                !IsFullyQualifiedKeystorePath(projectRoot) || !IsFullyQualifiedKeystorePath(expected)) return false;
+            var comparison = Path.DirectorySeparatorChar == '\\'
+                ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var original = Path.GetFullPath(expected);
+            if (!string.Equals(original, Path.GetFullPath(Path.Combine(projectRoot, "src/AeDeong.keystore")), comparison))
+                return false;
+            bool rooted = Path.IsPathRooted(reported);
+            if (rooted && !IsFullyQualifiedKeystorePath(reported)) return false;
+            var selected = Path.GetFullPath(rooted ? reported : Path.Combine(projectRoot, reported));
+            return string.Equals(selected, original, comparison) &&
+                Hash(File.ReadAllBytes(original)) == expectedHash;
+        }
+        catch { return false; }
+    }
+    private static bool IsFullyQualifiedKeystorePath(string value)
+    {
+        if (string.IsNullOrEmpty(value) || !Path.IsPathRooted(value)) return false;
+        var root = Path.GetPathRoot(value);
+        if (Path.DirectorySeparatorChar != '\\') return root == "/";
+        return (root.Length >= 3 && root[1] == ':' && (root[2] == '\\' || root[2] == '/')) ||
+            (root.StartsWith("\\\\", StringComparison.Ordinal) &&
+             root.Substring(2).Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries).Length >= 2);
     }
     private static void CheckSourceManifest(string appId)
     {
