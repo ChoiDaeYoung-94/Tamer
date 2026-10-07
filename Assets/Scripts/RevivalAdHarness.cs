@@ -325,7 +325,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
     {
 #if TAMER_PRIVACY_MANAGER_HARNESS
         GUILayout.Label("Actual manager privacy refresh / synthetic Adult / EEA / no ad initialization");
-        GUILayout.Label("One explicit network request per process. No reset, Gather or automatic retry.");
+        GUILayout.Label("One Update and at most one explicit reopen per process. No reset, Gather or automatic retry.");
         bool enabled = GUI.enabled;
         GUI.enabled = enabled && _publisherContextAllowed && Ads != null &&
             !GoogleAdMobManager.NativePrivacyHarnessAttempted;
@@ -333,6 +333,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
         _testDeviceHash = GUILayout.PasswordField(_testDeviceHash, '*', 32);
         if (GUILayout.Button("Explicit manager privacy refresh (network, once)", GUILayout.Height(52)))
             Record("manager_privacy_request_accepted=" + Ads.RequestPrivacySettingsForNativeHarness(_testDeviceHash));
+        GUI.enabled = enabled && _publisherContextAllowed && Ads != null && Ads.NativePrivacyHarnessCanReopen;
+        if (GUILayout.Button("Reopen existing manager privacy options (Show only, once)", GUILayout.Height(52)))
+            Record("manager_privacy_reopen_accepted=" + Ads.ReopenPrivacySettingsForNativeHarness());
         GUI.enabled = enabled;
         if (Ads != null)
         {

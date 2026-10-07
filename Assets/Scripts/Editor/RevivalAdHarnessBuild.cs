@@ -348,7 +348,7 @@ public static class RevivalAdHarnessBuild
         string variant = publisher ? "ump-publisher" : umpOnly ? "ump-sample" : development ? "sample" : "control";
         if (privacyAge) variant += "-privacy-age";
         if (isolatePgs) variant += "-pgs-isolated";
-        if (nativePrivacyManager) variant += "-privacy-manager-no-backup";
+        if (nativePrivacyManager) variant += "-privacy-manager-reopen-no-backup";
         string applicationId = nativePrivacyManager ? AD.Advertising.AgeTreatmentPolicy.NativePrivacyHarnessPackage :
             publisher ? "com.AeDeong.MonsterTamer.revival.umppublisher" : umpOnly ? "com.AeDeong.MonsterTamer.revival.ump" :
             development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";

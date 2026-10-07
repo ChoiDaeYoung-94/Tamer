@@ -210,7 +210,18 @@ namespace AD
         // Test-only entry: never grants production approval or changes saved age.
         // The process latch survives manager recreation and is consumed before SDK construction.
         private static bool _nativePrivacyHarnessAttempted;
+        private static bool _nativePrivacyHarnessReopenAttempted;
         public static bool NativePrivacyHarnessAttempted => _nativePrivacyHarnessAttempted;
+        public bool NativePrivacyHarnessCanReopen => _nativePrivacyHarnessAttempted &&
+            !_nativePrivacyHarnessReopenAttempted && !_destroyed && CanCheckPrivacySettings &&
+            NativePrivacyHarnessNoAdsState && PrivacySettingsResult == AdPrivacyResult.FormFailed &&
+            _privacyConsent != null && _privacyConsent.IsPrivacyRefreshOwner &&
+            _privacyConsent.PrivacyOptionsRequired && !AdRequestPolicy.ProductionAdsEnabled &&
+            AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled &&
+            AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(Application.isEditor,
+                Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
+                Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
+                Managers.Instance != null);
         public bool NativePrivacyHarnessNoAdsState => !_initialized && !_initializing && !_loading &&
             _consent == null && _rewardedAd == null && _showingAd == null && _session == null && _closingSession == null;
 
@@ -229,6 +240,15 @@ namespace AD
             _nativePrivacyHarnessAttempted = true;
             BeginPrivacyRefresh(plan, () => new GoogleUmpConsentClient(DebugGeography.EEA, testDeviceHash),
                 value => Debug.Log("PRIVACY_MANAGER " + value));
+            return true;
+        }
+
+        public bool ReopenPrivacySettingsForNativeHarness()
+        {
+            if (!NativePrivacyHarnessCanReopen) return false;
+            _nativePrivacyHarnessReopenAttempted = true;
+            // Share the production entry: the retained fresh Required owner skips Update and the factory.
+            RequestPrivacySettings();
             return true;
         }
 #endif

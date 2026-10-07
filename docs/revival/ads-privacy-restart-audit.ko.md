@@ -369,3 +369,41 @@ UMP 4.0.0, 현재 builder 소스와 새 빌드 진입점 완료도 확인했다.
 별도로 검토해야 한다. 모든 운영 검토와 runtimePrivacyVerified/binaryVerified/
 distributable=false를 유지한다. 같은 백업 조건의 두 번째 실패 시 종속 작업 중단
 규칙과 첫 실패 기록을 유지하며 성공 빌드·검사는 반복하지 않았다.
+
+## 명시적 관리자 재열기와 승인된 UI 3차 시험 (2026-10-07)
+
+소스 `1c2dcbc9c085a4bc89ccf27f46eb1dc910fc3b05`에서 시험 define에만 기존
+관리자 개인정보 폼을 한 번 다시 여는 버튼을 추가했다. 최초 갱신 후 fresh Required와
+refresh owner가 유지된 FormFailed인 경우에만 활성화하고, 별도 프로세스 제한을 먼저
+소비한 뒤 생산 `RequestPrivacySettings` 경로를 호출한다. 최초 요청 제한은 유지하며
+추가 Update·Gather·자동 재시도는 없다. 최초 즉시 표시의 로딩 지연 자체를 해결한
+것은 아니다. 이 문서 추가 커밋에서 APK를 다시 빌드하지 않았다.
+
+소스 참조 컴파일, Unity 6000.3.25f1/CLI 1.0.0-beta.8의 실제 Android debug 빌드와
+신규 APK 정적 검사 17개가 통과했다. 출력은
+`Build/revival/Tamer-ads-ump-publisher-privacy-age-pgs-isolated-privacy-manager-reopen-no-backup.apk`,
+141,621,637 bytes, SHA-256
+`4111d74034b76c24bbdd1ac1cf746a5e80144aff0d04d6923dd75b9ff2949ad7`이다.
+같은 격리 package·debug signer·ARM64·min 25/target 36·backup false와 시험 분기를
+확인했다. 실제 Player compiler 입력은 재사용됐지만 이번 Assembly-CSharp DLL과
+컴파일 로그는 새 소스에 연결됐고, 변경 없는 광고 어셈블리는 재사용됐다. provenance
+읽기 도구의 최초 descriptor 선택 실패를 보존하고 수정된 두 번째 읽기가 통과했다.
+빌드 후 관측된 변경 9개와 생성 파일 2개를 복구해 소스가 clean이며, 기존 APK와
+서명 키 metadata를 보존했다. 원 파일 식별 정보·시간의 완전 복원을 주장하지 않는다.
+
+사용자가 승인한 동일 UI 3차 시험에서 같은 등록 기기·사용자 0의 격리 앱을
+`install -r`로 한 번 업데이트했다. 설치 전후 설정 파일 4개의 정확한 내용 보존과
+설치된 새 APK 전체 해시를 확인한 뒤 한 번 실행해 새 프로세스를 관측했다. 화면은
+실행 후 켜져 별도 wake 입력이 없었다. 입력란 선택·등록 해시 입력·키보드 확인·
+최초 요청은 각각 한 번이며, 확인 후 마스킹 32자 유지와 요청 수락을 확인했다.
+관찰 도구가 먼저 저장한 로그는 Checking이었지만 뒤에 캡처한 화면은 FormFailed와
+활성화된 재열기 버튼을 표시했다. 재열기 직전 검증에서 두 관찰 상태가 일치하지 않아
+입력 전에 STOP했다. 실제 재열기·네이티브 거부·닫기 입력은 모두 0회다. 이 결과는
+관찰 조건 불일치에 따른 시험 중단이며 실제 warm 경로의 SDK 실패를 뜻하지 않는다.
+
+UI 첫 시도의 키보드 닫기 후 입력 소실, 두 번째의 폼 로딩 중 실패, 이번 세 번째
+중단 기록을 모두 보존했다. 별도 저장정보 검사의 원 두 실패와 승인된 세 번째 읽기
+통과 이력도 유지한다. 4차 시험과 추가 기기 조작은 수행하지 않았다. 실제 재열기·
+거부·닫기 완료는 미검증이며 SDK 호출 횟수를 별도 계측하지 않았다. 유지된 네이티브
+초기화 provider의 동작과 전체 통신 부재도 증명하지 않는다. 모든 운영 검토 및
+`runtimePrivacyVerified/binaryVerified/distributable=false`를 유지한다.
