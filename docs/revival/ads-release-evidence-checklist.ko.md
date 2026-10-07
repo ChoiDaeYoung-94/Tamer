@@ -106,3 +106,26 @@ Ad partners 55개 항목이 있으며 동명이름 한 개가 두 섹션에 나�
 [공식 설명](https://support.google.com/admob/answer/10113004?hl=en)은 선택 목록 반영·계정 목록
 결합·자동 갱신을 설명하지만 이번 계정 차이의 원인을 확정하지 않는다.
 설정 변경·게시·SDK·기기·빌드는 없으며 운영 gate false/null과 검증 상태를 유지한다.
+
+## 개인정보 전용 단일 빌드 경로 준비 후속
+
+producer의 명시 `privacy_only_adult` mode는 `RevivalPrivatePrivacyRelease`의 승인 원본을
+수정 없이 전달하고, 전체 resource SHA·일곱 literal binding·package/App ID 및 privacy/지역/성인
+검토 gate를 사전 검사와 compiled build entry에서 확인한다. 광고 master와 미성년 승인은 false여야
+하며, 기존 광고 승인 resource와 충돌을 거절한다. 현재 false/null 원본은 그대로 실행 거절된다.
+광고 unit은 빈칸으로 유지하고 별도 `privacy-only-adult.apk`를 새 run에만 출력하도록 준비했다.
+기존 source/signing review·도구 고정·launch-once·복구 조건은 유지하며 실제 승인 resource나
+운영 gate 변경·빌드·기기 실행은 이번 준비 범위에 포함되지 않는다.
+
+이 mode는 정상 Login 씬을 사용한다. 해당 씬은 PGS 활성화와 PlayFab 자동 로그인 경로를
+시작하므로 UMP만 실행하는 격리 환경을 보장하지 않는다. 실제 launch에는 운영 로그인의
+별도 명시 허용 또는 후속 격리 경로가 필요하다. 동일 package 설치 시 기존 앱·계정·저장 및
+서명 보존 범위도 실행 전에 확정해야 한다. 기존 UI4 APK에는 새 계약이 없으며 재사용으로
+양성 검증을 대체하지 않는다. 이 준비는 runtimePrivacyVerified/binaryVerified/distributable을
+승격하지 않으며 실제 merged artifact와 runtime 검증은 별도로 남아 있다.
+
+같은 날 최신 Console의 앱 ID·package·보상형 단위는 기존 source inventory와 일치했지만,
+앱의 `준비됨` 표시는 개인정보 SDK 실행 승인이 아니다. 미국 메시지는 게시 상태와 현재·향후
+지원 주 전체 선택을 확인했고 현재 선택 20개를 [공식 지원 목록](https://support.google.com/admob/answer/10862202?hl=en)과 대조했으며,
+편집기 원본의 `메시지 없음`만으로 실제 미전달이나 A/B 50% 배분을 추정하지 않는다.
+실제 runtime 전달과 198/210 파트너 구성 차이의 원인은 여전히 미확인이다.

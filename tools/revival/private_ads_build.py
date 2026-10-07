@@ -259,10 +259,13 @@ def verify_hook_receipt(root, state):
     receipt = json.loads(safe_path(root, state['run'] + '/hook-receipt.json').read_text(encoding='utf-8'),
                          object_pairs_hook=unique_object, parse_constant=reject_constant)
     approved = state.get('mode') == 'approved_adult_release'
+    privacy = state.get('mode') == 'privacy_only_adult'
+    if privacy and (type(state.get('receiptModeVersion')) is not int or state['receiptModeVersion'] != 1):
+        raise ValueError('Explicit privacy receipt mode required')
     expected = {'schema': 1, 'runId': state['runId'], 'sourceHead': state['head'],
                 'configSha256': state['configSha256'], 'unityVersion': state['editorVersion'],
                 'injectedManagers': 1, 'loginScenes': 1, 'preprocessed': True, 'postprocessed': True,
-                'buildSceneValueMatched': True, 'compiledEditorGatesDisabled': not approved,
+                'buildSceneValueMatched': True, 'compiledEditorGatesDisabled': not (approved or privacy),
                 'productionContractVerified': False, 'binaryVerified': False, 'distributable': False}
     extra = {'artifactSha256', 'configuredAndroidDefines', 'prospectivePlayerDefinePlanSha256'}
     if 'resourceSha256' in state:
@@ -270,6 +273,9 @@ def verify_hook_receipt(root, state):
     if state.get('receiptModeVersion') == 1:
         expected['mode'] = state['mode']
         expected['approvedBuildContractMatched'] = approved
+    if privacy:
+        expected['approvedPrivacyBuildContractMatched'] = True
+        expected['productionAdsEnabled'] = False
     if not isinstance(receipt, dict) or set(receipt) != set(expected) | extra:
         raise ValueError('Receipt schema rejected')
     if any(type(receipt[key]) is not type(value) or receipt[key] != value
@@ -285,7 +291,8 @@ def verify_hook_receipt(root, state):
         raise ValueError('Receipt configured defines rejected')
     if digest(safe_path(root, Path(state['config']).relative_to(root)).read_bytes()) != state['configSha256']:
         raise ValueError('Receipt configuration changed')
-    artifact = safe_path(root, state['run'] + '/disabled-preparation.aab')
+    from private_ads_producer import artifact_name
+    artifact = safe_path(root, state['run'] + '/' + artifact_name(state.get('mode', 'disabled_candidate')))
     if not artifact.is_file() or artifact.stat().st_size == 0 or digest(artifact.read_bytes()) != receipt['artifactSha256']:
         raise ValueError('Receipt artifact mismatch')
     return {'hookReceiptVerified': True, 'productionContractVerified': False,

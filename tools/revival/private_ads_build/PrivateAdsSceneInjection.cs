@@ -8,9 +8,10 @@ using UnityEngine.SceneManagement;
 
 internal static class PrivateAdsSceneInjection
 {
-    internal static int Apply(Scene scene, string targetScene, string rewardedUnit)
+    internal static int Apply(Scene scene, string targetScene, string rewardedUnit, bool privacyOnly = false)
     {
-        if (!scene.IsValid() || string.IsNullOrEmpty(targetScene) || string.IsNullOrEmpty(rewardedUnit))
+        if (!scene.IsValid() || string.IsNullOrEmpty(targetScene) ||
+            (privacyOnly ? rewardedUnit != "" : string.IsNullOrEmpty(rewardedUnit)))
             throw Rejected();
         var managers = scene.GetRootGameObjects()
             .SelectMany(obj => obj.GetComponentsInChildren<GoogleAdMobManager>(true)).ToArray();
@@ -23,6 +24,7 @@ internal static class PrivateAdsSceneInjection
         var serialized = new SerializedObject(managers[0]);
         var field = serialized.FindProperty("_productionRewardedAdUnit");
         if (field == null || !string.IsNullOrEmpty(field.stringValue)) throw Rejected();
+        if (privacyOnly) return 1; // Validate the manager; leave its advertising unit blank.
         field.stringValue = rewardedUnit;
         serialized.ApplyModifiedPropertiesWithoutUndo();
         serialized.Update();
