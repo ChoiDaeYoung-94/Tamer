@@ -195,6 +195,12 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             preprocessed = postprocessed = false;
             failureStage = "D07";
             CheckSnapshot();
+            if (privacy)
+            {
+                failureStage = "D12";
+                PrepareGooglePlaySettings();
+                CheckSnapshot();
+            }
             failureStage = "D08";
             BuildReport report;
             using (RevivalBuild.AndroidRelroLinkScope())
@@ -230,6 +236,20 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         catch { throw new BuildFailedException("Private preparation rejected (" + failureStage + "). Output is not distributable."); }
         // Emit only fixed stage/plan codes, never the original exception or private values.
         finally { snapshot = null; approvedProduction = approvedPrivacy = false; }
+    }
+
+    private static void PrepareGooglePlaySettings()
+    {
+        const string path = "Assets/GooglePlayGames/Resources/PlayGamesSettings.asset";
+        // The plugin's post-build migration is too late for Resources serialization.
+        // Reuse its existing project configuration; never invent an OAuth client.
+        GooglePlayGames.Editor.GPGSUtil.UpdateGameInfo();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+        var asset = AssetDatabase.LoadAssetAtPath<GooglePlayGames.PlayGamesSettings>(path);
+        var resource = Resources.Load<GooglePlayGames.PlayGamesSettings>("PlayGamesSettings");
+        if (asset == null || resource != asset || string.IsNullOrWhiteSpace(asset.AppId) ||
+            string.IsNullOrWhiteSpace(asset.WebClientId)) throw Rejected();
     }
 
     public void OnPreprocessBuild(BuildReport report)
