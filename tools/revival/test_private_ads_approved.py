@@ -46,7 +46,7 @@ class ApprovedModeTests(unittest.TestCase):
                         '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application>'
                         '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="' +
                         value['androidAppId'] + '"/></application></manifest>',
-                    'ProjectSettings/ProjectSettings.asset': 'Android: com.synthetic.contract',
+                    'ProjectSettings/ProjectSettings.asset': '  applicationIdentifier:\n    Android: com.synthetic.contract\n  buildNumber:\n    Android: 1\n',
                     'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs': 'synthetic binding input'}
                 for name, content in files.items():
                     path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(content)
@@ -79,6 +79,34 @@ class ApprovedModeTests(unittest.TestCase):
                 'mode': 'disabled_candidate', 'approvedBuildContractMatched': False}
             (run / 'hook-receipt.json').write_bytes(producer.encoded(receipt))
             with self.assertRaises(ValueError): base.verify_hook_receipt(root, state)
+
+    def test_package_validation_uses_application_identifier_section(self):
+        value = fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            config = root / 'synthetic.json'; config.write_text(json.dumps(value))
+            contents = {
+                'Assets/Scripts/Advertising/AdRequestPolicy.cs': 'synthetic',
+                'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs': 'synthetic',
+                'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs': 'synthetic',
+                'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset': 'adMobAndroidAppId: ' + value['androidAppId'],
+                'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml':
+                    '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application>'
+                    '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="' + value['androidAppId'] + '"/></application></manifest>'}
+            for name, content in contents.items():
+                path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(content)
+            project = root / 'ProjectSettings/ProjectSettings.asset'; project.parent.mkdir()
+            valid = '  applicationIdentifier:\n    Android: com.synthetic.contract\n'
+            unrelated = '  icons:\n    Android: icon-value\n  settings:\n    Android: quality-value\n'
+            with patch.object(base, 'preflight'), patch.object(approved, 'require_disabled_declaration'), patch.object(approved, 'require_immutable_binding'):
+                project.write_text(unrelated + valid + '  nextSetting: 1\n')
+                self.assertTrue(approved.preflight_approved(root, config, 'a' * 40, 'synthetic')['approvedSourceContractValid'])
+                for section in ('', valid.replace('com.synthetic.contract', 'com.synthetic.other'), valid + valid, valid + '  applicationIdentifier:\n', '  applicationIdentifier:\n' + valid,
+                                '  applicationIdentifier:\n    Standalone: com.synthetic.contract\n',
+                                valid.replace('    Android: com.synthetic.contract', '    Android: com.synthetic.contract\n    Android: com.synthetic.contract')):
+                    project.write_text(unrelated + section + '  nextSetting: 1\n')
+                    with self.assertRaises(ValueError):
+                        approved.preflight_approved(root, config, 'a' * 40, 'synthetic')
 
     def test_binding_comparisons_are_not_second_assignments(self):
         pins = ['a' * 64, 'b' * 40, *(['c' * 64] * 5)]
@@ -191,7 +219,7 @@ class PrivacyProducerTests(unittest.TestCase):
             'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml':
                 '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><meta-data '
                 'android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="' + value['androidAppId'] + '"/></application></manifest>',
-            'ProjectSettings/ProjectSettings.asset': 'Android: ' + value['packageId']}
+            'ProjectSettings/ProjectSettings.asset': '  applicationIdentifier:\n    Android: ' + value['packageId'] + '\n  buildNumber:\n    Android: 1\n'}
         for name, text in files.items():
             p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(text, encoding='utf-8')
         return config, files

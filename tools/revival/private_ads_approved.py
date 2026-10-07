@@ -135,7 +135,10 @@ def preflight_approved(root, config, head, version, *, privacy_only=False):
     android = '{http://schemas.android.com/apk/res/android}'
     apps = [n.get(android + 'value') for n in manifest.iter('meta-data') if n.get(android + 'name') == 'com.google.android.gms.ads.APPLICATION_ID']
     project = (root / 'ProjectSettings/ProjectSettings.asset').read_text()
-    if apps != [contract['androidAppId']] or re.findall(r'^\s*Android:\s*(\S+)\s*$', project, re.M) != [contract['packageId']]:
+    identifier_headers = re.findall(r'^  applicationIdentifier:[ \t]*$', project, re.M)
+    identifiers = re.findall(r'^  applicationIdentifier:[ \t]*\r?\n((?:^    [^\r\n]*\r?\n)+)', project, re.M)
+    packages = [re.findall(r'^    Android:[ \t]*(\S+)[ \t]*$', block, re.M) for block in identifiers]
+    if apps != [contract['androidAppId']] or len(identifier_headers) != 1 or packages != [[contract['packageId']]]:
         raise ValueError('Approved package/manifest mismatch')
     return {('approvedPrivacySourceContractValid' if privacy_only else 'approvedSourceContractValid'): True, 'configSha256': hashlib.sha256(raw).hexdigest(),
             'binaryVerified': False, 'distributable': False}
