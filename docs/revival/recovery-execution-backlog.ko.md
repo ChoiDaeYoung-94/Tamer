@@ -1,5 +1,13 @@
 # 전체 복구 실행 목록
 
+## 2026-10-08 가입 UI 7차 중단과 시험 번들 준비 후속
+
+문서 대조 main은 `402b99fb2a95f7642b77f9e197db383b30806f7f`다. 구체적인 사용자 승인 후 단일 CLI로 실행한 가입 UI 7차는 SaveState의 Registry.ToArray에서 IndexedSet.CopyTo ArgumentException으로 중단됐다. VerifyMembership·Camera.Render 이전이므로 실제 캡처 0·PNG 없음이며 가독성을 판정할 수 없다. 설치된 구현은 Count가 활성 prefix 수, CopyTo는 전체 list를 사용하고 GetEnumerator는 미구현이어서 일반 ToArray가 부적절하다. helper 두 곳의 Count+indexer 최소 후보는 읽기 검토만 PASS이며 컴파일·실행은 미검증이다. 원래 v4와 SDK·게임 소스는 변경하지 않았고 8차는 STOP이다.
+
+사후 원본 2개 바이트 복원·소유 임시 2개 제거·전체 6,982개 원래 경로/내용·실행 대상 기준 `9a0af2e`의 Git clean·Editor 종료를 독립 검토했다. ProjectSettings NTFS 파일 식별자 1개 차이는 별도 보존하며 식별자까지 복원됐다고 주장하지 않는다.
+
+시험 앱의 필터 없는 전체 App Bundle 목록은 1개(code26/name1.0.5)로 읽어 현재 관측 최대 26을 확인했다. 다음 후보는 27이며 실행 직전 새 조회로 확정해야 한다. 공식 고정 bundletool 1.18.3 다운로드·SHA 일치와 ignored 로컬 보관·Git clean을 확인했으나 키 접근·JAR 실행·빌드·업로드는 하지 않았다. 운영 가입·UI·최종 AAB/스토어 성공이나 진행률 상향 근거로 사용하지 않는다. 아래 각 미실행·미확인 기록은 당시 이력으로 보존한다.
+
 ## 2026-10-08 가입 UI 승인된 6차 후속 결과
 
 문서 병합 기준 main `a5c2c35164fb4327bfe58384662f6c251326ee76` 이후, 사용자가 승인한 단일 CLI·300초 범위의 6차(control 1회·가입 UI 1회)를 실행했다. control은 green/nonbackground 픽셀 129,600개와 수동 PNG 관찰 PASS였으나 가입 UI는 2,073,600픽셀 모두 검정(pixel 0)으로 시각 검증 FAIL이었다. 아래 6차 미실행 문구와 1~5차 결과는 해당 시점 이력으로 보존한다.
