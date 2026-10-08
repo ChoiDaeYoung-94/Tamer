@@ -1,8 +1,8 @@
 # Tamer 복구 계획과 단계별 상태
 
-최초 조사: 2026-09-10. 갱신: 2026-09-11.
+최초 조사: 2026-09-10. 초기 상태 갱신: 2026-09-11. 현재 기준 대조: 2026-10-08.
 초기 기준: `c47c90217d45e8c6538c57a0924fa852abfbd736`.
-실행 명령은 [개발 안내](../development.ko.md), 최신 병합·검증·남은 작업은 [통합 요약](completion-summary.ko.md)과 [통합 데이터](integration-validation.json)를 따른다. [기준 기록](baseline.ko.md)과 [초기 검증 데이터](validation.json)는 당시 이력이다.
+실행 명령은 [개발 안내](../development.ko.md), 최신 남은 조건은 [실행 목록](recovery-execution-backlog.ko.md)과 [출시 준비 표](release-preflight.ko.md)를 따른다. [통합 요약](completion-summary.ko.md)과 [통합 데이터](integration-validation.json), [기준 기록](baseline.ko.md)과 [초기 검증 데이터](validation.json)의 개별 결과는 해당 소스·산출물의 이력이다.
 
 이 문서는 최초 준비 PR #93의 계획을 실제 작업 상태로 갱신한 것이다. 과거 조사 시점의 상태는 Git 이력에서 확인할 수 있다. “Editor/빌드/도구 설치 미실행”은 최초 조사 당시의 기록이며 현재 전체 상태를 의미하지 않는다.
 
@@ -12,7 +12,18 @@
 
 검증은 **코드 반영 / 빌드 성공 / 기기 통과 / 스토어 승인**을 따로 기록한다. Editor 테스트와 격리 APK가 성공해도 실제 서비스와 정책 문제가 해결되었다고 보지 않는다. 사용자 방침에 따라 CI/CD와 자동 배포는 보류한다.
 
-## 확인된 복구 기준
+## 현재 실행 기준과 과거 검증 기록
+
+원격 main `8924c62aa4aa6a66b99a484fcc6f6e319b36c016`의 설정을 읽어 대조했다. 현재 구현 작업본은 `C:/Users/pc_17/.codex/worktrees/ad-production-completion/Tamer`이며 소유자의 별도 원본과 구분한다. 아래는 설정 기준 확인이며 해당 작업본의 새 실행·전체 검증 결과가 아니다.
+
+| 항목 | 현재 기준 | 근거 |
+| --- | --- | --- |
+| Unity | 6000.3.25f1 / e1dba0a9aba4 | ProjectVersion.txt, toolchain.json, [LTS 전환 기록](lts-transition-validation.ko.md)의 소스 `fc5a0a6` 및 main 반영 |
+| Android | min25 / target36 / ARM64 | ProjectSettings.asset, toolchain.json |
+| 앱 버전 | 1.0.5 / code26 | 저장된 설정 기준이며 후속 시험·출시 후보의 코드 확정은 별도 |
+| Unity CLI / Pipeline | 1.0.0-beta.8 / 0.6.0-exp.1 | toolchain.json, Packages/packages-lock.json |
+
+아래 표는 2026-09-11 초기 통합과 후속 당시 검증의 기록이다. 현재 Unity·Android 기준이나 최신 main 전체 통과로 읽지 않는다. LTS 이후 strict RELRO 끝 정렬 4개 실패, 실제 ARM64 native 16KB·최종 서명 AAB/전달 split·스토어 검증 미완료는 [출시 준비 표](release-preflight.ko.md)를 따른다. 기기 로그인 성공이나 전체 복구 완료를 주장하지 않는다.
 
 | 항목 | 기준 | 근거 |
 | --- | --- | --- |
@@ -25,7 +36,7 @@
 | 자동화 | Python 71개, Unity EditMode 249개, 격리 APK 메타데이터/서명·GUID·LOAD/ZIP 통과 | tools/revival 및 phase2-validation.json; strict RELRO 5개 실패 별도 |
 | 기기·스토어 | Android 13 ARM64 4KB에서 격리 APK·split 화면 확인; 전체 게임·16KB·스토어는 별도 | device-smoke-validation.json; 최초 전경 확인 실패와 재시도 성공 구분 |
 
-초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK/IAP 이행 PR #106은 병합됐으며 실제 최종 버전은 [통합 요약](completion-summary.ko.md)에 기록했다. 현재 checkout의 manifest/lock과 vendor 파일이 실행 기준이다. 사용자 방침에 따라 Unity 6000.0.81f1을 유지하고 6.3 설치는 보류한다. 이전 UAC 중단과 조건부 재개 절차는 [#86 기록](unity63-handoff.ko.md)에 보관한다.
+초기 SDK는 GMA Unity9.1.1/Android23.2.0/UMP2.2.0, GPGS2.1.0, UniTask2.5.10, PlayFab2.138.220621, IAP5.0.1이었다. SDK/IAP 이행 PR #106과 이후 [LTS 전환](lts-transition-validation.ko.md)은 main에 반영됐다. 실제 실행 기준은 대상 checkout의 manifest/lock과 vendor 파일이다. Unity 6000.0.81f1 유지·6.3 설치 보류와 [#86의 UAC 중단](unity63-handoff.ko.md)은 당시 이력이며 현재 보류 상태가 아니다. 이후 승인된 Unity 6000.3.25f1·min25 전환과 그 소스별 검증을 과거 Unity 결과와 구분한다.
 
 ## 작업과 완료 기준
 
