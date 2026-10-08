@@ -1,5 +1,13 @@
 # 전체 복구 실행 목록
 
+## 2026-10-08 가입 UI 승인된 6차 후속 결과
+
+문서 병합 기준 main `a5c2c35164fb4327bfe58384662f6c251326ee76` 이후, 사용자가 승인한 단일 CLI·300초 범위의 6차(control 1회·가입 UI 1회)를 실행했다. control은 green/nonbackground 픽셀 129,600개와 수동 PNG 관찰 PASS였으나 가입 UI는 2,073,600픽셀 모두 검정(pixel 0)으로 시각 검증 FAIL이었다. 아래 6차 미실행 문구와 1~5차 결과는 해당 시점 이력으로 보존한다.
+
+실제 UI world corners는 x/y 각각 ±540/±960, viewport는 0~1·z=10으로 전체 framing을 확인했다. 이전 화면 25% 정적 추론은 pivot 0·실제 aspect 미측정 가정이 실제 인스턴스와 맞지 않아 확정 좌표 결함 주장을 철회한다. mesh/material 생성과 cull=false인 active Graphic 11개, SRP begin/end 각 1회(총 2회)는 관측했지만 native Canvas draw를 입증하지 않는다. root/UI의 검정 화면 원인은 미확정이다.
+
+가입 UI 시험과 종속 실행은 STOP이며 7차·우회 실행은 없다. 이번 가입 UI 검증에서 SDK·Play·운영 가입·기기·플레이어 빌드는 실행하지 않았다. 담당자의 사후 복구 확인은 진행 중이므로 복구 완료를 단정하지 않는다. 부분 관측을 전체 UI·기기 PASS나 오늘 진행률 상향으로 사용하지 않는다. 계정 실행 준비와 기존 승인·출시 조건은 그대로 유지한다.
+
 ## 2026-10-08 15:22 KST 시험 업로드 인증서 후속 확인
 
 PR #346 병합 main `e4f916a0b94f48305aafa675f8419ab7abed2b95` 이후 Root가 Play Console의 시험 앱 `Monster Tamer IAP Test` 업로드 키 인증서를 읽어 보관된 복구 DER 인증서의 X509 SHA-256과 정확히 일치함을 확인했다(관측 2026-10-08 15:22:18 KST). Backup 담당은 보관 generation marker의 기대값 일치도 확인했다. 지문·개인 보관 경로·계정 정보·원시 화면은 비공개 증거에 보존한다.
