@@ -1,5 +1,11 @@
 # 출시 후보 사전 검사와 16KB 호스트 준비
 
+## 2026-10-08 가입 UI 6차 시각 검증 미완료
+
+사용자 승인된 단일 CLI·300초의 control 1회/가입 UI 1회에서 control은 green/nonbackground 129,600픽셀·수동 PNG 확인 PASS, UI는 전체 2,073,600픽셀 검정으로 FAIL이었다. 실제 corners·viewport 전체 framing을 확인해 이전 25% 정적 가정에 따른 확정 좌표 결함 주장은 철회한다. mesh/material·active Graphic·SRP callback 관측은 native Canvas draw 증명이 아니며 원인은 미확정이다.
+
+가입 UI 7차·우회 실행은 중단 상태다. 이번 범위의 SDK·Play·가입·기기·플레이어 빌드 실행은 없고 이후 원본 2개 복원·임시 2개 제거와 전체 6,982개 내용·경로 복원 및 Git clean의 사후 검토를 완료했다. ProjectSettings 파일 식별자 1개 차이는 별도 기록하며 식별자 복원 완료로 표시하지 않는다. 세부 관측과 이전 미실행 이력의 구분은 [6차 후속 결과](recovery-execution-backlog.ko.md#2026-10-08-가입-ui-승인된-6차-후속-결과)를 따른다. 운영 가입 RootReady·최종 출시 조건과 진행률 기준은 변경하지 않는다.
+
 ## 2026-10-08 15:22 KST 시험 앱 업로드 인증서 대조
 
 PR #346 이후 Root가 시험 앱 `Monster Tamer IAP Test`의 Play Console 업로드 키 인증서와 보관된 복구 DER 인증서의 X509 SHA-256 일치를 읽기로 확인했다. 관측은 2026-10-08 15:22:18 KST이며 Backup 담당의 generation marker 대조도 일치했다. 공개 문서에는 실제 지문·개인 보관 경로·계정 정보·원시 화면을 넣지 않는다.
