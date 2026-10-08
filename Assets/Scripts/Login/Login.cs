@@ -527,6 +527,12 @@ namespace AD
             {
                 LogStep("Google login: " + DescribeGoogleLoginOutcome(login.IsTimeout, login.Error,
                     login.Result != null, login.Result != null && login.Result.NewlyCreated));
+                if (login.Error != null && login.Error.Error == PlayFabErrorCode.AccountNotFound)
+                {
+                    _loginFailureMessage = "No existing game account was found linked to the selected Google Play Games profile. "
+                        + "Use your original profile or contact " + CloudScriptDeletionClient.SupportEmail
+                        + " for account recovery. No new account has been created.";
+                }
                 NoteLoginError(login.Error);
                 return false;
             }
