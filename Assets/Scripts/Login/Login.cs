@@ -46,6 +46,7 @@ namespace AD
         private const string PrefsKeyCustomId = "AD_CustomId";
         // 이 단말이 어떤 방식으로 계정을 만들었는지 (계정이 갈라지는 것을 방지)
         private const string PrefsKeyLoginMode = "AD_LoginMode";
+        private const string PrefsKeyGoogleSignupPending = "AD_GoogleSignupPending";
 
         private const string LoginModeGpgs = "gpgs";
         private const string LoginModeAndroid = "android";
@@ -73,6 +74,12 @@ namespace AD
         private bool _loginCaptured;
         private GameObject _deletionRecoveryPanel;
         private bool _receiptRecoverySignIn;
+        private readonly LoginGoogleSignupGate _googleSignup = new LoginGoogleSignupGate();
+        private string _signupCandidateIdentity;
+        private GameObject _signupPanel;
+        private TMPro.TMP_Text _signupMessage;
+        private UnityEngine.UI.Button _signupOfferButton;
+        private UnityEngine.UI.Button _signupConfirmButton;
 
         private bool LoginCurrent() => _loginCaptured && _dataOwner != null
             && ReferenceEquals(_dataOwner, AD.Managers.DataM) && !_dataOwner.DeletionInProgress
@@ -140,6 +147,7 @@ namespace AD
 
         private void OnDestroy()
         {
+            _googleSignup.Revoke();
             _cts?.Cancel();
             if (LoginCurrent() && !_operations.HasEnteredScene)
                 _dataOwner.SuspendAccountSession();
@@ -166,6 +174,8 @@ namespace AD
 
             AD.Managers.DataM.SuspendAccountSession();
             CaptureLoginSession();
+            _signupCandidateIdentity = null;
+            _googleSignup.Revoke();
             RunLoginAsync(_cts.Token).Forget();
         }
 
@@ -187,7 +197,7 @@ namespace AD
             StartLogin();
         }
 
-        private async UniTask RunLoginAsync(CancellationToken token)
+        private async UniTask RunLoginAsync(CancellationToken token, bool signup = false)
         {
             _diagnosticPhase = "Network";
             ShowLoading("LogIn...");
@@ -207,7 +217,7 @@ namespace AD
                 loggedIn = false;
                 _loginFailureMessage = "Use the isolated test harness in the Editor.";
 #elif UNITY_ANDROID
-                loggedIn = await LoginOnAndroidAsync(token);
+                loggedIn = signup ? await LoginWithGoogleSignupAsync(token) : await LoginOnAndroidAsync(token);
 #else
                 loggedIn = await LoginWithDeviceAsync(token);
 #endif
@@ -316,6 +326,14 @@ namespace AD
                 return false;
             }
             _selectedGpgsId = selectedId;
+            if (PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending)
+                && PlayerPrefs.GetString(PrefsKeyGoogleSignupPending, string.Empty) != GoogleSignupBinding(selectedId))
+            {
+                _loginFailureMessage = "An earlier account creation is awaiting confirmation for another profile. "
+                    + "Use that original profile or contact " + CloudScriptDeletionClient.SupportEmail + ".";
+                LogStep("Google signup: PendingIdentityMismatch");
+                return false;
+            }
             return await LoginWithNativeGoogleAsync(token);
         }
 
@@ -532,6 +550,7 @@ namespace AD
                     _loginFailureMessage = "No existing game account was found linked to the selected Google Play Games profile. "
                         + "Use your original profile or contact " + CloudScriptDeletionClient.SupportEmail
                         + " for account recovery. No new account has been created.";
+                    if (CanOfferGoogleSignup()) _signupCandidateIdentity = _selectedGpgsId;
                 }
                 NoteLoginError(login.Error);
                 return false;
@@ -552,6 +571,89 @@ namespace AD
             await UniTask.CompletedTask;
             return false;
 #endif
+        }
+
+        private bool CanOfferGoogleSignup(bool ignorePending = false) => _dataOwner != null && LoginCurrent()
+            && LoginContinuityPolicy.CanOfferGoogleSignup(_dataOwner.HasKnownAccount, HasLocalProgress(),
+                PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty),
+                PlayerPrefs.GetString(PrefsKeyGpgsId, string.Empty),
+                _accountDeleted || _dataOwner.DeletionInProgress,
+                PlayerPrefs.GetInt(DataManager.DeletionLoginPauseKey, 0) != 0, _receiptRecoverySignIn,
+                !ignorePending && PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending), PrivateGoogleSignupApproved());
+
+        private static string GoogleSignupBinding(string identity) => PlayFabSettings.TitleId + "\n" + identity;
+
+        private static bool PrivateGoogleSignupApproved()
+        {
+            if (!AD.Advertising.PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial) return true;
+            // A separately reviewed resource grants only the explicit UI signup path.
+            // The existing privacy contract never grants account creation on its own.
+            if (string.IsNullOrWhiteSpace(PlayFabSettings.TitleId) || string.IsNullOrWhiteSpace(Application.identifier))
+                return false;
+            var grant = Resources.Load<TextAsset>("TamerPrivateGoogleSignupApproval");
+            return grant != null && grant.text == "explicit-google-signup-v1\n"
+                + PlayFabSettings.TitleId + "\n" + Application.identifier + "\n";
+        }
+
+        private async UniTask<bool> LoginWithGoogleSignupAsync(CancellationToken token)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            _diagnosticPhase = "GoogleSignup";
+            if (LoginCancelled(token) || !CanOfferGoogleSignup()) return false;
+            string identity = PlayGamesPlatform.Instance.IsAuthenticated() ? PlayGamesPlatform.Instance.GetUserId() : null;
+            if (!_googleSignup.MatchesConsent(identity, _loginGeneration, _loginDeletionEpoch)) return false;
+            // Never reuse the code from the preceding AccountNotFound exchange.
+            string code = await RequestGoogleServerCodeAsync(token);
+            if (LoginCancelled(token) || string.IsNullOrWhiteSpace(code)) return false;
+            identity = PlayGamesPlatform.Instance.IsAuthenticated() ? PlayGamesPlatform.Instance.GetUserId() : null;
+            if (!_googleSignup.TryConsume(identity, _loginGeneration, _loginDeletionEpoch, CanOfferGoogleSignup()))
+            {
+                LogStep("Google signup: ConsentOrIdentityRejected");
+                return false;
+            }
+            // Preserve uncertainty across restarts: an unanswered create must never be repeated.
+            PlayerPrefs.SetString(PrefsKeyGoogleSignupPending, GoogleSignupBinding(identity));
+            PlayerPrefs.Save();
+            LogStep("Google signup: ExplicitExchangeRequested");
+            var request = CreateGoogleSignupRequest(code);
+            var login = await CallAsync<LoginResult>((onOk, onError) =>
+                PlayFabClientAPI.LoginWithGooglePlayGamesServices(request, onOk, onError),
+                "LoginWithGooglePlayGamesServices", token);
+            if (LoginCancelled(token)) return false;
+            identity = PlayGamesPlatform.Instance.IsAuthenticated() ? PlayGamesPlatform.Instance.GetUserId() : null;
+            if (!CanOfferGoogleSignup(ignorePending: true)
+                || !_googleSignup.MatchesConsumed(identity, _loginGeneration, _loginDeletionEpoch))
+            {
+                LogStep("Google signup: StaleResponseRejected");
+                return false;
+            }
+            if (!login.IsSuccess || login.Result == null || login.Result.AuthenticationContext == null)
+            {
+                LogStep("Google signup: " + DescribeGoogleLoginOutcome(login.IsTimeout, login.Error,
+                    login.Result != null, login.Result != null && login.Result.NewlyCreated));
+                _loginFailureMessage = "Account creation could not be confirmed. Sign in again to check your account or contact "
+                    + CloudScriptDeletionClient.SupportEmail + ". No further account creation will be attempted.";
+                NoteLoginError(login.Error);
+                return false;
+            }
+            if (!LoginContinuityPolicy.MatchesKnownPlayFabAccount(_dataOwner.PlayFabId, login.Result.PlayFabId))
+                return false;
+            _selectedGpgsId = identity;
+            OnLoggedIn(login.Result.PlayFabId, login.Result.NewlyCreated, "GooglePlayGamesServices",
+                login.Result.AuthenticationContext, LoginModeGpgs);
+            LogStep("Google signup: AccountResponseReturned");
+            return !LoginCancelled(token);
+#else
+            await UniTask.CompletedTask;
+            return false;
+#endif
+        }
+
+        private static LoginWithGooglePlayGamesServicesRequest CreateGoogleSignupRequest(string code)
+        {
+            var request = CreateGoogleLoginRequest(code);
+            request.CreateAccount = true;
+            return request;
         }
 
         private static LoginWithGooglePlayGamesServicesRequest CreateGoogleLoginRequest(string code)
@@ -623,6 +725,9 @@ namespace AD
             if (!string.IsNullOrEmpty(loginMode))
             {
                 if (loginMode == LoginModeGpgs) PlayerPrefs.SetString(PrefsKeyGpgsId, _selectedGpgsId);
+                if (loginMode == LoginModeGpgs && PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending)
+                    && PlayerPrefs.GetString(PrefsKeyGoogleSignupPending, string.Empty) == GoogleSignupBinding(_selectedGpgsId))
+                    PlayerPrefs.DeleteKey(PrefsKeyGoogleSignupPending);
                 PlayerPrefs.SetString(PrefsKeyLoginMode, loginMode);
                 PlayerPrefs.Save();
             }
@@ -1014,6 +1119,7 @@ namespace AD
 
         private void ShowLoading(string message)
         {
+            if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_retry != null) _retry.SetActive(false);
             if (_loading != null) _loading.SetActive(true);
             if (_loadingText != null) _loadingText.text = message;
@@ -1034,6 +1140,69 @@ namespace AD
             EnsureRetryMessage();
             if (_accountDeleted) ShowDeletedAccountNotice();
             if (_retryText != null) _retryText.text = message;
+            if (_signupPanel != null) _signupPanel.SetActive(false);
+            if (_googleSignup.Offer(_signupCandidateIdentity, _loginGeneration, _loginDeletionEpoch,
+                CanOfferGoogleSignup())) ShowGoogleSignupChoice();
+        }
+
+        private void ShowGoogleSignupChoice()
+        {
+            if (_signupPanel == null)
+            {
+                // LoginCanvas already owns its Canvas, scaler, raycaster and scene EventSystem.
+                var panel = DeletionView.Rect("GoogleSignupChoice", transform);
+                panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
+                panel.offsetMin = panel.offsetMax = Vector2.zero;
+                panel.gameObject.AddComponent<UnityEngine.UI.Image>().color = new Color(.055f, .065f, .085f, 1);
+                var content = DeletionView.Rect("Content", panel);
+                content.anchorMin = new Vector2(.1f, .15f); content.anchorMax = new Vector2(.9f, .85f);
+                content.offsetMin = content.offsetMax = Vector2.zero;
+                var layout = content.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+                layout.spacing = 24; layout.childControlWidth = layout.childControlHeight = true;
+                layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
+                var font = _loadingText != null ? _loadingText.font : null;
+                DeletionView.Label("Title", content, "Your game account", font, 42, 80);
+                _signupMessage = DeletionView.Label("Message", content, "", font, 32, 300);
+                _signupMessage.GetComponent<UnityEngine.UI.LayoutElement>().flexibleHeight = 1;
+                _signupOfferButton = DeletionView.Button("StartNewGame", content, "Start a new game", font);
+                _signupOfferButton.onClick.AddListener(() =>
+                {
+                    if (_operations.IsRunning || !CanOfferGoogleSignup()) return;
+                    _signupMessage.text = "Create a new game account for the selected Google Play Games profile? "
+                        + "This starts with empty progress and does not recover earlier progress or purchases. "
+                        + "To recover your earlier account, cancel and contact " + CloudScriptDeletionClient.SupportEmail + ".";
+                    _signupOfferButton.gameObject.SetActive(false);
+                    _signupConfirmButton.gameObject.SetActive(true);
+                });
+                _signupConfirmButton = DeletionView.Button("ConfirmNewGame", content, "Create new game account", font);
+                _signupConfirmButton.onClick.AddListener(ConfirmGoogleSignup);
+                var cancel = DeletionView.Button("CancelNewGame", content, "Back to sign-in", font);
+                cancel.onClick.AddListener(() =>
+                {
+                    _googleSignup.Revoke(); _signupCandidateIdentity = null;
+                    _signupPanel.SetActive(false);
+                });
+                _signupPanel = panel.gameObject;
+            }
+            _signupMessage.text = _loginFailureMessage
+                + " If you want to start with empty progress, choose Start a new game.";
+            _signupOfferButton.gameObject.SetActive(true);
+            _signupConfirmButton.gameObject.SetActive(false);
+            _signupPanel.SetActive(true);
+        }
+
+        private void ConfirmGoogleSignup()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (_cts == null || _cts.IsCancellationRequested || _operations.IsRunning || !CanOfferGoogleSignup()) return;
+            string identity = PlayGamesPlatform.Instance.IsAuthenticated() ? PlayGamesPlatform.Instance.GetUserId() : null;
+            if (!_googleSignup.TryConsent(identity, _loginGeneration, _loginDeletionEpoch)) return;
+            if (!_operations.TryBeginLogin()) return;
+            // ShowRetry already suspended the previous session; preserve that captured generation.
+            CaptureLoginSession();
+            _signupCandidateIdentity = null;
+            RunLoginAsync(_cts.Token, signup: true).Forget();
+#endif
         }
 
         private void NoteLoginError(PlayFabError error)
@@ -1115,6 +1284,12 @@ namespace AD
             && (string.IsNullOrEmpty(mode)
                 || mode == "android-pending" || mode == "custom-pending");
 
+        public static bool CanOfferGoogleSignup(bool hasKnownOwner, bool hasLocalProgress,
+            string mode, string cachedId, bool deletion, bool deletionPause, bool receiptRecovery,
+            bool creationPending, bool privateScopeApproved) => !hasKnownOwner && !hasLocalProgress
+                && string.IsNullOrEmpty(mode) && string.IsNullOrEmpty(cachedId)
+                && !deletion && !deletionPause && !receiptRecovery && !creationPending && privateScopeApproved;
+
         public static bool CanAttemptNativeGoogle(bool hasKnownOwner, bool hasLocalProgress,
             string mode, string cachedId) => hasKnownOwner
                 || (!hasLocalProgress && string.IsNullOrEmpty(mode) && string.IsNullOrEmpty(cachedId));
@@ -1133,6 +1308,49 @@ namespace AD
             if (!string.IsNullOrEmpty(mode)) return null;
             return hasCustomId || !hasAndroidId ? "custom" : "android";
         }
+    }
+
+    internal sealed class LoginGoogleSignupGate
+    {
+        private string _identity;
+        private int _generation;
+        private int _deletionEpoch;
+        private bool _offered;
+        private bool _consented;
+        private bool _spent;
+
+        public bool Offer(string identity, int generation, int deletionEpoch, bool eligible)
+        {
+            Revoke();
+            if (_spent || !eligible || string.IsNullOrWhiteSpace(identity)) return false;
+            _identity = identity; _generation = generation; _deletionEpoch = deletionEpoch;
+            return _offered = true;
+        }
+
+        private bool Matches(string identity, int generation, int deletionEpoch) =>
+            !string.IsNullOrWhiteSpace(identity) && string.Equals(_identity, identity, StringComparison.Ordinal)
+                && _generation == generation && _deletionEpoch == deletionEpoch;
+
+        public bool TryConsent(string identity, int generation, int deletionEpoch)
+        {
+            if (!_offered || _spent || !Matches(identity, generation, deletionEpoch)) return false;
+            return _consented = true;
+        }
+
+        public bool MatchesConsent(string identity, int generation, int deletionEpoch) =>
+            _offered && _consented && !_spent && Matches(identity, generation, deletionEpoch);
+
+        public bool TryConsume(string identity, int generation, int deletionEpoch, bool eligible)
+        {
+            if (!eligible || !MatchesConsent(identity, generation, deletionEpoch)) { Revoke(); return false; }
+            _offered = _consented = false;
+            return _spent = true;
+        }
+
+        public bool MatchesConsumed(string identity, int generation, int deletionEpoch) =>
+            _spent && Matches(identity, generation, deletionEpoch);
+
+        public void Revoke() { _offered = _consented = false; _identity = null; }
     }
 
     internal sealed class LoginOperationGate
