@@ -5,7 +5,10 @@ param(
     [switch]$PrepareOnly,
     [switch]$CreateSigningForNewTestApp,
     [string]$SigningDirectory,
-    [string]$TestVersionCode
+    [string]$TestVersionCode,
+    [string]$ProtectionManifest,
+    [string]$ProtectionManifestSha256,
+    [string]$RecoveryPython = 'C:/Python314/python.exe'
 )
 $ErrorActionPreference = 'Stop'
 $project = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -21,6 +24,15 @@ function Assert-IapTestVersionCode {
 }
 $versionCodeSpecified = $PSBoundParameters.ContainsKey('TestVersionCode')
 Assert-IapTestVersionCode -Specified $versionCodeSpecified -Value $TestVersionCode -PrepareOnly ([bool]$PrepareOnly)
+$reviewedRecovery = $PSBoundParameters.ContainsKey('ProtectionManifest') -or $PSBoundParameters.ContainsKey('ProtectionManifestSha256')
+if ($reviewedRecovery) {
+    if ($PrepareOnly -or ![IO.Path]::IsPathFullyQualified($ProtectionManifest) -or
+        $ProtectionManifestSha256 -notmatch '\A[a-fA-F0-9]{64}\z' -or
+        ![IO.Path]::IsPathFullyQualified($RecoveryPython)) { throw 'Reviewed recovery requires an exact private manifest and hash for a bundle build.' }
+    # Validate originals before reading signing material or decrypting a password.
+    & $RecoveryPython "$PSScriptRoot/iap_owned_recovery.py" preflight --project $project --manifest $ProtectionManifest --manifest-sha256 $ProtectionManifestSha256
+    if ($LASTEXITCODE -ne 0) { throw 'IAP protected source preflight failed; signing/build was not started.' }
+}
 function Assert-IapExistingSigningDirectory {
     param([Parameter(Mandatory)][string]$Path)
     if (![IO.Path]::IsPathFullyQualified($Path)) { throw 'Signing directory must be an absolute existing path.' }
@@ -95,7 +107,15 @@ $snapshot = $null
 $resourceSnapshot = @()
 $previousKeyPath = [Environment]::GetEnvironmentVariable('TAMER_IAP_TEST_KEY_PATH', 'Process')
 $previousVersionCode = [Environment]::GetEnvironmentVariable('TAMER_IAP_TEST_VERSION_CODE', 'Process')
+$previousReviewedRecovery = [Environment]::GetEnvironmentVariable('TAMER_IAP_REVIEWED_RECOVERY', 'Process')
+$protectedRunStarted = $false
 try {
+    if ($reviewedRecovery) {
+        & $RecoveryPython "$PSScriptRoot/iap_owned_recovery.py" start --project $project --manifest $ProtectionManifest --manifest-sha256 $ProtectionManifestSha256
+        if ($LASTEXITCODE -ne 0) { throw 'IAP protected run marker failed; signing/build was not started.' }
+        $protectedRunStarted = $true
+        $env:TAMER_IAP_REVIEWED_RECOVERY = '1'
+    } else { Remove-Item Env:TAMER_IAP_REVIEWED_RECOVERY -ErrorAction SilentlyContinue }
     # Do not inherit an unrelated process override when the option is omitted.
     if ($versionCodeSpecified) { $env:TAMER_IAP_TEST_VERSION_CODE = $TestVersionCode }
     else { Remove-Item Env:TAMER_IAP_TEST_VERSION_CODE -ErrorAction SilentlyContinue }
@@ -127,13 +147,13 @@ try {
     }
     if (!$PrepareOnly) {
         if ($TestTitle -notmatch '^[a-fA-F0-9]{3,32}$' -or $ProductionTitle -notmatch '^[a-fA-F0-9]{3,32}$' -or $TestTitle -eq $ProductionTitle -or [string]::IsNullOrWhiteSpace($Catalog)) { throw 'Explicit separate test title and catalog required.' }
-        $snapshot = Save-RevivalProjectSettings -ProjectPath $project
+        if (!$reviewedRecovery) { $snapshot = Save-RevivalProjectSettings -ProjectPath $project }
         # Capture before Editor startup/import as well as the C# build's own finally.
         # This private backup may contain restored configuration; never print it.
-        $resourcePaths = @(
+        $resourcePaths = if ($reviewedRecovery) { @() } else { @(
             'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset',
             'Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset.meta'
-        )
+        ) }
         foreach ($relative in $resourcePaths) {
             $path = Join-Path $project $relative
             if (!(Test-Path -LiteralPath $path -PathType Leaf) -or
@@ -141,9 +161,11 @@ try {
                 throw 'Existing regular PlayFab resource and metadata required; restore approved assets first.'
             }
         }
-        $resourceBackup = Join-Path $project ('Logs/revival/iap-resource-snapshots/' + [Guid]::NewGuid().ToString('N'))
-        [IO.Directory]::CreateDirectory($resourceBackup) | Out-Null
-        [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($resourceBackup), $acl)
+        if (!$reviewedRecovery) {
+            $resourceBackup = Join-Path $project ('Logs/revival/iap-resource-snapshots/' + [Guid]::NewGuid().ToString('N'))
+            [IO.Directory]::CreateDirectory($resourceBackup) | Out-Null
+            [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($resourceBackup), $acl)
+        }
         foreach ($relative in $resourcePaths) {
             $path = Join-Path $project $relative
             $backup = Join-Path $resourceBackup ([IO.Path]::GetFileName($path) + '.backup')
@@ -158,9 +180,15 @@ try {
         & "$project/tools/.local/unity-cli/1.0.0-beta.8/unity.exe" build $project --editor-path 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Unity.exe' --target Android --execute-method RevivalIapBuild.BuildStoreTestBundle --log-file "$project/Logs/revival/iap-bundle-build.log" --no-tail --non-interactive
         if ($LASTEXITCODE -ne 0) { throw 'IAP test bundle build failed.' }
     }
-    Write-Output 'Dedicated IAP test signing preparation succeeded.'
+    if ($reviewedRecovery) { Write-Output 'IAP bundle command finished; actual delta review and source recovery are still required.' }
+    else { Write-Output 'Dedicated IAP test signing preparation succeeded.' }
 } finally {
     try {
+        if ($protectedRunStarted) {
+            # Archive actual regular-file identities/bytes; never restore automatically.
+            & $RecoveryPython "$PSScriptRoot/iap_owned_recovery.py" capture --project $project --manifest $ProtectionManifest --manifest-sha256 $ProtectionManifestSha256
+            if ($LASTEXITCODE -ne 0) { throw 'IAP actual delta capture failed; preserve originals and inspect without overwrite.' }
+        }
         if ($null -ne $snapshot) { Restore-RevivalProjectSettings -Snapshot $snapshot }
     } finally {
     try {
@@ -202,6 +230,7 @@ try {
         }
     } finally {
     [Environment]::SetEnvironmentVariable('TAMER_IAP_TEST_KEY_PATH', $previousKeyPath, 'Process')
+    [Environment]::SetEnvironmentVariable('TAMER_IAP_REVIEWED_RECOVERY', $previousReviewedRecovery, 'Process')
     if ([string]::IsNullOrEmpty($previousVersionCode)) { Remove-Item Env:TAMER_IAP_TEST_VERSION_CODE -ErrorAction SilentlyContinue }
     else { $env:TAMER_IAP_TEST_VERSION_CODE = $previousVersionCode }
     Remove-Item Env:TAMER_IAP_TEST_KEY_PASSWORD, Env:TAMER_IAP_TEST_TITLE, Env:TAMER_IAP_PRODUCTION_TITLE, Env:TAMER_IAP_TEST_CATALOG -ErrorAction SilentlyContinue

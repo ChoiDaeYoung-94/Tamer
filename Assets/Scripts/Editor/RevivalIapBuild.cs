@@ -75,6 +75,9 @@ public static class RevivalIapBuild
 
     private static void Build(bool storeBundle)
     {
+        bool reviewedRecovery = Environment.GetEnvironmentVariable("TAMER_IAP_REVIEWED_RECOVERY") == "1";
+        if (reviewedRecovery && !storeBundle)
+            throw new BuildFailedException("Reviewed source recovery is only supported for a test bundle.");
         int code = 1;
         const string configPath = "Assets/Resources/RevivalIapLocal.json";
         if (File.Exists(configPath) || File.Exists(configPath + ".meta"))
@@ -174,7 +177,7 @@ public static class RevivalIapBuild
             try
             {
                 PlayerSettings.Android.bundleVersionCode = oldVersionCode;
-                AssetDatabase.DeleteAsset(configPath);
+                if (!reviewedRecovery) AssetDatabase.DeleteAsset(configPath);
                 PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
                 PlayerSettings.Android.useCustomKeystore = oldKey;
                 PlayerSettings.Android.keyaliasName = oldAlias;
@@ -183,17 +186,23 @@ public static class RevivalIapBuild
                 PlayerSettings.Android.keyaliasPass = oldAliasPass;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
                 EditorUserBuildSettings.buildAppBundle = oldBundle;
-                AssetDatabase.SaveAssets();
+                if (!reviewedRecovery) AssetDatabase.SaveAssets();
             }
             finally
             {
                 // Settings cleanup failures must not skip resource/metadata restoration.
-                foreach (var entry in originals)
-                    File.WriteAllBytes(entry.Key, entry.Value);
-                foreach (var path in files.Where(path => !path.EndsWith(".meta", StringComparison.Ordinal)))
-                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
-                if (originals.Any(entry => !File.ReadAllBytes(entry.Key).SequenceEqual(entry.Value)))
-                    throw new BuildFailedException("IAP test build settings restoration failed.");
+                // Reviewed mode preserves the actual disk delta until the Editor
+                // closes. Memory credentials/settings above are still cleared.
+                // The owner restores only separately reviewed handle-bound files.
+                if (!reviewedRecovery)
+                {
+                    foreach (var entry in originals)
+                        File.WriteAllBytes(entry.Key, entry.Value);
+                    foreach (var path in files.Where(path => !path.EndsWith(".meta", StringComparison.Ordinal)))
+                        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                    if (originals.Any(entry => !File.ReadAllBytes(entry.Key).SequenceEqual(entry.Value)))
+                        throw new BuildFailedException("IAP test build settings restoration failed.");
+                }
             }
         }
         if (Application.isBatchMode) EditorApplication.Exit(code);
