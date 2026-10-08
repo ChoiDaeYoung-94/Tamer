@@ -1,5 +1,11 @@
 # 출시 후보 사전 검사와 16KB 호스트 준비
 
+## 2026-10-08 UI 7차 중단·후보 코드 관측
+
+승인된 가입 UI 7차는 Registry.ToArray/IndexedSet.CopyTo 예외로 membership 확인·Camera.Render 전에 중단됐다. 실제 캡처·PNG·가독성 결과는 없고 8차는 STOP이다. Count+indexer helper 후보는 읽기 검토만 통과했으며 컴파일·실행은 미검증이다. 사후 원본/임시 파일·전체 내용/경로·Git clean·Editor 종료 검토는 완료하되 ProjectSettings NTFS 식별자 차이를 구분한다. 범위는 [후속 실행 기록](recovery-execution-backlog.ko.md)을 따른다.
+
+시험 앱 전체 App Bundle 목록의 현재 관측 최대는 26이며 27은 실행 전 재조회가 필요한 후보다. bundletool 1.18.3 다운로드·SHA 일치는 도구 준비 결과이고 JAR 실행·키 접근·AAB 빌드·업로드 수락 검증이 아니다. 운영 가입 RootReady와 실제 서명·최종 AAB/전달 split·스토어 조건을 유지한다.
+
 ## 2026-10-08 가입 UI 6차 시각 검증 미완료
 
 사용자 승인된 단일 CLI·300초의 control 1회/가입 UI 1회에서 control은 green/nonbackground 129,600픽셀·수동 PNG 확인 PASS, UI는 전체 2,073,600픽셀 검정으로 FAIL이었다. 실제 corners·viewport 전체 framing을 확인해 이전 25% 정적 가정에 따른 확정 좌표 결함 주장은 철회한다. mesh/material·active Graphic·SRP callback 관측은 native Canvas draw 증명이 아니며 원인은 미확정이다.
