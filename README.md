@@ -8,6 +8,8 @@
 
 **[앱 삭제 후에도 계정 및 관련 데이터 삭제 요청하기](docs/account-deletion.ko.md)** — Monster Tamer 이용자는 기존 문의 이메일로 삭제를 요청할 수 있습니다.
 
+복구 진행 상황과 다음 작업은 [최신 복구 현황](docs/revival/current-recovery-status.ko.md)에서 확인하실 수 있습니다.
+
 ## 어떤 게임인가요?
 
 - **전투와 포획:** 필드를 이동하며 몬스터와 싸우고 포획합니다.
