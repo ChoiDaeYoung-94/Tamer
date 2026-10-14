@@ -187,6 +187,22 @@ def bounded_bytes(handle, limit):
     return handle.bytes()
 
 
+def bounded_zip_entry(archive, name, limit):
+    data = bytearray()
+    try:
+        with archive.open(name) as stream:
+            while True:
+                part = stream.read(min(65536, limit + 1 - len(data)))
+                if not part:
+                    return data
+                data.extend(part)
+                if len(data) > limit:
+                    fail()
+    except Exception:
+        clear(data)
+        raise
+
+
 def validate_archive(plaintext, binding):
     """Pure validation, suitable for synthetic fixtures; owns returned bytearrays."""
     if not 0 < len(plaintext) <= PLAIN_LIMIT:
@@ -205,7 +221,11 @@ def validate_archive(plaintext, binding):
                         or stat.S_IFMT(mode) not in (0, stat.S_IFREG)
                         or not 0 < entry.file_size <= (4096 if entry.filename == "manifest.json" else ROLE_LIMIT)):
                     fail()
-            manifest = json_object(archive.read("manifest.json"), 4096)
+            manifest_raw = bounded_zip_entry(archive, "manifest.json", 4096)
+            try:
+                manifest = json_object(manifest_raw, 4096)
+            finally:
+                clear(manifest_raw)
             if set(manifest) != ROLES:
                 fail()
             for role in ROLES:
@@ -215,8 +235,8 @@ def validate_archive(plaintext, binding):
                         or record["bytes"] != archive.getinfo(role).file_size):
                     fail()
                 hash_value(record["sha256"])
-                contents[role] = bytearray(archive.read(role))
-                if sha(contents[role]) != record["sha256"]:
+                contents[role] = bounded_zip_entry(archive, role, ROLE_LIMIT)
+                if len(contents[role]) != record["bytes"] or sha(contents[role]) != record["sha256"]:
                     fail()
         metadata = json_object(contents["recovery-metadata"], ROLE_LIMIT)
         if (metadata.get("applicationId") != APP or metadata.get("alias") != ALIAS
@@ -541,8 +561,15 @@ def recover(plan_path, expected_plan_hash):
                 clear(data)
 
 
+class SafeArgumentParser(argparse.ArgumentParser):
+    def error(self, _message):
+        # Unknown options may contain accidentally supplied secrets. Never echo
+        # argv values in argparse's default "unrecognized arguments" diagnostic.
+        self.exit(2, "Invalid recovery options; use the reviewed plan and local Pinentry only.\n")
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = SafeArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--plan-sha256")
     parser.add_argument("--execute-once", action="store_true")

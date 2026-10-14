@@ -51,6 +51,13 @@ def fixture(metadata_change=None, secret_change=None, extra=None, attr=None, man
 
 
 class V2FormatTests(unittest.TestCase):
+    def test_manifest_decompression_is_bounded(self):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('manifest.json', b'SYNTHETIC' * 1000)
+        with zipfile.ZipFile(io.BytesIO(output.getvalue())) as archive, self.assertRaises(ValueError):
+            recovery.bounded_zip_entry(archive, 'manifest.json', 4096)
+
     def test_exact_historical_six_entries_and_old_dpapi_hash_are_accepted(self):
         raw, binding = fixture()
         contents = recovery.validate_archive(raw, binding)
@@ -101,6 +108,12 @@ class V2FormatTests(unittest.TestCase):
 
 
 class V2ExecutionGates(unittest.TestCase):
+    def test_unknown_password_argument_is_not_echoed(self):
+        errors = io.StringIO()
+        with contextlib.redirect_stderr(errors), self.assertRaises(SystemExit):
+            recovery.main(['--password', 'SYNTHETIC-NEVER-ECHO'])
+        self.assertNotIn('SYNTHETIC-NEVER-ECHO', errors.getvalue())
+
     def test_private_pipe_limits_and_stderr_are_safe_with_fake_children(self):
         class Child:
             pid = 12345
