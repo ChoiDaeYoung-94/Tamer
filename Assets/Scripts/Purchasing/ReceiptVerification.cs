@@ -34,6 +34,12 @@ namespace AD.Purchasing
         Task<bool> VerifyAsync(string receipt, ReceiptSession session, CancellationToken token);
     }
 
+    // Diagnostics contain fixed labels/error enums only, never receipts or identities.
+    public interface IReceiptVerificationDiagnostics
+    {
+        string Diagnostic { get; }
+    }
+
     /// <summary>Account/session changes invalidate late validation before any grant.</summary>
     public static class ReceiptVerification
     {

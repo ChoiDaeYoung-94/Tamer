@@ -11,12 +11,13 @@ using UnityEngine;
 namespace AD
 {
     /// <summary>Explicit test-title adapter. Never changes PlayFab's static settings or credentials.</summary>
-    public sealed class PlayFabIapReceiptVerifier : IReceiptVerifier
+    public sealed class PlayFabIapReceiptVerifier : IReceiptVerifier, IReceiptVerificationDiagnostics
     {
         private readonly string _title;
         private readonly string _package;
         private readonly string _catalog;
         private readonly PlayFabNoAdsVerification _policy;
+        public string Diagnostic { get; private set; } = "NotStarted";
 
         public PlayFabIapReceiptVerifier(string testTitle, string productionTitle, string package, string catalog)
         {
@@ -38,8 +39,46 @@ namespace AD
         [Serializable] private sealed class Payload { public string json; public string signature; }
         [Serializable] private sealed class Purchase { public string packageName; public string productId; }
 
-        public Task<bool> VerifyAsync(string receipt, ReceiptSession session, CancellationToken token)
-            => _policy.VerifyAsync(receipt, session, token);
+        public async Task<bool> VerifyAsync(string receipt, ReceiptSession session, CancellationToken token)
+        {
+            Diagnostic = "Validating";
+            using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(token))
+            {
+                timeout.CancelAfter(TimeSpan.FromSeconds(30));
+                try
+                {
+                    bool verified = await _policy.VerifyAsync(receipt, session, timeout.Token);
+                    if (verified) Diagnostic = "Verified";
+                    else if (Diagnostic == "Validating") Diagnostic = "InvalidSessionOrReceipt";
+                    return verified;
+                }
+                catch (OperationCanceledException)
+                {
+                    Diagnostic = token.IsCancellationRequested ? "Cancelled" : "TimedOut";
+                    return false;
+                }
+                catch (Exception)
+                {
+                    Diagnostic = "VerificationException";
+                    return false;
+                }
+            }
+        }
+
+        private PlayFabReceiptOutcome Reject(string reason)
+        {
+            Diagnostic = reason;
+            return PlayFabReceiptOutcome.Rejected;
+        }
+
+        private void RecordDiagnostic(string reason, CancellationToken token)
+        {
+            // Late SDK callbacks must not overwrite cancellation/timeout diagnostics.
+            if (!token.IsCancellationRequested) Diagnostic = reason;
+        }
+
+        private static string ErrorCode(PlayFabError error) => error == null ? "Unknown" :
+            (Enum.IsDefined(typeof(PlayFabErrorCode), error.Error) ? error.Error.ToString() : "Unknown");
 
         private PlayFabClientInstanceAPI Client(ReceiptSession session) => new PlayFabClientInstanceAPI(
             new PlayFabApiSettings { TitleId = _title }, new PlayFabAuthenticationContext
@@ -64,24 +103,30 @@ namespace AD
             Payload payload;
             try
             {
-                if (raw.Length > 32768) return Task.FromResult(PlayFabReceiptOutcome.Rejected);
+                if (raw.Length > 32768) return Task.FromResult(Reject("ReceiptTooLarge"));
                 var receipt = JsonUtility.FromJson<Receipt>(raw);
-                if (receipt == null || receipt.Store != "GooglePlay") return Task.FromResult(PlayFabReceiptOutcome.Rejected);
+                if (receipt == null || receipt.Store != "GooglePlay") return Task.FromResult(Reject("StoreMismatch"));
                 payload = JsonUtility.FromJson<Payload>(receipt.Payload);
-                if (payload == null || string.IsNullOrEmpty(payload.signature)) return Task.FromResult(PlayFabReceiptOutcome.Rejected);
+                if (payload == null || string.IsNullOrEmpty(payload.signature)) return Task.FromResult(Reject("SignatureMissing"));
                 var purchase = JsonUtility.FromJson<Purchase>(payload.json);
                 if (purchase == null || purchase.packageName != _package || purchase.productId != NoAdsPurchaseFulfillment.ProductId)
-                    return Task.FromResult(PlayFabReceiptOutcome.Rejected);
+                    return Task.FromResult(Reject("PackageOrProductMismatch"));
             }
-            catch (ArgumentException) { return Task.FromResult(PlayFabReceiptOutcome.Rejected); }
+            catch (ArgumentException) { return Task.FromResult(Reject("MalformedReceipt")); }
             var completion = new TaskCompletionSource<PlayFabReceiptOutcome>();
             Client(session).ValidateGooglePlayPurchase(new ValidateGooglePlayPurchaseRequest
             { ReceiptJson = payload.json, Signature = payload.signature, CatalogVersion = _catalog }, result =>
-                completion.TrySetResult(result?.Fulfillments != null && result.Fulfillments.Any(f =>
-                    f?.FulfilledItems != null && f.FulfilledItems.Any(IsNoAds))
-                    ? PlayFabReceiptOutcome.Granted : PlayFabReceiptOutcome.Rejected),
-                error => completion.TrySetResult(error != null && error.Error == PlayFabErrorCode.ReceiptAlreadyUsed
-                    ? PlayFabReceiptOutcome.AlreadyUsed : PlayFabReceiptOutcome.Rejected));
+            {
+                bool granted = result?.Fulfillments != null && result.Fulfillments.Any(f =>
+                    f?.FulfilledItems != null && f.FulfilledItems.Any(IsNoAds));
+                RecordDiagnostic(granted ? "Validated" : "FulfillmentMissing", token);
+                completion.TrySetResult(granted ? PlayFabReceiptOutcome.Granted : PlayFabReceiptOutcome.Rejected);
+            }, error =>
+            {
+                RecordDiagnostic("Validation:" + ErrorCode(error), token);
+                completion.TrySetResult(error != null && error.Error == PlayFabErrorCode.ReceiptAlreadyUsed
+                    ? PlayFabReceiptOutcome.AlreadyUsed : PlayFabReceiptOutcome.Rejected);
+            });
             return Wait(completion.Task, token);
         }
 
@@ -93,9 +138,16 @@ namespace AD
         {
             token.ThrowIfCancellationRequested();
             var completion = new TaskCompletionSource<bool>();
-            Client(session).GetUserInventory(new GetUserInventoryRequest(),
-                result => completion.TrySetResult(result?.Inventory != null && result.Inventory.Any(IsNoAds)),
-                error => completion.TrySetResult(false));
+            Client(session).GetUserInventory(new GetUserInventoryRequest(), result =>
+            {
+                bool owned = result?.Inventory != null && result.Inventory.Any(IsNoAds);
+                RecordDiagnostic(owned ? "InventoryOwned" : "ReceiptAlreadyUsed:NoAdsNotInCurrentInventory", token);
+                completion.TrySetResult(owned);
+            }, error =>
+            {
+                RecordDiagnostic("Inventory:" + ErrorCode(error), token);
+                completion.TrySetResult(false);
+            });
             return Wait(completion.Task, token);
         }
     }

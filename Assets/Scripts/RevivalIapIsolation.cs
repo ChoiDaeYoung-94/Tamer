@@ -56,7 +56,7 @@ namespace AD
         }
         public static IAPManager CreatePurchasing() => new IAPManager(
             new PlayFabIapReceiptVerifier(_configuration.testTitle, _configuration.productionTitle,
-                ApplicationId, _configuration.catalog), () => Session);
+                ApplicationId, _configuration.catalog), () => Session, maxVerificationFailures: 2);
 
         public static RevivalProgressProbe CreateProgressProbe()
         {
