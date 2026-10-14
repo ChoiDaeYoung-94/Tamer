@@ -1,5 +1,7 @@
 # 전체 복구 실행 목록
 
+**현재 상태와 다음 순서는 [최신 복구 현황](current-recovery-status.ko.md)을 확인해 주세요.** 아래 날짜별 기록은 당시 소스·산출물·관측 범위의 이력이며 최신 코드 병합·기기 검증 상태를 대체하지 않습니다.
+
 ## 2026-10-08 가입 UI 7차 중단과 시험 번들 준비 후속
 
 문서 대조 main은 `402b99fb2a95f7642b77f9e197db383b30806f7f`다. 구체적인 사용자 승인 후 단일 CLI로 실행한 가입 UI 7차는 SaveState의 Registry.ToArray에서 IndexedSet.CopyTo ArgumentException으로 중단됐다. VerifyMembership·Camera.Render 이전이므로 실제 캡처 0·PNG 없음이며 가독성을 판정할 수 없다. 설치된 구현은 Count가 활성 prefix 수, CopyTo는 전체 list를 사용하고 GetEnumerator는 미구현이어서 일반 ToArray가 부적절하다. helper 두 곳의 Count+indexer 최소 후보는 읽기 검토만 PASS이며 컴파일·실행은 미검증이다. 원래 v4와 SDK·게임 소스는 변경하지 않았고 8차는 STOP이다.
