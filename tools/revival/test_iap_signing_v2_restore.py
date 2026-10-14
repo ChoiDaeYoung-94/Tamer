@@ -73,7 +73,7 @@ class V2FormatTests(unittest.TestCase):
 
     def test_duplicate_extra_and_non_regular_zip_entries_are_rejected(self):
         for change in (dict(extra="keystore"), dict(extra="../unexpected"),
-                       dict(attr=(stat.S_IFLNK | 0o777) << 16)):
+                       dict(attr=(stat.S_IFLNK | 0o777) << 16), dict(attr=0x400), dict(attr=0x10)):
             with self.subTest(change=tuple(change)):
                 raw, binding = fixture(**change)
                 with self.assertRaises(ValueError):

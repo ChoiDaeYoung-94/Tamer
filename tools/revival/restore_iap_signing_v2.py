@@ -217,7 +217,7 @@ def validate_archive(plaintext, binding):
                 fail()
             for entry in entries:
                 mode = entry.external_attr >> 16
-                if (entry.is_dir() or entry.flag_bits & 1
+                if (entry.is_dir() or entry.flag_bits & 1 or entry.external_attr & (0x10 | 0x400)
                         or stat.S_IFMT(mode) not in (0, stat.S_IFREG)
                         or not 0 < entry.file_size <= (4096 if entry.filename == "manifest.json" else ROLE_LIMIT)):
                     fail()
