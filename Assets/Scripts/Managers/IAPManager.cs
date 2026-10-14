@@ -13,7 +13,7 @@ namespace AD
     {
         NotInitialized, Connecting, LoadingProducts, Ready, Purchasing,
         Restoring, Deferred, WaitingForPersistence, Confirming, Failed, Unavailable,
-        WaitingForVerification
+        WaitingForVerification, VerificationFailed
     }
 
     /// <summary>
@@ -43,19 +43,32 @@ namespace AD
         private readonly Func<ReceiptSession> _receiptSession;
         private readonly HashSet<string> _validating = new HashSet<string>();
         private int _validationGeneration;
+        private readonly int _maxVerificationFailures;
+        private readonly Dictionary<string, int> _verificationFailures = new Dictionary<string, int>();
+        private string _localVerificationDiagnostic;
 
         public IAPManager() { }
 
         // No production URL or secret is embedded. Deployment and test-account
         // setup must be reviewed before the composition root opts into this path.
         public IAPManager(IReceiptVerifier receiptVerifier, Func<ReceiptSession> receiptSession)
+            : this(receiptVerifier, receiptSession, 0) { }
+
+        public IAPManager(IReceiptVerifier receiptVerifier, Func<ReceiptSession> receiptSession,
+            int maxVerificationFailures)
         {
+            if (maxVerificationFailures < 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationFailures));
             _receiptVerifier = receiptVerifier ?? throw new ArgumentNullException(nameof(receiptVerifier));
             _receiptSession = receiptSession ?? throw new ArgumentNullException(nameof(receiptSession));
+            _maxVerificationFailures = maxVerificationFailures;
         }
 
         public string ProductNoAds => NoAdsPurchaseFulfillment.ProductId;
         public IAPStatus Status { get; private set; } = IAPStatus.NotInitialized;
+        public string VerificationDiagnostic => _localVerificationDiagnostic ??
+            (_receiptVerifier as IReceiptVerificationDiagnostics)?.Diagnostic;
+        public bool VerificationRetryStopped => _maxVerificationFailures > 0 &&
+            _verificationFailures.Any(f => f.Value >= _maxVerificationFailures && _unfinished.ContainsKey(f.Key));
         public bool IsReadyToPurchase => !_disposed && _connected && _productsLoaded && _purchasesLoaded;
 
         // Kept for existing ShopMan callers. Initialization is explicit; isolated
@@ -193,6 +206,7 @@ namespace AD
             if (_disposed) return;
             _validationGeneration++;
             _validating.Clear();
+            _verificationFailures.Clear();
             // IAP 5.4 clears its caches before this event. Never use old Product
             // or Order objects for a new authenticated store session.
             _unfinished.Clear();
@@ -348,6 +362,12 @@ namespace AD
 
             if (_receiptVerifier != null)
             {
+                if (_maxVerificationFailures > 0 && _verificationFailures.TryGetValue(key, out int failures) &&
+                    failures >= _maxVerificationFailures)
+                {
+                    SetStatus(IAPStatus.VerificationFailed);
+                    return;
+                }
                 if (_validating.Add(key)) _ = VerifyAndFulfillAsync(key, order, _validationGeneration);
                 return;
             }
@@ -356,37 +376,61 @@ namespace AD
 
         private async Task VerifyAndFulfillAsync(string key, Order order, int generation)
         {
+            _localVerificationDiagnostic = null;
             SetStatus(IAPStatus.WaitingForVerification);
             try
             {
                 var session = _receiptSession();
                 var owner = Managers.Instance != null ? Managers.DataM : null;
                 if (owner == null || session == null || !session.IsValid ||
-                    !owner.IsServerDataReady || owner.PlayFabId != session.AccountId) return;
+                    !owner.IsServerDataReady || owner.PlayFabId != session.AccountId)
+                {
+                    _localVerificationDiagnostic = "SessionOrPersistenceOwnerNotReady";
+                    RecordVerificationFailure(key, generation);
+                    return;
+                }
                 bool verified = await ReceiptVerification.VerifyCurrentAsync(_receiptVerifier,
                     order.Info.Receipt, _receiptSession, _lifetime.Token);
                 if (_disposed || !_connected || generation != _validationGeneration ||
                     !_unfinished.TryGetValue(key, out var current) || !ReferenceEquals(order, current)) return;
                 if (verified)
                 {
+                    _verificationFailures.Remove(key);
                     var fulfillment = new NoAdsPurchaseFulfillment(() => ReceiptVerification.TryPersistCurrent(
                         owner, session, () => Managers.Instance != null ? Managers.DataM : null,
                         _receiptSession, () => owner != null && owner.IsServerDataReady,
                         () => owner.PlayFabId, () => owner.TryGrantNoAds()));
                     FulfillVerified(key, order, fulfillment);
                 }
+                else
+                {
+                    RecordVerificationFailure(key, generation);
+                }
                 // Rejected/unavailable verification never grants or confirms.
-                // Keep the order for the existing bounded retry loop.
+                // Keep the order. Only the isolated test composition caps failures.
             }
             catch (Exception)
             {
                 // A session supplier may be torn down with its owning scene.
                 // Retain the order and never expose account/receipt exception text.
+                _localVerificationDiagnostic = "VerificationException";
+                RecordVerificationFailure(key, generation);
             }
             finally
             {
                 if (generation == _validationGeneration) _validating.Remove(key);
             }
+        }
+
+        private void RecordVerificationFailure(string key, int generation)
+        {
+            if (_disposed || generation != _validationGeneration) return;
+            if (_maxVerificationFailures > 0)
+            {
+                _verificationFailures.TryGetValue(key, out int failures);
+                _verificationFailures[key] = Math.Min(failures + 1, _maxVerificationFailures);
+            }
+            SetStatus(IAPStatus.VerificationFailed);
         }
 
         private void FulfillVerified(string key, Order order, NoAdsPurchaseFulfillment verifiedFulfillment = null)
@@ -490,6 +534,7 @@ namespace AD
             _disposed = true;
             _validationGeneration++;
             _validating.Clear();
+            _verificationFailures.Clear();
             _lifetime.Cancel();
             _lifetime.Dispose();
             if (_store != null)

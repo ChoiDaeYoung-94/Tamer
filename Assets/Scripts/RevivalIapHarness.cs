@@ -27,12 +27,16 @@ public sealed class RevivalIapHarness : MonoBehaviour
         GUILayout.Label(RevivalIapIsolation.Status);
         var iap = Managers.IAPM;
         GUILayout.Label("Store: " + (iap == null ? "Waiting for managers" : iap.Status.ToString()));
+        if (iap != null && !string.IsNullOrEmpty(iap.VerificationDiagnostic))
+            GUILayout.Label("Receipt check: " + iap.VerificationDiagnostic);
+        if (iap != null && iap.VerificationRetryStopped)
+            GUILayout.Label("Receipt retry stopped after two failures. Capture this screen; do not repurchase.");
         GUI.enabled = Managers.DataM != null && RevivalIapIsolation.Session == null;
         if (GUILayout.Button("Log into dedicated test title", GUILayout.Height(65))) RevivalIapIsolation.Login();
         GUI.enabled = iap != null && RevivalIapIsolation.Session != null && Managers.DataM.IsServerDataReady;
         if (GUILayout.Button("Connect store / fetch owned purchases", GUILayout.Height(65))) iap.InitializePurchasing();
         if (GUILayout.Button("Restore purchases", GUILayout.Height(65))) iap.RestorePurchases();
-        GUI.enabled = GUI.enabled && iap.IsReadyToPurchase;
+        GUI.enabled = GUI.enabled && iap.IsReadyToPurchase && iap.Status == IAPStatus.Ready;
         if (GUILayout.Button("Open Google purchase sheet — verify TEST payment", GUILayout.Height(65)))
             iap.BuyProductID(iap.ProductNoAds);
         GUI.enabled = true;

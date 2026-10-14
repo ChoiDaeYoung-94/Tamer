@@ -8,6 +8,16 @@ GooglePlay receipt의 원문 `Payload.json`과 `Payload.signature`를 `Client.Va
 
 No Ads SKU는 `com.aedeong.monstertamer.no_ads`, 상품은 `NonConsumable`을 유지한다. 원격 지급 확인 → 내구성 있는 로컬 저장 → Unity `ConfirmPurchase` 순서를 유지하며 Google consume 호출을 추가하지 않는다. SDK 요청 자체는 취소되지 않으므로 취소 후 원격 검증이 완료될 수 있다. 늦은 결과를 로컬 지급에 쓰지 않고 다음 재시도에서 원격 inventory로 복구한다.
 
+## 검증 실패 진단과 시험 재시도 제한
+
+`WaitingForVerification`은 실제 검증 중에 표시하며 실패하면 `VerificationFailed`로 바뀐다. 시험 화면의 `Receipt check`에는 고정된 진단 라벨 또는 PlayFab 오류 enum만 표시한다. 영수증·구매 토큰·계정 ID·티켓·오류 원문은 표시하지 않는다. `Validation:<오류 코드>`, `Inventory:<오류 코드>`, `ReceiptAlreadyUsed:NoAdsNotInCurrentInventory`, `TimedOut` 등을 구분하되 인벤토리 없음만으로 구매가 다른 특정 계정에 귀속됐다고 단정하지 않는다.
+
+시험 PlayFab 검증은 30초 이내의 응답만 기다린다. 시간 초과/취소 이후 SDK 콜백은 최종 진단을 덮어쓰지 않는다. 원격 요청 자체의 취소나 지급 취소를 뜻하지 않으며, 검증에 실패한 경우 로컬 권한 지급이나 주문 확정을 하지 않는다.
+
+`RevivalIapIsolation`은 `maxVerificationFailures: 2`로 생성한다. 현재 시험 Manager에서 같은 주문이 두 번 실패하면 주문을 보존한 채 자동 검증을 멈추며, 실패 화면을 확보하여 원인을 먼저 진단한다. 연결·복원 버튼으로 실패 횟수를 초기화하지 않는다. 앱을 다시 시작하면 새 Manager가 되므로 원인 확인 전 반복 재실행으로 제한을 우회하지 않는다. 기존 기본 생성자와 2인자 생성자는 실패 횟수 제한이 없는 기존 동작을 유지한다.
+
+이 표시를 넣은 소스와 이미 설치된 시험 앱은 구분한다. 이전 내부 테스트 앱의 `WaitingForVerification`만으로 현재 상세 오류 코드를 읽을 수 없으며, 새 시험 빌드 배포·설치 이후 실제 구매 복원을 확인해야 한다. [진단 문제 추적 #351](https://github.com/ChoiDaeYoung-94/Tamer/issues/351).
+
 PlayFab 테스트 catalog 역시 소비 횟수나 만료 시간을 두지 않는 영구 No Ads 권한으로 설정해야 한다. 신규 테스트 타이틀에 `iap-test-v1` catalog와 기존 No Ads SKU를 영구·비누적·거래 불가·RM99 기준가로 저장했다. 신규 Google 앱의 패키지와 RSA 공개 라이선스 키만으로 Google add-on 설치됨을 확인했다. OAuth/서비스 계정 자격 증명은 추가하지 않았다. 이 설정만으로 실제 구매 검증이 완료된 것은 아니다.
 
 이 경로는 Legacy Economy의 검증/지급/중복 방지를 사용한다. Python staging의 Google productsv2 `TEST` 조건·서버 allowlist·obfuscated account binding 검사와 동일하다고 주장하지 않는다. 서명 전 JSON 필드 비교는 입력 필터이며 신뢰 근거는 PlayFab 검증 응답이다. 실제 타이틀의 Google add-on, catalog, 별도 앱/라이선스 테스터와 실기기 검증이 필요하다.

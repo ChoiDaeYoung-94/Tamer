@@ -10,6 +10,59 @@ using UnityEngine.Purchasing;
 
 public class RevivalIAPOrderTests
 {
+    private sealed class NoNetworkVerifier : IReceiptVerifier
+    {
+        public System.Threading.Tasks.Task<bool> VerifyAsync(string receipt, ReceiptSession session,
+            System.Threading.CancellationToken token) => throw new InvalidOperationException("Unexpected network path");
+    }
+
+    [TestCase(0, 3, false)]
+    [TestCase(2, 2, true)]
+    public void Revival_IAP_TrialFailureCapRetainsOrderAndStopsThirdAttempt(
+        int limit, int expectedSessionReads, bool stopped)
+    {
+        int sessionReads = 0;
+        var manager = Activator.CreateInstance(ManagerType, new object[] {
+            new NoNetworkVerifier(), (Func<ReceiptSession>)(() => { sessionReads++; return null; }), limit });
+        try
+        {
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var pending = new PendingOrder(new Cart(Item()), new FakeOrderInfo());
+            ManagerType.GetMethod("OnPurchasePending", flags).Invoke(manager, new object[] { pending });
+            ManagerType.GetField("_connected", flags).SetValue(manager, true);
+            for (int attempt = 0; attempt < 3; attempt++)
+                ManagerType.GetMethod("RetryPendingPurchases").Invoke(manager, null);
+            Assert.That(sessionReads, Is.EqualTo(expectedSessionReads));
+            Assert.That(ManagerType.GetProperty("VerificationRetryStopped").GetValue(manager), Is.EqualTo(stopped));
+            Assert.That(ManagerType.GetProperty("Status").GetValue(manager).ToString(), Is.EqualTo("VerificationFailed"));
+            Assert.That(ManagerType.GetProperty("VerificationDiagnostic").GetValue(manager),
+                Is.EqualTo("SessionOrPersistenceOwnerNotReady"));
+            var unfinished = (System.Collections.IDictionary)ManagerType.GetField("_unfinished", flags).GetValue(manager);
+            Assert.That(unfinished.Count, Is.EqualTo(1), "A failed receipt must remain recoverable, without grant or confirmation.");
+            if (stopped)
+            {
+                var purchases = new OfflinePurchases();
+                var store = (StoreController)FormatterServices.GetUninitializedObject(typeof(StoreController));
+                typeof(StoreController).GetField("m_PurchaseService", flags).SetValue(store, purchases);
+                ManagerType.GetField("_store", flags).SetValue(manager, store);
+                ManagerType.GetMethod("RestorePurchases").Invoke(manager, null);
+                Assert.That(purchases.Restores, Is.EqualTo(1));
+                Assert.That(ManagerType.GetProperty("Status").GetValue(manager).ToString(), Is.EqualTo("Restoring"));
+                ManagerType.GetMethod("OnPurchasesFetched", flags).Invoke(manager, new object[] {
+                    new Orders(Array.Empty<ConfirmedOrder>(), new[] { pending }, Array.Empty<DeferredOrder>()) });
+                Assert.That(ManagerType.GetProperty("Status").GetValue(manager).ToString(),
+                    Is.EqualTo("VerificationFailed"), "Restore completion must expose the paused verification failure.");
+                Assert.That(sessionReads, Is.EqualTo(2), "Restoring must not bypass the failure limit.");
+                Assert.That(unfinished.Count, Is.EqualTo(1));
+            }
+        }
+        finally
+        {
+            ManagerType.GetField("_store", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(manager, null);
+            ((IDisposable)manager).Dispose();
+        }
+    }
+
     // Drive the real StoreController forwarding methods without initializing a store.
     private sealed class OfflinePurchases : IPurchaseService
     {

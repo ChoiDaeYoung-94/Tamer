@@ -1,10 +1,41 @@
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using AD.Purchasing;
 using NUnit.Framework;
 
 public class RevivalPlayFabReceiptTests
 {
+    [Test]
+    public async Task Revival_PlayFab_MalformedReceiptDiagnosticContainsNoPayloadOrAccount()
+    {
+        var type = System.AppDomain.CurrentDomain.GetAssemblies()
+            .Select(a => a.GetType("AD.PlayFabIapReceiptVerifier")).First(t => t != null);
+        var verifier = (IReceiptVerifier)System.Activator.CreateInstance(type,
+            "ABC123", "DEF456", "com.synthetic.game.iaptest", "test-catalog");
+        Assert.That(await verifier.VerifyAsync("not-json-private-payload",
+            new ReceiptSession("private-account", "private-ticket"), CancellationToken.None), Is.False);
+        Assert.That(((IReceiptVerificationDiagnostics)verifier).Diagnostic, Is.EqualTo("MalformedReceipt"));
+    }
+
+    [Test]
+    public void Revival_PlayFab_CancelledCallbackCannotOverwriteTimeoutDiagnostic()
+    {
+        var type = System.AppDomain.CurrentDomain.GetAssemblies()
+            .Select(a => a.GetType("AD.PlayFabIapReceiptVerifier")).First(t => t != null);
+        var verifier = (IReceiptVerifier)System.Activator.CreateInstance(type,
+            "ABC123", "DEF456", "com.synthetic.game.iaptest", "test-catalog");
+        var record = type.GetMethod("RecordDiagnostic", System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic);
+        using (var source = new CancellationTokenSource())
+        {
+            record.Invoke(verifier, new object[] { "TimedOut", source.Token });
+            source.Cancel();
+            record.Invoke(verifier, new object[] { "Validated", source.Token });
+            Assert.That(((IReceiptVerificationDiagnostics)verifier).Diagnostic, Is.EqualTo("TimedOut"));
+        }
+    }
+
     [TestCase(PlayFabReceiptOutcome.Granted, false, true, 0)]
     [TestCase(PlayFabReceiptOutcome.Rejected, true, false, 0)]
     [TestCase(PlayFabReceiptOutcome.AlreadyUsed, false, false, 1)]
