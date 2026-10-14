@@ -39,8 +39,28 @@ public class RevivalIAPOrderTests
                 Is.EqualTo("SessionOrPersistenceOwnerNotReady"));
             var unfinished = (System.Collections.IDictionary)ManagerType.GetField("_unfinished", flags).GetValue(manager);
             Assert.That(unfinished.Count, Is.EqualTo(1), "A failed receipt must remain recoverable, without grant or confirmation.");
+            if (stopped)
+            {
+                var purchases = new OfflinePurchases();
+                var store = (StoreController)FormatterServices.GetUninitializedObject(typeof(StoreController));
+                typeof(StoreController).GetField("m_PurchaseService", flags).SetValue(store, purchases);
+                ManagerType.GetField("_store", flags).SetValue(manager, store);
+                ManagerType.GetMethod("RestorePurchases").Invoke(manager, null);
+                Assert.That(purchases.Restores, Is.EqualTo(1));
+                Assert.That(ManagerType.GetProperty("Status").GetValue(manager).ToString(), Is.EqualTo("Restoring"));
+                ManagerType.GetMethod("OnPurchasesFetched", flags).Invoke(manager, new object[] {
+                    new Orders(Array.Empty<ConfirmedOrder>(), new[] { pending }, Array.Empty<DeferredOrder>()) });
+                Assert.That(ManagerType.GetProperty("Status").GetValue(manager).ToString(),
+                    Is.EqualTo("VerificationFailed"), "Restore completion must expose the paused verification failure.");
+                Assert.That(sessionReads, Is.EqualTo(2), "Restoring must not bypass the failure limit.");
+                Assert.That(unfinished.Count, Is.EqualTo(1));
+            }
         }
-        finally { ((IDisposable)manager).Dispose(); }
+        finally
+        {
+            ManagerType.GetField("_store", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(manager, null);
+            ((IDisposable)manager).Dispose();
+        }
     }
 
     // Drive the real StoreController forwarding methods without initializing a store.

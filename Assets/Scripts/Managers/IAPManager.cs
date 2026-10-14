@@ -363,7 +363,11 @@ namespace AD
             if (_receiptVerifier != null)
             {
                 if (_maxVerificationFailures > 0 && _verificationFailures.TryGetValue(key, out int failures) &&
-                    failures >= _maxVerificationFailures) return;
+                    failures >= _maxVerificationFailures)
+                {
+                    SetStatus(IAPStatus.VerificationFailed);
+                    return;
+                }
                 if (_validating.Add(key)) _ = VerifyAndFulfillAsync(key, order, _validationGeneration);
                 return;
             }
