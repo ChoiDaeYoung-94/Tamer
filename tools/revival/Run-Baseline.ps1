@@ -1,7 +1,9 @@
 param(
     [string]$ProjectPath = (Resolve-Path "$PSScriptRoot\..\..").Path,
     [string]$EditorPath = 'C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe',
-    [switch]$TestsOnly
+    [switch]$TestsOnly,
+    [ValidateNotNullOrEmpty()]
+    [string]$PythonPath = 'python'
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\ProjectSettingsSnapshot.ps1"
@@ -16,7 +18,7 @@ if ($running) { throw 'Close this project Editor before batch validation.' }
 Push-Location $ProjectPath
 $settingsSnapshot = $null
 try {
-    python tools/revival/restore_assets.py --verify
+    & $PythonPath tools/revival/restore_assets.py --verify
     if ($LASTEXITCODE -ne 0) { throw 'Asset verification failed.' }
     $logDir = Join-Path $ProjectPath 'Logs\revival'
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -31,7 +33,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Android build failed (exit $LASTEXITCODE)." }
         if (!(Test-Path -LiteralPath 'Build/revival/Tamer-development.apk')) { throw 'Build returned no APK.' }
         $androidPlayer = Join-Path (Split-Path -Parent $EditorPath) 'Data\PlaybackEngines\AndroidPlayer'
-        python tools/revival/verify_apk.py --android-player $androidPlayer
+        & $PythonPath tools/revival/verify_apk.py --android-player $androidPlayer
         if ($LASTEXITCODE -ne 0) { throw 'APK metadata or signature verification failed.' }
     }
 } finally {
