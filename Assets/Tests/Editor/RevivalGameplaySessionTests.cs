@@ -291,6 +291,35 @@ public class RevivalGameplaySessionTests
     }
 
     [Test]
+    public void Revival_AllyShop_ReplacementPlayerCannotUsePreviousPlayersConfirmation()
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureAllyShop();
+            var intent = Call(f.Player, "PrepareAllyPurchase", "Bat", 10);
+            string original = File.ReadAllText(f.SavePath);
+            var replacement = f.Managers.gameObject.AddComponent(Runtime("Player"));
+            Set(replacement, "_gameplayData", f.Data);
+            Set(replacement, "_inventoryOwner", "A");
+            Set(replacement, "_inventoryGeneration", 1);
+            Set(replacement, "_gold", 100);
+            Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, replacement);
+            int screens = 0, presentations = 0;
+
+            Assert.That(Call(replacement, "TryPurchaseAlly", intent, (Action)(() => screens++),
+                (Action<string>)(_ => presentations++)), Is.False);
+            Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(original));
+            Assert.That(f.Stored()["Gold"], Is.EqualTo("100"));
+            Assert.That(f.Stored()["AllyMonsters"], Is.EqualTo("null"));
+            Assert.That(Get(replacement, "_gold"), Is.EqualTo(100));
+            Assert.That(f.Data.GetType().GetProperty("IsServerDataReady").GetValue(f.Data), Is.True);
+            Assert.That(screens, Is.Zero);
+            Assert.That(presentations, Is.Zero);
+            Assert.That(f.Uploads, Is.Empty);
+        }
+    }
+
+    [Test]
     public void Revival_AllyShop_ReplacementManagerRejectsOldConfirmationAndLatePresentation()
     {
         using (var f = new Fixture())
