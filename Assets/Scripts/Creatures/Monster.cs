@@ -31,6 +31,7 @@ public class Monster : Creature
     private bool _isAlly = false;
     private GameObject _allyTarget;
     private Creature _allyTargetCreature;
+    private int _targetMonsterLifetime = -1;
     private bool _isTarget = false;
     private float _detectionRadius = 5.0f;
     private bool _isDetection = false;
@@ -458,16 +459,15 @@ public class Monster : Creature
 
         AfterSetTarget();
 
-        Creature targetCreature = go.GetComponent<Creature>();
+        BindCombatTarget(go.GetComponent<Creature>());
+    }
+
+    private void BindCombatTarget(Creature targetCreature)
+    {
+        _targetMonsterLifetime = targetCreature is Monster monsterTarget ? monsterTarget.SessionLifetime : -1;
         if (IsCommander)
         {
             _commanderTargetCreature = targetCreature;
-            foreach (Monster monster in MonsterGroupList)
-            {
-                if (monster.isDie || monster.NavMeshAgent.isStopped)
-                    continue;
-                BattleMove(monster, go.transform.position);
-            }
         }
         else if (!IsCommander && !_isAlly)
         {
@@ -476,6 +476,15 @@ public class Monster : Creature
         else if (_isAlly)
         {
             _allyTargetCreature = targetCreature;
+        }
+        if (!CombatTargetCurrent(targetCreature)) { ResetTarget(); return; }
+        if (IsCommander)
+        {
+            foreach (Monster monster in MonsterGroupList)
+            {
+                if (monster.isDie || monster.NavMeshAgent.isStopped) continue;
+                BattleMove(monster, targetCreature.transform.position);
+            }
         }
     }
 
@@ -519,11 +528,11 @@ public class Monster : Creature
 
     private void ResetTarget()
     {
-        if (!_isTarget || !NavMeshAgent.isOnNavMesh)
-            return;
-
+        bool hadTarget = _isTarget || CombatTarget() != null;
         _isTarget = false;
         RemoveTarget();
+        // A disabled agent must not prevent retiring an old target reference.
+        if (!hadTarget || NavMeshAgent == null || !NavMeshAgent.isActiveAndEnabled || !NavMeshAgent.isOnNavMesh) return;
         State = CreatureState.Idle;
         NavMeshAgent.isStopped = false;
     }
@@ -536,6 +545,19 @@ public class Monster : Creature
         _followerTargetCreature = null;
         _allyTarget = null;
         _allyTargetCreature = null;
+        _targetMonsterLifetime = -1;
+    }
+
+    private Creature CombatTarget() => IsCommander ? _commanderTargetCreature :
+        _isAlly ? _allyTargetCreature : _followerTargetCreature;
+
+    private bool CombatTargetCurrent(Creature target)
+    {
+        if (target == null || !target.isActiveAndEnabled || target.Hp <= 0 ||
+            target.gameObject.layer != (_isAlly ? enemyLayer : allyLayer)) return false;
+        if (target is Monster monster)
+            return !monster.isDie && monster.IsCurrentSession(_targetMonsterLifetime);
+        return target is Player player && player.IsCurrentCombatSession();
     }
 
     #endregion
@@ -546,15 +568,9 @@ public class Monster : Creature
     {
         while (!isDie && !token.IsCancellationRequested)
         {
-            Creature target = null;
-            if (IsCommander)
-                target = _commanderTargetCreature;
-            else if (_isAlly)
-                target = _allyTargetCreature;
-            else
-                target = _followerTargetCreature;
+            Creature target = CombatTarget();
 
-            if (target != null && (!target.gameObject.activeSelf || target.gameObject.layer == dieLayer))
+            if ((_isTarget || target != null) && !CombatTargetCurrent(target))
             {
                 ResetTarget();
             }
@@ -608,15 +624,9 @@ public class Monster : Creature
         if (isDie || !IsCurrentSession(SessionLifetime))
             return;
 
-        Creature target = null;
-        if (IsCommander && _commanderTarget != null)
-            target = _commanderTargetCreature;
-        else if (!IsCommander && _followerTarget != null)
-            target = _followerTargetCreature;
-        else if (_isAlly && _allyTarget != null)
-            target = _allyTargetCreature;
-
-        target?.GetDamage(Power);
+        Creature target = CombatTarget();
+        if (!CombatTargetCurrent(target)) { ResetTarget(); return; }
+        target.GetDamage(Power);
     }
 
     public void DelegateCommander(List<Monster> monsters)
