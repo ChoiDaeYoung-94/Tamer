@@ -312,6 +312,163 @@ public class Player : Creature
         AddAllyMonster(monster);
     }
 
+    internal AD.DataManager.AllyPurchaseIntent PrepareAllyPurchase(string name, int price)
+    {
+        return AllyPurchasePlayerCurrent() ? _gameplayData.PrepareAllyPurchase(name, price) : null;
+    }
+
+    private bool AllyPurchasePlayerCurrent() => ReferenceEquals(_instance, this) && GameplaySessionCurrent();
+
+    internal AD.DataManager.EquipmentPurchaseIntent PrepareEquipmentPurchase(string item, int price)
+    {
+        if (!AllyPurchasePlayerCurrent()) return null;
+        // Parse/model checks precede the spend; no numerical or scene effects here.
+        var intent = _gameplayData.PrepareEquipmentPurchase(item, price);
+        if (intent == null) return null;
+        var slots = new Dictionary<string, string>(_gameplayData.ReadInventory().Equipped) { [intent.Slot] = item };
+        var nextItems = new[] { slots["Sword"], slots["Shield"] }.Where(n => n != null).ToList();
+        foreach (var name in PlayerEquippedItems.Concat(nextItems).Distinct(StringComparer.Ordinal))
+        {
+            ReadEquipmentStats(name);
+            if (!AD.Managers.EquipmentM.EquipmentMapping.TryGetValue(name, out var model) || model == null)
+                return null;
+        }
+        EquipmentStatProjection(nextItems);
+        return intent;
+    }
+
+    internal AD.EquipmentPurchaseResult TryPurchaseEquipment(AD.DataManager.EquipmentPurchaseIntent intent,
+        Action afterCommit, Action<AD.PlayerInventorySnapshot> present = null)
+    {
+        if (!AllyPurchasePlayerCurrent()) return AD.EquipmentPurchaseResult.Rejected;
+        var owner = _gameplayData;
+        var result = owner.TryCommitEquipmentPurchase(intent, _gold, () => AllyPurchasePlayerCurrent());
+        if (result != AD.EquipmentPurchaseResult.Completed) return result; // Includes durable-but-unfinished duplicate.
+        try
+        {
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Equipment owner changed.");
+            var snapshot = owner.ReadInventory();
+            _gold = int.Parse(owner.LocalPlayerData[GOLD_KEY], NumberStyles.Integer, CultureInfo.InvariantCulture);
+            if (present != null) present(snapshot);
+            else ApplyPurchasedEquipment(snapshot);
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Equipment owner changed.");
+            afterCommit?.Invoke();
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Equipment owner changed.");
+            owner.UpdatePlayerData();
+            return result;
+        }
+        catch (Exception)
+        {
+            owner.StopEquipmentPresentation(intent);
+            Debug.LogWarning("[Tamer/Player] Equipment data preserved; sign in again to restore its presentation.");
+            return AD.EquipmentPurchaseResult.RecoveryRequired;
+        }
+    }
+
+    private float[] ReadEquipmentStats(string item)
+    {
+        var data = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
+        var result = new float[4];
+        string[] keys = { "Hp", "Power", "AttackSpeed", "MoveSpeed" };
+        for (int i = 0; i < keys.Length; i++)
+            if (data == null || !data.TryGetValue(keys[i], out var value) ||
+                !float.TryParse(value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result[i]) ||
+                float.IsNaN(result[i]) || float.IsInfinity(result[i]))
+                throw new InvalidOperationException("Equipment statistics are unavailable.");
+        return result;
+    }
+
+    private float[] EquipmentStatProjection(IEnumerable<string> nextItems)
+    {
+        var previous = new HashSet<string>(PlayerEquippedItems, StringComparer.Ordinal);
+        var next = new HashSet<string>(nextItems, StringComparer.Ordinal);
+        float[] delta = new float[4];
+        foreach (var item in previous.Except(next))
+        { var stats = ReadEquipmentStats(item); for (int i = 0; i < 4; i++) delta[i] -= stats[i]; }
+        foreach (var item in next.Except(previous))
+        { var stats = ReadEquipmentStats(item); for (int i = 0; i < 4; i++) delta[i] += stats[i]; }
+        float hp = _hp + delta[0], power = _power + delta[1], attack = _attackSpeed + delta[2], move = _moveSpeed + delta[3];
+        if (new[] { hp, power, attack, move }.Any(v => float.IsNaN(v) || float.IsInfinity(v)))
+            throw new InvalidOperationException("Equipment statistics exceed their supported range.");
+        return new[] { hp, power, attack, move };
+    }
+
+    // No disk writes. Commit the numerical/list projection before invoking model/HUD callbacks.
+    private void ApplyPurchasedEquipment(AD.PlayerInventorySnapshot snapshot)
+    {
+        var nextItems = new[] { snapshot.Equipped["Sword"], snapshot.Equipped["Shield"] }.Where(n => n != null).ToList();
+        var previous = new HashSet<string>(PlayerEquippedItems, StringComparer.Ordinal);
+        var next = new HashSet<string>(nextItems, StringComparer.Ordinal);
+        var stats = EquipmentStatProjection(nextItems);
+        string text = string.Join(",", nextItems);
+        if (!previous.SetEquals(next))
+        { _hp = _itemAdditionalHp = stats[0]; _power = stats[1]; _attackSpeed = stats[2]; _moveSpeed = stats[3]; }
+        PlayerEquippedItems = nextItems; EquippedItems = text;
+        foreach (var model in AD.Managers.EquipmentM.EquipmentMapping)
+        {
+            if (model.Value == null)
+            {
+                if (next.Contains(model.Key) || previous.Contains(model.Key)) throw new InvalidOperationException("Equipment model is unavailable.");
+                continue;
+            }
+            model.Value.SetActive(next.Contains(model.Key));
+        }
+    }
+
+    // Presentation is deliberately downstream of the one-file Gold/roster commit.
+    // The delegate permits isolated scene tests without a live pool or HUD.
+    internal bool TryPurchaseAlly(AD.DataManager.AllyPurchaseIntent purchase, Action afterCommit,
+        Action<string> presentAlly = null)
+    {
+        if (!AllyPurchasePlayerCurrent()) return false;
+        var owner = _gameplayData;
+        if (!owner.TryCommitAllyPurchase(purchase, _gold, () => AllyPurchasePlayerCurrent())) return false;
+        try
+        {
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            _gold = int.Parse(owner.LocalPlayerData[GOLD_KEY], NumberStyles.Integer, CultureInfo.InvariantCulture);
+            if (presentAlly != null) presentAlly(purchase.MonsterName);
+            else PresentPurchasedAlly(purchase.MonsterName);
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            afterCommit?.Invoke();
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            owner.UpdatePlayerData();
+            return true;
+        }
+        catch (Exception)
+        {
+            // Includes pool, popup and HUD failures. Never run MinusGold/AddAllyMonster again,
+            // and never allow the periodic save to publish an old Player cache over the commit.
+            owner.StopAllyPurchaseSession(purchase);
+            Debug.LogWarning("[Tamer/Player] Purchase data saved; sign in again to restore its presentation.");
+            return false;
+        }
+    }
+
+    private void PresentPurchasedAlly(string name)
+    {
+        Monster monster = null;
+        GameObject pooled = null;
+        try
+        {
+            pooled = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM.RootPlayer);
+            monster = pooled.GetComponent<Monster>();
+            if (monster == null) throw new InvalidOperationException("Purchased ally is unavailable.");
+            monster.AllySetting(playerPosition: transform.position, setting: true);
+            if (!AllyPurchasePlayerCurrent() || !monster.IsCurrentSession(monster.SessionLifetime))
+                throw new InvalidOperationException("Purchased ally session changed.");
+            // The CSV is already durable. AddAllyMonster would append and save it a second time.
+            _allyMonsters.Add(monster);
+            _isAllyAvailable = true;
+        }
+        catch
+        {
+            if (monster != null) monster.RetireSession();
+            else if (pooled != null) AD.Managers.PoolM.PushToPool(pooled);
+            throw;
+        }
+    }
+
     public void MoveSound() => PlaySFX(AD.Managers.SoundM.SFXWalkClip);
 
     /// <summary>

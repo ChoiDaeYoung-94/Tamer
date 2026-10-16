@@ -82,7 +82,7 @@ namespace AD
         private UnityEngine.UI.Button _signupConfirmButton;
 
         private bool LoginCurrent() => _loginCaptured && _dataOwner != null
-            && ReferenceEquals(_dataOwner, AD.Managers.DataM) && !_dataOwner.DeletionInProgress
+            && ReferenceEquals(_dataOwner, AD.Managers.DataM) && !_dataOwner.ReceiptOnly && !_dataOwner.DeletionInProgress
             && _loginGeneration == _dataOwner.AccountGeneration
             && _loginDeletionEpoch == _dataOwner.DeletionEpoch;
 
@@ -97,12 +97,12 @@ namespace AD
 
         #region Unity Lifecycle
 
-        private void Awake()
+        private bool _nativeGoogleActivated;
+        private void ActivateNativeGoogle()
         {
-#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
-            return;
-#endif
 #if UNITY_ANDROID && !UNITY_EDITOR
+            if (_nativeGoogleActivated) return;
+            _nativeGoogleActivated = true;
             try
             {
                 PlayGamesPlatform.DebugLogEnabled = false;
@@ -127,6 +127,7 @@ namespace AD
             if (DeletionReceiptBootstrap.TryOpen(transform, _loadingText != null ? _loadingText.font : null, () =>
             {
                 _receiptRecoverySignIn = true;
+                if (_dataOwner != null && _dataOwner.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
                 if (_loading != null) _loading.SetActive(false);
                 if (_retry != null) _retry.SetActive(true);
                 if (_retryText != null) _retryText.text = "Receipt checking has stopped. Sign in explicitly to an existing account to check its request. No new account will be created.";
@@ -137,12 +138,26 @@ namespace AD
                 if (_retry != null) _retry.SetActive(false);
                 return;
             }
+            if (_dataOwner == null || _dataOwner.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
             if (PlayerPrefs.GetInt(AD.DataManager.DeletionLoginPauseKey, 0) != 0)
             {
                 ShowRetry("Deletion request accepted. Sign in explicitly to continue.");
                 return;
             }
             StartLogin();
+        }
+
+        private void ShowReceiptOnlyBlocked()
+        {
+            _receiptRecoverySignIn = true;
+            _googleSignup.Revoke(); _signupCandidateIdentity = null;
+            if (_loading != null) _loading.SetActive(true); // Keep the existing status text visible; this panel has no sign-in action.
+            if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
+            if (_signupPanel != null) _signupPanel.SetActive(false);
+            if (_retry != null) _retry.SetActive(false);
+            const string message = "Game data needs recovery. Only an existing deletion receipt can be checked. Restart after local handling; no sign-in or new account will be started.";
+            if (_loadingText != null) _loadingText.text = message;
+            if (_retryText != null) _retryText.text = message;
         }
 
         private void OnDestroy()
@@ -162,10 +177,12 @@ namespace AD
         private void StartLogin()
         {
             if (_accountDeleted) return;
+            if (AD.Managers.DataM == null || AD.Managers.DataM.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
             if (AD.Managers.DataM != null && AD.Managers.DataM.DeletionInProgress) return;
 #if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
             return;
 #endif
+            ActivateNativeGoogle();
             if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginLogin())
             {
                 LogStep("이미 로그인 진행 중 -> 중복 요청 무시");
@@ -185,6 +202,7 @@ namespace AD
         public void RetryConnection()
         {
             if (_accountDeleted) return;
+            if (AD.Managers.DataM == null || AD.Managers.DataM.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
             if (_dataOwner != null && _dataOwner.DeletionInProgress)
             {
                 ShowDeletionRecovery();
