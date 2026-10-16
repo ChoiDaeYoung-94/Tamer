@@ -1,5 +1,25 @@
 # 저장소 접근 권한과 병합 운영
 
+## 2026-10-16 읽기 전용 재점검
+
+main `63fae4f5c549805775c38a3ec3bb6d71954c886a` 기준으로 인증된 관리자 REST API에서 현재 설정을 다시 읽었습니다. 소스 검증 전 통합 후보는 별도 Draft PR #369이며, 이 점검은 코드 실행이나 보호 설정 변경이 아닙니다.
+
+| 현재 확인 항목 | 관측 결과 |
+| --- | --- |
+| 공개 범위·기본 브랜치 | 개인 소유 public, main. 공개 열람·clone·fork 유지 |
+| 협업자·초대 | 소유자 admin 1명, 다른 협업자 0명, 대기 초대 0개 |
+| 별도 저장소 접근 | deploy key 0개(쓰기 키 포함), webhook 0개, self-hosted runner 0개 |
+| main 보호 | 규칙 22866324 active, PR 필수, 강제 push·삭제 금지, bypass actor 없음 |
+| 1인 병합 | 필수 타인 승인 0명, 리뷰 대화 해결 필요. 별도 쓰기 권한 없는 방문자에게 병합 권한을 부여하는 설정이 아님 |
+| Actions | 저장소 실행 disabled, 기본 workflow token read, Actions의 PR 승인 불가, 외부 기여자 실행 승인 all_external_contributors |
+| 완료 브랜치 | 저장소 delete_branch_on_merge=true. 미병합·사용 중인 로컬 작업본의 자동 삭제를 뜻하지 않음 |
+
+조회한 목록에는 다음 페이지가 없었고 runner total_count도 0입니다. 초대·키·규칙·CI 설정은 변경하지 않았으며 시험용 push·삭제·dispatch·배포로 권한을 검증하지 않았습니다. 저장된 키·비밀 원문도 조회하거나 기록하지 않았습니다.
+
+**남은 범위:** 계정 단위 설치 GitHub Apps·OAuth·PAT의 현재 필요성과 저장소 범위는 이번 저장소 API 조회로 재확인하지 못했습니다. 과거 계정 화면 관측을 현재의 모든 자격증명 최소 권한 증명으로 사용하지 않습니다. 관련 [#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)는 이 범위와 남은 서명 후속을 유지하며 종료하지 않습니다. CI/CD 보류와 기존 App Center 구성 보존도 유지합니다.
+
+## 2026-09-11 최초 감사 이력
+
 점검일: 2026-09-11. 관련: [로드맵 #90](https://github.com/ChoiDaeYoung-94/Tamer/issues/90),
 [권한 감사 #94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94).
 공개 가능한 설정과 검증 요약은 [설정 기록](access-security-settings.json)에 있다.
