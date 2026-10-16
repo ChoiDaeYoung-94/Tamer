@@ -57,6 +57,34 @@ public class Player : Creature
     private int _inventoryGeneration = -1;
     private string _targetInventoryOwner;
     private int _targetInventoryGeneration = -1;
+    private int _targetMonsterLifetime = -1;
+
+    internal bool IsCurrentCombatSession() => ReferenceEquals(_instance, this) &&
+        !isDie && GameplaySessionCurrent();
+
+    private bool CombatTargetCurrent() => _curTargetMonsterObject != null && _curTargetMonster != null &&
+        _curTargetMonster.gameObject == _curTargetMonsterObject && _curTargetMonster.isActiveAndEnabled &&
+        _curTargetMonster.Hp > 0 && _curTargetMonster.gameObject.layer == enemyLayer &&
+        _curTargetMonster.IsCurrentSession(_targetMonsterLifetime);
+
+    // Keep the selected corpse until its death callback records the collection entry.
+    private bool WaitingForTargetDeath() => _curTargetMonsterObject != null && _curTargetMonster != null &&
+        _curTargetMonster.isActiveAndEnabled && _curTargetMonster.Hp <= 0 &&
+        _curTargetMonster.gameObject.layer == dieLayer && _curTargetMonster.IsCurrentSession(_targetMonsterLifetime);
+
+    private void ClearCombatTarget()
+    {
+        _curTargetMonsterObject = null; _curTargetMonster = null;
+        _targetInventoryOwner = null; _targetInventoryGeneration = -1; _targetMonsterLifetime = -1;
+    }
+
+    private void SetCombatTarget(Monster target)
+    {
+        _curTargetMonster = target;
+        _curTargetMonsterObject = target != null ? target.gameObject : null;
+        _targetMonsterLifetime = target != null ? target.SessionLifetime : -1;
+        _targetInventoryOwner = _inventoryOwner; _targetInventoryGeneration = _inventoryGeneration;
+    }
 
     private const string PLAYER_MONSTERS_KEY = "AllyMonsters";
     private const string PLAYER_EQUIPPED_ITEMS_KEY = "playerEquippedItems";
@@ -224,6 +252,11 @@ public class Player : Creature
     protected override void AttackTarget()
     {
         if (isDie || !GameplaySessionCurrent()) return;
+        if (!CombatTargetCurrent())
+        {
+            if (!WaitingForTargetDeath()) ClearCombatTarget();
+            return;
+        }
         if (_curTargetMonsterObject != null)
         {
             float power = IsBuffing ? BuffPower : Power;
@@ -268,9 +301,15 @@ public class Player : Creature
         {
             if (_curTargetMonsterObject != null)
             {
-                float distance = Vector3.Distance(transform.position, _curTargetMonsterObject.transform.position);
-                if (distance > _curTargetMonster.FlockingRadius + 0.3f)
-                    _curTargetMonsterObject = null;
+                if (!CombatTargetCurrent())
+                {
+                    if (!WaitingForTargetDeath()) ClearCombatTarget();
+                }
+                else
+                {
+                    float distance = Vector3.Distance(transform.position, _curTargetMonsterObject.transform.position);
+                    if (distance > _curTargetMonster.FlockingRadius + 0.3f) ClearCombatTarget();
+                }
             }
             await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken: token);
         }
@@ -497,8 +536,7 @@ public class Player : Creature
             if (monster != null) monster.RetireSession();
         _allyMonsters.Clear(); _isAllyAvailable = false;
         _gold = 0;
-        _curTargetMonsterObject = null; _curTargetMonster = null;
-        _targetInventoryOwner = null; _targetInventoryGeneration = -1;
+        ClearCombatTarget();
         ClearCaptureTarget();
         foreach (var item in PlayerEquippedItems)
         {
@@ -609,10 +647,10 @@ public class Player : Creature
     {
         if (target == null || target != _curTargetMonsterObject || _curTargetMonster == null ||
             _targetInventoryOwner == null || _targetInventoryOwner != _inventoryOwner ||
-            _targetInventoryGeneration != _inventoryGeneration) return;
+            _targetInventoryGeneration != _inventoryGeneration || !_curTargetMonster.IsCurrentSession(_targetMonsterLifetime)) return;
         _monsterCollection = SavePrefs(PlayerMonsterCollection, _monsterCollection,
             _curTargetMonster.CreatureType.ToString(), PLAYER_MONSTERS_KEY);
-        _curTargetMonsterObject = null; _curTargetMonster = null;
+        ClearCombatTarget();
     }
 
     /// <summary>
@@ -650,10 +688,7 @@ public class Player : Creature
         {
             if (_curTargetMonsterObject == null)
             {
-                _curTargetMonsterObject = col.gameObject;
-                _curTargetMonster = _curTargetMonsterObject.GetComponent<Monster>();
-                _targetInventoryOwner = _inventoryOwner;
-                _targetInventoryGeneration = _inventoryGeneration;
+                SetCombatTarget(col.GetComponent<Monster>());
             }
         }
     }

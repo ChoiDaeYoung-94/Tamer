@@ -23,6 +23,9 @@ namespace AD
             public readonly DataManager Data;
             public readonly ServerManager Server;
             public readonly SoundManager Sound;
+            private readonly string _account;
+            private readonly int _generation, _deletionEpoch;
+            private readonly bool _requiresReady;
 
             public SceneServices(Managers owner)
             {
@@ -31,12 +34,20 @@ namespace AD
                 Data = Managers.DataM;
                 Server = Managers.ServerM;
                 Sound = Managers.SoundM;
+                if (Data != null)
+                {
+                    _account = Data.PlayFabId; _generation = Data.AccountGeneration; _deletionEpoch = Data.DeletionEpoch;
+                    // Initial hydration may start unready; an established gameplay session may not become unready.
+                    _requiresReady = Data.IsServerDataReady;
+                }
             }
 
             public bool IsCurrent => _owner != null && Managers.Instance == _owner &&
                 Data != null && Sound != null && Server != null &&
                 ReferenceEquals(Managers.DataM, Data) && ReferenceEquals(Managers.ServerM, Server) &&
-                ReferenceEquals(Managers.SoundM, Sound);
+                ReferenceEquals(Managers.SoundM, Sound) && Data.PlayFabId == _account &&
+                Data.AccountGeneration == _generation && Data.DeletionEpoch == _deletionEpoch &&
+                !Data.DeletionInProgress && (!_requiresReady || Data.IsServerDataReady);
         }
 
         public void NextScene(AD.GameConstants.Scene scene)
