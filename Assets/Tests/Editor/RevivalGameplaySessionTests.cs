@@ -280,6 +280,25 @@ public class RevivalGameplaySessionTests
     }
 
     [Test]
+    public void Revival_CurrentPlayerTargetStillTakesNormalDamage()
+    {
+        using (var f = new Fixture())
+        {
+            var target = f.CombatMonster(false);
+            Set(f.Player, "enemyLayer", LayerMask.NameToLayer("Enemy"));
+            Set(f.Player, "_power", 10f);
+            // Keep the real target faction while avoiding unrelated damage-popup services.
+            Set(target, "enemyLayer", LayerMask.NameToLayer("Die"));
+            Call(f.Player, "SetCombatTarget", target);
+
+            Call(f.Player, "AttackTarget");
+
+            Assert.That(Get(target, "_hp"), Is.EqualTo(90f));
+            Assert.That(Get(f.Player, "_curTargetMonster"), Is.SameAs(target));
+        }
+    }
+
+    [Test]
     public void Revival_SelectedCorpseRemainsAvailableForItsCollectionCallback()
     {
         using (var f = new Fixture())
@@ -293,6 +312,18 @@ public class RevivalGameplaySessionTests
             Call(f.Player, "AttackTarget");
             Assert.That(Get(f.Player, "_curTargetMonster"), Is.SameAs(target));
             Assert.That(Get(target, "_hp"), Is.Zero);
+            Set(f.Data, "_inventorySession", new string('a', 32));
+            int lifetime = (int)target.GetType().GetProperty("SessionLifetime").GetValue(target);
+
+            Call(f.Player, "NotifyPlayerOfDeath", target.gameObject, 0, lifetime);
+
+            Assert.That((IEnumerable)Get(f.Player, "PlayerMonsterCollection"), Is.EqualTo(new[] { "Bat" }));
+            var snapshot = Call(f.Data, "ReadInventory");
+            Assert.That((IEnumerable)snapshot.GetType().GetProperty("Collection").GetValue(snapshot),
+                Is.EqualTo(new[] { "Bat" }));
+            Assert.That(Get(f.Player, "_curTargetMonster"), Is.Null);
+            Call(f.Player, "NotifyPlayerOfDeath", target.gameObject, 0, lifetime);
+            Assert.That((IEnumerable)Get(f.Player, "PlayerMonsterCollection"), Is.EqualTo(new[] { "Bat" }));
         }
     }
 
