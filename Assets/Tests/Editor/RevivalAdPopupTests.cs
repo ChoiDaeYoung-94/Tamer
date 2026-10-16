@@ -429,6 +429,107 @@ public class RevivalAdPopupTests
         Assert.That(current.GetValue(services), Is.EqualTo(!ready));
     }
 
+    [TestCase("generation")]
+    [TestCase("account")]
+    [TestCase("deletion-epoch")]
+    public void Revival_SceneRequestCannotAdoptNewSessionBeforeGoOrReplayAfterRejection(string change)
+    {
+        var scene = CreateRequestScene(true, out var data, out var calls);
+        var targetType = scene.GetType().GetField("_scene", InstanceMembers).FieldType;
+        var target = Enum.Parse(targetType, "Game");
+        var request = Invoke(scene, "PrepareSceneRequest", target); // Same capture boundary used by NextScene, before native work.
+        Assert.That(request, Is.Not.Null);
+        if (change == "generation") data.GetType().GetField("_accountGeneration", InstanceMembers).SetValue(data, 2);
+        if (change == "account") data.GetType().GetProperty("PlayFabId").SetValue(data, "B");
+        if (change == "deletion-epoch") data.GetType().GetProperty("DeletionEpoch").SetValue(data, 1);
+
+        Assert.That(Invoke(scene, "TryConsumeSceneRequest"), Is.Null,
+            "Reject the stale snapshot at admission, before an async task could start and finish synchronously.");
+        Invoke(scene, "GoScene");
+        Invoke(scene, "GoScene"); // A rejected explicit request is not an unused direct-entry fallback.
+
+        Assert.That(scene.GetType().GetField("_request", InstanceMembers).GetValue(scene), Is.SameAs(request));
+        Assert.That(scene.GetType().GetField("_requestConsumed", InstanceMembers).GetValue(scene), Is.True);
+        Assert.That(scene.GetType().GetField("_ctsGoScene", InstanceMembers).GetValue(scene), Is.Null);
+        Assert.That(scene.GetType().GetProperty("IsTransitioning").GetValue(scene), Is.False);
+        Assert.That(calls, Is.EqualTo(new[] { 0, 0 }), "No server work may start from the rejected request.");
+        Assert.That(request.GetType().GetField("Target").GetValue(request), Is.EqualTo(target));
+
+        var fresh = Invoke(scene, "PrepareSceneRequest", Enum.Parse(targetType, "Main"));
+        Assert.That(fresh, Is.Not.Null);
+        Assert.That(fresh, Is.Not.SameAs(request));
+        Assert.That(Invoke(scene, "TryConsumeSceneRequest"), Is.SameAs(fresh), "A new explicit request captures the new session.");
+    }
+
+    [Test]
+    public void Revival_SceneRequestConsumesOncePreservesTargetAndIgnoresOldCompletion()
+    {
+        var scene = CreateRequestScene(true, out var data, out var calls);
+        var targetType = scene.GetType().GetField("_scene", InstanceMembers).FieldType;
+        var main = Enum.Parse(targetType, "Main");
+        var game = Enum.Parse(targetType, "Game");
+        var first = Invoke(scene, "PrepareSceneRequest", main);
+        Assert.That(Invoke(scene, "PrepareSceneRequest", game), Is.Null);
+        Assert.That(Invoke(scene, "TryConsumeSceneRequest"), Is.SameAs(first));
+        Assert.That(Invoke(scene, "TryConsumeSceneRequest"), Is.Null);
+        Assert.That(first.GetType().GetField("Target").GetValue(first), Is.EqualTo(main));
+        Invoke(scene, "CompleteSceneRequest", first); // Same retirement boundary used by catch/finally.
+        Invoke(scene, "GoScene");
+        Assert.That(scene.GetType().GetField("_ctsGoScene", InstanceMembers).GetValue(scene), Is.Null);
+
+        var second = Invoke(scene, "PrepareSceneRequest", game);
+        Assert.That(second, Is.Not.Null);
+        Invoke(scene, "CompleteSceneRequest", first);
+        Assert.That(scene.GetType().GetProperty("IsTransitioning").GetValue(scene), Is.True);
+        Assert.That(Invoke(scene, "TryConsumeSceneRequest"), Is.SameAs(second));
+        Assert.That(second.GetType().GetField("Target").GetValue(second), Is.EqualTo(game));
+        Assert.That(calls, Is.EqualTo(new[] { 0, 0 }));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_SceneDirectInitialEntryAllowsHydrationButCannotReplayConsumedTarget(bool ready)
+    {
+        var scene = CreateRequestScene(ready, out var data, out var calls);
+        var targetField = scene.GetType().GetField("_scene", InstanceMembers);
+        var main = Enum.Parse(targetField.FieldType, "Main");
+        targetField.SetValue(scene, main); // Legacy direct GoScene has no accepted NextScene request.
+        var request = Invoke(scene, "TryConsumeSceneRequest");
+        Assert.That(request, Is.Not.Null);
+        Assert.That(request.GetType().GetField("Target").GetValue(request), Is.EqualTo(main));
+        data.GetType().GetProperty("IsServerDataReady").SetValue(data, true);
+        Assert.That(Invoke(scene, "OwnsSceneRequest", request), Is.True);
+        Invoke(scene, "CompleteSceneRequest", request);
+        Invoke(scene, "GoScene");
+        Assert.That(scene.GetType().GetField("_request", InstanceMembers).GetValue(scene), Is.SameAs(request));
+        Assert.That(scene.GetType().GetField("_ctsGoScene", InstanceMembers).GetValue(scene), Is.Null);
+        Assert.That(calls, Is.EqualTo(new[] { 0, 0 }));
+    }
+
+    private Component CreateRequestScene(bool ready, out Component data, out int[] calls)
+    {
+        CreateSessionServices(ready, out data, out var scene, out var previousServer);
+        previousServer.GetType().GetMethod("Dispose").Invoke(previousServer, null);
+        var counters = new int[2];
+        calls = counters;
+        var owner = data;
+        // If a stale request incorrectly reaches GoSceneAsync, only these fake delegates can run.
+        // Keep LocalPlayerData null so updateAll cannot write any local save during the guard test.
+        var server = Activator.CreateInstance(FindType("AD.ServerManager"), new object[]
+        {
+            (Func<string>)(() => (string)owner.GetType().GetProperty("PlayFabId").GetValue(owner)),
+            (Func<bool>)(() => (bool)owner.GetType().GetProperty("IsServerDataReady").GetValue(owner)),
+            (Action<string, Action<Dictionary<string, string>>, Action<int>>)((account, success, failure) => counters[0]++),
+            (Action<string, Dictionary<string, string>, Action, Action<int>>)((account, values, success, failure) => counters[1]++),
+            (Action<TimeSpan, Action>)((delay, action) => { }),
+            (Action<Dictionary<string, string>, bool>)((values, update) => { })
+        });
+        data.GetType().GetField("_server", InstanceMembers).SetValue(data, server);
+        var managers = singletonField.GetValue(null);
+        managers.GetType().GetField("_serverM", InstanceMembers).SetValue(managers, server);
+        return scene;
+    }
+
     private object CreateSessionServices(bool ready, out Component data, out Component scene, out object server)
     {
         var managers = (Component)singletonField.GetValue(null);
