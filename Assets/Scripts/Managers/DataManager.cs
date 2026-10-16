@@ -51,6 +51,7 @@ namespace AD
         internal sealed class AllyPurchaseIntent
         {
             internal readonly DataManager Owner;
+            internal readonly Player QuotedPlayer;
             internal readonly string Account;
             internal readonly int Generation;
             internal readonly int Price;
@@ -60,6 +61,7 @@ namespace AD
             internal AllyPurchaseIntent(DataManager owner, string account, int generation, string name, int price)
             {
                 Owner = owner; Account = account; Generation = generation; MonsterName = name; Price = price;
+                QuotedPlayer = Player.Instance;
             }
         }
 
@@ -82,7 +84,7 @@ namespace AD
             if (purchase == null || !ReferenceEquals(purchase.Owner, this) || purchase.Attempted) return false;
             purchase.Attempted = true; // Consume before any file checkpoint or presentation callback can reenter.
             if (!CanPurchaseAlly() || purchase.Account != PlayFabId || purchase.Generation != _accountGeneration ||
-                currentPlayer == null || !currentPlayer() ||
+                !ReferenceEquals(purchase.QuotedPlayer, Player.Instance) || currentPlayer == null || !currentPlayer() ||
                 PrepareAllyPurchase(purchase.MonsterName, purchase.Price) == null ||
                 !LocalPlayerData.TryGetValue("Gold", out var goldText) ||
                 !int.TryParse(goldText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int gold) ||
@@ -102,7 +104,8 @@ namespace AD
                 changes.Track("AllyMonsters", local["AllyMonsters"]);
                 Func<bool> canCommit = () => !_shutdown && !_allyPurchaseReloadRequired && IsServerDataReady &&
                     !DeletionInProgress && !_deletionSignedOut && _localOwner == purchase.Account &&
-                    PlayFabId == purchase.Account && _accountGeneration == purchase.Generation && currentPlayer();
+                    PlayFabId == purchase.Account && _accountGeneration == purchase.Generation &&
+                    ReferenceEquals(purchase.QuotedPlayer, Player.Instance) && currentPlayer();
                 _allyPurchaseWriting = true;
                 WritePlayerData(local, _localOwner, changes, canCommit);
                 if (!canCommit()) throw new InvalidOperationException("Purchase session changed during persistence.");
