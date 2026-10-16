@@ -384,7 +384,12 @@ public class RevivalGameplaySessionTests
 
             Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(original));
             Assert.That(f.Stored()["Gold"], Is.EqualTo("100"));
-            Assert.That(Get(replacement, "_gold"), Is.EqualTo(100));
+            Assert.That(Get(replacement, "_gold"), Is.EqualTo(duringWrite ? 0 : 100),
+                "A stopped save session clears presentation caches while preserving durable Gold.");
+            Assert.That(f.Data.GetType().GetProperty("IsServerDataReady").GetValue(f.Data), Is.EqualTo(!duringWrite));
+            if (duringWrite) Assert.That(Get(replacement, "_gameplayData"), Is.Null);
+            else Assert.That(Get(replacement, "_gameplayData"), Is.SameAs(f.Data));
+            Assert.That(Get(replacement, "_inventoryOwner"), Is.EqualTo(duringWrite ? null : "A"));
             Assert.That(File.ReadAllText(f.SavePath + ".inventory/" + Call(Runtime("AD.PlayerInventoryStore"), "OwnerKey", "A") + ".json"),
                 Does.Not.Contain("MasterSword"));
             Assert.That(screens, Is.Zero);

@@ -194,6 +194,46 @@ public class RevivalInventoryStoreTests
     }
 
     [Test]
+    public void Revival_EquipmentTransaction_SameManagerReloadsCommitNotPublishedToMemory()
+    {
+        using (var f = new EquipmentFixture(Path.Combine(_root, "same-manager-p-after")))
+        {
+            var manager = f.Data;
+            var hook = Runtime("AD.DataManager").GetField("JournalWriteCheckpoint", BindingFlags.NonPublic | BindingFlags.Static);
+            object previous = hook.GetValue(null);
+            try
+            {
+                hook.SetValue(null, (Action<string, string, string>)((path, temporary, stage) =>
+                {
+                    if (path == f.SavePath && stage == "replaced")
+                        throw new IOException("Synthetic commit before memory publication");
+                }));
+                Assert.That(f.Buy(f.Quote()), Is.EqualTo("RecoveryRequired"));
+            }
+            finally { hook.SetValue(null, previous); }
+
+            Assert.That(f.Ready, Is.False);
+            Assert.That(f.Local["Gold"], Is.EqualTo("100"));
+            Assert.That(Field(f.Data, "_equipmentRecord"), Is.Null);
+            Assert.That(f.Stored["Gold"], Is.EqualTo("90"));
+            Assert.That(f.Stored["__TamerEquipmentTransaction"], Does.Contain("\"phase\":\"Materializing\""));
+            Assert.That(File.ReadAllText(f.InventoryPath), Does.Not.Contain("MasterSword"));
+
+            f.Reauthenticate(); // Same component; no explicit LoadStoredData or server read.
+
+            Assert.That(f.Data, Is.SameAs(manager));
+            Assert.That(f.Ready, Is.False, "Private recovery must not publish server readiness.");
+            Assert.That(f.Local["Gold"], Is.EqualTo("90"));
+            Assert.That(f.Stored["Gold"], Is.EqualTo("90"));
+            var pending = (Dictionary<string, string>)Call(Field(f.Data, "_changes"), "Snapshot");
+            Assert.That(pending["Gold"], Is.EqualTo("90"));
+            Assert.That(f.Stored["__TamerEquipmentTransaction"], Does.Contain("\"phase\":\"Complete\""));
+            Assert.That(File.ReadAllText(f.InventoryPath), Does.Contain("MasterSword"));
+            Assert.That(f.Uploads, Is.Empty);
+        }
+    }
+
+    [Test]
     public void Revival_EquipmentTransaction_UnfinishedDuplicateCannotReportCompletedOrWriteAgain()
     {
         using (var f = new EquipmentFixture(Path.Combine(_root, "duplicate")))
@@ -249,6 +289,7 @@ public class RevivalInventoryStoreTests
             Assert.That(Call(f.Data,"TryUpdateLocalData","Gold","100"),Is.EqualTo(false));
             Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(progress));
             Assert.That(change == "missing" ? null : File.ReadAllText(f.InventoryPath), Is.EqualTo(source));
+            if (change == "missing") Assert.That(File.Exists(f.InventoryPath), Is.False);
         }
     }
 
