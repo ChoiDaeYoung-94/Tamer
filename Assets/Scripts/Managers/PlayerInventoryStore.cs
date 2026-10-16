@@ -164,7 +164,28 @@ namespace AD
             return candidate;
         }
 
-        private void WriteRecord(string account, PlayerInventorySnapshot candidate, string session, Func<bool> canCommit = null)
+        // Direct equipment changes keep the exact source image/session until the replacement boundary.
+        // General inventory writers and playerless binding retain their existing API and policy.
+        internal PlayerInventorySnapshot SaveCurrent(string account, PlayerInventorySnapshot before, string session,
+            IDictionary<string, string> equipped, Func<bool> canCommit, Action replacing)
+        {
+            if (before == null || before.Owner != account || string.IsNullOrEmpty(session) || canCommit == null)
+                throw new InvalidOperationException("Inventory change binding is unavailable.");
+            var candidate = Validate(account, account, before.Collection, before.OwnedItems, equipped);
+            var image = new EquipmentPurchaseRecord.InventoryImage(before);
+            Func<bool> current = () =>
+            {
+                if (!canCommit()) return false;
+                var latest = ReadEnvelope(account);
+                return latest != null && latest.Session == session && image.Matches(latest.Snapshot);
+            };
+            if (!current()) throw new InvalidOperationException("Inventory source changed.");
+            WriteRecord(account, candidate, session, current, replacing);
+            return candidate;
+        }
+
+        private void WriteRecord(string account, PlayerInventorySnapshot candidate, string session, Func<bool> canCommit = null,
+            Action replacing = null)
         {
             string path = PathFor(account), temporary = path + ".pending-" + Guid.NewGuid().ToString("N");
             var record = new Record { Version = 1, Owner = account, Collection = candidate.Collection.ToArray(),
@@ -176,6 +197,7 @@ namespace AD
             InventoryWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
 #endif
             if (canCommit != null && !canCommit()) throw new InvalidOperationException("Inventory owner changed.");
+            replacing?.Invoke(); // Any error from this point may follow a durable replacement.
             try { File.Move(temporary, path); }
             catch (IOException) when (File.Exists(path)) { File.Replace(temporary, path, null); }
 #if UNITY_EDITOR

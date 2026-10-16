@@ -50,6 +50,7 @@ namespace AD
         private bool _readyBeforeDeletion;
         private PlayerInventoryStore _inventoryStore;
         private string _inventorySession;
+        internal string InventorySession => _inventorySession;
         private string _inventoryBoundSession;
         private bool _allyPurchaseWriting;
         private bool _allyPurchaseReloadRequired;
@@ -163,6 +164,29 @@ namespace AD
             RequireInventorySession(owner, generation);
             ReadInventory();
             return _inventoryStore.Save(owner, collection, owned, equipped);
+        }
+
+        internal PlayerInventorySnapshot WriteInventoryCurrent(string owner, int generation, int epoch, string session,
+            PlayerInventorySnapshot before, IDictionary<string, string> equipped, Func<bool> currentPlayer, Action replacing)
+        {
+            Func<bool> current = () =>
+            {
+                try { RequireInventorySession(owner, generation); }
+                catch (InvalidOperationException) { return false; }
+                return _localOwner == owner && DeletionEpoch == epoch && !string.IsNullOrEmpty(session) &&
+                    _inventorySession == session && _inventoryBoundSession == session &&
+                    currentPlayer != null && currentPlayer();
+            };
+            if (!current()) throw new InvalidOperationException("Direct equipment session changed.");
+            return _inventoryStore.SaveCurrent(owner, before, session, equipped, current, replacing);
+        }
+
+        internal void StopDirectEquipmentSession(string owner, int generation, int epoch, string session)
+        {
+            // This owner may already have been replaced. Never stop a newer account/session on this object.
+            if (PlayFabId != owner || _accountGeneration != generation || DeletionEpoch != epoch ||
+                _inventorySession != session) return;
+            StopEquipmentSession(owner, generation);
         }
 
         private void RequireInventorySession(string owner, int generation)

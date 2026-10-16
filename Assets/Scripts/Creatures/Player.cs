@@ -55,6 +55,7 @@ public class Player : Creature
     }
     private string _inventoryOwner;
     private int _inventoryGeneration = -1;
+    private bool _equippingInventory;
     private string _targetInventoryOwner;
     private int _targetInventoryGeneration = -1;
     private int _targetMonsterLifetime = -1;
@@ -404,9 +405,11 @@ public class Player : Creature
         }
     }
 
-    private float[] ReadEquipmentStats(string item)
+    private float[] ReadEquipmentStats(string item) => ReadEquipmentStats(AD.Managers.DataM, item);
+
+    private static float[] ReadEquipmentStats(AD.DataManager owner, string item)
     {
-        var data = AD.Managers.DataM.ItemData[item] as Dictionary<string, object>;
+        var data = owner.ItemData[item] as Dictionary<string, object>;
         var result = new float[4];
         string[] keys = { "Hp", "Power", "AttackSpeed", "MoveSpeed" };
         for (int i = 0; i < keys.Length; i++)
@@ -417,15 +420,17 @@ public class Player : Creature
         return result;
     }
 
-    private float[] EquipmentStatProjection(IEnumerable<string> nextItems)
+    private float[] EquipmentStatProjection(IEnumerable<string> nextItems) => EquipmentStatProjection(nextItems, AD.Managers.DataM);
+
+    private float[] EquipmentStatProjection(IEnumerable<string> nextItems, AD.DataManager owner)
     {
         var previous = new HashSet<string>(PlayerEquippedItems, StringComparer.Ordinal);
         var next = new HashSet<string>(nextItems, StringComparer.Ordinal);
         float[] delta = new float[4];
         foreach (var item in previous.Except(next))
-        { var stats = ReadEquipmentStats(item); for (int i = 0; i < 4; i++) delta[i] -= stats[i]; }
+        { var stats = ReadEquipmentStats(owner, item); for (int i = 0; i < 4; i++) delta[i] -= stats[i]; }
         foreach (var item in next.Except(previous))
-        { var stats = ReadEquipmentStats(item); for (int i = 0; i < 4; i++) delta[i] += stats[i]; }
+        { var stats = ReadEquipmentStats(owner, item); for (int i = 0; i < 4; i++) delta[i] += stats[i]; }
         float hp = _hp + delta[0], power = _power + delta[1], attack = _attackSpeed + delta[2], move = _moveSpeed + delta[3];
         if (new[] { hp, power, attack, move }.Any(v => float.IsNaN(v) || float.IsInfinity(v)))
             throw new InvalidOperationException("Equipment statistics exceed their supported range.");
@@ -734,21 +739,69 @@ public class Player : Creature
 
     public void EquipInventoryItem(string item)
     {
-        var data = AD.Managers.DataM;
-        var current = data.ReadInventory();
-        var slots = new Dictionary<string, string>(current.Equipped);
-        string slot = AD.Managers.EquipmentM.SegmentedEquipment.First(pair => pair.Value.Contains(item)).Key;
-        string previous = slots[slot]; slots[slot] = item;
-        var saved = data.WriteInventory(_inventoryOwner, _inventoryGeneration, current.Collection, current.OwnedItems, slots);
-        // Slot replacement is one durable write; failed validation/I/O leaves equipment and stats untouched.
-        if (previous != null)
+        TryEquipInventoryItem(item, null, null);
+    }
+
+    internal bool TryEquipInventoryItem(string item, Action refreshShop, Action refreshHud)
+    {
+        if (_equippingInventory || !AllyPurchasePlayerCurrent()) return false;
+        var data = _gameplayData;
+        var equipment = AD.Managers.EquipmentM;
+        string owner = _inventoryOwner, session = data.InventorySession;
+        int generation = _inventoryGeneration, epoch = data.DeletionEpoch;
+        bool replacing = false;
+        Func<bool> current = () => ReferenceEquals(_instance, this) && ReferenceEquals(_gameplayData, data) &&
+            ReferenceEquals(AD.Managers.DataM, data) && ReferenceEquals(AD.Managers.EquipmentM, equipment) &&
+            _inventoryOwner == owner && _inventoryGeneration == generation && data.PlayFabId == owner &&
+            data.AccountGeneration == generation && data.DeletionEpoch == epoch && data.InventorySession == session &&
+            data.IsServerDataReady && !data.DeletionInProgress;
+        _equippingInventory = true;
+        try
         {
-            UnequipEquipment(previous);
-            AD.Managers.EquipmentM.EquipmentMapping[previous].SetActive(false);
+            if (equipment == null || !current()) return false;
+            var before = data.ReadInventory();
+            string slot = equipment.SegmentedEquipment.FirstOrDefault(pair => pair.Value.Contains(item)).Key;
+            if (slot == null || !before.OwnedItems.Contains(item)) return false;
+            var slots = new Dictionary<string, string>(before.Equipped) { [slot] = item };
+            var nextItems = slots.Values.Where(value => value != null).ToList();
+            if (before.Equipped[slot] == item && new HashSet<string>(PlayerEquippedItems).SetEquals(nextItems)) return true;
+            // Validate the complete numerical projection and capture only this owner's model references before I/O.
+            foreach (var name in PlayerEquippedItems.Concat(nextItems).Distinct()) ReadEquipmentStats(data, name);
+            var stats = EquipmentStatProjection(nextItems, data);
+            var models = new Dictionary<string, GameObject>();
+            foreach (var name in PlayerEquippedItems.Concat(before.Equipped.Values).Concat(nextItems).Where(n => n != null).Distinct())
+            {
+                if (!equipment.EquipmentMapping.TryGetValue(name, out var model) || model == null)
+                    throw new InvalidOperationException("Equipment model is unavailable.");
+                models.Add(name, model);
+            }
+            Func<bool> presentationCurrent = () => current() && models.All(pair => pair.Value != null &&
+                equipment.EquipmentMapping.TryGetValue(pair.Key, out var model) && ReferenceEquals(model, pair.Value));
+            if (!presentationCurrent()) return false;
+            data.WriteInventoryCurrent(owner, generation, epoch, session, before, slots, presentationCurrent, () => replacing = true);
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment owner changed after saving.");
+            // Publish the list and all numbers without callbacks; model/HUD effects follow under the same boundary.
+            _hp = _itemAdditionalHp = stats[0]; _power = stats[1]; _attackSpeed = stats[2]; _moveSpeed = stats[3];
+            PlayerEquippedItems = nextItems; EquippedItems = string.Join(",", nextItems);
+            foreach (var pair in models)
+            {
+                if (!presentationCurrent()) throw new InvalidOperationException("Equipment presentation changed.");
+                pair.Value.SetActive(nextItems.Contains(pair.Key));
+            }
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment presentation changed.");
+            refreshShop?.Invoke();
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment shop changed the session.");
+            refreshHud?.Invoke();
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment HUD changed the session.");
+            return true;
         }
-        PlayerEquippedItems = saved.Equipped.Values.Where(value => value != null).ToList();
-        EquippedItems = string.Join(",", PlayerEquippedItems);
-        ApplyEquipment(item); AD.Managers.EquipmentM.EquipmentMapping[item].SetActive(true);
+        catch (Exception)
+        {
+            if (replacing) data.StopDirectEquipmentSession(owner, generation, epoch, session);
+            Debug.LogWarning("[Tamer/Player] Equipment change could not finish; saved data preserved.");
+            return false;
+        }
+        finally { _equippingInventory = false; }
     }
 
     public string SavePrefs(List<string> list, string str, string data, string key)
