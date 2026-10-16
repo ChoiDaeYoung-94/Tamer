@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using PlayFab.ClientModels;
 using Cysharp.Threading.Tasks;
@@ -42,6 +43,97 @@ namespace AD
         private PlayerInventoryStore _inventoryStore;
         private string _inventorySession;
         private string _inventoryBoundSession;
+        private bool _allyPurchaseWriting;
+        private bool _allyPurchaseReloadRequired;
+
+        // One in-memory confirmation belongs to one authenticated manager generation.
+        // A restart has no queued confirmation; Gold and the roster are already in one file.
+        internal sealed class AllyPurchaseIntent
+        {
+            internal readonly DataManager Owner;
+            internal readonly string Account;
+            internal readonly int Generation;
+            internal readonly int Price;
+            internal bool Attempted;
+            internal string MonsterName { get; }
+
+            internal AllyPurchaseIntent(DataManager owner, string account, int generation, string name, int price)
+            {
+                Owner = owner; Account = account; Generation = generation; MonsterName = name; Price = price;
+            }
+        }
+
+        private bool CanPurchaseAlly() => !_shutdown && !_allyPurchaseWriting && !_allyPurchaseReloadRequired &&
+            IsServerDataReady && !DeletionInProgress && !_deletionSignedOut &&
+            !string.IsNullOrEmpty(_localOwner) && _localOwner == PlayFabId && LocalPlayerData != null;
+
+        internal AllyPurchaseIntent PrepareAllyPurchase(string name, int price)
+        {
+            if (!CanPurchaseAlly() || string.IsNullOrEmpty(name) || price < 0 || MonsterData == null ||
+                !MonsterData.TryGetValue(name, out var entry) || !(entry is Dictionary<string, object> catalog) ||
+                !catalog.TryGetValue("Price", out var rawPrice) ||
+                !int.TryParse(rawPrice?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int currentPrice) ||
+                currentPrice != price) return null;
+            return new AllyPurchaseIntent(this, PlayFabId, _accountGeneration, name, price);
+        }
+
+        internal bool TryCommitAllyPurchase(AllyPurchaseIntent purchase, int expectedGold, Func<bool> currentPlayer)
+        {
+            if (purchase == null || !ReferenceEquals(purchase.Owner, this) || purchase.Attempted) return false;
+            purchase.Attempted = true; // Consume before any file checkpoint or presentation callback can reenter.
+            if (!CanPurchaseAlly() || purchase.Account != PlayFabId || purchase.Generation != _accountGeneration ||
+                currentPlayer == null || !currentPlayer() ||
+                PrepareAllyPurchase(purchase.MonsterName, purchase.Price) == null ||
+                !LocalPlayerData.TryGetValue("Gold", out var goldText) ||
+                !int.TryParse(goldText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int gold) ||
+                gold != expectedGold || gold < purchase.Price ||
+                !LocalPlayerData.TryGetValue("AllyMonsters", out var allies) || allies == null) return false;
+
+            try
+            {
+                var local = new Dictionary<string, string>(LocalPlayerData)
+                {
+                    ["Gold"] = (gold - purchase.Price).ToString(CultureInfo.InvariantCulture),
+                    ["AllyMonsters"] = allies == "null" ? purchase.MonsterName : allies + "," + purchase.MonsterName
+                };
+                PlayerDataSyncPolicy.ValidateAllyMonsters(local, MonsterData.Keys);
+                var changes = _changes.Clone();
+                changes.Track("Gold", local["Gold"]);
+                changes.Track("AllyMonsters", local["AllyMonsters"]);
+                Func<bool> canCommit = () => !_shutdown && !_allyPurchaseReloadRequired && IsServerDataReady &&
+                    !DeletionInProgress && !_deletionSignedOut && _localOwner == purchase.Account &&
+                    PlayFabId == purchase.Account && _accountGeneration == purchase.Generation && currentPlayer();
+                _allyPurchaseWriting = true;
+                WritePlayerData(local, _localOwner, changes, canCommit);
+                if (!canCommit()) throw new InvalidOperationException("Purchase session changed during persistence.");
+                // Publish neither key until the same file contains both values and their journal revisions.
+                LocalPlayerData = local;
+                _changes = changes;
+                return true;
+            }
+            catch (Exception)
+            {
+                // Even a post-replace exception must not be treated as permission to charge again.
+                // Keep the file and reload it on explicit authentication before any further writes.
+                StopAllyPurchaseSession(purchase, persistenceUncertain: true);
+                Debug.LogWarning("[Tamer/Data] Ally purchase could not finish; saved data preserved. Sign in again.");
+                return false;
+            }
+            finally { _allyPurchaseWriting = false; }
+        }
+
+        internal void StopAllyPurchaseSession(AllyPurchaseIntent purchase, bool persistenceUncertain = false)
+        {
+            // A late presentation failure may not suspend a replacement account/session.
+            if (purchase == null || !ReferenceEquals(purchase.Owner, this) ||
+                (persistenceUncertain ? _localOwner != purchase.Account :
+                    purchase.Generation != _accountGeneration || purchase.Account != PlayFabId)) return;
+            _allyPurchaseReloadRequired = true;
+            IsServerDataReady = false;
+            _server?.CancelPendingRequests();
+            try { SuspendAccountSession(); }
+            catch (Exception) { Debug.LogWarning("[Tamer/Data] Purchase session stopped; restart to restore saved data."); }
+        }
 
         public PlayerInventorySnapshot ReadInventory()
         {
@@ -72,7 +164,7 @@ namespace AD
 
         private void RequireInventorySession(string owner, int generation)
         {
-            if (_shutdown || !IsServerDataReady || DeletionInProgress || _deletionSignedOut ||
+            if (_shutdown || _allyPurchaseWriting || _allyPurchaseReloadRequired || !IsServerDataReady || DeletionInProgress || _deletionSignedOut ||
                 string.IsNullOrWhiteSpace(owner) || owner != PlayFabId || generation != _accountGeneration)
                 throw new InvalidOperationException("Inventory requires the current ready account session.");
         }
@@ -354,11 +446,14 @@ namespace AD
         /// <summary>Bind only after authentication. An owner mismatch requires explicit account recovery.</summary>
         public void BeginAccountSession(string playFabId)
         {
+            if (_allyPurchaseWriting) throw new InvalidOperationException("A purchase save is in progress.");
             if (DeletionInProgress) throw new InvalidOperationException("Deletion submission is unresolved.");
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             SuspendAccountSession();
+            if (_allyPurchaseReloadRequired) LoadStoredData();
             if (!PlayerDataSyncPolicy.CanBindAccount(_localOwner, playFabId))
                 throw new InvalidOperationException("The local save belongs to another account. Account recovery is required.");
+            _allyPurchaseReloadRequired = false;
             PlayFabId = playFabId;
             _inventorySession = Guid.NewGuid().ToString("N");
             _deletionSignedOut = false;
@@ -380,9 +475,13 @@ namespace AD
             IsServerDataReady = false;
             _inventorySession = null;
             _inventoryBoundSession = null;
-            Player.Instance?.ClearInventorySession();
-            ShopMan.Instance?.ClearInventorySession();
             _server?.CancelPendingRequests();
+            // An old manager's failure/teardown must not clear a replacement manager's presentation.
+            if (ReferenceEquals(Managers.DataM, this))
+            {
+                Player.Instance?.ClearInventorySession();
+                ShopMan.Instance?.ClearInventorySession();
+            }
         }
 
         private async UniTask PeriodicLocalDataUpdateAsync(CancellationToken token)
@@ -409,7 +508,7 @@ namespace AD
         /// <summary>Durable local mutation, including purchase restoration before Player exists.</summary>
         public bool TryUpdateLocalData(string key, string value)
         {
-            if (_shutdown || !IsServerDataReady || string.IsNullOrEmpty(_localOwner) || _localOwner != PlayFabId
+            if (_shutdown || _allyPurchaseWriting || _allyPurchaseReloadRequired || !IsServerDataReady || string.IsNullOrEmpty(_localOwner) || _localOwner != PlayFabId
                 || LocalPlayerData == null || string.IsNullOrEmpty(key) || key == OwnerKey || key == JournalKey || value == null)
                 return false;
             if (key == "GooglePlay")
@@ -446,14 +545,16 @@ namespace AD
 
         public void SaveLocalData()
         {
-            if (DeletionInProgress || _deletionSignedOut) throw new InvalidOperationException("No writable account session.");
+            if (DeletionInProgress || _deletionSignedOut || _allyPurchaseWriting || _allyPurchaseReloadRequired)
+                throw new InvalidOperationException("No writable account session.");
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (LocalPlayerData == null || string.IsNullOrEmpty(_playerDataPath))
                 throw new InvalidOperationException("Player data has not been initialized.");
             WritePlayerData(LocalPlayerData, _localOwner);
         }
 
-        private void WritePlayerData(Dictionary<string, string> data, string owner, PlayerDataChanges changes = null)
+        private void WritePlayerData(Dictionary<string, string> data, string owner, PlayerDataChanges changes = null,
+            Func<bool> canCommit = null)
         {
             var stored = new Dictionary<string, string>(data);
             if (string.IsNullOrEmpty(owner) && (changes ?? _changes).Snapshot().Count != 0)
@@ -463,10 +564,10 @@ namespace AD
                 stored[OwnerKey] = owner;
                 stored[JournalKey] = (changes ?? _changes).Serialize(owner);
             }
-            WriteAtomically(_playerDataPath, Utility.SerializeToJson(stored));
+            WriteAtomically(_playerDataPath, Utility.SerializeToJson(stored), canCommit);
         }
 
-        private static void WriteAtomically(string path, string contents)
+        private static void WriteAtomically(string path, string contents, Func<bool> canCommit = null)
         {
             string temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
             try
@@ -475,6 +576,7 @@ namespace AD
 #if UNITY_EDITOR || TAMER_JOURNAL_HARNESS
                 JournalWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
 #endif
+                if (canCommit != null && !canCommit()) throw new InvalidOperationException("Save owner changed.");
                 if (File.Exists(path)) File.Replace(temporary, path, null);
                 else File.Move(temporary, path);
 #if UNITY_EDITOR || TAMER_JOURNAL_HARNESS
@@ -486,6 +588,7 @@ namespace AD
 
         public void UpdatePlayerData()
         {
+            if (_allyPurchaseWriting || _allyPurchaseReloadRequired) return;
             if (DeletionInProgress || _deletionSignedOut) return;
             if (_shutdown) return;
             if (!IsServerDataReady)
@@ -511,6 +614,7 @@ namespace AD
 
         private void AcknowledgeChanges(Dictionary<string, string> patch, Dictionary<string, long> revisions)
         {
+            if (_allyPurchaseWriting || _allyPurchaseReloadRequired) return;
             var candidate = _changes.Clone();
             candidate.Acknowledge(patch, revisions);
             WritePlayerData(LocalPlayerData, _localOwner, candidate);
@@ -520,6 +624,7 @@ namespace AD
         /// <summary>Called only for a successful server read. No write requests originate here.</summary>
         public void UpdateData()
         {
+            if (_allyPurchaseWriting || _allyPurchaseReloadRequired) return;
             if (DeletionInProgress || _deletionSignedOut) return;
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (PlayFabPlayerData == null || LocalPlayerData == null || _defaults == null)

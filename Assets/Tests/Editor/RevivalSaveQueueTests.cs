@@ -111,6 +111,27 @@ public class RevivalSaveQueueTests
         public Dictionary<string, string> Stored => (Dictionary<string, string>)Invoke(_dataType, "ParseData", File.ReadAllText(_savePath));
         public bool Busy => (bool)_server.GetType().GetProperty("IsInProgress").GetValue(_server);
         public bool Failed => (bool)_server.GetType().GetProperty("HasFailed").GetValue(_server);
+        public bool Ready => (bool)_dataType.GetProperty("IsServerDataReady").GetValue(_data);
+        public string SavePath => _savePath;
+        public Dictionary<string, long> Revisions => (Dictionary<string, long>)Invoke(Field("_changes"), "SnapshotRevisions");
+        public object PrepareAlly()
+        {
+            SetField("MonsterData", new Dictionary<string, object>
+            {
+                ["Bat"] = new Dictionary<string, object> { ["Price"] = "10" }
+            });
+            return Invoke(_data, "PrepareAllyPurchase", "Bat", 10);
+        }
+        public bool BuyAlly(object intent, Func<bool> current = null) => (bool)Invoke(_data,
+            "TryCommitAllyPurchase", intent, int.Parse(Local["Gold"]), current ?? (() => true));
+        public bool TryChangeGold(string value) => (bool)Invoke(_data, "TryUpdateLocalData", "Gold", value);
+        public void PreserveNoAds() => Invoke(_data, "TryUpdateLocalData", "GooglePlay", "ProductNoAds,FutureProduct");
+        public void Suspend() => Invoke(_data, "SuspendAccountSession");
+        public void ReplaceIdentity(string change)
+        {
+            if (change == "account") _dataType.GetProperty("PlayFabId").GetSetMethod(true).Invoke(_data, new object[] { "other-account" });
+            if (change == "generation") SetField("_accountGeneration", (int)Field("_accountGeneration") + 1);
+        }
         public void ChangeGold(string value) => Assert.That(Invoke(_data, "TryUpdateLocalData", "Gold", value), Is.EqualTo(true));
         public void Submit() => Invoke(_data, "UpdatePlayerData");
         public void ReloadSession()
@@ -162,6 +183,162 @@ public class RevivalSaveQueueTests
             UnityEngine.Object.DestroyImmediate(_object);
             // This exact unique directory is created by the harness, never a project or live-save path.
             if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
+        }
+    }
+
+    [Test]
+    public void Revival_AllyPurchase_OneReplacementIncludesBothKeysAndReentryCannotChargeAgain()
+    {
+        using (var h = new SaveQueueHarness())
+        {
+            h.PreserveNoAds();
+            var intent = h.PrepareAlly();
+            string original = File.ReadAllText(h.SavePath);
+            var hook = RuntimeType("AD.DataManager").GetField("JournalWriteCheckpoint", BindingFlags.Static | BindingFlags.NonPublic);
+            object previous = hook.GetValue(null);
+            int replacements = 0;
+            bool reentered = true;
+            Dictionary<string, string> temporary = null;
+            try
+            {
+                hook.SetValue(null, (Action<string, string, string>)((path, temp, stage) =>
+                {
+                    if (path != h.SavePath) return;
+                    if (stage == "temporary-closed")
+                    {
+                        Assert.That(File.ReadAllText(path), Is.EqualTo(original));
+                        Assert.That(h.Local["Gold"], Is.EqualTo("100"));
+                        Assert.That(h.Local["AllyMonsters"], Is.EqualTo("null"));
+                        temporary = (Dictionary<string, string>)Invoke(RuntimeType("AD.DataManager"), "ParseData", File.ReadAllText(temp));
+                        reentered = h.BuyAlly(intent);
+                        Assert.That(h.TryChangeGold("999"), Is.False, "Other writes cannot cross the purchase replacement.");
+                    }
+                    else replacements++;
+                }));
+                Assert.That(h.BuyAlly(intent), Is.True);
+            }
+            finally { hook.SetValue(null, previous); }
+            Assert.That(reentered, Is.False);
+            Assert.That(replacements, Is.EqualTo(1));
+            Assert.That(temporary["Gold"], Is.EqualTo("90"));
+            Assert.That(temporary["AllyMonsters"], Is.EqualTo("Bat"));
+            Assert.That(h.Stored["Gold"], Is.EqualTo("90"));
+            Assert.That(h.Local["AllyMonsters"], Is.EqualTo("Bat"));
+            Assert.That(h.Stored["GooglePlay"], Is.EqualTo("ProductNoAds,FutureProduct"));
+            Assert.That(h.Pending["Gold"], Is.EqualTo("90"));
+            Assert.That(h.Pending["AllyMonsters"], Is.EqualTo("Bat"));
+            Assert.That(h.Revisions["Gold"], Is.Not.EqualTo(h.Revisions["AllyMonsters"]));
+            Assert.That(h.BuyAlly(intent), Is.False);
+            Assert.That(h.BuyAlly(h.PrepareAlly()), Is.True, "A separate deliberate purchase may add the same ally type.");
+            Assert.That(h.Stored["Gold"], Is.EqualTo("80"));
+            Assert.That(h.Stored["AllyMonsters"], Is.EqualTo("Bat,Bat"));
+        }
+    }
+
+    [TestCase("temporary-closed", "100", "null")]
+    [TestCase("replaced", "90", "Bat")]
+    public void Revival_AllyPurchase_SaveFailurePreservesWholeSnapshotAndRequiresReload(string cut, string gold, string allies)
+    {
+        using (var h = new SaveQueueHarness())
+        {
+            h.PreserveNoAds();
+            var intent = h.PrepareAlly();
+            var hook = RuntimeType("AD.DataManager").GetField("JournalWriteCheckpoint", BindingFlags.Static | BindingFlags.NonPublic);
+            object previous = hook.GetValue(null);
+            try
+            {
+                hook.SetValue(null, (Action<string, string, string>)((path, temp, stage) =>
+                {
+                    if (path == h.SavePath && stage == cut) throw new IOException("Synthetic purchase cut");
+                }));
+                Assert.That(h.BuyAlly(intent), Is.False);
+            }
+            finally { hook.SetValue(null, previous); }
+            Assert.That(h.Stored["Gold"], Is.EqualTo(gold));
+            Assert.That(h.Stored["AllyMonsters"], Is.EqualTo(allies));
+            Assert.That(h.Stored["GooglePlay"], Is.EqualTo("ProductNoAds,FutureProduct"));
+            Assert.That(h.Local["Gold"], Is.EqualTo("100"), "No memory result is published from an uncertain write.");
+            Assert.That(h.Ready, Is.False);
+            Assert.That(h.TryChangeGold("100"), Is.False);
+            h.Submit();
+            Assert.That(h.Writes, Is.Empty);
+            h.ReloadSession();
+            h.SucceedRead(0);
+            Assert.That(h.Ready, Is.True);
+            Assert.That(h.Local["Gold"], Is.EqualTo(gold));
+            Assert.That(h.Local["AllyMonsters"], Is.EqualTo(allies));
+            Assert.That(h.BuyAlly(intent), Is.False, "The old confirmation cannot survive a new authenticated generation.");
+            Assert.That(h.Stored["Gold"], Is.EqualTo(gold));
+        }
+    }
+
+    [Test]
+    public void Revival_AllyPurchase_LateOlderEqualAckCannotEraseRosterOrNewGoldRevision()
+    {
+        using (var h = new SaveQueueHarness())
+        {
+            h.ChangeGold("101");
+            h.ChangeGold("100");
+            h.Submit();
+            long oldRevision = h.Revisions["Gold"];
+            Assert.That(h.BuyAlly(h.PrepareAlly()), Is.True);
+            long purchaseRevision = h.Revisions["Gold"];
+            Assert.That(purchaseRevision, Is.GreaterThan(oldRevision));
+            h.ChangeGold("100"); // A subsequent reward returns to the older request's value with a new revision.
+            long latestRevision = h.Revisions["Gold"];
+            Assert.That(latestRevision, Is.GreaterThan(purchaseRevision));
+            h.SucceedWrite(0);
+            h.SucceedRead(0);
+            Assert.That(h.Pending["Gold"], Is.EqualTo("100"));
+            Assert.That(h.Pending["AllyMonsters"], Is.EqualTo("Bat"));
+            Assert.That(h.Revisions["Gold"], Is.EqualTo(latestRevision));
+            h.Submit();
+            CollectionAssert.AreEquivalent(new Dictionary<string, string> { ["Gold"] = "100", ["AllyMonsters"] = "Bat" }, h.Writes[1].Values);
+            h.SucceedWrite(1);
+            h.SucceedRead(1);
+            Assert.That(h.Pending, Is.Empty);
+            Assert.That(h.Local["Gold"], Is.EqualTo("100"));
+            Assert.That(h.Stored["AllyMonsters"], Is.EqualTo("Bat"));
+        }
+    }
+
+    [TestCase("account")]
+    [TestCase("generation")]
+    [TestCase("player")]
+    public void Revival_AllyPurchase_StalePlayerOrAccountGenerationDoesNotReplaceSave(string change)
+    {
+        using (var h = new SaveQueueHarness())
+        {
+            var intent = h.PrepareAlly();
+            string before = File.ReadAllText(h.SavePath);
+            h.ReplaceIdentity(change);
+            Assert.That(h.BuyAlly(intent, () => change != "player"), Is.False);
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(before));
+            Assert.That(h.Local["Gold"], Is.EqualTo("100"));
+            Assert.That(h.Pending, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void Revival_AllyPurchase_SessionLostAtPreReplaceCheckpointCannotCommit()
+    {
+        using (var h = new SaveQueueHarness())
+        {
+            var intent = h.PrepareAlly();
+            string before = File.ReadAllText(h.SavePath);
+            var hook = RuntimeType("AD.DataManager").GetField("JournalWriteCheckpoint", BindingFlags.Static | BindingFlags.NonPublic);
+            object previous = hook.GetValue(null);
+            try
+            {
+                hook.SetValue(null, (Action<string, string, string>)((path, temp, stage) =>
+                {
+                    if (path == h.SavePath && stage == "temporary-closed") h.Suspend();
+                }));
+                Assert.That(h.BuyAlly(intent), Is.False);
+            }
+            finally { hook.SetValue(null, previous); }
+            Assert.That(File.ReadAllText(h.SavePath), Is.EqualTo(before));
+            Assert.That(h.TryChangeGold("999"), Is.False);
         }
     }
 
