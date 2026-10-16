@@ -443,6 +443,8 @@ public class RevivalAdPopupTests
         if (change == "account") data.GetType().GetProperty("PlayFabId").SetValue(data, "B");
         if (change == "deletion-epoch") data.GetType().GetProperty("DeletionEpoch").SetValue(data, 1);
 
+        Assert.That(Invoke(scene, "TryConsumeSceneRequest"), Is.Null,
+            "Reject the stale snapshot at admission, before an async task could start and finish synchronously.");
         Invoke(scene, "GoScene");
         Invoke(scene, "GoScene"); // A rejected explicit request is not an unused direct-entry fallback.
 
