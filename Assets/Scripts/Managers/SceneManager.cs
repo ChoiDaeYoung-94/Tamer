@@ -15,7 +15,17 @@ namespace AD
     {
         private AD.GameConstants.Scene _scene;
         private CancellationTokenSource _ctsGoScene;
+        private SceneRequest _request;
+        private bool _requestConsumed;
         public bool IsTransitioning { get; private set; }
+
+        private sealed class SceneRequest
+        {
+            public readonly AD.GameConstants.Scene Target;
+            public readonly SceneServices Services;
+            public SceneRequest(AD.GameConstants.Scene target)
+            { Target = target; Services = new SceneServices(Managers.Instance); }
+        }
 
         private sealed class SceneServices
         {
@@ -52,22 +62,56 @@ namespace AD
 
         public void NextScene(AD.GameConstants.Scene scene)
         {
-            if (IsTransitioning) return;
-            IsTransitioning = true;
+            var request = PrepareSceneRequest(scene);
+            if (request == null) return;
             AD.DebugLogger.Log("SceneManager", "NextScene으로 전환");
 
             try
             {
-                AD.Managers.SoundM.PauseBGM();
+                if (!OwnsSceneRequest(request)) { CompleteSceneRequest(request); return; }
+                request.Services.Sound.PauseBGM();
+                if (!OwnsSceneRequest(request)) { CompleteSceneRequest(request); return; }
                 AD.Managers.PopupM.SetException();
-                _scene = scene;
+                if (!OwnsSceneRequest(request)) { CompleteSceneRequest(request); return; }
                 UnityEngine.SceneManagement.SceneManager.LoadScene(AD.GameConstants.Scene.NextScene.ToString());
             }
             catch
             {
-                IsTransitioning = false;
+                CompleteSceneRequest(request);
                 throw;
             }
+        }
+
+        // Shared by the explicit request entry and the never-requested legacy GoScene entry.
+        private SceneRequest PrepareSceneRequest(AD.GameConstants.Scene scene)
+        {
+            if (IsTransitioning || _ctsGoScene != null) return null;
+            var request = new SceneRequest(scene);
+            _request = request; _requestConsumed = false; _scene = scene;
+            IsTransitioning = true;
+            return request;
+        }
+
+        private bool OwnsSceneRequest(SceneRequest request) => this != null &&
+            ReferenceEquals(_request, request) && request.Services.IsCurrent;
+
+        private SceneRequest TryConsumeSceneRequest()
+        {
+            if (_ctsGoScene != null) return null;
+            // Retain completed/invalidated requests as tombstones. A late GoScene may not
+            // reinterpret their target as a new session's direct-entry request.
+            var request = _request ?? PrepareSceneRequest(_scene);
+            if (request == null || _requestConsumed) return null;
+            _requestConsumed = true;
+            if (!OwnsSceneRequest(request)) { CompleteSceneRequest(request); return null; }
+            return request;
+        }
+
+        private void CompleteSceneRequest(SceneRequest request)
+        {
+            if (!ReferenceEquals(_request, request)) return;
+            _requestConsumed = true;
+            IsTransitioning = false;
         }
 
         /// <summary>
@@ -76,28 +120,29 @@ namespace AD
         /// </summary>
         public void GoScene()
         {
-            if (_ctsGoScene != null) return;
-            IsTransitioning = true;
-            AD.DebugLogger.Log("SceneManager", "GoScene() -> " + _scene.ToString() + "씬으로 전환");
+            var request = TryConsumeSceneRequest();
+            if (request == null) return;
+            AD.DebugLogger.Log("SceneManager", "GoScene() -> " + request.Target.ToString() + "씬으로 전환");
 
             _ctsGoScene = new CancellationTokenSource();
-            GoSceneAsync(_scene, _ctsGoScene).Forget();
+            GoSceneAsync(request, _ctsGoScene).Forget();
         }
 
-        private async UniTask GoSceneAsync(AD.GameConstants.Scene targetScene, CancellationTokenSource source)
+        private async UniTask GoSceneAsync(SceneRequest request, CancellationTokenSource source)
         {
             var cancellationToken = source.Token;
             try
             {
-                var services = new SceneServices(Managers.Instance);
-                if (!services.IsCurrent) return;
+                var services = request.Services;
+                if (!OwnsSceneRequest(request)) return;
                 services.Data.UpdateLocalData(key: "null", value: "null", updateAll: true);
-                if (!services.IsCurrent) return;
+                if (!OwnsSceneRequest(request)) return;
                 services.Data.UpdatePlayerData();
                 if (!await WaitForServerAsync(services, cancellationToken)) return;
+                if (!OwnsSceneRequest(request)) return;
                 services.Data.SaveLocalData();
-                await LoadTargetSceneAsync(targetScene, cancellationToken, () => services.IsCurrent);
-                if (this != null && services.IsCurrent)
+                await LoadTargetSceneAsync(request.Target, cancellationToken, () => OwnsSceneRequest(request));
+                if (OwnsSceneRequest(request))
                     services.Sound.UnpauseBGM();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -109,7 +154,7 @@ namespace AD
                 if (_ctsGoScene == source)
                 {
                     _ctsGoScene = null;
-                    IsTransitioning = false;
+                    CompleteSceneRequest(request);
                 }
                 source.Dispose();
             }
