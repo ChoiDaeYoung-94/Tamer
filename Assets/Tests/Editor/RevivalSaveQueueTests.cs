@@ -142,6 +142,13 @@ public class RevivalSaveQueueTests
             Submit();
         }
 
+        public void ReauthenticateAfterPurchaseFailure()
+        {
+            // Follow authentication itself; preloading would hide a missing production reload.
+            Invoke(_data, "BeginAccountSession", Account);
+            Submit();
+        }
+
         private void ApplyRead(Dictionary<string, string> values)
         {
             var field = _dataType.GetField("PlayFabPlayerData");
@@ -262,7 +269,10 @@ public class RevivalSaveQueueTests
             Assert.That(h.TryChangeGold("100"), Is.False);
             h.Submit();
             Assert.That(h.Writes, Is.Empty);
-            h.ReloadSession();
+            h.ReauthenticateAfterPurchaseFailure();
+            Assert.That(h.Ready, Is.False, "The server read has not completed yet.");
+            Assert.That(h.Local["Gold"], Is.EqualTo(gold), "Authentication must reload the uncertain disk result itself.");
+            Assert.That(h.Local["AllyMonsters"], Is.EqualTo(allies));
             h.SucceedRead(0);
             Assert.That(h.Ready, Is.True);
             Assert.That(h.Local["Gold"], Is.EqualTo(gold));
