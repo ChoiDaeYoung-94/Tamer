@@ -104,7 +104,7 @@ namespace AD
             var used = new HashSet<long>();
             foreach (var entry in entries)
             {
-                if (string.IsNullOrEmpty(entry.Key) || entry.Key == "__TamerAccountOwner" || entry.Key == "__TamerPendingJournal"
+                if (string.IsNullOrEmpty(entry.Key) || EquipmentPurchaseRecord.IsReserved(entry.Key)
                     || !(entry.Value is Dictionary<string, object> record) || record.Count != 2
                     || !record.TryGetValue("value", out var value) || !(value is string text)
                     || !record.TryGetValue("revision", out var entryRevision) || !TryRevision(entryRevision, out var number)
@@ -127,6 +127,7 @@ namespace AD
 
         public void Track(string key, string value)
         {
+            if (EquipmentPurchaseRecord.IsReserved(key)) throw new InvalidDataException("Reserved metadata cannot be uploaded.");
             if (_revision >= long.MaxValue - 1) throw new InvalidDataException("Pending journal revision exhausted.");
             _pending[key] = value;
             _revisions[key] = ++_revision;

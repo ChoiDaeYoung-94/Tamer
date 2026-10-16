@@ -14,6 +14,15 @@ namespace AD
         private readonly string _directory;
         private readonly string[] _monsters;
         private readonly Dictionary<string, string> _slots;
+        internal sealed class Envelope
+        {
+            internal string Session { get; }
+            internal PlayerInventorySnapshot Snapshot { get; }
+            internal Envelope(string session, PlayerInventorySnapshot snapshot) { Session = session; Snapshot = snapshot; }
+        }
+#if UNITY_EDITOR
+        internal static Action<string, string, string> InventoryWriteCheckpoint;
+#endif
         private sealed class Record
         {
             public int Version;
@@ -38,6 +47,52 @@ namespace AD
                 return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(account))).Replace("-", "").ToLowerInvariant();
         }
         public string PathFor(string account) => Path.Combine(_directory, OwnerKey(account) + ".json");
+
+        // Unlike Load, this never creates a directory or changes a session binding.
+        internal Envelope ReadEnvelope(string account)
+        {
+            var record = ReadRecord(PathFor(account));
+            return record == null ? null : new Envelope(record.Session,
+                Validate(account, record.Owner, record.Collection, record.OwnedItems, record.Equipped));
+        }
+
+        internal void ApplyCommittedPurchase(EquipmentPurchaseRecord purchase, Func<bool> canCommit)
+        {
+            if (purchase == null || !purchase.Materializing || canCommit == null || !canCommit())
+                throw new InvalidOperationException("Equipment recovery is not current.");
+            purchase.Before.Validate(purchase.Owner, _monsters, _slots);
+            var after = purchase.After.Validate(purchase.Owner, _monsters, _slots);
+            if (!_slots.TryGetValue(purchase.ItemId, out var slot) || slot != purchase.Slot)
+                throw new InvalidDataException("Equipment catalog changed; originals preserved.");
+            var current = ReadEnvelope(purchase.Owner);
+            if (current == null || current.Session != purchase.SourceSession)
+                throw new InvalidDataException("Equipment source session changed; original preserved.");
+            if (purchase.After.Matches(current.Snapshot)) return; // No second materialization write.
+            if (!purchase.Before.Matches(current.Snapshot))
+                throw new InvalidDataException("Equipment source content changed; original preserved.");
+            WriteRecord(purchase.Owner, after, purchase.SourceSession, () =>
+            {
+                if (!canCommit()) return false;
+                var latest = ReadEnvelope(purchase.Owner);
+                return latest != null && latest.Session == purchase.SourceSession && purchase.Before.Matches(latest.Snapshot);
+            });
+        }
+
+        internal void BindSessionCurrent(string account, string session, Func<bool> canCommit)
+        {
+            if (canCommit == null || !canCommit()) throw new InvalidOperationException("Inventory binding is not current.");
+            if (string.IsNullOrEmpty(session)) throw new InvalidDataException("Inventory session required.");
+            var snapshot = Load(account);
+            var previous = ReadEnvelope(account);
+            if (previous != null && previous.Session == session) return;
+            WriteRecord(account, snapshot, session, () =>
+            {
+                if (!canCommit()) return false;
+                var latest = ReadEnvelope(account);
+                return previous == null ? latest == null : latest != null && latest.Session == previous.Session &&
+                    new EquipmentPurchaseRecord.InventoryImage(previous.Snapshot).Matches(latest.Snapshot);
+            });
+        }
 
         private static Record ReadRecord(string path)
         {
@@ -109,7 +164,7 @@ namespace AD
             return candidate;
         }
 
-        private void WriteRecord(string account, PlayerInventorySnapshot candidate, string session)
+        private void WriteRecord(string account, PlayerInventorySnapshot candidate, string session, Func<bool> canCommit = null)
         {
             string path = PathFor(account), temporary = path + ".pending-" + Guid.NewGuid().ToString("N");
             var record = new Record { Version = 1, Owner = account, Collection = candidate.Collection.ToArray(),
@@ -117,8 +172,15 @@ namespace AD
             byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(record));
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             { stream.Write(bytes, 0, bytes.Length); stream.Flush(true); }
+#if UNITY_EDITOR
+            InventoryWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
+#endif
+            if (canCommit != null && !canCommit()) throw new InvalidOperationException("Inventory owner changed.");
             try { File.Move(temporary, path); }
             catch (IOException) when (File.Exists(path)) { File.Replace(temporary, path, null); }
+#if UNITY_EDITOR
+            InventoryWriteCheckpoint?.Invoke(path, temporary, "replaced");
+#endif
         }
 
         private PlayerInventorySnapshot Validate(string account, string owner, IEnumerable<string> collection,
