@@ -2,6 +2,8 @@
 
 2026-09-21. 기존 [미승인 제안](playerprefs-cloud-design.ko.md)의 후속 조사다. 아직 저장 형식·서버 키·이관 방식을 확정하거나 실행 경로를 연결하지 않았다.
 
+**2026-10-16 이력 구분:** 위 문장과 아래 미연결·PlayerPrefs 거래 표·사용자 선택 대기는 2026-09-21 당시 범위입니다. 이후 사용자는 소유 불명 도감·장비·아이템 원본을 보존하고 현재 계정은 빈 상태로 시작하도록 선택했습니다. 현재 `DataManager.ReadInventory/WriteInventory`는 계정별 로컬 `PlayerInventoryStore`에 연결되며 기존 PlayerPrefs는 읽기·가져오기·삭제하지 않습니다. [현재 계정 인벤토리](account-inventory.ko.md)와 [복원 검증 범위](inventory-restore-device.ko.md)를 함께 읽습니다. 새 설치/다른 기기의 원격 복원과 Gold·보유·장착의 구매 전체 원자성은 아직 구현 완료 또는 검증 성공으로 표시하지 않습니다. 현재 구매의 분리 저장 실패 창과 수정 범위는 [#361](https://github.com/ChoiDaeYoung-94/Tamer/issues/361)에서 추적합니다.
+
 ## 이번 구현
 
 `PlayerInventorySnapshot.Validate`는 인증된 계정 ID와 저장 owner가 정확히 일치하는 입력만 받는다. owner 없음, 다른 계정, 알 수 없는 이름, 중복 목록, 미보유 장비, 다른 슬롯 장비, 누락된 슬롯을 거부한다. 원문을 임의 정규화하거나 합집합으로 복구하지 않는다. 검증된 목록·슬롯은 복사 후 읽기 전용으로 제공하여 호출자가 원래 컬렉션을 바꾸더라도 검사 결과가 변하지 않는다.
