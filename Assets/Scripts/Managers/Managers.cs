@@ -79,7 +79,7 @@ namespace AD
 
         private void Start()
         {
-            if (_ownsServices && !_shutdown && _soundM != null) _soundM.Init();
+            if (_ownsServices && !_shutdown && _dataM != null && !_dataM.ReceiptOnly && _soundM != null) _soundM.Init();
         }
 
         // A duplicate component must not replace a live owner or initialize its services.
@@ -105,7 +105,7 @@ namespace AD
                 }
                 return;
             }
-            DontDestroyOnLoad(gameObject);
+            if (Application.isPlaying) DontDestroyOnLoad(gameObject);
             try
             {
 #if TAMER_IAP_HARNESS
@@ -161,6 +161,7 @@ namespace AD
         private void InitM()
         {
             DataM.InitializeData();
+            if (DataM.ReceiptOnly) return; // Preserve receipt bootstrap ownership; no game services/ads/pool.
             PoolM.Init();
             PopupM.Init();
             GoogleAdMobM.Init();

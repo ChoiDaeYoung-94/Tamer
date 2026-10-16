@@ -20,7 +20,14 @@ namespace AD
         public Dictionary<string, object> ItemData;
         public string PlayFabId { get; private set; } = string.Empty;
         public bool IsServerDataReady { get; private set; }
-        public bool HasKnownAccount => _equipmentReadBlocked || !string.IsNullOrEmpty(_localOwner) || !string.IsNullOrEmpty(PlayFabId);
+        public bool HasKnownAccount => ReceiptOnly || _equipmentReadBlocked || !string.IsNullOrEmpty(_localOwner) || !string.IsNullOrEmpty(PlayFabId);
+        // Sticky for this host lifetime, including after receipt cleanup/cancellation. Restart is required
+        // before normal services or authentication can be initialized from a fresh, valid save.
+        internal bool ReceiptOnly { get; private set; }
+        private string _receiptOnlyOwner;
+#if UNITY_EDITOR
+        internal string ReceiptInitializationPathForTests;
+#endif
         // Retained for existing serialized scenes. Conflicts no longer trigger a bulk upload.
         public bool IsConflict;
 
@@ -66,7 +73,7 @@ namespace AD
             }
         }
 
-        private bool CanPurchaseAlly() => !_shutdown && !EquipmentBlocksWrites && !_allyPurchaseWriting && !_allyPurchaseReloadRequired &&
+        private bool CanPurchaseAlly() => !ReceiptOnly && !_shutdown && !EquipmentBlocksWrites && !_allyPurchaseWriting && !_allyPurchaseReloadRequired &&
             IsServerDataReady && !DeletionInProgress && !_deletionSignedOut &&
             !string.IsNullOrEmpty(_localOwner) && _localOwner == PlayFabId && LocalPlayerData != null;
 
@@ -160,7 +167,7 @@ namespace AD
 
         private void RequireInventorySession(string owner, int generation)
         {
-            if (_shutdown || EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired || !IsServerDataReady || DeletionInProgress || _deletionSignedOut ||
+            if (ReceiptOnly || _shutdown || EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired || !IsServerDataReady || DeletionInProgress || _deletionSignedOut ||
                 string.IsNullOrWhiteSpace(owner) || owner != PlayFabId || generation != _accountGeneration)
                 throw new InvalidOperationException("Inventory requires the current ready account session.");
         }
@@ -170,6 +177,8 @@ namespace AD
         {
             if (record == null || string.IsNullOrEmpty(record.OwnerHash) || string.IsNullOrEmpty(record.Origin) ||
                 record.Title != PlayFab.PlayFabSettings.TitleId) return false;
+            if (ReceiptOnly && (string.IsNullOrWhiteSpace(_receiptOnlyOwner) ||
+                AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, _receiptOnlyOwner) != record.OwnerHash)) return false;
             var player = PlayFab.PlayFabSettings.staticPlayer;
             foreach (string account in new[] { PlayFabId, player.PlayFabId })
                 if (!string.IsNullOrEmpty(account) && AD.Privacy.DeletionRecovery.Hash(record.Origin, record.Title, account) != record.OwnerHash)
@@ -208,9 +217,10 @@ namespace AD
             if (ReadDeletionProgress() == null)
             {
                 _localOwner = string.Empty;
-                LocalPlayerData = _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
+                LocalPlayerData = ReceiptOnly ? null : _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
                 _changes = new PlayerDataChanges();
                 ClearEquipmentState();
+                _equipmentReadBlocked = ReceiptOnly;
                 PlayFabPlayerData = null;
             }
             DeletionInProgress = false;
@@ -347,6 +357,7 @@ namespace AD
         // Only a validated terminal cancellation proves no submission can still occur.
         public void FinishCancelledDeletion(AD.Privacy.DeletionSession session)
         {
+            if (ReceiptOnly) throw new InvalidOperationException("Normal sessions are unavailable during receipt recovery.");
             if (session == null || !session.Matches(DeletionSession())) throw new InvalidOperationException();
             if (!DeletionInProgress) return;
             DeletionInProgress = false;
@@ -383,10 +394,11 @@ namespace AD
                     LoadStoredData(); // Preserve the owner fence of an untouched foreign/legacy file for subsequent login.
                 else
                 {
-                    LocalPlayerData = _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
+                    LocalPlayerData = ReceiptOnly ? null : _defaults == null ? new Dictionary<string, string>() : new Dictionary<string, string>(_defaults);
                     _localOwner = string.Empty;
                     _changes = new PlayerDataChanges();
                     ClearEquipmentState();
+                    _equipmentReadBlocked = ReceiptOnly;
                 }
             }
         }
@@ -396,7 +408,16 @@ namespace AD
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (_initialized) return;
             _server = Managers.ServerM ?? throw new InvalidOperationException("Server service is not initialized.");
-            LoadPlayerData();
+            try { LoadPlayerData(); }
+            catch (InvalidDataException) when (_equipmentReadBlocked && !string.IsNullOrEmpty(_receiptOnlyOwner))
+            {
+                // Only an unambiguous outer owner with an invalid inner B record reaches this mode.
+                // Keep a deletion-receipt owner, not a default game snapshot or partly initialized game.
+                ReceiptOnly = true;
+                LocalPlayerData = null; PlayFabPlayerData = null; IsServerDataReady = false;
+                _initialized = true;
+                return;
+            }
             MonsterData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/MonstersData").ToString()) as Dictionary<string, object>;
             ItemData = Utility.DeserializeFromJson(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/ItemsData").ToString()) as Dictionary<string, object>;
             _ctsLocalDataUpdate?.Cancel();
@@ -415,12 +436,23 @@ namespace AD
 #else
             _playerDataPath = Path.Combine(Application.persistentDataPath, "PlayerData.json");
 #endif
+#if UNITY_EDITOR
+            if (ReceiptInitializationPathForTests != null)
+            {
+                if (!Path.IsPathRooted(ReceiptInitializationPathForTests) ||
+                    Path.GetFileName(ReceiptInitializationPathForTests) != "ReceiptOnlyPlayerData.json" ||
+                    !Path.GetFileName(Path.GetDirectoryName(ReceiptInitializationPathForTests)).StartsWith("TamerReceiptOnly-", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Dedicated receipt initialization fixture required.");
+                _playerDataPath = ReceiptInitializationPathForTests;
+            }
+#endif
             _defaults = ParseData(Managers.ResourceM.Load<TextAsset>("DataManager", "Data/PlayerData").ToString());
             LoadStoredData();
         }
 
         private void LoadStoredData()
         {
+            _receiptOnlyOwner = null;
             // Never rewrite a legacy or malformed save during initialization.
             try
             {
@@ -437,10 +469,22 @@ namespace AD
                 string metadata = raw == null ? null : EquipmentPurchaseRecord.Extract(raw);
                 var local = raw == null ? new Dictionary<string, string>(_defaults) : ParseData(raw);
                 var owner = local.TryGetValue(OwnerKey, out var storedOwner) ? storedOwner : string.Empty;
-                var record = metadata == null ? null : EquipmentPurchaseRecord.Parse(metadata);
                 var changes = local.TryGetValue(JournalKey, out var journal)
                     ? PlayerDataChanges.Deserialize(journal, owner, local) : new PlayerDataChanges();
-                record?.ValidatePayment(owner, local, changes);
+                EquipmentPurchaseRecord record = null;
+                try
+                {
+                    record = metadata == null ? null : EquipmentPurchaseRecord.Parse(metadata);
+                    record?.ValidatePayment(owner, local, changes);
+                }
+                catch (Exception error) when (error is InvalidDataException || error is Newtonsoft.Json.JsonException)
+                {
+                    // Do not retain a malformed/foreign outer owner, or reinterpret an invalid journal.
+                    // Cleanup will independently reread the outer owner and verify receipt/inventory binding.
+                    if (metadata != null && !string.IsNullOrWhiteSpace(owner) && owner != "null")
+                        _receiptOnlyOwner = owner;
+                    throw;
+                }
                 local.Remove(OwnerKey); local.Remove(JournalKey); local.Remove(EquipmentPurchaseRecord.Key);
                 foreach (var entry in _defaults)
                     if (!local.ContainsKey(entry.Key)) local.Add(entry.Key, entry.Value);
@@ -467,6 +511,7 @@ namespace AD
         /// <summary>Bind only after authentication. An owner mismatch requires explicit account recovery.</summary>
         public void BeginAccountSession(string playFabId)
         {
+            if (ReceiptOnly) throw new InvalidOperationException("Only deletion receipt recovery is available; restart after local handling.");
             if (_allyPurchaseWriting || _equipmentWriter != null) throw new InvalidOperationException("A purchase save is in progress.");
             if (DeletionInProgress) throw new InvalidOperationException("Deletion submission is unresolved.");
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
@@ -532,7 +577,7 @@ namespace AD
         /// <summary>Durable local mutation, including purchase restoration before Player exists.</summary>
         public bool TryUpdateLocalData(string key, string value)
         {
-            if (_shutdown || EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired || !IsServerDataReady || string.IsNullOrEmpty(_localOwner) || _localOwner != PlayFabId
+            if (ReceiptOnly || _shutdown || EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired || !IsServerDataReady || string.IsNullOrEmpty(_localOwner) || _localOwner != PlayFabId
                 || LocalPlayerData == null || string.IsNullOrEmpty(key) || EquipmentPurchaseRecord.IsReserved(key) || value == null)
                 return false;
             if (key == "GooglePlay")
@@ -569,7 +614,7 @@ namespace AD
 
         public void SaveLocalData()
         {
-            if (DeletionInProgress || _deletionSignedOut || EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired)
+            if (ReceiptOnly || DeletionInProgress || _deletionSignedOut || EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired)
                 throw new InvalidOperationException("No writable account session.");
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
             if (LocalPlayerData == null || string.IsNullOrEmpty(_playerDataPath))
@@ -621,6 +666,7 @@ namespace AD
 
         public void UpdatePlayerData()
         {
+            if (ReceiptOnly) return;
             if (EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired) return;
             if (DeletionInProgress || _deletionSignedOut) return;
             if (_shutdown) return;
@@ -647,6 +693,7 @@ namespace AD
 
         private void AcknowledgeChanges(Dictionary<string, string> patch, Dictionary<string, long> revisions)
         {
+            if (ReceiptOnly) return;
             if (EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired) return;
             var candidate = _changes.Clone();
             candidate.Acknowledge(patch, revisions);
@@ -657,6 +704,7 @@ namespace AD
         /// <summary>Called only for a successful server read. No write requests originate here.</summary>
         public void UpdateData()
         {
+            if (ReceiptOnly) return;
             if (EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired) return;
             if (DeletionInProgress || _deletionSignedOut) return;
             if (_shutdown) throw new ObjectDisposedException(nameof(DataManager));
