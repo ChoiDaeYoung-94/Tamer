@@ -474,6 +474,134 @@ public class RevivalGameplaySessionTests
         }
     }
 
+    [TestCase("captured")]
+    [TestCase("pool-reuse")]
+    [TestCase("inactive")]
+    [TestCase("dead")]
+    public void Revival_LateMonsterAttackRejectsChangedTargetAndClearsReference(string change)
+    {
+        using (var f = new Fixture())
+        {
+            var attacker = f.CombatMonster(false);
+            var target = f.CombatMonster(true);
+            if (change == "captured")
+            {
+                Set(attacker, "_isAlly", true);
+                target.gameObject.layer = LayerMask.NameToLayer("Enemy");
+                Set(target, "_isAlly", false);
+            }
+            Set(attacker, change == "captured" ? "_allyTarget" : "_followerTarget", target.gameObject);
+            Set(attacker, "_isTarget", true);
+            Call(attacker, "BindCombatTarget", target);
+            int lifetime = (int)target.GetType().GetProperty("SessionLifetime").GetValue(target);
+            if (change == "captured")
+            {
+                // Capture changes faction without changing the pooled activation.
+                target.gameObject.layer = LayerMask.NameToLayer("Ally");
+                Set(target, "_isAlly", true);
+            }
+            if (change == "pool-reuse") Call(Get(target, "_session"), "Bind", f.Data, "A", 1, true);
+            if (change == "inactive") target.gameObject.SetActive(false);
+            if (change == "dead") Set(target, "_hp", 0f);
+            float hp = (float)Get(target, "_hp");
+
+            Call(attacker, "AttackTarget");
+
+            Assert.That(Get(target, "_hp"), Is.EqualTo(hp));
+            Assert.That(Get(attacker, "_allyTargetCreature"), Is.Null);
+            Assert.That(Get(attacker, "_followerTargetCreature"), Is.Null);
+            Assert.That(Get(attacker, "_isTarget"), Is.False);
+            if (change == "captured")
+                Assert.That(target.GetType().GetProperty("SessionLifetime").GetValue(target), Is.EqualTo(lifetime));
+        }
+    }
+
+    [Test]
+    public void Revival_CurrentOpposingTargetStillTakesNormalDamage()
+    {
+        using (var f = new Fixture())
+        {
+            var attacker = f.CombatMonster(false);
+            var target = f.CombatMonster(true); // Ally layer avoids damage-popup services in this offline fixture.
+            Set(attacker, "_followerTarget", target.gameObject);
+            Set(attacker, "_isTarget", true);
+            Call(attacker, "BindCombatTarget", target);
+            Call(attacker, "AttackTarget");
+            Assert.That(Get(target, "_hp"), Is.EqualTo(90f));
+            Assert.That(Get(attacker, "_followerTargetCreature"), Is.SameAs(target));
+        }
+    }
+
+    [TestCase("pool-reuse")]
+    [TestCase("captured")]
+    [TestCase("inactive")]
+    public void Revival_LatePlayerAttackRejectsChangedTarget(string change)
+    {
+        using (var f = new Fixture())
+        {
+            var target = f.CombatMonster(false);
+            Set(f.Player, "enemyLayer", LayerMask.NameToLayer("Enemy"));
+            Call(f.Player, "SetCombatTarget", target);
+            if (change == "pool-reuse") Call(Get(target, "_session"), "Bind", f.Data, "A", 1, true);
+            if (change == "captured") target.gameObject.layer = LayerMask.NameToLayer("Ally");
+            if (change == "inactive") target.gameObject.SetActive(false);
+            // Make an erroneous hit observable without invoking enemy damage-popup services.
+            Set(target, "enemyLayer", LayerMask.NameToLayer("Die"));
+            Set(f.Player, "_power", 10f);
+            Call(f.Player, "AttackTarget");
+            Assert.That(Get(target, "_hp"), Is.EqualTo(100f));
+            Assert.That(Get(f.Player, "_curTargetMonster"), Is.Null);
+        }
+    }
+
+    [Test]
+    public void Revival_CurrentPlayerTargetStillTakesNormalDamage()
+    {
+        using (var f = new Fixture())
+        {
+            var target = f.CombatMonster(false);
+            Set(f.Player, "enemyLayer", LayerMask.NameToLayer("Enemy"));
+            Set(f.Player, "_power", 10f);
+            // Keep the real target faction while avoiding unrelated damage-popup services.
+            Set(target, "enemyLayer", LayerMask.NameToLayer("Die"));
+            Call(f.Player, "SetCombatTarget", target);
+
+            Call(f.Player, "AttackTarget");
+
+            Assert.That(Get(target, "_hp"), Is.EqualTo(90f));
+            Assert.That(Get(f.Player, "_curTargetMonster"), Is.SameAs(target));
+        }
+    }
+
+    [Test]
+    public void Revival_SelectedCorpseRemainsAvailableForItsCollectionCallback()
+    {
+        using (var f = new Fixture())
+        {
+            var target = f.CombatMonster(false);
+            Set(f.Player, "enemyLayer", LayerMask.NameToLayer("Enemy"));
+            Set(f.Player, "dieLayer", LayerMask.NameToLayer("Die"));
+            Call(f.Player, "SetCombatTarget", target);
+            Set(target, "_hp", 0f);
+            target.gameObject.layer = LayerMask.NameToLayer("Die");
+            Call(f.Player, "AttackTarget");
+            Assert.That(Get(f.Player, "_curTargetMonster"), Is.SameAs(target));
+            Assert.That(Get(target, "_hp"), Is.Zero);
+            Set(f.Data, "_inventorySession", new string('a', 32));
+            int lifetime = (int)target.GetType().GetProperty("SessionLifetime").GetValue(target);
+
+            Call(f.Player, "NotifyPlayerOfDeath", target.gameObject, 0, lifetime);
+
+            Assert.That((IEnumerable)Get(f.Player, "PlayerMonsterCollection"), Is.EqualTo(new[] { "Bat" }));
+            var snapshot = Call(f.Data, "ReadInventory");
+            Assert.That((IEnumerable)snapshot.GetType().GetProperty("Collection").GetValue(snapshot),
+                Is.EqualTo(new[] { "Bat" }));
+            Assert.That(Get(f.Player, "_curTargetMonster"), Is.Null);
+            Call(f.Player, "NotifyPlayerOfDeath", target.gameObject, 0, lifetime);
+            Assert.That((IEnumerable)Get(f.Player, "PlayerMonsterCollection"), Is.EqualTo(new[] { "Bat" }));
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly Scene _scene = EditorSceneManager.NewPreviewScene();
@@ -485,6 +613,8 @@ public class RevivalGameplaySessionTests
         private readonly FieldInfo _playerInstance = Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
         private object _oldPlayer;
         private bool _claimedPlayer;
+        private bool _combatConfigured;
+        private readonly List<GameObject> _combatObjects = new List<GameObject>();
         public readonly List<Dictionary<string, string>> Uploads = new List<Dictionary<string, string>>();
         public string SavePath => Path.Combine(_directory, "PlayerData.json");
         public Dictionary<string, string> Values => (Dictionary<string, string>)Get(Data, "LocalPlayerData");
@@ -517,11 +647,15 @@ public class RevivalGameplaySessionTests
         public Dictionary<string, string> Stored() => (Dictionary<string, string>)Call(Runtime("AD.DataManager"),
             "ParseData", File.ReadAllText(SavePath));
 
+        private void ClaimPlayer()
+        {
+            if (!_claimedPlayer) { _oldPlayer = _playerInstance.GetValue(null); _claimedPlayer = true; }
+            _playerInstance.SetValue(null, Player);
+        }
+
         public void ConfigureAllyShop()
         {
-            _oldPlayer = _playerInstance.GetValue(null);
-            _playerInstance.SetValue(null, Player);
-            _claimedPlayer = true;
+            ClaimPlayer();
             Values["GooglePlay"] = "ProductNoAds,FutureProduct";
             Set(Data, "_defaults", new Dictionary<string, string>(Values));
             Set(Data, "MonsterData", new Dictionary<string, object>
@@ -565,8 +699,48 @@ public class RevivalGameplaySessionTests
             Set(Player,"_hp",150f);Set(Player,"_itemAdditionalHp",150f);Set(Player,"_power",30f);
             Set(Player,"_attackSpeed",0.5f);Set(Player,"_moveSpeed",3f);
         }
+        public Component CombatMonster(bool ally)
+        {
+            if (!_combatConfigured)
+            {
+                ClaimPlayer();
+                _combatConfigured = true;
+                Set(Data, "MonsterData", new Dictionary<string, object>
+                {
+                    ["Bat"] = new Dictionary<string, object>
+                    { ["Hp"] = "100", ["Power"] = "10", ["AttackSpeed"] = "1", ["MoveSpeed"] = "3", ["Gold"] = "0" }
+                });
+            }
+            var go = new GameObject("Offline combat target");
+            go.SetActive(false);
+            SceneManager.MoveGameObjectToScene(go, _scene);
+            _combatObjects.Add(go);
+            var monster = go.AddComponent(Runtime("Monster"));
+            Set(monster, "CreatureType", Enum.Parse(Runtime("AD.GameConstants+Creatures"), "Bat"));
+            var agent = go.AddComponent<UnityEngine.AI.NavMeshAgent>();
+            agent.enabled = false;
+            Set(monster, "NavMeshAgent", agent);
+            Set(monster, "_capsuleCollider", go.AddComponent<CapsuleCollider>());
+            var effect = new GameObject("Offline effect");
+            effect.transform.SetParent(go.transform);
+            Set(monster, "_spawnEffect", effect);
+            Set(monster, "_captureEffect", effect);
+            Set(monster, "isDie", true); // Any activation loops finish without scheduling battle work.
+            go.SetActive(true);
+            Call(monster, "StopBattle");
+            Set(monster, "isDie", false);
+            Set(monster, "_hp", 100f); Set(monster, "_power", 10f);
+            Set(monster, "allyLayer", LayerMask.NameToLayer("Ally"));
+            Set(monster, "enemyLayer", LayerMask.NameToLayer("Enemy"));
+            Set(monster, "dieLayer", LayerMask.NameToLayer("Die"));
+            Set(monster, "_isAlly", ally);
+            go.layer = LayerMask.NameToLayer(ally ? "Ally" : "Enemy");
+            Call(Get(monster, "_session"), "Bind", Data, "A", 1, true);
+            return monster;
+        }
         public void Dispose()
         {
+            foreach (var go in _combatObjects) UnityEngine.Object.DestroyImmediate(go);
             if (_claimedPlayer) _playerInstance.SetValue(null, _oldPlayer);
             _managerInstance.SetValue(null, _oldManager);
             EditorSceneManager.ClosePreviewScene(_scene);

@@ -379,6 +379,72 @@ public class RevivalAdPopupTests
             "Ownership loss stops waiting without modifying the old server request.");
     }
 
+    [UnityTest]
+    public IEnumerator Revival_SceneWaitRejectsSameManagerGenerationChange() => WaitForChangedSession("generation");
+
+    [UnityTest]
+    public IEnumerator Revival_SceneWaitRejectsSameManagerAccountChange() => WaitForChangedSession("account");
+
+    [UnityTest]
+    public IEnumerator Revival_SceneWaitRejectsSameManagerDeletionEpochChange() => WaitForChangedSession("deletion-epoch");
+
+    private IEnumerator WaitForChangedSession(string change)
+    {
+        var services = CreateSessionServices(true, out var data, out var scene, out var server);
+        var operationType = server.GetType().GetNestedType("Operation", BindingFlags.NonPublic);
+        server.GetType().GetField("_active", InstanceMembers).SetValue(server, Activator.CreateInstance(operationType, true));
+        var task = Invoke(scene, "WaitForServerAsync", services, System.Threading.CancellationToken.None);
+        var awaiter = task.GetType().GetMethod("GetAwaiter").Invoke(task, null);
+        var completed = awaiter.GetType().GetProperty("IsCompleted");
+        Assert.That(completed.GetValue(awaiter), Is.False);
+        if (change == "generation") data.GetType().GetField("_accountGeneration", InstanceMembers).SetValue(data, 2);
+        if (change == "account") data.GetType().GetProperty("PlayFabId").SetValue(data, "B");
+        if (change == "deletion-epoch") data.GetType().GetProperty("DeletionEpoch").SetValue(data, 1);
+        // Session invalidation also ends the server wait; that is not a successful old transition.
+        server.GetType().GetMethod("CancelPendingRequests").Invoke(server, null);
+        var deadline = UnityEditor.EditorApplication.timeSinceStartup + 2;
+        while (!(bool)completed.GetValue(awaiter) && UnityEditor.EditorApplication.timeSinceStartup < deadline)
+            yield return null;
+        Assert.That(completed.GetValue(awaiter), Is.True);
+        Assert.That(awaiter.GetType().GetMethod("GetResult").Invoke(awaiter, null), Is.False);
+        Assert.That(services.GetType().GetProperty("IsCurrent").GetValue(services), Is.False);
+
+        var targetType = scene.GetType().GetField("_scene", InstanceMembers).FieldType;
+        var load = Invoke(scene, "LoadTargetSceneAsync", Enum.ToObject(targetType, 999), System.Threading.CancellationToken.None,
+            (Func<bool>)(() => (bool)services.GetType().GetProperty("IsCurrent").GetValue(services)));
+        var loadAwaiter = load.GetType().GetMethod("GetAwaiter").Invoke(load, null);
+        Assert.That(loadAwaiter.GetType().GetProperty("IsCompleted").GetValue(loadAwaiter), Is.True);
+        // A stale transition returns before its delay/native work; an invalid scene must never be loaded.
+        Assert.DoesNotThrow(() => loadAwaiter.GetType().GetMethod("GetResult").Invoke(loadAwaiter, null));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_SceneContextAllowsInitialHydrationButRejectsLossOfEstablishedReadiness(bool ready)
+    {
+        var services = CreateSessionServices(ready, out var data, out var scene, out var server);
+        var current = services.GetType().GetProperty("IsCurrent");
+        Assert.That(current.GetValue(services), Is.True);
+        data.GetType().GetProperty("IsServerDataReady").SetValue(data, !ready);
+        Assert.That(current.GetValue(services), Is.EqualTo(!ready));
+    }
+
+    private object CreateSessionServices(bool ready, out Component data, out Component scene, out object server)
+    {
+        var managers = (Component)singletonField.GetValue(null);
+        data = inactiveManagersRoot.AddComponent(FindType("AD.DataManager"));
+        data.GetType().GetProperty("PlayFabId").SetValue(data, "A");
+        data.GetType().GetField("_accountGeneration", InstanceMembers).SetValue(data, 1);
+        data.GetType().GetProperty("IsServerDataReady").SetValue(data, ready);
+        var sound = inactiveManagersRoot.AddComponent(FindType("AD.SoundManager"));
+        server = Activator.CreateInstance(FindType("AD.ServerManager"), new object[] { data });
+        managers.GetType().GetField("_dataM", InstanceMembers).SetValue(managers, data);
+        managers.GetType().GetField("_soundM", InstanceMembers).SetValue(managers, sound);
+        managers.GetType().GetField("_serverM", InstanceMembers).SetValue(managers, server);
+        scene = fixtureRoot.AddComponent(FindType("AD.SceneManager"));
+        return Activator.CreateInstance(scene.GetType().GetNestedType("SceneServices", BindingFlags.NonPublic), new object[] { managers });
+    }
+
     private GameObject CreatePopup(string name)
     {
         var popup = new GameObject("Revival " + name);
