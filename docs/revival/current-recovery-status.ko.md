@@ -1,6 +1,8 @@
-# 최신 복구 상태와 남은 순서 — 2026-10-15
+# 최신 복구 상태와 남은 순서 — 2026-10-16
 
-진단 빌드의 소스 기준은 `f7a051b48ca7f0fcd6c957ead29ebd6ebedaaf31`입니다. [PR #352](https://github.com/ChoiDaeYoung-94/Tamer/pull/352)의 구매 검증 진단 수정과 [PR #354](https://github.com/ChoiDaeYoung-94/Tamer/pull/354)의 기존 시험 서명 백업 복구 도구는 병합된 상태입니다. 새 PC에서 실제 시험 서명 복구와 JDK 복구를 완료했지만, 신규 진단 AAB 빌드는 컴파일러 충돌로 실패했습니다. 코드 통합과 현재 설치 앱의 동작·실제 스토어 검증은 별도로 기록합니다. 아래 날짜별 문서의 미실행·실패 기록은 당시 이력으로 보존합니다.
+10월 15일 실패한 진단 빌드의 소스 기준은 `f7a051b48ca7f0fcd6c957ead29ebd6ebedaaf31`입니다. [PR #352](https://github.com/ChoiDaeYoung-94/Tamer/pull/352)의 구매 검증 진단 수정과 [PR #354](https://github.com/ChoiDaeYoung-94/Tamer/pull/354)의 기존 시험 서명 백업 복구 도구는 병합된 상태입니다. 새 PC에서 실제 시험 서명 복구와 JDK 복구를 완료했지만, 신규 진단 AAB 빌드는 컴파일러 충돌로 실패했습니다. 10월 16일에는 [PR #362](https://github.com/ChoiDaeYoung-94/Tamer/pull/362)로 정책·인벤토리 문서 6개의 과거 관측과 현재 구현을 구분했습니다. 이 문서 정리까지 병합한 소스 기준은 `1e34718f25e3814742cee4c5c332b6551c68c55a`이며, 새 빌드·기기·정책 검증 결과는 아닙니다.
+
+동료 구매 수정은 별도의 [초안 PR #363](https://github.com/ChoiDaeYoung-94/Tamer/pull/363), `c687479500fad8124fd6e4db0440f3b48f5e345b`에 보존했습니다. 아직 main에 병합하거나 컴파일·실행 검증하지 않았습니다. 코드 통합과 현재 설치 앱의 동작·실제 스토어 검증은 별도로 기록하며, 아래 날짜별 문서의 미실행·실패 기록은 당시 이력으로 보존합니다.
 
 | 항목 | 현재 확인 범위 | 남은 작업·제한 |
 |---|---|---|
@@ -10,8 +12,9 @@
 | 구매 진단 코드 | PR #352 병합. `6c413127` 관련 Win64 EditMode 44/44 PASS, 후속 `61798607` 변경 회귀 2/2 PASS 및 독립 읽기 검토 완료 | 최신 수정은 아직 설치 앱에 반영되지 않았습니다. 첫 컴파일 AccessViolation 이후 프로세스 한정 `DOTNET_PROCESSOR_COUNT=1`로 통과했으며 환경 근본 원인 해소를 주장하지 않습니다. |
 | 기존 시험 키 복구 | PR #354 병합 후 실제 백업 복구·현재 Windows DPAPI·기존 키의 일회성 challenge 서명/공개키 대조·현재 Console 업로드 인증서 일치 확인. [#353](https://github.com/ChoiDaeYoung-94/Tamer/issues/353) 완료 | 원 metadata·receipt·키를 보존했고 새 키를 만들지 않았습니다. 시험 키의 결과이며 운영 서명키나 새 AAB의 서명·업로드 완료를 뜻하지 않습니다. |
 | 새 PC Android 환경 | 공식 고정 JDK ZIP 해시를 검증해 누락된 embedded OpenJDK만 복구. 실제 Java 17.0.18+8 실행·SDK·NDK·API36 파일 확인 | 과거 Android 부모 모듈 설치 실패 이력은 보존합니다. 이후 단일 JDK 복구는 성공했으며 현재 관리자 승인·백업 암호 재입력 대기는 없습니다. |
-| 신규 진단 v28 | Console의 최신 업로드/내부 배포 v27 확인 후 v28 빌드 1회 실행 | clang frontend·ShaderCompiler 충돌로 실패, AAB 생성·검증·업로드 없음. 같은 시간대 프로세서 하드웨어 교정 오류도 관측해 추가 빌드는 보류합니다. 원인/재개 조건은 [#358](https://github.com/ChoiDaeYoung-94/Tamer/issues/358)이며 CPU 고장이나 단독 원인으로 확정하지 않습니다. |
+| 신규 진단 v28·호스트 | 10월 15일 Console의 최신 업로드/내부 배포 v27 확인 후 v28 빌드 1회 실행. 10월 16일에도 BIOS M.50·microcode 0x11D 확인 | clang frontend·ShaderCompiler 충돌로 실패, AAB 생성·검증·업로드 없음. 같은 시간대 프로세서 하드웨어 교정 오류도 관측해 추가 컴파일·실행 검증은 보류합니다. 원인/재개 조건은 [#358](https://github.com/ChoiDaeYoung-94/Tamer/issues/358)이며 CPU 고장이나 단독 원인으로 확정하지 않습니다. BIOS·펌웨어 변경은 아직 없습니다. |
 | 실패 빌드 정리 | 독립 검토한 변경분만 복구하고 시험용 생성 설정 정리. 에셋 4,561개 사후 검사 통과, 복사 0개 | 보호한 9개 원본은 사전 바이트로, 별도 자동 변경 9개는 고정 HEAD의 필터 표현으로 복구했습니다. 후자는 사전 원바이트 동일성 증명과 구분합니다. 실패 자료·Library·기존 키는 보존합니다. |
+| 인게임 Gold 구매 | [#361](https://github.com/ChoiDaeYoung-94/Tamer/issues/361)로 장비 보유·장착·Gold의 분리 저장 실패를 추적. 초안 PR #363은 동료 구매의 Gold·동행 목록·pending revision을 한 파일에서 저장하고 모호한 실패 뒤 재인증 복구를 추가 | 독립 코드 읽기와 재인증 회귀 소스 보완까지 완료했으나 컴파일·테스트·실제 상점 UI는 미검증입니다. 장비 구매의 여러 파일 복구·원격/다기기 원자성은 해결되지 않았으며, Play No Ads 구매 복원과 다른 작업입니다. |
 | 가입 UI | 승인된 8차에서 예외 해소 후 전체 검정 캡처로 시각 검증 FAIL, 원본 복구 완료 | 9차와 실질적으로 같은 우회 시험은 STOP입니다. 근본 원인은 미확정입니다. |
 | 16KB·RELRO | Play 16KB 지원 표시·기본 정적 LOAD·범용 APK 서명/ZIP 정렬 검사 이력 | 실제 16KB 환경 실행·기기별 split은 미검증이고 과거 산출물의 strict RELRO 실패 이력이 남아 있습니다. 신규 v28은 AAB가 없어 재검사 결과가 없습니다. |
 | 광고·연령·No Ads | 9세 이상 성인 포함, 미성년 광고 차단, 기존 rewarded 보상과 영구 No Ads 상품·권한 유지 | 운영 광고/동의 승인 게이트는 false이고 binding은 null입니다. 지역·거절/철회·연령 변경·복원 실기기 확인이 남습니다. 5초 닫기 추가 조사는 보류이며 정책 충족을 선언하지 않습니다. |
@@ -21,9 +24,11 @@
 
 ## 다음 작업 순서
 
-1. **호스트 안정성을 확인하고 빌드 재개 조건을 정합니다.** JDK와 기존 시험 서명 복구는 완료했습니다. 네이티브 컴파일러 충돌과 동시 관측한 Windows 프로세서 오류의 원인을 먼저 확인합니다. 실패 자료·Library·원본을 보존하고 빌드의 실제 변경분을 검토해 소유 작업본만 복구합니다. 자동 펌웨어 변경·전압/클럭 변경·재부팅·반복 빌드는 하지 않습니다. 관련 [Intel 공식 안내](https://www.intel.com/content/www/us/en/support/articles/000102331/processors.html)는 최신 BIOS와 Intel Default Settings를 권고하며, 해당 일반 안내만으로 이 PC의 고장 여부를 판정하지 않습니다.
-2. **새 진단 앱으로 Store 대기를 분류합니다.** 호스트 점검 뒤 소스·현재 Console 최대 버전·업로드 인증서를 다시 결부해 제한된 빌드 재시도를 결정합니다. 성공한 후보의 서명·manifest·네이티브 검사와 Play 업데이트 이후 기기 관측은 각각 별도입니다. 기존 설치 앱에서 같은 구매/복원 반복을 요청하지 않으며, 검증 없는 권한 지급·구매 확정·주문 폐기를 하지 않습니다. 실제 복원은 [#351](https://github.com/ChoiDaeYoung-94/Tamer/issues/351), 빌드 차단은 [#358](https://github.com/ChoiDaeYoung-94/Tamer/issues/358)에서 추적합니다.
-3. **운영 광고·개인정보 근거를 완성합니다.** [광고 근거표](ads-release-evidence-checklist.ko.md), [Data Safety 후보](data-safety-draft.ko.md), README 방침과 [외부 삭제 안내](../account-deletion.ko.md)를 실제 제공 버전·지역·처리자·잔존 자료에 맞춰 대조합니다. 기존 rewarded·영구 No Ads·직접 메일 처리 선택을 유지합니다.
-4. **최종 출시를 검증하고 정리합니다.** 최종 서명 AAB·전달 APK/split·실기기·정책/스토어 결과와 16KB/RELRO 미검증을 같은 후보에 연결합니다. 완료 전 `releaseReady=false`를 유지합니다. 이후 시험 자원을 정리하고 저장소 소문자 변경과 링크 도달성을 확인합니다. 기존 계정·저장·No Ads·서명키·GUID·비공개 근거를 보존합니다.
+호스트 점검은 실행 검증의 선행 조건입니다. 그와 독립적인 코드 설계·문서 대조까지 모두 멈추지는 않습니다. 현재 두 갈래로 진행합니다.
+
+1. **현장 호스트 점검을 준비합니다.** JDK와 기존 시험 서명 복구는 완료했습니다. 사용자가 집 PC 앞에서 진행할 BIOS 점검 안내는 별도 담당 채팅에 남기고, 정확한 보드·공식 패키지·BitLocker 준비 여부를 확인한 뒤 실제 작업합니다. 원격 접속만 가능한 동안 자동 펌웨어 변경·전압/클럭 변경·재부팅·반복 빌드는 하지 않습니다. 관련 [Intel 공식 안내](https://www.intel.com/content/www/us/en/support/articles/000102331/processors.html)는 최신 BIOS와 Intel Default Settings를 권고하며, 해당 일반 안내만으로 이 PC의 고장 여부를 판정하지 않습니다. 실패 자료·Library·원본은 보존합니다.
+2. **호스트와 독립적인 저장·정책 작업을 진행합니다.** 장비 구매는 기존 inventory 소유권·계정 전환·pending revision을 보존하는 파일 간 복구 설계를 구체화합니다. 초안 PR #363을 검증 없이 병합하지 않으며, 추가 코드를 작성하더라도 실행 성공으로 기록하지 않습니다. [광고 근거표](ads-release-evidence-checklist.ko.md), [Data Safety 후보](data-safety-draft.ko.md), README 방침과 [외부 삭제 안내](../account-deletion.ko.md)를 대조하고 실제 Console에서 읽어야 할 항목을 정리합니다. 기존 rewarded·영구 No Ads·직접 메일 처리 선택을 유지합니다. 10월 16일의 새 Tamer Console 관측·저장·신고 완료를 주장하지 않습니다.
+3. **호스트 확인 후 최소 코드 검증과 Store 진단을 재개합니다.** 동료 구매의 관련 저장·게임플레이 회귀와 실제 상점 UI를 먼저 확인하고, 새로운 빌드의 소스·그때의 Console 최대 버전·업로드 인증서를 다시 결부해 제한된 재시도를 결정합니다. 성공한 후보의 서명·manifest·네이티브 검사와 Play 업데이트 이후 기기 관측은 각각 별도입니다. 기존 설치 앱에서 같은 구매/복원 반복을 요청하지 않으며, 검증 없는 권한 지급·구매 확정·주문 폐기를 하지 않습니다. 실제 복원은 [#351](https://github.com/ChoiDaeYoung-94/Tamer/issues/351), 빌드 차단은 [#358](https://github.com/ChoiDaeYoung-94/Tamer/issues/358)에서 추적합니다.
+4. **운영 기능·정책과 최종 출시를 검증하고 정리합니다.** 정책 초안을 실제 제공 버전·지역·처리자·잔존 자료 및 Console 신고에 대조합니다. 최종 서명 AAB·전달 APK/split·실기기·정책/스토어 결과와 16KB/RELRO 미검증을 같은 후보에 연결합니다. 완료 전 `releaseReady=false`를 유지합니다. 이후 시험 자원을 정리하고 저장소 소문자 변경과 링크 도달성을 확인합니다. 기존 계정·저장·No Ads·서명키·GUID·비공개 근거와 보류 중인 CI/CD 구성을 보존합니다.
 
 동일 시험이 두 번 실패하면 해당 시험과 종속 작업을 중단하고 결정 전에 세 번째나 유사 조건의 우회 시험을 실행하지 않습니다. 진행률의 과거 75.x%는 날짜가 있는 추정값입니다. 고정된 세부 완료 점수 없이 병합 PR 수·문서량·실패 시도를 새 정확한 완료율로 환산하지 않습니다.
