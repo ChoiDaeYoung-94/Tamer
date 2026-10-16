@@ -23,6 +23,7 @@ namespace AD
         internal sealed class EquipmentPurchaseIntent
         {
             internal readonly DataManager Owner;
+            internal readonly Player QuotedPlayer;
             internal readonly string Account, Session, Item, Slot, Id, RequestHash;
             internal readonly int Generation, DeletionEpoch, Price;
             internal readonly long Sequence;
@@ -30,6 +31,7 @@ namespace AD
             internal EquipmentPurchaseIntent(DataManager owner, string item, string slot, int price, long sequence)
             {
                 Owner = owner; Account = owner.PlayFabId; Generation = owner._accountGeneration;
+                QuotedPlayer = Player.Instance;
                 DeletionEpoch = owner.DeletionEpoch; Session = owner._inventorySession;
                 Item = item; Slot = slot; Price = price; Sequence = sequence; Id = Guid.NewGuid().ToString("N");
                 RequestHash = EquipmentPurchaseRecord.Request(Account, Sequence, Id, Item, Slot, Price);
@@ -94,7 +96,8 @@ namespace AD
 
         internal EquipmentPurchaseResult TryCommitEquipmentPurchase(EquipmentPurchaseIntent intent, int expectedGold, Func<bool> currentPlayer)
         {
-            if (intent == null || !ReferenceEquals(intent.Owner, this)) return EquipmentPurchaseResult.Rejected;
+            if (intent == null || !ReferenceEquals(intent.Owner, this) ||
+                !ReferenceEquals(intent.QuotedPlayer, Player.Instance)) return EquipmentPurchaseResult.Rejected;
             // A durable but unfinished duplicate never opens the success/presentation path.
             if (MatchesEquipmentIntent(intent) && _equipmentRecord.Materializing)
                 return EquipmentPurchaseResult.CommittedPendingMaterialization;
@@ -116,7 +119,7 @@ namespace AD
             Func<bool> fence = () => ReferenceEquals(_equipmentWriter, token) && !_equipmentReloadRequired &&
                 IsServerDataReady && !_allyPurchaseWriting && !_allyPurchaseReloadRequired &&
                 AuthenticatedEquipmentOwner(intent.Account, intent.Generation, intent.DeletionEpoch) &&
-                _inventorySession == intent.Session && currentPlayer();
+                _inventorySession == intent.Session && ReferenceEquals(intent.QuotedPlayer, Player.Instance) && currentPlayer();
             try
             {
                 EnsureInventoryStore();

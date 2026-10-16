@@ -352,6 +352,46 @@ public class RevivalGameplaySessionTests
         }
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_EquipmentShop_ReplacementPlayerCannotUseOrCommitPreviousPlayersConfirmation(bool duringWrite)
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureEquipmentShop();
+            var intent = Call(f.Player, "PrepareEquipmentPurchase", "MasterSword", 10);
+            string original = File.ReadAllText(f.SavePath);
+            var replacement = f.Managers.gameObject.AddComponent(Runtime("Player"));
+            Set(replacement, "_gameplayData", f.Data);
+            Set(replacement, "_inventoryOwner", "A");
+            Set(replacement, "_inventoryGeneration", 1);
+            Set(replacement, "_gold", 100);
+            Action replace = () => Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, replacement);
+            var hook = Runtime("AD.DataManager").GetField("JournalWriteCheckpoint", BindingFlags.NonPublic | BindingFlags.Static);
+            object previous = hook.GetValue(null);
+            int screens = 0;
+            try
+            {
+                if (duringWrite)
+                    hook.SetValue(null, (Action<string, string, string>)((path, temporary, stage) =>
+                    { if (path == f.SavePath && stage == "temporary-closed") replace(); }));
+                else replace();
+                Assert.That(Call(duringWrite ? f.Player : replacement, "TryPurchaseEquipment", intent,
+                    (Action)(() => screens++), null).ToString(), Is.EqualTo(duringWrite ? "RecoveryRequired" : "Rejected"));
+            }
+            finally { hook.SetValue(null, previous); }
+
+            Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(original));
+            Assert.That(f.Stored()["Gold"], Is.EqualTo("100"));
+            Assert.That(Get(replacement, "_gold"), Is.EqualTo(100));
+            Assert.That(File.ReadAllText(f.SavePath + ".inventory/" + Call(Runtime("AD.PlayerInventoryStore"), "OwnerKey", "A") + ".json"),
+                Does.Not.Contain("MasterSword"));
+            Assert.That(screens, Is.Zero);
+            Assert.That(f.Uploads, Is.Empty);
+        }
+    }
+
     [Test]
     public void Revival_EquipmentShop_AutoEquipsOnceAndCompletedReplayDoesNotReapplyStats()
     {
