@@ -352,6 +352,128 @@ public class RevivalGameplaySessionTests
         }
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_EquipmentShop_ReplacementPlayerCannotUseOrCommitPreviousPlayersConfirmation(bool duringWrite)
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureEquipmentShop();
+            var intent = Call(f.Player, "PrepareEquipmentPurchase", "MasterSword", 10);
+            string original = File.ReadAllText(f.SavePath);
+            var replacement = f.Managers.gameObject.AddComponent(Runtime("Player"));
+            Set(replacement, "_gameplayData", f.Data);
+            Set(replacement, "_inventoryOwner", "A");
+            Set(replacement, "_inventoryGeneration", 1);
+            Set(replacement, "_gold", 100);
+            Action replace = () => Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, replacement);
+            var hook = Runtime("AD.DataManager").GetField("JournalWriteCheckpoint", BindingFlags.NonPublic | BindingFlags.Static);
+            object previous = hook.GetValue(null);
+            int screens = 0;
+            try
+            {
+                if (duringWrite)
+                    hook.SetValue(null, (Action<string, string, string>)((path, temporary, stage) =>
+                    { if (path == f.SavePath && stage == "temporary-closed") replace(); }));
+                else replace();
+                Assert.That(Call(duringWrite ? f.Player : replacement, "TryPurchaseEquipment", intent,
+                    (Action)(() => screens++), null).ToString(), Is.EqualTo(duringWrite ? "RecoveryRequired" : "Rejected"));
+            }
+            finally { hook.SetValue(null, previous); }
+
+            Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(original));
+            Assert.That(f.Stored()["Gold"], Is.EqualTo("100"));
+            Assert.That(Get(replacement, "_gold"), Is.EqualTo(duringWrite ? 0 : 100),
+                "A stopped save session clears presentation caches while preserving durable Gold.");
+            Assert.That(f.Data.GetType().GetProperty("IsServerDataReady").GetValue(f.Data), Is.EqualTo(!duringWrite));
+            if (duringWrite) Assert.That(Get(replacement, "_gameplayData"), Is.Null);
+            else Assert.That(Get(replacement, "_gameplayData"), Is.SameAs(f.Data));
+            Assert.That(Get(replacement, "_inventoryOwner"), Is.EqualTo(duringWrite ? null : "A"));
+            Assert.That(File.ReadAllText(f.SavePath + ".inventory/" + Call(Runtime("AD.PlayerInventoryStore"), "OwnerKey", "A") + ".json"),
+                Does.Not.Contain("MasterSword"));
+            Assert.That(screens, Is.Zero);
+            Assert.That(f.Uploads, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void Revival_EquipmentShop_AutoEquipsOnceAndCompletedReplayDoesNotReapplyStats()
+    {
+        using(var f=new Fixture())
+        {
+            f.ConfigureEquipmentShop();
+            var intent=Call(f.Player,"PrepareEquipmentPurchase","MasterSword",10);int screens=0;
+            Assert.That(Call(f.Player,"TryPurchaseEquipment",intent,(Action)(()=>screens++),null).ToString(),Is.EqualTo("Completed"));
+            Assert.That(Get(f.Player,"_gold"),Is.EqualTo(90));Assert.That(Get(f.Player,"_power"),Is.EqualTo(50f));
+            Assert.That(Get(f.Player,"_hp"),Is.EqualTo(150f));
+            CollectionAssert.AreEquivalent(new[]{"MasterSword","SimpleShield"},(IEnumerable)Get(f.Player,"PlayerEquippedItems"));
+            string file=File.ReadAllText(f.SavePath);
+            Assert.That(Call(f.Player,"TryPurchaseEquipment",intent,(Action)(()=>screens++),null).ToString(),Is.EqualTo("AlreadyCommittedCompleted"));
+            Call(f.Player,"ApplyPurchasedEquipment",Call(f.Data,"ReadInventory"));
+            Assert.That(Get(f.Player,"_power"),Is.EqualTo(50f));Assert.That(screens,Is.EqualTo(1));
+            Assert.That(File.ReadAllText(f.SavePath),Is.EqualTo(file));
+            Assert.That(f.Uploads.All(p=>!p.ContainsKey("__TamerEquipmentTransaction")),Is.True);
+        }
+    }
+
+    [TestCase("model")]
+    [TestCase("hud")]
+    public void Revival_EquipmentShop_CommittedPresentationFailureCannotRestoreOldGoldOrSpendAgain(string failure)
+    {
+        using(var f=new Fixture())
+        {
+            f.ConfigureEquipmentShop();var intent=Call(f.Player,"PrepareEquipmentPurchase","MasterSword",10);
+            var hook=Runtime("AD.DataManager").GetField("JournalWriteCheckpoint",BindingFlags.NonPublic|BindingFlags.Static);
+            object previous=hook.GetValue(null);int replaces=0,screens=0;
+            try
+            {
+                hook.SetValue(null,(Action<string,string,string>)((p,t,s)=>
+                {
+                    if(p==f.SavePath&&s=="replaced"&&++replaces==2&&failure=="model")
+                        ((IDictionary)Get(Get(f.Managers,"_equipmentM"),"EquipmentMapping"))["MasterSword"]=null;
+                }));
+                Assert.That(Call(f.Player,"TryPurchaseEquipment",intent,(Action)(()=>
+                {screens++;if(failure=="hud")throw new InvalidOperationException("Synthetic HUD failure");}),null).ToString(),Is.EqualTo("RecoveryRequired"));
+            }
+            finally{hook.SetValue(null,previous);}
+            string saved=File.ReadAllText(f.SavePath);
+            Assert.That(f.Stored()["Gold"],Is.EqualTo("90"));
+            Assert.That(f.Stored()["__TamerEquipmentTransaction"],Does.Contain("\"phase\":\"Complete\""));
+            Assert.That(f.Data.GetType().GetProperty("IsServerDataReady").GetValue(f.Data),Is.False);
+            Call(f.Data,"UpdateLocalData","null","null",true);
+            Assert.That(File.ReadAllText(f.SavePath),Is.EqualTo(saved));
+            Assert.That(Call(f.Player,"TryPurchaseEquipment",intent,(Action)(()=>screens++),null).ToString(),Is.EqualTo("Rejected"));
+            Assert.That(screens,Is.EqualTo(failure=="hud"?1:0));
+        }
+    }
+
+    [Test]
+    public void Revival_EquipmentShop_PreCommitCutHasNoGoldStatsModelOrSuccessEffect()
+    {
+        using(var f=new Fixture())
+        {
+            f.ConfigureEquipmentShop();var intent=Call(f.Player,"PrepareEquipmentPurchase","MasterSword",10);
+            string original=File.ReadAllText(f.SavePath);int screens=0;bool observed=false;
+            var hook=Runtime("AD.DataManager").GetField("JournalWriteCheckpoint",BindingFlags.NonPublic|BindingFlags.Static);
+            object previous=hook.GetValue(null);
+            try
+            {
+                hook.SetValue(null,(Action<string,string,string>)((p,t,s)=>
+                {
+                    if(p!=f.SavePath||s!="temporary-closed")return;
+                    observed=(int)Get(f.Player,"_gold")==100&&(float)Get(f.Player,"_power")==30f&&
+                        !((GameObject)((IDictionary)Get(Get(f.Managers,"_equipmentM"),"EquipmentMapping"))["MasterSword"]).activeSelf;
+                    throw new IOException("Synthetic equipment pre-commit cut");
+                }));
+                Assert.That(Call(f.Player,"TryPurchaseEquipment",intent,(Action)(()=>screens++),null).ToString(),Is.EqualTo("RecoveryRequired"));
+            }
+            finally{hook.SetValue(null,previous);}
+            Assert.That(observed,Is.True);Assert.That(screens,Is.Zero);
+            Assert.That(File.ReadAllText(f.SavePath),Is.EqualTo(original));
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly Scene _scene = EditorSceneManager.NewPreviewScene();
@@ -418,6 +540,30 @@ public class RevivalGameplaySessionTests
             });
             Set(Data, "_server", server);
             Call(Data, "SaveLocalData");
+        }
+        public void ConfigureEquipmentShop()
+        {
+            ConfigureAllyShop();
+            Set(Data,"_inventorySession",new string('a',32));
+            var catalog=new Dictionary<string,object>();
+            string[] names={"SimpleSword","MasterSword","SimpleShield","MasterShield"};
+            for(int i=0;i<names.Length;i++)catalog[names[i]]=new Dictionary<string,object>
+            {
+                ["Price"]="10",["Hp"]=i>=2?"50":"0",["Power"]=i==0?"20":i==1?"40":"0",["AttackSpeed"]="0",["MoveSpeed"]="0"
+            };
+            Set(Data,"ItemData",catalog);
+            var mapping=(IDictionary)Get(Get(Managers,"_equipmentM"),"EquipmentMapping");
+            foreach(string name in names)
+            {
+                var model=new GameObject("Offline "+name);model.transform.SetParent(_root.transform);
+                model.SetActive(name=="SimpleSword"||name=="SimpleShield");mapping.Add(name,model);
+            }
+            Call(Data,"ReadInventory");
+            Call(Data,"WriteInventory","A",1,new[]{"Bat"},new[]{"SimpleSword","SimpleShield"},
+                new Dictionary<string,string>{{"Sword","SimpleSword"},{"Shield","SimpleShield"}});
+            Set(Player,"PlayerEquippedItems",new List<string>{"SimpleSword","SimpleShield"});
+            Set(Player,"_hp",150f);Set(Player,"_itemAdditionalHp",150f);Set(Player,"_power",30f);
+            Set(Player,"_attackSpeed",0.5f);Set(Player,"_moveSpeed",3f);
         }
         public void Dispose()
         {

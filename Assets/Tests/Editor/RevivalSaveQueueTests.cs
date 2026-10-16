@@ -124,6 +124,21 @@ public class RevivalSaveQueueTests
         }
         public bool BuyAlly(object intent, Func<bool> current = null) => (bool)Invoke(_data,
             "TryCommitAllyPurchase", intent, int.Parse(Local["Gold"]), current ?? (() => true));
+        public object PrepareEquipment()
+        {
+            PrepareAlly();
+            SetField("ItemData", new Dictionary<string, object>
+            {
+                ["SimpleSword"] = new Dictionary<string, object> { ["Price"] = "10" },
+                ["MasterSword"] = new Dictionary<string, object> { ["Price"] = "10" },
+                ["SimpleShield"] = new Dictionary<string, object> { ["Price"] = "10" },
+                ["MasterShield"] = new Dictionary<string, object> { ["Price"] = "10" }
+            });
+            if (Field("_inventorySession") == null) SetField("_inventorySession", Guid.NewGuid().ToString("N"));
+            return Invoke(_data, "PrepareEquipmentPurchase", "MasterSword", 10);
+        }
+        public string BuyEquipment(object intent) => Invoke(_data, "TryCommitEquipmentPurchase", intent,
+            int.Parse(Local["Gold"]), (Func<bool>)(() => true)).ToString();
         public bool TryChangeGold(string value) => (bool)Invoke(_data, "TryUpdateLocalData", "Gold", value);
         public void PreserveNoAds() => Invoke(_data, "TryUpdateLocalData", "GooglePlay", "ProductNoAds,FutureProduct");
         public void Suspend() => Invoke(_data, "SuspendAccountSession");
@@ -363,6 +378,32 @@ public class RevivalSaveQueueTests
         h.ChangeGold("100"); // A different revision with A's value; no upload yet.
         Assert.That(h.Writes.Count, Is.EqualTo(1));
         h.AssertLatestGoldPending();
+    }
+
+    [Test]
+    public void Revival_EquipmentPurchase_EqualValueLateAckPreservesRevisionAndLocalCursorOnly()
+    {
+        using (var h = new SaveQueueHarness())
+        {
+            h.ChangeGold("101"); h.ChangeGold("100"); h.Submit();
+            long old = h.Revisions["Gold"];
+            Assert.That(h.BuyEquipment(h.PrepareEquipment()),Is.EqualTo("Completed"));
+            h.ChangeGold("100"); long latest=h.Revisions["Gold"];
+            Assert.That(latest,Is.GreaterThan(old));
+            h.SucceedWrite(0);h.SucceedRead(0);
+            Assert.That(h.Revisions["Gold"],Is.EqualTo(latest));
+            Assert.That(h.Pending["Gold"],Is.EqualTo("100"));
+            string cursor=h.Stored["__TamerEquipmentTransaction"];
+            h.Submit();
+            CollectionAssert.AreEquivalent(new Dictionary<string,string>{{"Gold","100"}},h.Writes[1].Values);
+            h.SucceedWrite(1);h.SucceedRead(1);
+            Assert.That(h.Pending,Is.Empty);
+            Assert.That(h.Stored["__TamerEquipmentTransaction"],Is.EqualTo(cursor));
+            h.ReloadSession();h.SucceedRead(2);
+            Assert.That(h.Stored["__TamerEquipmentTransaction"],Is.EqualTo(cursor));
+            Assert.That(h.Local.ContainsKey("__TamerEquipmentTransaction"),Is.False);
+            Assert.That(h.Writes.All(w=>!w.Values.ContainsKey("__TamerEquipmentTransaction")),Is.True);
+        }
     }
 
     private static void ConfirmFirstTwoWrites(SaveQueueHarness h)
