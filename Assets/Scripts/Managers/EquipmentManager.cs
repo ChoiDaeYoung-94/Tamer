@@ -54,21 +54,24 @@ namespace AD
         /// </summary>
         public void Equip(string item)
         {
-            if (Player.Instance.PlayerEquippedItems.Contains(item))
+            var player = Player.Instance;
+            if (player == null || !ReferenceEquals(Managers.EquipmentM, this) || player.PlayerEquippedItems.Contains(item))
                 return;
-
-            CheckSlotAndEquip(item);
-
-            ShopMan.Instance.ResetItems();
-            PlayerUICanvas.Instance.UpdatePlayerInfo();
-        }
-
-        /// <summary>
-        /// 같은 카테고리 내 기존 장비가 있으면 해제하고, 새로운 장비를 착용
-        /// </summary>
-        private void CheckSlotAndEquip(string item)
-        {
-            Player.Instance.EquipInventoryItem(item);
+            var shop = ShopMan.Instance;
+            var hud = PlayerUICanvas.Instance;
+            player.TryEquipInventoryItem(item,
+                () =>
+                {
+                    if (!ReferenceEquals(ShopMan.Instance, shop) || shop == null)
+                        throw new System.InvalidOperationException("Equipment shop changed.");
+                    shop.ResetItems();
+                },
+                () =>
+                {
+                    if (!ReferenceEquals(PlayerUICanvas.Instance, hud) || hud == null)
+                        throw new System.InvalidOperationException("Equipment HUD changed.");
+                    hud.UpdatePlayerInfo();
+                });
         }
 
         /// <summary>

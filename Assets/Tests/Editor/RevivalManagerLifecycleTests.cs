@@ -127,12 +127,63 @@ public class RevivalManagerLifecycleTests
         var setReady = dataType.GetProperty("IsServerDataReady").GetSetMethod(true);
         setReady.Invoke(oldData, new object[] { true });
         setReady.Invoke(newData, new object[] { true });
-        _type.GetField("_dataM", Members).SetValue(_duplicate, newData);
-        Call(_duplicate, "TryClaimInstance");
+        _type.GetField("_dataM", Members).SetValue(_owner, oldData);
+        Assert.That(Call(_owner, "TryClaimInstance"), Is.True);
         var login = _owner.gameObject.AddComponent(loginType);
         loginType.GetField("_dataOwner", Members).SetValue(login, oldData);
+        loginType.GetMethod("CaptureLoginSession", Members).Invoke(login, null);
+        Assert.That(loginType.GetField("_loginCaptured", Members).GetValue(login), Is.True);
+        var generation = dataType.GetProperty("AccountGeneration");
+        int oldGeneration = (int)generation.GetValue(oldData), newGeneration = (int)generation.GetValue(newData);
+        _type.GetField("_dataM", Members).SetValue(_duplicate, newData);
+        _singleton.SetValue(null, null); // Replace the singleton without invoking Awake or authentication.
+        Assert.That(Call(_duplicate, "TryClaimInstance"), Is.True);
+        Assert.That(loginType.GetMethod("LoginCurrent", Members).Invoke(login, null), Is.False);
         loginType.GetMethod("OnDestroy", Members).Invoke(login, null);
+        Assert.That(generation.GetValue(oldData), Is.EqualTo(oldGeneration + 1));
+        Assert.That(generation.GetValue(newData), Is.EqualTo(newGeneration));
         Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(oldData), Is.False);
+        Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(newData), Is.True);
+    }
+
+    [TestCase("uncaptured")]
+    [TestCase("generation")]
+    [TestCase("epoch")]
+    [TestCase("entered-scene")]
+    [TestCase("receipt-only")]
+    [TestCase("deletion")]
+    public void Revival_LoginDestructionPreservesUncapturedOrNewerSession(string change)
+    {
+        var dataType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.DataManager")).First(t => t != null);
+        var loginType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.Login")).First(t => t != null);
+        var oldData = _owner.gameObject.AddComponent(dataType);
+        var newData = _duplicate.gameObject.AddComponent(dataType);
+        dataType.GetProperty("IsServerDataReady").GetSetMethod(true).Invoke(oldData, new object[] { true });
+        dataType.GetProperty("IsServerDataReady").GetSetMethod(true).Invoke(newData, new object[] { true });
+        _type.GetField("_dataM", Members).SetValue(_owner, oldData);
+        Assert.That(Call(_owner, "TryClaimInstance"), Is.True);
+        var login = _owner.gameObject.AddComponent(loginType);
+        loginType.GetField("_dataOwner", Members).SetValue(login, oldData);
+        if (change != "uncaptured") loginType.GetMethod("CaptureLoginSession", Members).Invoke(login, null);
+        if (change == "generation") dataType.GetField("_accountGeneration", Members).SetValue(oldData, 1);
+        if (change == "epoch") dataType.GetProperty("DeletionEpoch").GetSetMethod(true).Invoke(oldData, new object[] { 1 });
+        if (change == "receipt-only") dataType.GetProperty("ReceiptOnly", Members).GetSetMethod(true).Invoke(oldData, new object[] { true });
+        if (change == "deletion") dataType.GetProperty("DeletionInProgress").GetSetMethod(true).Invoke(oldData, new object[] { true });
+        if (change == "entered-scene")
+        {
+            var gate = loginType.GetField("_operations", Members).GetValue(login);
+            Assert.That(gate.GetType().GetMethod("TryBeginLogin").Invoke(gate, null), Is.True);
+            Assert.That(gate.GetType().GetMethod("TryEnterScene").Invoke(gate, null), Is.True);
+        }
+        var generation = dataType.GetProperty("AccountGeneration");
+        object oldGeneration = generation.GetValue(oldData), newGeneration = generation.GetValue(newData);
+        _type.GetField("_dataM", Members).SetValue(_duplicate, newData);
+        _singleton.SetValue(null, null);
+        Assert.That(Call(_duplicate, "TryClaimInstance"), Is.True);
+        loginType.GetMethod("OnDestroy", Members).Invoke(login, null);
+        Assert.That(generation.GetValue(oldData), Is.EqualTo(oldGeneration));
+        Assert.That(generation.GetValue(newData), Is.EqualTo(newGeneration));
+        Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(oldData), Is.True);
         Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(newData), Is.True);
     }
 
