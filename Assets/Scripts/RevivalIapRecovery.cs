@@ -8,6 +8,21 @@ using AD.Purchasing;
 
 namespace AD
 {
+    // A new authentication generation on the same object invalidates an old receipt session.
+    public sealed class RevivalIapRecoveryBinding
+    {
+        private readonly object _owner;
+        private readonly int _generation;
+        private readonly ReceiptSession _session;
+        public RevivalIapRecoveryBinding(object owner, int generation, ReceiptSession session)
+        {
+            if (owner == null || session == null || !session.IsValid) throw new ArgumentException("Ready recovery binding required.");
+            _owner = owner; _generation = generation; _session = session;
+        }
+        public ReceiptSession Current(object owner, int generation, bool ready, string account) =>
+            ReferenceEquals(_owner, owner) && _generation == generation && ready && account == _session.AccountId ? _session : null;
+    }
+
     // No credential, account identifier or receipt is persisted by this class.
     public sealed class RevivalIapRecoveryGate : IIapExecutionGate
     {

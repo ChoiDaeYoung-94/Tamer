@@ -196,6 +196,21 @@ public class RevivalIapAccountRecoveryTests
     }
 
     [Test]
+    public void Revival_Recovery_AuthenticationGenerationOrOwnerChangeRejectsCapturedSession()
+    {
+        var type = Runtime("RevivalIapRecoveryBinding");
+        var owner = new object();
+        var session = new ReceiptSession("synthetic-A", "synthetic-ticket");
+        var binding = Activator.CreateInstance(type, new object[] { owner, 7, session });
+        Assert.That(Call(type, binding, "Current", owner, 7, true, "synthetic-A"), Is.SameAs(session));
+        Assert.That(Call(type, binding, "Current", owner, 8, true, "synthetic-A"), Is.Null,
+            "Reauthentication on the same DataManager must invalidate its old receipt callback.");
+        Assert.That(Call(type, binding, "Current", new object(), 7, true, "synthetic-A"), Is.Null);
+        Assert.That(Call(type, binding, "Current", owner, 7, false, "synthetic-A"), Is.Null);
+        Assert.That(Call(type, binding, "Current", owner, 7, true, "synthetic-B"), Is.Null);
+    }
+
+    [Test]
     public void Revival_Recovery_RealIapManagerRejectsStorePurchaseRestoreRetryAndAccountChange()
     {
         int sessionReads = 0;

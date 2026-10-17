@@ -25,6 +25,7 @@ namespace AD
         private static RevivalIapRecoveryStaging _staging;
         private static DataManager _stagingOwner;
         private static DataManager _activeOwner;
+        private static RevivalIapRecoveryBinding _binding;
         private static int _stagingOwnerGeneration;
         private static DateTime _deadline;
         private static bool _preparationAttempted;
@@ -72,7 +73,15 @@ namespace AD
         }
         public static IAPManager CreatePurchasing() => new IAPManager(
             new PlayFabIapReceiptVerifier(_configuration.testTitle, _configuration.productionTitle,
-                ApplicationId, _configuration.catalog), () => Session, 1, Gate);
+                ApplicationId, _configuration.catalog), CurrentSession, 1, Gate);
+
+        private static ReceiptSession CurrentSession()
+        {
+            var owner = Managers.DataM;
+            if (Session == null || owner == null || _binding == null) return null;
+            var captured = _binding.Current(owner, owner.AccountGeneration, owner.IsServerDataReady, owner.PlayFabId);
+            return Session.Matches(captured) ? captured : null;
+        }
 
         public static LoginWithCustomIDRequest RecoveryLoginRequest(string customId)
         {
@@ -134,9 +143,11 @@ namespace AD
                                 if (!Current(stage, owner)) throw new InvalidOperationException();
                                 Managers.Instance.CompleteIapRecovery(path, captured, reopenProfile);
                                 _activeOwner = Managers.DataM;
+                                _binding = new RevivalIapRecoveryBinding(_activeOwner, _activeOwner.AccountGeneration, captured);
                                 if (!reopenProfile) RevivalIapRecoveryProfile.MarkReady(Application.persistentDataPath, _configuration.testTitle, path);
                                 if (!ReferenceEquals(_staging, stage) || DateTime.UtcNow >= _deadline ||
-                                    Managers.DataM == null || !Managers.DataM.IsServerDataReady || Managers.DataM.PlayFabId != captured.AccountId)
+                                    Managers.DataM == null || _binding.Current(Managers.DataM, Managers.DataM.AccountGeneration,
+                                        Managers.DataM.IsServerDataReady, Managers.DataM.PlayFabId) == null)
                                     throw new InvalidOperationException();
                                 Session = captured; // Publish only after owner, inventory and durable profile are ready.
                                 stage.Cancel(); _staging = null; _stagingOwner = null;
@@ -162,21 +173,24 @@ namespace AD
         {
             if (_staging != null && !Current(_staging, _stagingOwner))
                 CancelRecovery("Recovery staging expired or owner changed; late callbacks ignored");
-            else if (Session != null && (_activeOwner == null || !ReferenceEquals(Managers.DataM, _activeOwner)))
-                CancelRecovery("Recovery owner changed; Store remains stopped");
+            else if (Session != null && CurrentSession() == null)
+                CancelRecovery("Recovery owner or authentication generation changed; Store remains stopped");
         }
         public static void CancelRecovery(string fixedStatus = "Recovery cancelled; originals preserved")
         {
             var ownedData = _activeOwner != null ? _activeOwner : _stagingOwner;
+            bool ownsGeneration = ownedData != null && (_binding != null
+                ? _binding.Current(ownedData, ownedData.AccountGeneration, true, ownedData.PlayFabId) != null
+                : ReferenceEquals(ownedData, _stagingOwner) && ownedData.AccountGeneration == _stagingOwnerGeneration);
             _staging?.Cancel(); _staging = null; _stagingOwner = null;
-            Session = null; _activeOwner = null; Gate.Close();
+            Session = null; _activeOwner = null; _binding = null; Gate.Close();
             // An expired callback/old harness must never suspend a replacement manager.
-            if (ownedData != null && ReferenceEquals(Managers.DataM, ownedData)) ownedData.SuspendAccountSession();
+            if (ownsGeneration && ReferenceEquals(Managers.DataM, ownedData)) ownedData.SuspendAccountSession();
             Status = fixedStatus;
         }
         public static void StartApprovedRecovery(bool userConfirmed)
         {
-            if (Session == null || Managers.DataM == null || !Managers.DataM.IsServerDataReady ||
+            if (CurrentSession() == null || Managers.DataM == null || !Managers.DataM.IsServerDataReady ||
                 !ReferenceEquals(Managers.DataM, _activeOwner) ||
                 Managers.DataM.PlayFabId != Session.AccountId || !ResumeBuildApproved || !userConfirmed) return;
             if (!Gate.Open(RevivalIapRecoveryProfile.TitleRoot(Application.persistentDataPath, _configuration.testTitle),
