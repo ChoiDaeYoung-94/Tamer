@@ -24,6 +24,7 @@ namespace AD
         private static Configuration _configuration;
         private static RevivalIapRecoveryStaging _staging;
         private static DataManager _stagingOwner;
+        private static DataManager _activeOwner;
         private static int _stagingOwnerGeneration;
         private static DateTime _deadline;
         private static bool _preparationAttempted;
@@ -132,6 +133,7 @@ namespace AD
                                         _configuration.testTitle, captured.AccountId, Guid.NewGuid().ToString("N"));
                                 if (!Current(stage, owner)) throw new InvalidOperationException();
                                 Managers.Instance.CompleteIapRecovery(path, captured, reopenProfile);
+                                _activeOwner = Managers.DataM;
                                 if (!reopenProfile) RevivalIapRecoveryProfile.MarkReady(Application.persistentDataPath, _configuration.testTitle, path);
                                 if (!ReferenceEquals(_staging, stage) || DateTime.UtcNow >= _deadline ||
                                     Managers.DataM == null || !Managers.DataM.IsServerDataReady || Managers.DataM.PlayFabId != captured.AccountId)
@@ -160,17 +162,22 @@ namespace AD
         {
             if (_staging != null && !Current(_staging, _stagingOwner))
                 CancelRecovery("Recovery staging expired or owner changed; late callbacks ignored");
+            else if (Session != null && (_activeOwner == null || !ReferenceEquals(Managers.DataM, _activeOwner)))
+                CancelRecovery("Recovery owner changed; Store remains stopped");
         }
         public static void CancelRecovery(string fixedStatus = "Recovery cancelled; originals preserved")
         {
+            var ownedData = _activeOwner != null ? _activeOwner : _stagingOwner;
             _staging?.Cancel(); _staging = null; _stagingOwner = null;
-            Session = null; Gate.Close();
-            if (Managers.DataM != null) Managers.DataM.SuspendAccountSession();
+            Session = null; _activeOwner = null; Gate.Close();
+            // An expired callback/old harness must never suspend a replacement manager.
+            if (ownedData != null && ReferenceEquals(Managers.DataM, ownedData)) ownedData.SuspendAccountSession();
             Status = fixedStatus;
         }
         public static void StartApprovedRecovery(bool userConfirmed)
         {
             if (Session == null || Managers.DataM == null || !Managers.DataM.IsServerDataReady ||
+                !ReferenceEquals(Managers.DataM, _activeOwner) ||
                 Managers.DataM.PlayFabId != Session.AccountId || !ResumeBuildApproved || !userConfirmed) return;
             if (!Gate.Open(RevivalIapRecoveryProfile.TitleRoot(Application.persistentDataPath, _configuration.testTitle),
                 ResumeBuildApproved, userConfirmed))
