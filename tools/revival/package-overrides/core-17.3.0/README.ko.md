@@ -1,6 +1,6 @@
 # Core 17.3.0 GLES3 FSR 수정 후보
 
-Unity 6000.3.25f1/e1dba0a9aba4의 Core 17.3.0에서 GLES3에 기존 FP32 FSR 구현을 선택하는 **로컬 수정 후보**입니다. 공식 Unity 수정판이 아니며, 패키지 설치·셰이더 컴파일·APK 빌드·기기 검증은 아직 하지 않았습니다.
+Unity 6000.3.25f1/e1dba0a9aba4의 Core 17.3.0에서 GLES3에 기존 FP32 FSR 구현을 선택하는 **로컬 수정 후보**입니다. 공식 Unity 수정판이 아닙니다. 2026-10-17 UPM 연결과 개발 APK 빌드에서 FinalPost GLES3 변형48개 새 컴파일/오류0을 확인했으며, 실제 기기 검증은 남아 있습니다. [검증 소스와 결과·미검증 범위](../../../../../docs/revival/urp-gles3-fsr.ko.md)를 확인해 주세요. provenance.json의 status는 후보 패키징 당시 상태로 보존합니다.
 
 ## 변경
 
