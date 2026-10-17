@@ -312,6 +312,67 @@ public class Player : Creature
         AddAllyMonster(monster);
     }
 
+    internal AD.DataManager.AllyPurchaseIntent PrepareAllyPurchase(string name, int price)
+    {
+        return AllyPurchasePlayerCurrent() ? _gameplayData.PrepareAllyPurchase(name, price) : null;
+    }
+
+    private bool AllyPurchasePlayerCurrent() => ReferenceEquals(_instance, this) && GameplaySessionCurrent();
+
+    // Presentation is deliberately downstream of the one-file Gold/roster commit.
+    // The delegate permits isolated scene tests without a live pool or HUD.
+    internal bool TryPurchaseAlly(AD.DataManager.AllyPurchaseIntent purchase, Action afterCommit,
+        Action<string> presentAlly = null)
+    {
+        if (!AllyPurchasePlayerCurrent()) return false;
+        var owner = _gameplayData;
+        if (!owner.TryCommitAllyPurchase(purchase, _gold, () => AllyPurchasePlayerCurrent())) return false;
+        try
+        {
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            _gold = int.Parse(owner.LocalPlayerData[GOLD_KEY], NumberStyles.Integer, CultureInfo.InvariantCulture);
+            if (presentAlly != null) presentAlly(purchase.MonsterName);
+            else PresentPurchasedAlly(purchase.MonsterName);
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            afterCommit?.Invoke();
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            owner.UpdatePlayerData();
+            return true;
+        }
+        catch (Exception)
+        {
+            // Includes pool, popup and HUD failures. Never run MinusGold/AddAllyMonster again,
+            // and never allow the periodic save to publish an old Player cache over the commit.
+            owner.StopAllyPurchaseSession(purchase);
+            Debug.LogWarning("[Tamer/Player] Purchase data saved; sign in again to restore its presentation.");
+            return false;
+        }
+    }
+
+    private void PresentPurchasedAlly(string name)
+    {
+        Monster monster = null;
+        GameObject pooled = null;
+        try
+        {
+            pooled = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM.RootPlayer);
+            monster = pooled.GetComponent<Monster>();
+            if (monster == null) throw new InvalidOperationException("Purchased ally is unavailable.");
+            monster.AllySetting(playerPosition: transform.position, setting: true);
+            if (!AllyPurchasePlayerCurrent() || !monster.IsCurrentSession(monster.SessionLifetime))
+                throw new InvalidOperationException("Purchased ally session changed.");
+            // The CSV is already durable. AddAllyMonster would append and save it a second time.
+            _allyMonsters.Add(monster);
+            _isAllyAvailable = true;
+        }
+        catch
+        {
+            if (monster != null) monster.RetireSession();
+            else if (pooled != null) AD.Managers.PoolM.PushToPool(pooled);
+            throw;
+        }
+    }
+
     public void MoveSound() => PlaySFX(AD.Managers.SoundM.SFXWalkClip);
 
     /// <summary>

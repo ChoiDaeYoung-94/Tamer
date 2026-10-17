@@ -15,7 +15,12 @@ public class RevivalGameplaySessionTests
     private static Type Runtime(string name) => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(name)).First(t => t != null);
     private static object Get(object obj, string name) => obj.GetType().GetField(name, Fields).GetValue(obj);
     private static void Set(object obj, string name, object value) => obj.GetType().GetField(name, Fields).SetValue(obj, value);
-    private static object Call(object obj, string method, params object[] args) => obj.GetType().GetMethod(method, Fields).Invoke(obj, args);
+    private static object Call(object obj, string method, params object[] args)
+    {
+        try { return (obj as Type ?? obj.GetType()).GetMethod(method, Fields | BindingFlags.Static)
+            .Invoke(obj is Type ? null : obj, args); }
+        catch (TargetInvocationException error) { throw error.InnerException ?? error; }
+    }
 
     [TestCase("manager")]
     [TestCase("owner")]
@@ -199,6 +204,154 @@ public class RevivalGameplaySessionTests
         }
     }
 
+    [Test]
+    public void Revival_AllyShop_PresentsOnlyAfterCommitAndSameConfirmationCannotReenter()
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureAllyShop();
+            var intent = Call(f.Player, "PrepareAllyPurchase", "Bat", 10);
+            int poolCalls = 0, successCalls = 0;
+            bool reentry = true;
+            Action<string> present = name =>
+            {
+                poolCalls++;
+                Assert.That(name, Is.EqualTo("Bat"));
+                Assert.That(Get(f.Player, "_gold"), Is.EqualTo(90));
+                var saved = f.Stored();
+                Assert.That(saved["Gold"], Is.EqualTo("90"));
+                Assert.That(saved["AllyMonsters"], Is.EqualTo("Bat"));
+                reentry = (bool)Call(f.Player, "TryPurchaseAlly", intent, (Action)(() => successCalls++), (Action<string>)(_ => poolCalls++));
+            };
+            Assert.That(Call(f.Player, "TryPurchaseAlly", intent, (Action)(() => successCalls++), present), Is.True);
+            Assert.That(reentry, Is.False);
+            Assert.That(Call(f.Player, "TryPurchaseAlly", intent, (Action)(() => successCalls++), present), Is.False);
+            Assert.That(poolCalls, Is.EqualTo(1));
+            Assert.That(successCalls, Is.EqualTo(1));
+            Assert.That(f.Stored()["GooglePlay"], Is.EqualTo("ProductNoAds,FutureProduct"));
+            Assert.That(f.Uploads.Count, Is.EqualTo(1));
+            Assert.That(f.Uploads[0]["Gold"], Is.EqualTo("90"));
+            Assert.That(f.Uploads[0]["AllyMonsters"], Is.EqualTo("Bat"));
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_AllyShop_PoolOrSuccessScreenFailureStopsOldGoldSavesWithoutRecharging(bool failInPool)
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureAllyShop();
+            var intent = Call(f.Player, "PrepareAllyPurchase", "Bat", 10);
+            int poolCalls = 0, successCalls = 0;
+            Action<string> present = _ => { poolCalls++; if (failInPool) throw new InvalidOperationException("Synthetic pool failure"); };
+            Action success = () => { successCalls++; throw new InvalidOperationException("Synthetic screen failure"); };
+            Assert.That(Call(f.Player, "TryPurchaseAlly", intent, success, present), Is.False);
+            string committed = File.ReadAllText(f.SavePath);
+            Assert.That(f.Stored()["Gold"], Is.EqualTo("90"));
+            Assert.That(f.Stored()["AllyMonsters"], Is.EqualTo("Bat"));
+            Assert.That(f.Stored()["GooglePlay"], Is.EqualTo("ProductNoAds,FutureProduct"));
+            Assert.That(f.Data.GetType().GetProperty("IsServerDataReady").GetValue(f.Data), Is.False);
+            Assert.That(Call(f.Player, "TryPurchaseAlly", intent, success, present), Is.False);
+            Call(f.Data, "UpdateLocalData", "null", "null", true); // The same periodic-save entry point, with a stopped Player cache.
+            Assert.That(Call(f.Data, "TryUpdateLocalData", "Gold", "100"), Is.False);
+            Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(committed));
+            Assert.That(poolCalls, Is.EqualTo(1));
+            Assert.That(successCalls, Is.EqualTo(failInPool ? 0 : 1));
+            Assert.That(f.Uploads, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void Revival_AllyShop_SaveFailureCannotReachPoolOrSuccessScreen()
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureAllyShop();
+            var intent = Call(f.Player, "PrepareAllyPurchase", "Bat", 10);
+            string original = File.ReadAllText(f.SavePath);
+            var hook = Runtime("AD.DataManager").GetField("JournalWriteCheckpoint", BindingFlags.Static | BindingFlags.NonPublic);
+            object previous = hook.GetValue(null);
+            int poolCalls = 0, successCalls = 0;
+            try
+            {
+                hook.SetValue(null, (Action<string, string, string>)((path, temp, stage) =>
+                {
+                    if (path == f.SavePath && stage == "temporary-closed") throw new IOException("Synthetic save failure");
+                }));
+                Assert.That(Call(f.Player, "TryPurchaseAlly", intent, (Action)(() => successCalls++),
+                    (Action<string>)(_ => poolCalls++)), Is.False);
+            }
+            finally { hook.SetValue(null, previous); }
+            Assert.That(poolCalls, Is.Zero);
+            Assert.That(successCalls, Is.Zero);
+            Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(original));
+            Assert.That(f.Uploads, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void Revival_AllyShop_ReplacementPlayerCannotUsePreviousPlayersConfirmation()
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureAllyShop();
+            var intent = Call(f.Player, "PrepareAllyPurchase", "Bat", 10);
+            string original = File.ReadAllText(f.SavePath);
+            var replacement = f.Managers.gameObject.AddComponent(Runtime("Player"));
+            Set(replacement, "_gameplayData", f.Data);
+            Set(replacement, "_inventoryOwner", "A");
+            Set(replacement, "_inventoryGeneration", 1);
+            Set(replacement, "_gold", 100);
+            Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, replacement);
+            int screens = 0, presentations = 0;
+
+            Assert.That(Call(replacement, "TryPurchaseAlly", intent, (Action)(() => screens++),
+                (Action<string>)(_ => presentations++)), Is.False);
+            Assert.That(File.ReadAllText(f.SavePath), Is.EqualTo(original));
+            Assert.That(f.Stored()["Gold"], Is.EqualTo("100"));
+            Assert.That(f.Stored()["AllyMonsters"], Is.EqualTo("null"));
+            Assert.That(Get(replacement, "_gold"), Is.EqualTo(100));
+            Assert.That(f.Data.GetType().GetProperty("IsServerDataReady").GetValue(f.Data), Is.True);
+            Assert.That(screens, Is.Zero);
+            Assert.That(presentations, Is.Zero);
+            Assert.That(f.Uploads, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void Revival_AllyShop_ReplacementManagerRejectsOldConfirmationAndLatePresentation()
+    {
+        using (var f = new Fixture())
+        {
+            f.ConfigureAllyShop();
+            var intent = Call(f.Player, "PrepareAllyPurchase", "Bat", 10);
+            Component replacement = null;
+            Component replacementPlayer = null;
+            Assert.That(Call(f.Player, "TryPurchaseAlly", intent, (Action)(() => { }), (Action<string>)(_ =>
+            {
+                replacement = f.NewData();
+                Set(replacement, "<PlayFabId>k__BackingField", "B");
+                Set(replacement, "_localOwner", "B");
+                Set(f.Managers, "_dataM", replacement);
+                replacementPlayer = f.Managers.gameObject.AddComponent(Runtime("Player"));
+                Set(replacementPlayer, "_gameplayData", replacement);
+                Set(replacementPlayer, "_inventoryOwner", "B");
+                Set(replacementPlayer, "_inventoryGeneration", 1);
+                Set(replacementPlayer, "_gold", 700);
+                Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, replacementPlayer);
+            })), Is.False);
+            Assert.That(replacement.GetType().GetProperty("IsServerDataReady").GetValue(replacement), Is.True,
+                "The old purchase failure may stop only its original manager.");
+            Assert.That(((Dictionary<string, string>)Get(replacement, "LocalPlayerData"))["Gold"], Is.EqualTo("100"));
+            Assert.That(Get(replacementPlayer, "_gameplayData"), Is.SameAs(replacement));
+            Assert.That(Get(replacementPlayer, "_gold"), Is.EqualTo(700), "Old teardown cannot clear a new Player's cache.");
+            Assert.That(f.Stored()["Gold"], Is.EqualTo("90"));
+            Assert.That(f.Stored()["AllyMonsters"], Is.EqualTo("Bat"));
+            Assert.That(Call(f.Player, "TryPurchaseAlly", intent, (Action)(() => { }), (Action<string>)(_ => Assert.Fail("Unexpected replay"))), Is.False);
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly Scene _scene = EditorSceneManager.NewPreviewScene();
@@ -207,6 +360,10 @@ public class RevivalGameplaySessionTests
         private readonly object _oldManager;
         private readonly string _directory = Path.Combine(Path.GetTempPath(), "TamerSession-" + Guid.NewGuid().ToString("N"));
         public Component Managers, Data, Player, Monster;
+        private readonly FieldInfo _playerInstance = Runtime("Player").GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic);
+        private object _oldPlayer;
+        private bool _claimedPlayer;
+        public readonly List<Dictionary<string, string>> Uploads = new List<Dictionary<string, string>>();
         public string SavePath => Path.Combine(_directory, "PlayerData.json");
         public Dictionary<string, string> Values => (Dictionary<string, string>)Get(Data, "LocalPlayerData");
         public int Lifetime;
@@ -235,8 +392,36 @@ public class RevivalGameplaySessionTests
             Set(data, "ItemData", new Dictionary<string, object> { { "SimpleSword", null }, { "MasterSword", null }, { "SimpleShield", null }, { "MasterShield", null } });
             return data;
         }
+        public Dictionary<string, string> Stored() => (Dictionary<string, string>)Call(Runtime("AD.DataManager"),
+            "ParseData", File.ReadAllText(SavePath));
+
+        public void ConfigureAllyShop()
+        {
+            _oldPlayer = _playerInstance.GetValue(null);
+            _playerInstance.SetValue(null, Player);
+            _claimedPlayer = true;
+            Values["GooglePlay"] = "ProductNoAds,FutureProduct";
+            Set(Data, "_defaults", new Dictionary<string, string>(Values));
+            Set(Data, "MonsterData", new Dictionary<string, object>
+            {
+                ["Bat"] = new Dictionary<string, object> { ["Price"] = "10" }
+            });
+            var server = Activator.CreateInstance(Runtime("AD.ServerManager"), new object[]
+            {
+                (Func<string>)(() => (string)Data.GetType().GetProperty("PlayFabId").GetValue(Data)),
+                (Func<bool>)(() => (bool)Data.GetType().GetProperty("IsServerDataReady").GetValue(Data)),
+                (Action<string, Action<Dictionary<string, string>>, Action<int>>)((account, success, failure) => { }),
+                (Action<string, Dictionary<string, string>, Action, Action<int>>)((account, patch, success, failure) =>
+                    Uploads.Add(new Dictionary<string, string>(patch))),
+                (Action<TimeSpan, Action>)((delay, action) => { }),
+                (Action<Dictionary<string, string>, bool>)((values, update) => { })
+            });
+            Set(Data, "_server", server);
+            Call(Data, "SaveLocalData");
+        }
         public void Dispose()
         {
+            if (_claimedPlayer) _playerInstance.SetValue(null, _oldPlayer);
             _managerInstance.SetValue(null, _oldManager);
             EditorSceneManager.ClosePreviewScene(_scene);
             Directory.Delete(_directory, true);
