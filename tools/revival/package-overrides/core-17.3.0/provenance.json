@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate-not-installed-not-shader-validated",
+  "package": "com.unity.render-pipelines.core",
+  "version": "17.3.0",
+  "unityEditor": "6000.3.25f1",
+  "unityEditorRevision": "e1dba0a9aba4",
+  "source": "installed builtin Core package cache; pinned by full file inventory",
+  "upstreamFingerprint": "3f80e92e91c2611f1415e75e9b791f6aeb165f26",
+  "upstreamFiles": 2997,
+  "upstreamBytes": 57585783,
+  "upstreamInventorySha256": "f81b66a6949b5fb7b56ce0ede1a355a7554eea382f88dc55789068ee8a13ec2f",
+  "patchedInventorySha256": "c85b8e979818aa1a485f46dfb88f3ce6661f418d190fbe0afcafa17142226809",
+  "archive": "com.unity.render-pipelines.core-17.3.0-tamer-gles3-fsr.tgz",
+  "archiveBytes": 21619622,
+  "archiveSha256": "2360687d2de0f5c43e671868981851aa106a654cdd20f65128b0f6f34c0ec3cc",
+  "patchSha256": "d7e17a95872d4f14be097117dfda688f4012dcfe42ac43e4296f955c3267147c",
+  "changes": {
+    "Runtime/PostProcessing/Shaders/FSRCommon.hlsl": {
+      "beforeSha256": "395727f6d8f0fbd9d84003f9fcf85f40bc25bb1ed60e534c40d2b301df96bb49",
+      "afterSha256": "a573e375fd8717208ad3c762449f137ac950fe89a21fecbb3aad7f276beea199"
+    },
+    "package.json": {
+      "beforeSha256": "21e63375a90a64fc0c660c10390b1bdb967bf2c58ce72b26734ff5d287c940ee",
+      "afterSha256": "0b827a0dc1dea99bde3e13afbd5148512613410dd47216bdafe937c14c628171"
+    }
+  },
+  "metadataChange": "Remove generated _fingerprint; preserve name/version/unity/dependencies",
+  "preserved": "All other file bytes, including every .meta/GUID, sample, notice and C# file",
+  "packing": "sorted package/ regular files; mode 0644; uid/gid/mtime 0; empty owner names; gzip level 9, mtime 0, no filename; PAX path headers only for long names",
+  "zlibVersion": "1.3.2"
+}
