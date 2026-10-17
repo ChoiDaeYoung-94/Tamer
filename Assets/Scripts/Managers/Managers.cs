@@ -79,6 +79,9 @@ namespace AD
 
         private void Start()
         {
+#if TAMER_IAP_HARNESS
+            return;
+#endif
             if (_ownsServices && !_shutdown && _dataM != null && !_dataM.ReceiptOnly && _soundM != null) _soundM.Init();
         }
 
@@ -113,6 +116,9 @@ namespace AD
                 _serverM = RevivalGameplayIsolation.CreateTestServer(_dataM, () => RevivalIapIsolation.Session?.AccountId);
                 _IAPM.Dispose();
                 _IAPM = RevivalIapIsolation.CreatePurchasing();
+                _dataM.InitializeIapRecovery(RevivalIapIsolation.CreateSavePath(Application.persistentDataPath), _serverM, Application.persistentDataPath);
+                _initialized = true;
+                return; // Recovery-only boot: do not initialize gameplay, ads, pool or periodic writers.
 #elif TAMER_GAMEPLAY_HARNESS
                 _serverM = RevivalGameplayIsolation.CreateServer(_dataM);
 #else
@@ -153,6 +159,45 @@ namespace AD
         }
 
         private void OnDestroy() => Shutdown();
+
+#if UNITY_EDITOR || TAMER_IAP_HARNESS
+        internal bool CanPrepareIapRecovery => _ownsServices && _initialized && !_shutdown &&
+            _dataM != null && _dataM.CanPrepareIapRecovery;
+
+        internal void CompleteIapRecovery(string path, AD.Purchasing.ReceiptSession session, bool existing)
+        {
+            if (!CanPrepareIapRecovery || session == null || !session.IsValid)
+                throw new InvalidOperationException("Inactive fresh recovery host required.");
+            var defaults = _dataM.IapRecoveryDefaults();
+            if (existing)
+            {
+                if (path != RevivalIapRecoveryProfile.Selected(Application.persistentDataPath,
+                    RevivalIapRecoveryProfile.TestTitle, session.AccountId)) throw new InvalidOperationException();
+            }
+            else RevivalIapRecoveryProfile.ValidatePrepared(Application.persistentDataPath,
+                    RevivalIapRecoveryProfile.TestTitle, session.AccountId, path);
+            var oldData = _dataM;
+            oldData.Shutdown();
+            _serverM.Dispose();
+            // Previous data is never rebound or reused. Its original files stay in place.
+            _dataM = gameObject.AddComponent<DataManager>();
+            _serverM = RevivalGameplayIsolation.CreateTestServer(_dataM, () => session.AccountId, defaults);
+            try
+            {
+                _dataM.InitializeIapRecovery(path, _serverM, Application.persistentDataPath);
+                _dataM.BeginAccountSession(session.AccountId);
+                _serverM.GetAllData(update: true);
+                if (!_dataM.IsServerDataReady || _dataM.PlayFabId != session.AccountId)
+                    throw new InvalidOperationException("Recovery profile could not bind.");
+            }
+            catch
+            {
+                _dataM.Shutdown(); _serverM.Dispose();
+                throw;
+            }
+            finally { Destroy(oldData); }
+        }
+#endif
 
         /// <summary>
         /// 추후 다른 씬 특히 QA 전용 씬을 만들던지 할 때

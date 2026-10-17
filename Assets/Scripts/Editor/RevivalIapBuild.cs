@@ -76,6 +76,9 @@ public static class RevivalIapBuild
     private static void Build(bool storeBundle)
     {
         bool reviewedRecovery = Environment.GetEnvironmentVariable("TAMER_IAP_REVIEWED_RECOVERY") == "1";
+        // The coordinator may set this only AFTER separate user approval and minimum synthetic checks.
+        // Ordinary builds remain STOP-locked. No credential/account value belongs in build inputs.
+        bool resumeApproved = Environment.GetEnvironmentVariable("TAMER_IAP_RECOVERY_RESUME_APPROVED") == "1";
         if (reviewedRecovery && !storeBundle)
             throw new BuildFailedException("Reviewed source recovery is only supported for a test bundle.");
         int code = 1;
@@ -121,7 +124,7 @@ public static class RevivalIapBuild
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with Android build target.");
             string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
-            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_IAP_HARNESS" || d == "TAMER_IAP_STORE_TEST"))
+            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_IAP_HARNESS" || d == "TAMER_IAP_STORE_TEST" || d == "TAMER_IAP_RECOVERY_RESUME_APPROVED"))
                 throw new BuildFailedException("Harness symbols must not be global.");
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
@@ -163,9 +166,10 @@ public static class RevivalIapBuild
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
                 locationPathName = "Build/revival/Tamer-iap-test." + (storeBundle ? "aab" : "apk"),
                 options = storeBundle ? BuildOptions.CompressWithLz4 : BuildOptions.Development | BuildOptions.CompressWithLz4,
-                extraScriptingDefines = storeBundle
+                extraScriptingDefines = (storeBundle
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_IAP_HARNESS", "TAMER_IAP_STORE_TEST" }
-                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_IAP_HARNESS" }
+                    : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_IAP_HARNESS" })
+                    .Concat(resumeApproved ? new[] { "TAMER_IAP_RECOVERY_RESUME_APPROVED" } : Array.Empty<string>()).ToArray()
             });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("IAP test build failed.");
             Debug.Log("IAP_BUILD_OK isolated=true storeTestBundle=" + storeBundle);

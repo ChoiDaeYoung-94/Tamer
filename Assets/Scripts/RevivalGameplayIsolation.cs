@@ -109,10 +109,11 @@ namespace AD
             _gameplayServer != null && ReferenceEquals(Managers.ServerM, _gameplayServer);
 #endif
 
-        public static ServerManager CreateTestServer(DataManager owner, Func<string> expectedAccount)
+        public static ServerManager CreateTestServer(DataManager owner, Func<string> expectedAccount,
+            IDictionary<string, string> recoveryDefaults = null)
         {
             if (owner == null) throw new ArgumentNullException(nameof(owner));
-            var cloud =
+            var cloud = recoveryDefaults != null ? new Dictionary<string, string>(recoveryDefaults) :
 #if TAMER_PLAYER_RESTORE
                 PlayerRestoreSeed();
 #else
