@@ -11,6 +11,73 @@ HELPER = Path(__file__).with_name('ProjectSettingsSnapshot.ps1')
 
 @unittest.skipUnless(SHELL, 'PowerShell is required for settings recovery tests')
 class SettingsSnapshotTests(unittest.TestCase):
+    def exercise_processes(self, body):
+        with tempfile.TemporaryDirectory() as folder:
+            script = Path(folder) / 'processes.ps1'
+            script.write_text('''param($Helper)
+$ErrorActionPreference = 'Stop'
+. $Helper
+function Get-CimInstance { param($ClassName, $Filter, $ErrorAction) $script:processes }
+$project = 'C:/synthetic/Tamer Project'
+$editor = 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Unity.exe'
+function Set-Process($ExecutablePath, $CommandLine) {
+    $script:processes = @([pscustomobject]@{
+        ProcessId = 1; ExecutablePath = $ExecutablePath; CommandLine = $CommandLine
+    })
+}
+''' + body, encoding='utf-8')
+            result = subprocess.run([SHELL, '-NoProfile', '-NonInteractive', '-File', str(script),
+                                     str(HELPER)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_process_identity_and_exact_project_argument(self):
+        self.exercise_processes(r'''
+$cases = @(
+    @($editor, '"C:\Program Files\Unity\Editor\Unity.exe" -projectPath "C:\synthetic\Tamer Project"', 1),
+    @($editor.ToUpper(), 'Unity.exe -PROJECTPATH "c:/SYNTHETIC/tamer project/" -batchmode', 1),
+    @($editor, 'Unity.exe -projectPath "C:/synthetic/other/../Tamer Project"', 1),
+    @($editor, 'Unity.exe -projectPath "C:\synthetic\Tamer Project\\"', 1),
+    @($editor, 'Unity.exe -projectPath "C:/synthetic/Tamer Project-copy"', 0),
+    @($editor, 'Unity.exe -projectPath "C:/synthetic/Tamer Project/child"', 0),
+    @($editor, 'Unity.exe -projectPath C:/synthetic/Other -logFile "C:/synthetic/Tamer Project"', 0),
+    @($editor, 'Unity.exe -logFile "text -projectPath C:/synthetic/Tamer Project" -projectPath C:/synthetic/Other', 0),
+    @($editor, 'Unity.exe -logFile "text \" -projectPath C:/synthetic/Tamer Project" -projectPath C:/synthetic/Other', 0),
+    @('C:/synthetic/Tamer Project/tools/.local/unity-cli/1.0.0-beta.8/unity.exe', 'unity.exe command -projectPath "C:/synthetic/Tamer Project"', 0),
+    @('C:/synthetic/Other/tools/.local/unity-cli/1.0.0-beta.8/UNITY.EXE', 'unity.exe command --project-path "C:/synthetic/Tamer Project"', 0)
+)
+foreach ($case in $cases) {
+    Set-Process $case[0] $case[1]
+    $found = @(Get-RevivalProjectEditor -ProjectPath $project)
+    if ($found.Count -ne $case[2]) { throw 'Unexpected project process selection' }
+    if ($found.Count -and $found[0].ProcessId -ne 1) { throw 'Original process was not returned' }
+}
+$script:processes = @()
+if (@(Get-RevivalProjectEditor -ProjectPath $project).Count) { throw 'Unexpected empty process result' }
+''')
+
+    def test_unknown_process_information_refuses_settings_changes(self):
+        self.exercise_processes(r'''
+$cases = @(
+    @($null, 'Unity.exe -projectPath "C:/synthetic/Tamer Project"'),
+    @('C:/unknown/Unity.exe', 'Unity.exe -projectPath "C:/synthetic/Tamer Project"'),
+    @($editor, $null),
+    @($editor, 'Unity.exe -projectPathExtra "C:/synthetic/Tamer Project"'),
+    @($editor, 'Unity.exe -projectPath'),
+    @($editor, 'Unity.exe -projectPath relative/path'),
+    @($editor, 'Unity.exe -projectPath C:/synthetic/Other -projectPath "C:/synthetic/Tamer Project"')
+)
+foreach ($case in $cases) {
+    Set-Process $case[0] $case[1]
+    $refused = $false
+    try { Get-RevivalProjectEditor -ProjectPath $project | Out-Null } catch { $refused = $true }
+    if (!$refused) { throw 'Unknown ownership was accepted' }
+}
+function Get-CimInstance { throw 'Synthetic process query failure' }
+$refused = $false
+try { Get-RevivalProjectEditor -ProjectPath $project | Out-Null } catch { $refused = $true }
+if (!$refused) { throw 'Process query failure was accepted' }
+''')
+
     def exercise(self, body):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
