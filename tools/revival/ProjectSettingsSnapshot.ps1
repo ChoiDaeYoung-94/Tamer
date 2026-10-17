@@ -1,11 +1,55 @@
 # Private recovery copy for Unity startup/build serialization side effects.
 function Get-RevivalProjectEditor {
     param([Parameter(Mandatory)][string]$ProjectPath)
-    $normalized = [IO.Path]::GetFullPath($ProjectPath).Replace('/', '\')
-    Get-CimInstance Win32_Process -Filter "name = 'Unity.exe'" | Where-Object {
-        $_.CommandLine -and $_.CommandLine.Replace('/', '\').IndexOf(
-            $normalized, [StringComparison]::OrdinalIgnoreCase) -ge 0
+    $normalized = [IO.Path]::GetFullPath($ProjectPath).Replace('/', '\').TrimEnd('\')
+    $editors = @(foreach ($process in (Get-CimInstance Win32_Process -Filter "name = 'Unity.exe'" -ErrorAction Stop)) {
+        $executable = ([string]$process.ExecutablePath).Replace('/', '\')
+        # The pinned CLI shares Unity.exe's process name, but is not an Editor.
+        if ($executable -match '(?i)\\tools\\\.local\\unity-cli\\[^\\]+\\unity\.exe$') { continue }
+        if ($executable -notmatch '(?i)\\Editor\\Unity\.exe$' -or !$process.CommandLine) {
+            throw 'Cannot determine Unity process ownership; settings were not changed.'
+        }
+        if (-not ('Revival.WindowsCommandLine' -as [type])) {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+namespace Revival {
+    public static class WindowsCommandLine {
+        [DllImport("shell32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern IntPtr CommandLineToArgvW(string commandLine, out int count);
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr LocalFree(IntPtr memory);
+        public static string[] Split(string commandLine) {
+            int count;
+            IntPtr memory = CommandLineToArgvW(commandLine, out count);
+            if (memory == IntPtr.Zero) throw new InvalidOperationException("Cannot read Unity arguments.");
+            try {
+                string[] arguments = new string[count];
+                for (int i = 0; i < count; i++)
+                    arguments[i] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(memory, i * IntPtr.Size));
+                return arguments;
+            } finally { LocalFree(memory); }
+        }
     }
+}
+'@
+        }
+        # Parse Windows arguments so a path in another option or a prefix cannot match.
+        $arguments = [Revival.WindowsCommandLine]::Split($process.CommandLine)
+        $projectArguments = @(for ($i = 1; $i -lt $arguments.Count; $i++) {
+            if ($arguments[$i] -ieq '-projectPath') { $i }
+        })
+        if ($projectArguments.Count -ne 1 -or $projectArguments[0] + 1 -ge $arguments.Count) {
+            throw 'Cannot determine Unity project argument; settings were not changed.'
+        }
+        $project = $arguments[$projectArguments[0] + 1].Replace('/', '\')
+        if ($project -notmatch '^(?:[A-Za-z]:\\|\\\\[^\\]+\\[^\\]+(?:\\|$))') {
+            throw 'Cannot determine absolute Unity project path; settings were not changed.'
+        }
+        $project = [IO.Path]::GetFullPath($project).TrimEnd('\')
+        if ($project.Equals($normalized, [StringComparison]::OrdinalIgnoreCase)) { $process }
+    })
+    $editors
 }
 
 function Save-RevivalProjectSettings {
