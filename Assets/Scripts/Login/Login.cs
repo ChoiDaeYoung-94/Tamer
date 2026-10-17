@@ -81,10 +81,12 @@ namespace AD
         private UnityEngine.UI.Button _signupOfferButton;
         private UnityEngine.UI.Button _signupConfirmButton;
 
-        private bool LoginCurrent() => _loginCaptured && _dataOwner != null
-            && ReferenceEquals(_dataOwner, AD.Managers.DataM) && !_dataOwner.ReceiptOnly && !_dataOwner.DeletionInProgress
+        private bool CapturedLoginSessionCurrent() => _loginCaptured && _dataOwner != null
+            && !_dataOwner.ReceiptOnly && !_dataOwner.DeletionInProgress
             && _loginGeneration == _dataOwner.AccountGeneration
             && _loginDeletionEpoch == _dataOwner.DeletionEpoch;
+
+        private bool LoginCurrent() => CapturedLoginSessionCurrent() && ReferenceEquals(_dataOwner, AD.Managers.DataM);
 
         private bool LoginCancelled(CancellationToken token) => token.IsCancellationRequested || !LoginCurrent();
 
@@ -164,7 +166,7 @@ namespace AD
         {
             _googleSignup.Revoke();
             _cts?.Cancel();
-            if (LoginCurrent() && !_operations.HasEnteredScene)
+            if (CapturedLoginSessionCurrent() && !_operations.HasEnteredScene)
                 _dataOwner.SuspendAccountSession();
             _cts?.Dispose();
             _cts = null;

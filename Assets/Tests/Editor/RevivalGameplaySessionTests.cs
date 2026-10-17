@@ -868,7 +868,7 @@ public class RevivalGameplaySessionTests
         private readonly List<GameObject> _combatObjects = new List<GameObject>();
         public readonly List<Dictionary<string, string>> Uploads = new List<Dictionary<string, string>>();
         public string SavePath => Path.Combine(_directory, "PlayerData.json");
-        public string InventoryPath => SavePath + ".inventory/" + Call(Runtime("AD.PlayerInventoryStore"), "OwnerKey", "A") + ".json";
+        public string InventoryPath => Path.Combine(SavePath + ".inventory", (string)Call(Runtime("AD.PlayerInventoryStore"), "OwnerKey", "A") + ".json");
         public string Inventory() => File.ReadAllText(InventoryPath);
         public string Sword()
         {
