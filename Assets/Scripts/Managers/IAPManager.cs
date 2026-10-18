@@ -47,6 +47,9 @@ namespace AD
         private readonly Dictionary<string, int> _verificationFailures = new Dictionary<string, int>();
         private string _localVerificationDiagnostic;
         private readonly IIapExecutionGate _executionGate;
+        private bool _recoveryInitializationStarted;
+        private bool _recoveryCatalogStarted;
+        private bool _recoveryFetchStarted;
 
         public IAPManager() { }
 
@@ -90,6 +93,11 @@ namespace AD
             return;
 #endif
             if (_disposed || _connecting || _initialFetchInProgress || _restoring || _purchaseInProgress || IsReadyToPurchase) return;
+            if (_executionGate != null)
+            {
+                if (_recoveryInitializationStarted) return;
+                _recoveryInitializationStarted = true;
+            }
             _connecting = true;
             _nextInitializationAttempt = DateTime.UtcNow.AddSeconds(30);
             try
@@ -118,6 +126,10 @@ namespace AD
                     _ = RetryLoopAsync(_lifetime.Token);
                 }
 
+                // The SDK has its own reconnect policy, independent of RetryLoopAsync.
+                if (_executionGate != null)
+                    _store.SetStoreReconnectionRetryPolicyOnDisconnection(new NoRetriesPolicy());
+
                 if (_connected)
                 {
                     if (_productsLoaded)
@@ -134,6 +146,7 @@ namespace AD
             }
             catch (Exception)
             {
+                _executionGate?.Close();
                 _initialFetchInProgress = false;
                 if (!_disposed) SetStatus(IAPStatus.Failed);
             }
@@ -150,18 +163,28 @@ namespace AD
         private void FetchCatalog()
         {
             if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
+            if (_executionGate != null)
+            {
+                if (_recoveryCatalogStarted) return;
+                _recoveryCatalogStarted = true;
+            }
             _initialFetchInProgress = true;
             _productsLoaded = false;
             _purchasesLoaded = false;
             SetStatus(IAPStatus.LoadingProducts);
-            _store.FetchProducts(new List<ProductDefinition>
+            var products = new List<ProductDefinition>
             {
                 new ProductDefinition(ProductNoAds, ProductType.NonConsumable)
-            });
+            };
+            // Explicit policy: the pinned SDK's NoRetries convenience method forwards null,
+            // which ProductService replaces with its default exponential retry policy.
+            if (_executionGate != null) _store.FetchProducts(products, new NoRetriesPolicy());
+            else _store.FetchProducts(products);
         }
 
         private void OnStoreDisconnected(StoreConnectionFailureDescription failure)
         {
+            _executionGate?.Close();
             _connected = false;
             _productsLoaded = false;
             _purchasesLoaded = false;
@@ -192,6 +215,11 @@ namespace AD
         private void FetchOwnedPurchases()
         {
             if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
+            if (_executionGate != null)
+            {
+                if (_recoveryFetchStarted) return;
+                _recoveryFetchStarted = true; // Consume before the SDK can call back synchronously.
+            }
             if (!_connected)
             {
                 _initialFetchInProgress = false;
@@ -205,6 +233,8 @@ namespace AD
 
         private void OnPurchasesFetchFailed(PurchasesFetchFailureDescription failure)
         {
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
+            _executionGate?.Close();
             _initialFetchInProgress = false;
             _purchasesLoaded = false;
             _restoring = false;
@@ -279,7 +309,8 @@ namespace AD
         // fetches confirmed non-consumables for automatic Google Play restore.
         public void RestorePurchases()
         {
-            if (_executionGate != null && !_executionGate.CanAccessStore) return;
+            // Recovery owns one explicit startup fetch; RestoreTransactions would fetch again.
+            if (_executionGate != null) return;
             if (_disposed) return;
             if (!_connected)
             {
@@ -312,7 +343,7 @@ namespace AD
 
         private void OnPurchasesFetched(Orders orders)
         {
-            if (_disposed || orders == null) return;
+            if (_disposed || orders == null || (_executionGate != null && !_executionGate.CanAccessStore)) return;
             _initialFetchInProgress = false;
             _purchasesLoaded = true;
             _restoring = false;
@@ -334,7 +365,7 @@ namespace AD
 
         private void QueueOrder(Order order)
         {
-            if (_disposed || !IsSupportedPaidOrder(order)) return;
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore) || !IsSupportedPaidOrder(order)) return;
             string key = OrderKey(order);
             // A stale fetch callback may redeliver PendingOrder after a successful
             // confirmation. Google Play silently ignores a second acknowledgement
