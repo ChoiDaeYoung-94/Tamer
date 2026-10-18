@@ -1,14 +1,24 @@
 # Data Safety 변경안 — 미제출 검토 초안
 
-2026-10-01 공식 근거 보완. 이 문서는 Console 입력 준비용이며 저장·제출·게시하지 않았다. 개인정보처리방침 본문 후보는 [출시 수정안](privacy-policy-release-draft.ko.md)에 있다. 과거 초안은 Git 이력에서 확인할 수 있으며 당시 미완료 상태를 현재 구현 상태로 재사용하지 않는다.
+2026-09-30~10-01 당시 초안·공식 근거 대조 이력을 보존하고, 2026-10-18 후보 대조를 아래에 분리했다. 이 문서는 Console 입력 준비용이며 이 문서 작업으로 저장·제출·게시하지 않았다. 개인정보처리방침 본문 후보는 [출시 수정안](privacy-policy-release-draft.ko.md)에 있다. 당시 미완료 상태나 Console 관측을 현재 구현·운영 상태로 재사용하지 않는다.
 
-## 기준과 현재 신고의 차이
+## 2026-09-30~10-01 기준과 신고 관측 이력
 
-- 구현 검토 기준: `85892a9ec299a36b011c6d8045b2342e91ba93cb`. 문서 브랜치 기준 main: `e62f86a5fff68db975cc99681deedaf45005cb61`. 두 커밋 사이 변경은 RELRO 검사·문서이며 아래 제품 데이터 경로와 SDK 선언은 같다.
+- 당시 구현 검토 기준: `85892a9ec299a36b011c6d8045b2342e91ba93cb`. 당시 문서 브랜치 기준 main: `e62f86a5fff68db975cc99681deedaf45005cb61`. 그 두 커밋 사이 변경은 RELRO 검사·문서이며 제품 데이터 경로와 SDK 선언은 같았다.
 - 통합 담당자의 **2026-09-30 운영 앱 Console 관측 이력**: 당시 Data Safety는 2024-09-30의 수집 NO·전송 암호화되지 않음·Families YES, 전체 제공은 versionCode 24 / 1.0.3, 최대 26은 미승인이었다. 대상 연령 9~12·13~15·16~17·18+ 변경은 검토 전송 준비 상태였다. 이는 최신 운영 Console 조회 결과가 아니다. 새 9+ 방향을 현재 심사·제공 완료로 쓰지 않는다.
-- 별도 내부 시험 앱의 v27 및 빌드 실패로 미배포인 진단 v28은 [최신 복구 상태](current-recovery-status.ko.md)를 따른다. 시험 앱의 상태로 운영 제공 트랙·최종 신고 대상 버전을 대체하지 않으며, 운영 Console 현재값은 새 관측으로 확정한다.
+- 이전 문서의 별도 내부 시험 앱 v27·빌드 실패로 미배포였던 진단 v28은 과거 기록이다. 이후 시험 앱 상태는 [복구 상태 문서](current-recovery-status.ko.md)의 기준일과 구분한다. 시험 앱의 상태로 운영 제공 트랙·최종 신고 대상 버전을 대체하지 않으며, 운영 Console 현재값은 새 관측으로 확정한다.
 - 정책 URL은 [기존 GitHub 루트](https://github.com/ChoiDaeYoung-94/Tamer)와 [개인정보처리방침 앵커](https://github.com/ChoiDaeYoung-94/Tamer#개인정보처리방침)를 유지한다. 외부 [삭제 안내](../account-deletion.ko.md)는 있으나 Console의 삭제 URL 등록 여부는 현재 분기 화면에서 확인하지 못했다. 미등록으로 단정하지 않는다.
 - 소스 선언은 Unity IAP 5.4.3, Authentication 3.7.4, GMA Unity 11.5.0 / Android 25.4.0, UMP 4.0.0이다. 최종 출시 AAB의 해석된 의존성과 운영 24의 SDK 구성은 별도 증거가 필요하다. 합성 서명 AAB·시험 앱·새 소스를 운영 24의 메타데이터로 사용하지 않는다.
+
+## 2026-10-18 후보 대조 — 내부 검토용
+
+정적 대조 소스는 `codex/iap-recovery-validation-1017@ac6eec24ee9a50bfaef7364f0737818d51aa9c36`이다. 전용 define·시험 앱/타이틀·승인 gate의 구매 복원 검증 경로를 일반 운영의 서버 영수증 검증으로 쓰지 않는다. 총괄이 2026-10-18 별도 시험 앱 `com.AeDeong.MonsterTamer.iaptest` versionCode 29의 내부 제공·Play 산출물 대조를 확인했다는 인계를 받았다. 실제 폰·계정·Store 복원, 운영 출시·최신 Console 신고, 16KB 실행·RELRO는 이 근거로 검증되지 않는다. 아래 운영 24·Console 값은 날짜가 붙은 과거 관측이며 오늘의 제공·신고 값이 아니다.
+
+| 검토 경계 | 현재 소스의 사실과 답안 한계 |
+| --- | --- |
+| 엔진 Analytics | builtin `com.unity.modules.unityanalytics`와 Analytics enabled=1/initializeOnStartup=1 설정 잔존, 게임 코드의 직접 Analytics API 호출 미발견. 실제 초기화·자동 전송·최종 Player의 strip 여부와 IAP intent 연동 효과는 미검증이다. IAP 서비스 데이터와 별도로 대조하며 수집 확정·전체 OFF 어느 쪽도 설정만으로 답하지 않는다. |
+| 연령 질문 전 처리 | 로컬 연령 구간은 현재 광고 처리용이다. PGS/PlayFab 로그인 경로가 질문보다 앞서며 IAP·엔진 처리는 광고 gate와 별개다. 미성년·Unknown/Declined 광고 차단은 전체 서비스의 적법성·보호자 동의 인증이나 연령 확인 전 데이터 중지를 증명하지 않는다. SDK별 실제 처리·조건과 필요한 동의 순서를 확인하기 전 답안을 임의 확정하지 않는다. |
+| UMP 선택 창 | 일반 광고 gate와 privacy-only release binding이 닫혀 있어 준비 메뉴가 현재 모든 선택 창을 제공한다고 보장할 수 없다. 메뉴 존재·광고 미표시를 동의 철회나 모든 SDK 수집 중단으로 신고하지 않는다. |
 
 소스에는 로그인 및 PlayFab 저장을 위해 기기 밖으로 보내는 데이터가 있으므로 이 구현의 답안 후보는 **수집 YES**다. 실제 신고는 제공 중인 버전들과 사용 SDK를 함께 대조한다. 로컬 전용 정보는 전송이 없는 범위에서 수집 신고 대상과 구분한다. 서비스 제공자 예외는 공유 항목에 관한 것으로 수집 신고를 없애지 않는다. [Google Play 정의](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en).
 
@@ -33,7 +43,7 @@
 
 ### 공급자 공식 자료와 적용 한계
 
-2026-10-01 현재 운영 PlayFab의 집중 시간 보고·장치 정보 보고·전체 사용자 IP 저장·
+2026-10-01 관측 이력에서 운영 PlayFab의 집중 시간 보고·장치 정보 보고·전체 사용자 IP 저장·
 새 데이터 컬렉션 기능 자동 실행은 모두 ON이며 사용자 결정으로 유지한다.
 이는 Game Manager 설정의 읽기 결과이고 실제 제공 24·최종 AAB의 네트워크 전송이나
 보관기간 증거는 아니다. 설정을 줄였다는 전제로 답안을 작성하지 않는다.
@@ -57,7 +67,7 @@
 | 서비스 제공자 예외 | 개발자의 지시로 대신 처리하는 범위에만 적용. 해당 계약과 처리 활동 확인 필요. 독립 목적의 분석·광고를 단순 위탁으로 가정하지 않음 |
 | 전송 중 암호화 | PlayFab 기본 HTTPS는 설정 override 가능. 후보 삭제 gateway의 HTTPS 주소 제한, PGS 공식 HTTPS·AdMob TLS·IAP 공식 전송 암호화 YES는 확인 근거. 최종 AAB 설정·전체 엔드포인트·제공 24 대조 후 전체 YES 여부 결정. 암호화 저장·종단 간 암호화와 구분하고 기존 Console NO를 자동 변경하지 않음 |
 | 삭제 요청 수단 | 기존 이메일과 공개 웹 안내는 준비됨. 운영자가 기존 문의 이메일을 직접 처리하며 메일 요청은 2주 이내 처리 목표로 확정. 공급자 전체 소거 기한 보증은 아님. 앱 자동 접수 경로는 구현·시험 근거와 실제 제공 버전을 구분. Console 삭제 URL 등록·메일 수신/소유 확인·상태 회신 운영은 확인 필요 |
-| Families | 현재 Console YES는 관측 사실. 9+ 선택·MaxAdContentRating G·시험 광고 성공만으로 아동 데이터/광고/동의 전 항목 적합성을 확정하지 않음 |
+| Families | 2026-09-30 Console YES는 과거 관측 이력. 최신 값은 별도 확인하며 9+ 선택·MaxAdContentRating G·시험 광고 성공만으로 아동 데이터/광고/동의 전 항목 적합성을 확정하지 않음 |
 
 Unity는 활동별로 처리자 또는 독립 처리자 역할이 달라진다고 안내한다. Google Play의 공유 예외 판단은 법적 역할 명칭만으로 자동 확정하지 않는다. 실제 수신자 목록과 서비스별 처리 범위가 필요하다. AdMob Console의 선택된 파트너 수는 실제 전송 업체 수나 설치된 어댑터 수가 아니다. [Unity 역할 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview), [Google 공유 정의](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en).
 
@@ -81,6 +91,6 @@ CloudScript의 Server/DeletePlayer는 title 플레이어 데이터 삭제를 대
 
 ## 2026-09-30 초안 검증 범위
 
-두 초안만 변경한다. 소스 경로·상대 링크·기존 정책 URL과 승인 원칙·차이 검사를 수행하며 Unity·기기·구매·삭제·메일·Console 쓰기는 없다. 기존 LTS 114/114는 임시/fake Editor 시험이며 원복 독립 검토가 완료됐다는 별도 보고다. 운영 24·실기기 UI·공급자 전체 소거 결과로 사용하지 않는다. 새 APK/AAB와 해시는 없다.
+당시 두 초안만 변경했다. 소스 경로·상대 링크·기존 정책 URL과 승인 원칙·차이 검사를 수행했고 Unity·기기·구매·삭제·메일·Console 쓰기는 없었다. 기존 LTS 114/114는 임시/fake Editor 시험이며 원복 독립 검토가 완료됐다는 별도 보고였다. 운영 24·실기기 UI·공급자 전체 소거 결과로 사용하지 않는다. 당시 새 APK/AAB와 해시는 없었다.
 
 근거 소스: [로그인](../../Assets/Scripts/Login/Login.cs), [서버 저장](../../Assets/Scripts/Managers/ServerManager.cs), [로컬 저장·삭제](../../Assets/Scripts/Managers/DataManager.cs), [IAP](../../Assets/Scripts/Managers/IAPManager.cs), [동의 기본값](../../Assets/Scripts/Managers/IapConsentDefaults.cs), [광고 gate](../../Assets/Scripts/Advertising/AdRequestPolicy.cs), [삭제 CloudScript](../../server/cloudscript/account-deletion.js), [패키지 선언](../../Packages/manifest.json).
