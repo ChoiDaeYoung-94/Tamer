@@ -1,4 +1,35 @@
-# 최신 복구 상태와 남은 순서 — 2026-10-17
+# 최신 복구 상태와 남은 순서 — 2026-10-18
+
+**시험용 29번이 10월 18일 14:07(KST) 내부 테스터에게 제공됐습니다. Play 원본 AAB의 동일성과 범용 APK의 앱 서명·manifest·ARM64 payload·기본 LOAD/ZIP 검사를 확인했습니다. 실제 기기 업데이트·계정 재인증·구매 복원과 운영 출시는 미검증입니다.** `releaseReady=false`를 유지합니다. [29번 Play 제공·검증 근거](iap-v29-play-verification.ko.md)
+
+공개 문서의 main 대조 기준은 `13e1d5b0b06dfd273a4b1ce7fb0b16f7ce1ff79a`입니다. 시험29의 빌드 소스는 계정 복구 [초안 PR #378](https://github.com/ChoiDaeYoung-94/Tamer/pull/378)의 `ac6eec24ee9a50bfaef7364f0737818d51aa9c36`입니다. 후속 후보 `be6b5ee6f6b01c512dbf84b89354044207b1104f`는 씬 저장 후속 `fb14df8`에 main의 검사 도구·문서 3파일만 추가했으며 `Assets/Packages/ProjectSettings` 차이는 없습니다. **후속 수정 #381·#383은 시험29에 포함되지 않았고, 새 AAB30은 아직 빌드·전달하지 않았습니다.**
+
+| 항목 | 확인된 결과 | 남은 작업·제한 |
+|---|---|---|
+| Unity·Android | Unity `6000.3.25f1` / revision `e1dba0a9aba4`, min25/target36/ARM64, CLI `1.0.0-beta.8` 기준 | main 문서·도구 반영과 게임 코드 통합·실행 검증을 구분합니다. 이전 Unity의 결과를 현재 후보로 전용하지 않습니다. |
+| 통합 코드·병합 상태 | 문서·도구 [#379](https://github.com/ChoiDaeYoung-94/Tamer/pull/379)·[#380](https://github.com/ChoiDaeYoung-94/Tamer/pull/380)·[#382](https://github.com/ChoiDaeYoung-94/Tamer/pull/382)는 main에 Squash 병합 | 게임 코드 #363·#366·#368·#369·#374·#378·#381·#383은 모두 Draft/미병합입니다. 실제 상점·장비/HUD·전투·씬·삭제 접수 UI 확인이 남습니다. |
+| 기존 통합 회귀 | 최초 9클래스 250개 중 238통과/12실패, 수정 `9877574`의 영향 3클래스 139/139통과/skip0, 최초 실패12개 포함 | 다른 클래스의 과거 통과를 최신 head 전체 재실행으로 세지 않습니다. |
+| GLES3 셰이더 | Core17.3.0의 GLES3 FSR 경로를 기존 FP32 구현으로 전환한 로컬 패키지. source `4dac486` 개발 APK에서 FinalPost 48변형 새 컴파일/캐시0/오류0 | 실제 기기 표시·FP32 비용/정밀도·다른 그래픽 API 미검증입니다. 패키지 전체 업그레이드 결과가 아닙니다. |
+| 시험 AAB29·Play APK | source `ac6eec2`, AAB 73,997,176bytes와 Play 원본 SHA-256 동일. 범용 APK 78,643,333bytes, 시험ID/29/min25target36/ARM64/non-debug, 앱 서명과 Source Stamp 역할 분리, 6native 전체 payload 일치·LOAD/ZIP PASS | 최초 Source Stamp 파서 실패1회 후 역할 분리 수정으로1회 성공. 해시가 귀속된 native 보고서를 재사용했으며 새 빌드가 아닙니다. 실제 기기·split은 미검증입니다. |
+| Store 실패 원인·권한 보존 | 기존 영수증은 과거 시험 계정에 귀속되고 현재 설치별 로그인 계정과 달랐음을 확인했습니다. 기존 계정·저장·No Ads 권한을 보존했고 재구매·권한 이동·강제 삭제는0입니다. | PR378의 재인증·원본 보존·새 프로필·gate는 `ac6eec2`에서 합성85 PASS 및 시험29 빌드까지 확인했습니다. 실제 폰 재인증·단일 복원·No Ads 내구 저장/재시작은 미검증입니다. |
+| IAP 후속 #381 | 중복·SDK 자동 retry·지연 주문 gate 수정 `22aeb3a`. 검증 head `1d7a265`에서 `RevivalIAPOrderTests` 28/28 PASS, 14:18:58~14:19:32(KST),1회/실패0 | #378 이후 수정이며 시험29에는 없습니다. Android buildTarget의 EditMode 합성이며 실제 Store·계정·Player 결과가 아닙니다. |
+| 캐릭터 저장 후속 #383 | 저장 후 원래 세션 귀속 수정·검증 head `fb14df8`에서 `RevivalUILifecycleTests` 8/8 PASS,14:41:58~14:42:20(KST),1회/실패0 | 새 UnityTest 2메서드 안16분기는16개 독립 NUnit 결과가 아닙니다. 실제 폰 저장·씬·BGM·UI는 미검증입니다. 두 후속 실행 모두 Unity6000.3.25f1/실계정API0, 보호 설정70개 중 변경3개 원바이트 복구/Git clean입니다. |
+| 서명·JDK·도구 | 기존 시험키·현재 사용자 DPAPI·embedded JDK 복구 이력 유지. #379 도구 회귀7개, #382 합성11개와 운영26 실제 SDK 정적 검사1회 확인 | 새 키 생성·재설정 없음. 도구 검증을 정책·운영 출시 승인으로 확대하지 않습니다. 이전 PowerShell5.1 실행정책 차단 이력도 미검증으로 보존합니다. |
+| 호스트·중단 이력 | BIOS M.H0/Intel Default Settings/microcode0x137 확인 뒤 최소 검증·APK·AAB 실행 이력 보존 | [#358](https://github.com/ChoiDaeYoung-94/Tamer/issues/358)의 장기 안정성·기존 재부팅 원인은 미확정입니다. 제어 검사 `editor_status` 2회 timeout 경로와 의존 live 작업은 STOP이며 충돌 원인을 확정하지 않습니다. |
+| 16KB·RELRO | 시험29의 6native ELF LOAD 및 Play 범용 APK 기본 LOAD/ZIP PASS | 별도 RELRO 끝 정렬3개 미충족, strict 재실행0. 실제16KB 실행·기기별 Play split/ZIP 정렬은 미검증입니다. Console 표시·기본 정적 PASS로 대체하지 않습니다. |
+| 운영26 원본·출처 | Console 원본 AAB/범용 APK 보존, 기대 upload/app 서명·6native 동일성·LOAD/ZIP 확인. header는 `6000.0.81f1`, min24/target36/ARM64 | source commit 미확정인 과거 산출물입니다. 현재 Unity6.3/min25 후보가 아니며 실제 기기·split·16KB·정책 통과도 미검증입니다. |
+| 운영 Console·정책 | 읽기 확인: 가족 광고 형식 거부, 미제출2변경(운영26 전체 출시·9세 이상), Data Safety의 2024-09-30 NO 신고. 제출·수정0 | 실제 제공 버전/SDK 처리·Data Safety/공개 방침/Console 신고 대조가 남습니다. 연령만 제출하는 것으로 오해해 일괄 전송하지 않습니다. |
+| 광고·Analytics·삭제 | 기존 rewarded·영구 No Ads,9세 이상 성인 포함·미성년 광고 차단·PlayFab 수집 유지. 앱 밖 삭제는 기존 문의 메일로 운영자 직접2주 이내 처리 목표 | 운영 광고 승인 gate=false/binding=null, 지역·거절/철회·연령·복원 확인이 남습니다. Analytics flag 변경0이며 legacy off만으로 IAP 데이터 처리 off를 확정할 수 없습니다. 5초 닫기 조사는 보류, 공급자 로그·백업 전부 소거 보증도 아닙니다. |
+| 출시·정리 | 기존 게임 소개·영상·이미지·Play 링크·개인정보방침·외부 삭제 안내 유지 | 가입 UI 시각검증9차 STOP, 실기기·최종 출시 AAB·정책 심사·결산·시험 자원 정리·마지막 `Tamer`→`tamer` 변경이 남습니다. CI/CD·App Center는 보류/보존합니다. |
+
+다음 우선순위는 **총괄의 실행 소유권·실제 승인 gate에 따른 시험29의 폰 업데이트·기존 계정 재인증·단일 복원 확인 → 후속 코드가 포함된 정확한 후보의 기능 확인 → 정책·최종 출시 검증**입니다. 아직 없는 AAB30의 제공이나 후속 코드를29에서 검증했다고 기록하지 않습니다.
+
+같은 시험2회 실패 시 해당 경로와 종속 작업을 중단하고 승인 전3차·유사조건 우회 시험을 하지 않습니다. 기존 영수증 재시도·strict RELRO·가입 UI 중단 이력을 유지하며 변경 없는 회귀·빌드를 기록만을 위해 반복하지 않습니다. 완료 채팅은 인계 접수 뒤 정리하고 총괄은 유지합니다. 과거75.x%는 당시 추정값이며 고정 산정표 없이 PR 수·문서량으로 새 완료율을 만들지 않습니다.
+
+<details>
+<summary>2026-10-17 당시 기록 — 아래의 현재·대기 표현은 당시 시점입니다</summary>
+
+## 2026-10-17 기록
 
 **시험용28번이 업로드되어 내부 테스터에게 제공됐습니다. Play가 생성한 범용 APK도 서명·manifest·ARM64 LOAD/ZIP 검사를 통과했습니다. 실제 기기 업데이트·구매 복원·운영 출시는 아직 완료하지 않았습니다.** `releaseReady=false`를 유지합니다. [28번 Play 제공·산출물 검증 근거](iap-v28-play-verification.ko.md)
 
@@ -20,6 +51,8 @@
 | 출시·정리 | README 게임소개·실제화면·기존영상·Play링크·개인정보방침 유지 | 가입UI 시각검증9차STOP,실기기/최종출시AAB·정책심사·결산·시험자원정리·마지막 Tamer→tamer 변경. CI/CD·App Center는 보류/보존합니다. |
 
 다음 순서는 **시험28의 실제 기기 Play 업데이트·첫 화면 확인 → 주문 진단 → 기능·정책·최종 출시 검증**입니다. 같은 시험2회 실패 시3차와 유사조건 우회시험을 하지 않으며, 변경 없는 회귀·빌드를 기록만을 위해 반복하지 않습니다. 완료 채팅은 인계 후 정리하고 총괄은 유지합니다. 이전75.x%는 과거 추정이며 고정 산정표 없이 PR 수나 문서량으로 새 완료율을 만들지 않습니다.
+
+</details>
 
 <details>
 <summary>2026-10-16 당시 기록 — 아래의 현재·대기 표현은 당시 시점입니다</summary>
