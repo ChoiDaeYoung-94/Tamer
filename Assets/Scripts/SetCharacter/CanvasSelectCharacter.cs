@@ -19,6 +19,33 @@ public class CanvasSelectCharacter : MonoBehaviour
     private bool _isMoving;
     private bool _isSaving;
 
+    private sealed class CharacterSave
+    {
+        private readonly AD.Managers _owner = AD.Managers.Instance;
+        public readonly AD.DataManager Data = AD.Managers.DataM;
+        public readonly AD.ServerManager Server = AD.Managers.ServerM;
+        public readonly AD.SceneManager Scene = AD.Managers.SceneM;
+        public readonly AD.PopupManager Popup = AD.Managers.PopupM;
+        private readonly string _account;
+        private readonly int _generation, _deletionEpoch;
+
+        public CharacterSave()
+        {
+            if (Data == null) return;
+            _account = Data.PlayFabId;
+            _generation = Data.AccountGeneration;
+            _deletionEpoch = Data.DeletionEpoch;
+        }
+
+        public bool IsCurrent => _owner != null && AD.Managers.Instance == _owner &&
+            Data != null && Server != null && Scene != null && Popup != null &&
+            ReferenceEquals(AD.Managers.DataM, Data) && ReferenceEquals(AD.Managers.ServerM, Server) &&
+            ReferenceEquals(AD.Managers.SceneM, Scene) && ReferenceEquals(AD.Managers.PopupM, Popup) &&
+            Data.PlayFabId == _account && !string.IsNullOrEmpty(_account) &&
+            Data.AccountGeneration == _generation && Data.DeletionEpoch == _deletionEpoch &&
+            Data.IsServerDataReady && !Data.DeletionInProgress && !Data.ReceiptOnly;
+    }
+
     private void Start()
     {
         AD.Managers.PopupM.ReleaseException();
@@ -52,11 +79,13 @@ public class CanvasSelectCharacter : MonoBehaviour
     public void ButtonPlay()
     {
         if (_isSaving || _isMoving || !HasWritableSession()) return;
+        var save = new CharacterSave();
+        if (!save.IsCurrent) return;
         _isSaving = true;
-        AD.Managers.PopupM.SetException();
+        save.Popup.SetException();
         AD.Managers.SoundM.UI_Ok();
 
-        Play().Forget();
+        Play(save).Forget();
     }
 
     public void ButtonDirection(string direction)
@@ -108,29 +137,41 @@ public class CanvasSelectCharacter : MonoBehaviour
         }
     }
 
-    private async UniTask Play()
+    private async UniTask Play(CharacterSave save)
     {
         try
         {
+            if (!save.IsCurrent) return;
             string selectedGender = Mathf.Approximately(_trMale.position.x, 0) ? "Man" : "Woman";
-            AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "Sex", selectedGender } },
+            save.Server.SetData(new Dictionary<string, string> { { "Sex", selectedGender } },
                 getAllData: true, update: true);
+            if (!save.IsCurrent) return;
             _maleAnimator.CrossFade("Select", 0.1f);
             _femaleAnimator.CrossFade("Select", 0.1f);
-            if (await UniTask.WaitUntil(() => !AD.Managers.ServerM.IsInProgress,
-                cancellationToken: this.GetCancellationTokenOnDestroy()).SuppressCancellationThrow()) return;
-            if (AD.Managers.ServerM.HasFailed || !HasWritableSession() ||
-                !AD.Managers.DataM.LocalPlayerData.TryGetValue("Sex", out var savedGender) || savedGender != selectedGender)
+            if (!await WaitForSaveAsync(save, selectedGender, this.GetCancellationTokenOnDestroy()))
             {
-                Debug.LogWarning("[Tamer/Character] Character save was not confirmed. Please retry.");
+                if (this != null && save.IsCurrent)
+                    Debug.LogWarning("[Tamer/Character] Character save was not confirmed. Please retry.");
                 return;
             }
-            AD.Managers.SceneM.NextScene(AD.GameConstants.Scene.Main);
+            save.Scene.NextScene(AD.GameConstants.Scene.Main);
         }
-        finally
-        {
-            _isSaving = false;
-            if (this) AD.Managers.PopupM.ReleaseException();
-        }
+        finally { FinishSave(save); }
+    }
+
+    private async UniTask<bool> WaitForSaveAsync(CharacterSave save, string selectedGender, CancellationToken token)
+    {
+        // Stop on ownership loss without cancelling a server shared with the new session.
+        if (await UniTask.WaitUntil(() => this == null || !save.IsCurrent || !save.Server.IsInProgress,
+            cancellationToken: token).SuppressCancellationThrow()) return false;
+        return this != null && save.IsCurrent && !save.Server.HasFailed &&
+            save.Data.LocalPlayerData != null && save.Data.LocalPlayerData.TryGetValue("Sex", out var savedGender) &&
+            savedGender == selectedGender;
+    }
+
+    private void FinishSave(CharacterSave save)
+    {
+        _isSaving = false;
+        if (this != null && save.IsCurrent) save.Popup.ReleaseException();
     }
 }
