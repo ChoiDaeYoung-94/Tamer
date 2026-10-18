@@ -1,4 +1,30 @@
-# 최신 복구 상태와 남은 순서 — 2026-10-16
+# 최신 복구 상태와 남은 순서 — 2026-10-17
+
+**시험용28번이 업로드되어 내부 테스터에게 제공됐습니다. Play가 생성한 범용 APK도 서명·manifest·ARM64 LOAD/ZIP 검사를 통과했습니다. 실제 기기 업데이트·구매 복원·운영 출시는 아직 완료하지 않았습니다.** `releaseReady=false`를 유지합니다. [28번 Play 제공·산출물 검증 근거](iap-v28-play-verification.ko.md)
+
+현재 main 대조 기준은 `ad030c58ff492f8683f755063cd07f671b4eb7b7`입니다. 게임 코드 통합 [초안 PR #369](https://github.com/ChoiDaeYoung-94/Tamer/pull/369)의 head는 `a2e17a335696a01a6d0365caeebf8bbded7a053f`이며, 그 위의 셰이더 수정 [초안 PR #374](https://github.com/ChoiDaeYoung-94/Tamer/pull/374) 후보 `3d77ff6697c0385350a72acdd02caf4d25e5d5f7`에서 이번 AAB를 만들었습니다. 이 코드 후보들은 아직 main에 병합하지 않았습니다.
+
+| 항목 | 완료 근거 | 남은 작업·제한 |
+|---|---|---|
+| Unity·Android | Unity6000.3.25f1/revision e1dba0a9aba4, min25/target36/ARM64 | 이전 Unity 결과와 현재 후보의 검증을 구분합니다. |
+| 통합 코드 | 최초9클래스250개 중238통과/12실패. 수정9877574에서 영향3클래스139/139통과/skip0, 최초실패12개 모두 포함 | 나머지 클래스의 과거 통과를 새 head 전체 재실행으로 표현하지 않습니다. 실제 상점·장비/HUD·전투·씬·삭제 접수 UI가 남습니다. |
+| GLES3 셰이더 | Core17.3.0의 GLES3 FSR 경로를 기존FP32 구현으로 전환한 로컬 패키지. 개발APK 빌드source4dac486에서 FinalPost48변형 새 컴파일/캐시0/오류0 | 실제 기기 표시·FP32비용/정밀도·다른그래픽API 미검증. 패키지 버전 전체 업그레이드가 아닙니다. 공개 근거는 PR374에 있습니다. |
+| 시험 AAB28 | source3d77ff6/빌드성공/셰이더오류0. 73,955,742bytes/SHA-256 `b637dc98c237c15bfb3db523ac54347267e6897b87679bffbcb39ba9ad0f96c8`. Play 원본 다운로드와 동일성 확인, 10월17일16:18 내부 제공 완료 | 시험 앱ID/non-debug/min25target36/ARM64/전용시험서명/payload601개/ELF LOAD6개 확인. Play 범용APK 서명·LOAD/ZIP·native원본일치도 확인. 실제 기기 업데이트·로그인·주문 진단은 남습니다. |
+| 원본 복구 | 새 보호manifest·실제delta 독립 검토 후 변경된 원본5개/보조6개를 사전 snapshot 원바이트로 복구. 원본9개+보조42개 전체 확인, 임시2개 제거, Git clean | 빌드가 교체한 파일ID8개는 과거ID로 복원한 것이 아닙니다. snapshot 파일 자체의 과거ID 동일성은 별도로 증명하지 않았습니다. |
+| Store 구매·복원 | v27의 Play 설치·격리 시험 로그인 이력, PR352 진단 코드 포함 | 새v28 설치 후 실제 오류 코드·주문 귀속·No Ads 지급·구매 확정 확인. 이전 WaitingForVerification의 원인을 단정하지 않습니다. |
+| 서명·JDK·도구 | 기존 시험키/현재사용자DPAPI·embeddedJDK 복구. 이번 Console 업로드 인증서와 기존DER 일치. [PR375](https://github.com/ChoiDaeYoung-94/Tamer/pull/375) Editor/CLI 판별 수정 병합, PowerShell7 테스트5개 통과 | 키 생성/재설정 없음. 운영 서명 결과와 구분. PowerShell5.1은 실행정책으로 시작 차단되어 미검증이며 우회하지 않았습니다. |
+| 호스트 | BIOS M.H0/Intel Default Settings/microcode0x137 확인 후 최소검증·개발APK·시험AAB 실행. 이번 AAB 구간 WHEA/컴파일러 충돌 관측0 | [#358](https://github.com/ChoiDaeYoung-94/Tamer/issues/358) 장기안정성·기존 재부팅 원인은 미확정. 단일 빌드 성공으로 하드웨어 문제 해결을 선언하지 않습니다. |
+| 16KB·RELRO | 이번 AAB6개 ELF LOAD와 Play 생성 범용APK의 기본LOAD/ZIP 통과 | 범용APK의 RELRO 끝 정렬3개 미충족, strict 중단시험 재개0. 실제16KB 실행·기기별Play split/ZIP정렬은 미검증이며 범용APK 결과와 구분합니다. |
+| 광고·정책·삭제 | 기존 rewarded·영구 No Ads 유지,9세 이상 성인 포함, 미성년 광고 차단, PlayFab 수집 유지. 앱 밖 삭제는 기존문의메일로 운영자 직접2주 이내 처리 목표 | 운영광고 승인게이트false/bindingnull,지역·거절/철회·연령·복원 확인, 실제제공버전과DataSafety/공개방침/Console신고 대조. 5초닫기 조사는 보류이며 정책충족 선언 아님. 공급자 로그/백업 전부소거 보증 아님. |
+| 운영 Console | 이번읽기에서도 가족광고형식 거부와 미제출2개(프로덕션26전체출시+9세이상 변경)를 확인 | 운영26 원본AAB/source/hash/서명 귀속 미확정. 연령만 제출하는 것으로 오해해 일괄 전송하지 않습니다. |
+| 출시·정리 | README 게임소개·실제화면·기존영상·Play링크·개인정보방침 유지 | 가입UI 시각검증9차STOP,실기기/최종출시AAB·정책심사·결산·시험자원정리·마지막 Tamer→tamer 변경. CI/CD·App Center는 보류/보존합니다. |
+
+다음 순서는 **시험28의 실제 기기 Play 업데이트·첫 화면 확인 → 주문 진단 → 기능·정책·최종 출시 검증**입니다. 같은 시험2회 실패 시3차와 유사조건 우회시험을 하지 않으며, 변경 없는 회귀·빌드를 기록만을 위해 반복하지 않습니다. 완료 채팅은 인계 후 정리하고 총괄은 유지합니다. 이전75.x%는 과거 추정이며 고정 산정표 없이 PR 수나 문서량으로 새 완료율을 만들지 않습니다.
+
+<details>
+<summary>2026-10-16 당시 기록 — 아래의 현재·대기 표현은 당시 시점입니다</summary>
+
+## 2026-10-16 기록
 
 10월 15일 실패한 진단 빌드의 소스 기준은 `f7a051b48ca7f0fcd6c957ead29ebd6ebedaaf31`입니다. [PR #352](https://github.com/ChoiDaeYoung-94/Tamer/pull/352)의 구매 검증 진단 수정과 [PR #354](https://github.com/ChoiDaeYoung-94/Tamer/pull/354)의 기존 시험 서명 백업 복구 도구는 병합된 상태입니다. 새 PC에서 실제 시험 서명 복구와 JDK 복구를 완료했지만, 신규 진단 AAB 빌드는 컴파일러 충돌로 실패했습니다. 10월 16일에는 [PR #362](https://github.com/ChoiDaeYoung-94/Tamer/pull/362)로 정책·인벤토리 문서 6개의 과거 관측과 현재 구현을 구분했습니다. 이 문서 정리까지 병합한 소스 기준은 `1e34718f25e3814742cee4c5c332b6551c68c55a`이며, 새 빌드·기기·정책 검증 결과는 아닙니다.
 
@@ -38,3 +64,5 @@
 4. **운영 기능·정책과 최종 출시를 검증하고 정리합니다.** 정책 초안을 실제 제공 버전·지역·처리자·잔존 자료 및 Console 신고에 대조합니다. 최종 서명 AAB·전달 APK/split·실기기·정책/스토어 결과와 16KB/RELRO 미검증을 같은 후보에 연결합니다. 완료 전 `releaseReady=false`를 유지합니다. 이후 시험 자원을 정리하고 저장소 소문자 변경과 링크 도달성을 확인합니다. 기존 계정·저장·No Ads·서명키·GUID·비공개 근거와 보류 중인 CI/CD 구성을 보존합니다.
 
 동일 시험이 두 번 실패하면 해당 시험과 종속 작업을 중단하고 결정 전에 세 번째나 유사 조건의 우회 시험을 실행하지 않습니다. 진행률의 과거 75.x%는 날짜가 있는 추정값입니다. 고정된 세부 완료 점수 없이 병합 PR 수·문서량·실패 시도를 새 정확한 완료율로 환산하지 않습니다.
+
+</details>
