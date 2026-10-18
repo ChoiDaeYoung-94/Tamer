@@ -5,6 +5,9 @@ import json
 import hashlib
 import argparse
 import stat
+import shutil
+import subprocess
+import sys
 from types import SimpleNamespace
 from pathlib import Path
 import tempfile
@@ -121,6 +124,98 @@ class IapRecoveryInputTests(unittest.TestCase):
         for value in ('', '0', '-1', '27.0', ' 27', '2100000001'):
             with self.subTest(value=value), self.assertRaises(argparse.ArgumentTypeError):
                 bundle.version_code(value)
+
+
+@unittest.skipUnless(sys.platform == 'win32' and shutil.which('pwsh'), 'Requires Windows PowerShell 7 path semantics')
+class IapRecoveryPythonInputTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory(prefix='iap guard [fixture] ')
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        source = Path(__file__).with_name('Run-IapTestBundle.ps1').read_text(encoding='utf-8')
+        # Keep the actual parameter defaults and recovery guard; never run the build body.
+        guard = source[source.index('$reviewedRecovery ='):source.index('function Assert-IapExistingSigningDirectory')]
+        self.assertLess(source.index('$reviewedRecovery ='), source.index('$private ='))
+        self.assertLess(source.index('$reviewedRecovery ='), source.index('Get-Content -LiteralPath $passwordFile'))
+        self.assertLess(source.index('$reviewedRecovery ='), source.index('Save-RevivalProjectSettings -ProjectPath'))
+        self.fixture = self.root / 'guard.ps1'
+        self.fixture.write_text(source[:source.index('$ErrorActionPreference')] + '''
+$ErrorActionPreference = 'Stop'
+$ErrorView = 'NormalView'
+$project = $PSScriptRoot
+''' + guard + '''
+# These sentinels stand in for credential access and source mutation after the guard.
+[IO.File]::WriteAllText((Join-Path $project 'credential-read'), 'synthetic')
+[IO.File]::WriteAllText((Join-Path $project 'source'), 'changed')
+''', encoding='utf-8')
+        self.original = b'synthetic original source'
+        (self.root / 'source').write_bytes(self.original)
+        self.write_helper(0)
+
+    def write_helper(self, status):
+        (self.root / 'iap_owned_recovery.py').write_text('''import json, sys
+from pathlib import Path
+root = Path(__file__).parent
+assert not (root / 'credential-read').exists()
+assert (root / 'source').read_bytes() == b'synthetic original source'
+(root / 'preflight.json').write_text(json.dumps(sys.argv[1:]))
+raise SystemExit(''' + str(status) + ')\n', encoding='utf-8')
+
+    def invoke(self, *arguments, reviewed=True):
+        command = [shutil.which('pwsh'), '-NoProfile', '-NonInteractive', '-File', str(self.fixture)]
+        if reviewed:
+            command += ['-ProtectionManifest', str(self.root / 'manifest.json'),
+                        '-ProtectionManifestSha256', 'a' * 64]
+        return subprocess.run(command + list(arguments), capture_output=True, text=True, encoding='utf-8', timeout=30)
+
+    def assert_preserved(self, result, message):
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(message, result.stderr)
+        self.assertFalse((self.root / 'credential-read').exists())
+        self.assertEqual((self.root / 'source').read_bytes(), self.original)
+
+    def test_missing_relative_nonexistent_and_directory_python_fail_before_preflight(self):
+        cases = [(), ('-RecoveryPython', ''), ('-RecoveryPython', '   '),
+                 ('-RecoveryPython', 'python.exe'), ('-RecoveryPython', 'C:python.exe'),
+                 ('-RecoveryPython', str(self.root / 'missing.exe')),
+                 ('-RecoveryPython', str(self.root))]
+        for arguments in cases:
+            with self.subTest(arguments=arguments):
+                result = self.invoke(*arguments)
+                self.assert_preserved(result, 'requires -RecoveryPython with an absolute path')
+                self.assertFalse((self.root / 'preflight.json').exists())
+
+    def test_explicit_python_runs_preflight_before_following_operations(self):
+        result = self.invoke('-RecoveryPython', sys.executable)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads((self.root / 'preflight.json').read_text()),
+                         ['preflight', '--project', str(self.root), '--manifest',
+                          str(self.root / 'manifest.json'), '--manifest-sha256', 'a' * 64])
+        self.assertTrue((self.root / 'credential-read').exists())
+        self.assertEqual((self.root / 'source').read_text(), 'changed')
+
+    def test_nonzero_preflight_preserves_source_and_never_reaches_credentials(self):
+        self.write_helper(7)
+        result = self.invoke('-RecoveryPython', sys.executable)
+        self.assert_preserved(result, 'IAP protected source preflight failed')
+        self.assertTrue((self.root / 'preflight.json').exists())
+
+    def test_normal_mode_needs_no_python_and_never_runs_recovery_helper(self):
+        result = self.invoke(reviewed=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((self.root / 'preflight.json').exists())
+        self.assertTrue((self.root / 'credential-read').exists())
+
+    def test_prepare_only_and_invalid_manifest_still_fail_before_python(self):
+        for arguments in [('-PrepareOnly',), ('-ProtectionManifestSha256', 'invalid')]:
+            # Use a single manifest/hash option each time, as real parameter binding requires.
+            if arguments[0] == '-ProtectionManifestSha256':
+                result = self.invoke('-ProtectionManifest', str(self.root / 'manifest.json'),
+                                     *arguments, reviewed=False)
+            else:
+                result = self.invoke(*arguments)
+            self.assert_preserved(result, 'requires an exact private manifest and hash')
+            self.assertFalse((self.root / 'preflight.json').exists())
 
 
 if __name__ == "__main__": unittest.main()

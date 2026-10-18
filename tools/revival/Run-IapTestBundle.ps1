@@ -8,7 +8,7 @@ param(
     [string]$TestVersionCode,
     [string]$ProtectionManifest,
     [string]$ProtectionManifestSha256,
-    [string]$RecoveryPython = 'C:/Python314/python.exe'
+    [string]$RecoveryPython = ''
 )
 $ErrorActionPreference = 'Stop'
 $project = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -27,8 +27,12 @@ Assert-IapTestVersionCode -Specified $versionCodeSpecified -Value $TestVersionCo
 $reviewedRecovery = $PSBoundParameters.ContainsKey('ProtectionManifest') -or $PSBoundParameters.ContainsKey('ProtectionManifestSha256')
 if ($reviewedRecovery) {
     if ($PrepareOnly -or ![IO.Path]::IsPathFullyQualified($ProtectionManifest) -or
-        $ProtectionManifestSha256 -notmatch '\A[a-fA-F0-9]{64}\z' -or
-        ![IO.Path]::IsPathFullyQualified($RecoveryPython)) { throw 'Reviewed recovery requires an exact private manifest and hash for a bundle build.' }
+        $ProtectionManifestSha256 -notmatch '\A[a-fA-F0-9]{64}\z') { throw 'Reviewed recovery requires an exact private manifest and hash for a bundle build.' }
+    if ([string]::IsNullOrWhiteSpace($RecoveryPython) -or
+        ![IO.Path]::IsPathFullyQualified($RecoveryPython) -or
+        !(Test-Path -LiteralPath $RecoveryPython -PathType Leaf)) {
+        throw 'Reviewed recovery requires -RecoveryPython with an absolute path to an existing Python executable.'
+    }
     # Validate originals before reading signing material or decrypting a password.
     & $RecoveryPython "$PSScriptRoot/iap_owned_recovery.py" preflight --project $project --manifest $ProtectionManifest --manifest-sha256 $ProtectionManifestSha256
     if ($LASTEXITCODE -ne 0) { throw 'IAP protected source preflight failed; signing/build was not started.' }
