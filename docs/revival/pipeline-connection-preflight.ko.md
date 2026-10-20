@@ -19,6 +19,7 @@ Python은 현재 PC의 실제 절대 경로를 선택합니다. 사용자·다�
   있는 `tools/.local/unity-cli/<고정 버전>/unity.exe`만 toolchain의 경로·버전·SHA-256을
   잠금 파일 읽기로 대조한 뒤 `pinned-cli`로 구분합니다. 이름·ProductVersion·명령줄
   문구만으로 제외하지 않으며, pin 변조·불명 실행 파일·명령줄 누락은 계속 거부합니다.
+  root 별칭과 내부 junction을 구분하고, 고정 CLI 경로의 내부 reparse도 거부합니다.
   CLI를 descriptor의 Editor로 선택할 수 없고, 그 PID가 대상 포트까지 점유하면
   여전히 listener 충돌로 거부합니다.
 - 프로세스 목록을 listener 관측 전후로 읽어 PID·시작 시각·프로젝트의 변화와 PID 재사용을 검사합니다. 대상 프로젝트 Editor가 하나이고 그 PID만 descriptor의 포트를 듣는 경우에만 소유권 일관성을 표시합니다.
@@ -45,7 +46,10 @@ Python은 현재 PC의 실제 절대 경로를 선택합니다. 사용자·다�
 
 당일 `process_project_argument_invalid`를 일으킨 프로세스는 프로젝트의 고정 CLI였고
 ProductVersion은 `1.0.0`이었습니다. 다른 Editor를 종료하거나 인자 누락을 전반적으로
-허용하지 않고 위 해시 확인만 추가했습니다. 관련 합성 22개가 통과했습니다.
+허용하지 않고 위 해시 확인만 추가했습니다. 초기22개 통과 후 독립 정적 검토에서
+내부 junction으로 고정 경로의 범위가 넓어지는 P2를 발견했습니다. 실제 시험용
+junction으로 재현한 뒤 원래 고정 경로의 잠금·비교를 보완했고, 최종24개가
+통과했습니다. 원본 프로젝트의 호환 경로는 삭제하거나 변경하지 않았습니다.
 실제 고정 CLI 프로세스를 구분한 뒤, 후보 `5d30afb2554acbac578656717b637b0e242dbb19`를
 새 batch Editor로 열었을 때 오프라인 점검은 단일 소유 PID와 7849 포트의 일치를
 확인했습니다. 이 점검 자체의 `controlConnectionVerified`는 여전히 false입니다.
