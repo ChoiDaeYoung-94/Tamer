@@ -49,4 +49,7 @@ ProductVersion은 `1.0.0`이었습니다. 다른 Editor를 종료하거나 인�
 실제 고정 CLI 프로세스를 구분한 뒤, 후보 `5d30afb2554acbac578656717b637b0e242dbb19`를
 새 batch Editor로 열었을 때 오프라인 점검은 단일 소유 PID와 7849 포트의 일치를
 확인했습니다. 이 점검 자체의 `controlConnectionVerified`는 여전히 false입니다.
-실제 CLI 제어 결과는 별도로 기록하며 앱·계정·Store 검증을 대신하지 않습니다.
+이어진 실제 CLI `editor_status`는 정확한 Tamer 경로의 ready / Play stopped를
+반환했습니다. 해당 Editor만 정상 종료한 뒤 자동 변경3개를 복구했고 보호
+원본51개와 포트 설정2개가 일치했습니다. 실제 제어 확인은 오프라인 점검과
+별도 결과이며 앱·계정·Store 검증을 대신하지 않습니다.
