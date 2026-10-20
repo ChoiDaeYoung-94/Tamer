@@ -195,7 +195,7 @@ def inspect_apk(apk, expected_abis=('arm64-v8a',), strict_relro=False):
         relroChecksPassed=False, relroErrors=[], strictRelro=strict_relro,
         relroLayoutChecksPassed=False, relroLayoutErrors=[],
         relroCheckScope='Legacy raw end-modulo diagnostic; --strict-relro retains this additional constraint',
-        relroLayoutCheckScope='Bounded single RELRO within one LOAD; aligned end or whole LOAD; rounded protection must not overlap any LOAD bytes outside RELRO',
+        relroLayoutCheckScope='Bounded single RELRO within one LOAD; aligned end or whole LOAD; no LOAD bytes outside RELRO may be newly protected and no other LOAD may intersect the protected range',
         runtime16KBVerified=False,
         limitations=[
             'loadZipChecksPassed covers LOAD alignment, ZIP native packaging, ABI and inspected structure only.',
