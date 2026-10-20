@@ -149,7 +149,9 @@ def pinned_cli_executable(executable, root):
     command-line flags and a basename alone are not sufficient identity.
     """
     candidate = local_absolute(executable).resolve()
-    base = (root / 'tools/.local/unity-cli').resolve()
+    # Root is canonical already. Keep internal path components intact so a
+    # junction cannot turn the expected version path into a different pin.
+    base = root / 'tools/.local/unity-cli'
     if not candidate.is_relative_to(base) or not candidate.is_relative_to(root):
         return False
     config_path = root / 'tools/revival/toolchain.json'
@@ -157,19 +159,22 @@ def pinned_cli_executable(executable, root):
         reject('pinned_cli_metadata_invalid')
     with locked_directories([config_path.parent]), LockedFile(config_path, deletable=False) as handle:
         raw = handle.stream.read(16385)
-    if len(raw) > 16384:
-        reject('pinned_cli_metadata_invalid')
-    config = json.loads(raw)
-    if not isinstance(config, dict):
-        reject('pinned_cli_metadata_invalid')
-    version, expected = config.get('unityCli'), config.get('unityCliWindowsX64Sha256')
-    if (not isinstance(version, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}', version)
-            or not isinstance(expected, str) or not re.fullmatch(r'[a-fA-F0-9]{64}', expected)):
-        reject('pinned_cli_metadata_invalid')
-    if candidate != (base / version / 'unity.exe').resolve(strict=True):
-        return False
-    with locked_directories([candidate.parent]), LockedFile(candidate, deletable=False) as handle:
-        actual = hashlib.file_digest(handle.stream, 'sha256').hexdigest()
+        if len(raw) > 16384:
+            reject('pinned_cli_metadata_invalid')
+        config = json.loads(raw)
+        if not isinstance(config, dict):
+            reject('pinned_cli_metadata_invalid')
+        version, expected = config.get('unityCli'), config.get('unityCliWindowsX64Sha256')
+        if (not isinstance(version, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}', version)
+                or not isinstance(expected, str) or not re.fullmatch(r'[a-fA-F0-9]{64}', expected)):
+            reject('pinned_cli_metadata_invalid')
+        fixed = base / version / 'unity.exe'
+        if candidate != fixed:
+            return False
+        # Inspect the original fixed path, not a resolved alias. Keep pin
+        # metadata locked while checking the executable through its own handle.
+        with locked_directories([fixed.parent]), LockedFile(fixed, deletable=False) as image:
+            actual = hashlib.file_digest(image.stream, 'sha256').hexdigest()
     if actual != expected.lower():
         reject('pinned_cli_digest_mismatch')
     return True

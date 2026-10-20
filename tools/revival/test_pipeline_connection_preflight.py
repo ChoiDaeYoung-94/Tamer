@@ -90,6 +90,34 @@ class PipelineOwnershipTests(unittest.TestCase):
         self.assertFalse(result['safeToAttemptConnection'])
         self.assertEqual('pinned_cli_metadata_invalid', result['reason'])
 
+    def create_owned_junction(self, link, target):
+        self.assertTrue(link.parent.resolve().is_relative_to(self.root))
+        self.assertTrue(target.resolve().is_relative_to(self.root))
+        env = dict(os.environ, TAMER_TEST_CLI_LINK=str(link), TAMER_TEST_CLI_TARGET=str(target))
+        shell = Path(os.environ['SystemRoot']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
+        result = subprocess.run([str(shell), '-NoLogo', '-NoProfile', '-NonInteractive', '-Command',
+            'New-Item -ItemType Junction -Path $env:TAMER_TEST_CLI_LINK -Target $env:TAMER_TEST_CLI_TARGET -ErrorAction Stop | Out-Null'],
+            env=env, capture_output=True, timeout=15)
+        self.assertEqual(0, result.returncode, 'Owned synthetic junction creation failed')
+        # Remove only this test-owned junction before TemporaryDirectory cleanup.
+        self.addCleanup(link.rmdir)
+
+    def test_internal_version_junction_does_not_expand_the_cli_pin(self):
+        image, _ = self.add_pinned_cli()
+        original = image.parent
+        target = original.parent / 'other-copy'
+        original.rename(target)
+        self.create_owned_junction(original, target)
+        self.assertFalse(self.inspect()['safeToAttemptConnection'])
+
+    def test_internal_cli_base_junction_does_not_expand_the_cli_pin(self):
+        image, _ = self.add_pinned_cli()
+        original = image.parent.parent
+        target = original.parent / 'other-cli-base'
+        original.rename(target)
+        self.create_owned_junction(original, target)
+        self.assertFalse(self.inspect()['safeToAttemptConnection'])
+
     def test_verified_cli_cannot_be_the_descriptor_editor(self):
         self.add_pinned_cli()
         descriptor = dict(self.descriptor, pid=4321)
