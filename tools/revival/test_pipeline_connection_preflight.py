@@ -41,6 +41,74 @@ class PipelineOwnershipTests(unittest.TestCase):
         self.snapshot = dict(before=[deepcopy(self.process)], after=[deepcopy(self.process)],
                              listeners=[dict(pid=1234, port=7800, address='0.0.0.0')])
 
+    def add_pinned_cli(self):
+        image = self.root / 'tools/.local/unity-cli/1.0.0-beta.8/unity.exe'
+        image.parent.mkdir(parents=True)
+        image.write_bytes(b'Synthetic CLI identity only; never executable code')
+        metadata = self.root / 'tools/revival/toolchain.json'
+        metadata.parent.mkdir(parents=True)
+        metadata.write_text(json.dumps(dict(unityCli='1.0.0-beta.8',
+            unityCliWindowsX64Sha256=hashlib.sha256(image.read_bytes()).hexdigest())), encoding='utf-8')
+        row = dict(pid=4321, name='unity.exe', executable=str(image),
+                   commandLine=subprocess.list2cmdline([str(image), 'projects', 'open', str(self.root)]),
+                   createdAt='2026-10-20T07:58:00Z', version='1.0.0')
+        self.snapshot['before'].append(deepcopy(row))
+        self.snapshot['after'].append(deepcopy(row))
+        return image, metadata
+
+    def test_hash_verified_owned_cli_is_not_counted_as_an_editor(self):
+        self.add_pinned_cli()
+        result = self.inspect()
+        self.assertTrue(result['safeToAttemptConnection'], result)
+        self.assertEqual([1234], result['matchingEditorPids'])
+
+    def test_cli_name_or_product_version_never_bypasses_unknown_executable(self):
+        self.add_pinned_cli()
+        for row in self.snapshot['before'] + self.snapshot['after']:
+            if row['pid'] == 4321:
+                row['executable'] = str(self.root / 'untrusted/unity.exe')
+        self.assertEqual('process_project_argument_invalid', self.inspect()['reason'])
+
+    def test_changed_cli_image_fails_closed(self):
+        image, _ = self.add_pinned_cli()
+        image.write_bytes(b'Changed image after the declared pin')
+        result = self.inspect()
+        self.assertFalse(result['safeToAttemptConnection'])
+        self.assertEqual('pinned_cli_digest_mismatch', result['reason'])
+
+    def test_invalid_cli_pin_metadata_fails_closed(self):
+        _, metadata = self.add_pinned_cli()
+        for data in ({}, [], dict(unityCli='../escape', unityCliWindowsX64Sha256='0'*64)):
+            with self.subTest(data=data):
+                metadata.write_text(json.dumps(data), encoding='utf-8')
+                self.assertFalse(self.inspect()['safeToAttemptConnection'])
+
+    def test_oversized_cli_pin_metadata_fails_closed(self):
+        _, metadata = self.add_pinned_cli()
+        metadata.write_bytes(b' ' * 16385)
+        result = self.inspect()
+        self.assertFalse(result['safeToAttemptConnection'])
+        self.assertEqual('pinned_cli_metadata_invalid', result['reason'])
+
+    def test_verified_cli_cannot_be_the_descriptor_editor(self):
+        self.add_pinned_cli()
+        descriptor = dict(self.descriptor, pid=4321)
+        result = self.inspect(descriptor=descriptor)
+        self.assertFalse(result['safeToAttemptConnection'])
+        self.assertEqual('descriptor_pid_project_mismatch_or_worker', result['reason'])
+
+    def test_verified_cli_still_counts_as_a_conflicting_listener(self):
+        self.add_pinned_cli()
+        self.snapshot['listeners'].append(dict(pid=4321, port=7800, address='127.0.0.1'))
+        self.assertEqual('descriptor_port_owner_conflict', self.inspect()['reason'])
+
+    def test_verified_cli_still_requires_readable_command_line(self):
+        self.add_pinned_cli()
+        for row in self.snapshot['before'] + self.snapshot['after']:
+            if row['pid'] == 4321:
+                row['commandLine'] = None
+        self.assertEqual('process_command_line_unavailable', self.inspect()['reason'])
+
     def inspect(self, descriptor=None, snapshot=None, raw=None):
         payload = raw if raw is not None else json.dumps(
             self.descriptor if descriptor is None else descriptor).encode('utf-8')

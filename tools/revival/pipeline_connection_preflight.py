@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import ctypes
 from ctypes import wintypes
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -141,6 +142,39 @@ def windows_argv(command_line):
         kernel.LocalFree(ctypes.cast(argv, wintypes.HLOCAL))
 
 
+def pinned_cli_executable(executable, root):
+    """Exclude only this checkout's exact, hash-verified pinned Unity CLI.
+
+    Windows reports both the CLI and Editor as Unity.exe. Product names,
+    command-line flags and a basename alone are not sufficient identity.
+    """
+    candidate = local_absolute(executable).resolve()
+    base = (root / 'tools/.local/unity-cli').resolve()
+    if not candidate.is_relative_to(base) or not candidate.is_relative_to(root):
+        return False
+    config_path = root / 'tools/revival/toolchain.json'
+    if not config_path.resolve(strict=True).is_relative_to(root):
+        reject('pinned_cli_metadata_invalid')
+    with locked_directories([config_path.parent]), LockedFile(config_path, deletable=False) as handle:
+        raw = handle.stream.read(16385)
+    if len(raw) > 16384:
+        reject('pinned_cli_metadata_invalid')
+    config = json.loads(raw)
+    if not isinstance(config, dict):
+        reject('pinned_cli_metadata_invalid')
+    version, expected = config.get('unityCli'), config.get('unityCliWindowsX64Sha256')
+    if (not isinstance(version, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}', version)
+            or not isinstance(expected, str) or not re.fullmatch(r'[a-fA-F0-9]{64}', expected)):
+        reject('pinned_cli_metadata_invalid')
+    if candidate != (base / version / 'unity.exe').resolve(strict=True):
+        return False
+    with locked_directories([candidate.parent]), LockedFile(candidate, deletable=False) as handle:
+        actual = hashlib.file_digest(handle.stream, 'sha256').hexdigest()
+    if actual != expected.lower():
+        reject('pinned_cli_digest_mismatch')
+    return True
+
+
 def process_identity(row, root, expected_product_version):
     if not isinstance(row, dict) or not positive_int(row.get('pid')):
         reject('process_metadata_invalid')
@@ -149,6 +183,8 @@ def process_identity(row, root, expected_product_version):
             Path(row['executable']).name.casefold() != 'unity.exe'):
         reject('process_executable_unavailable')
     args = windows_argv(row.get('commandLine'))
+    if pinned_cli_executable(row['executable'], root):
+        return (row['pid'], 'pinned-cli', utc_time(row.get('createdAt')))
     lower = [arg.casefold() for arg in args]
     worker = any(arg in ('-assetimportworker', '-isassetimportworker') for arg in lower)
     worker = worker or any(arg == '-name' and i + 1 < len(lower) and
