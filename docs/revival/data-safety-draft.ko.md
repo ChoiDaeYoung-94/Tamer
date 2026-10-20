@@ -2,6 +2,26 @@
 
 2026-09-30~10-01 당시 초안·공식 근거 대조 이력을 보존하고, 2026-10-18 후보 대조를 아래에 분리했다. 이 문서는 Console 입력 준비용이며 이 문서 작업으로 저장·제출·게시하지 않았다. 개인정보처리방침 본문 후보는 [출시 수정안](privacy-policy-release-draft.ko.md)에 있다. 당시 미완료 상태나 Console 관측을 현재 구현·운영 상태로 재사용하지 않는다.
 
+## 2026-10-20 자동 시작 설정 변경 후 대조 — 미제출
+
+[PR #389](https://github.com/ChoiDaeYoung-94/Tamer/pull/389)가 포함된 시험 AAB30의
+source `db9a67ba7d8df708c014ba6dfa86edc1945d459d`는 Analytics
+`initializeOnStartup=0`, Purchasing enabled=1, Analytics enabled=1입니다.
+저장·새 Editor 재시작 후 `deviceStatsEnabledInBuild=true`를 확인한
+[자동 시작 검증](legacy-analytics-startup.ko.md)과 구분해 읽습니다.
+아래 10/18의 startup=1은 당시 소스 이력으로 보존합니다.
+
+이 변경은 legacy Analytics의 자동 시작을 지연하며 전체 SDK 데이터 처리를
+OFF로 만들지 않습니다. IAP의 기본 처리·Insights 경로와 consent intent,
+PGS/PlayFab 로그인은 각각 별도 경계입니다. 연령 구간 질문은 Main/Game 진입
+후 광고 처리를 위한 로컬 선택이며 로그인·상점 IAP 연결의 사전 동의 gate가
+아닙니다. [Unity IAP 개인정보 범위](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)와
+[Google Play 신고 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)를 함께 대조합니다.
+
+최종 Android Player의 실제 시작·전송과 제공 버전별 신고 범위는 미검증입니다.
+이 설정만으로 수집 YES 후보를 NO로 변경하거나 과거 운영 제공판의 수집이
+중단됐다고 답하지 않습니다. 이번 대조로 Console 저장·제출·게시를 하지 않았습니다.
+
 ## 2026-09-30~10-01 기준과 신고 관측 이력
 
 - 당시 구현 검토 기준: `85892a9ec299a36b011c6d8045b2342e91ba93cb`. 당시 문서 브랜치 기준 main: `e62f86a5fff68db975cc99681deedaf45005cb61`. 그 두 커밋 사이 변경은 RELRO 검사·문서이며 제품 데이터 경로와 SDK 선언은 같았다.

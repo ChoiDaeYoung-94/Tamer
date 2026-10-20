@@ -2,6 +2,25 @@
 
 2026-09-30~10-01 당시 초안·공식 근거 대조 이력을 보존하고, 2026-10-18 후보 대조를 아래에 분리했다. 아래 본문은 검토용 후보이며 **공개 전 확인란이 남아 있으므로 그대로 게시하지 않는다.** 당시 작업은 README 정책·시행일을 변경하지 않았으나, 이후 README 공개 본문은 보완되어 있으므로 당시의 미교체 서술을 현재 상태로 사용하지 않는다. 이전 #220·#222 미완료 문구도 당시 초안 이력이다.
 
+## 2026-10-20 자동 시작 설정 변경 후 대조 — 미게시
+
+[PR #389](https://github.com/ChoiDaeYoung-94/Tamer/pull/389)가 포함된 시험 AAB30의
+source `db9a67ba7d8df708c014ba6dfa86edc1945d459d`는 Analytics
+`initializeOnStartup=0`, Purchasing enabled=1, Analytics enabled=1을 유지합니다.
+저장·새 Editor 재시작 후 deviceStatsEnabledInBuild=true가 관측됐습니다.
+아래 10/18의 startup=1 표기는 당시 소스 이력이며 현재 값으로 재사용하지 않습니다.
+
+자동 시작 지연은 IAP·로그인·광고 SDK 전체의 데이터 처리 OFF를 뜻하지 않습니다.
+연령 구간 질문은 Main/Game 진입 후 광고 처리를 위한 로컬 선택으로, 로그인이나
+상점 IAP 연결 이전의 전체 SDK 동의 gate가 아닙니다. IAP consent intent도
+기본 처리·Insights·엔진 Analytics 전체를 중단했다는 증거로 사용하지 않습니다.
+[자동 시작 검증](legacy-analytics-startup.ko.md)과
+[IAP 공식 개인정보 범위](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)를 구분해 대조합니다.
+
+최종 Android Player의 실제 전송, 제공 버전별 처리와 신고는 미검증입니다.
+이번 변경은 내부 검토 설명만 보완하며 아래 공개 본문 후보·README 정책 URL·
+시행일과 기존 문의/삭제 운영 결정을 바꾸거나 Console·정책을 게시하지 않습니다.
+
 ## 2026-09-30~10-01 기준과 게시 위치 이력
 
 당시 구현 근거는 main `85892a9ec299a36b011c6d8045b2342e91ba93cb`, 문서 브랜치 기반은 `e62f86a5fff68db975cc99681deedaf45005cb61`이었다. 그 두 커밋 사이 제품 데이터 경로 변경은 없었다. 운영 제공 24 / 1.0.3은 **2026-09-30 Console 관측 이력**이며 현재 후보 소스와 구분한다. 최신 운영 제공 버전은 새 관측으로 확정해야 한다. 이전 문서의 별도 내부 시험 v27·미배포 진단 v28 기록도 현재 시험·운영판 상태를 대신하지 않는다. 후보의 기능을 기존 모든 설치에 제공 중이라고 쓰지 않는다. 항목별 신고 후보와 SDK 한계는 [Data Safety 변경안](data-safety-draft.ko.md)에 있다.
