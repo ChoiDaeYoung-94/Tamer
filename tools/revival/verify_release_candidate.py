@@ -46,7 +46,9 @@ def inspect_bundle_libraries(aab):
             if result['machine'] != 183 or result['bits'] != 64 or result['byteOrder'] != 'little':
                 raise ValueError('Native ELF does not match little-endian ARM64')
             libraries.append(dict(path=name,loadPassed=result['passed'],relroPassed=result['relroChecksPassed'],
-                                  relroPresent=result['relroPresent'],relroErrors=result['relroErrors']))
+                                  relroPresent=result['relroPresent'],relroErrors=result['relroErrors'],
+                                  relroLayoutPassed=result['relroLayoutChecksPassed'],
+                                  relroLayoutErrors=result['relroLayoutErrors']))
     if not libraries: raise ValueError('No ARM64 native libraries')
     return libraries
 
@@ -111,9 +113,9 @@ def candidate_checks(aab, version_code, published_max, certificate, bundletool, 
     metadata = validate_manifest(manifest,version_code,published_max)
     signature=json.loads(run([java,ROOT/'tools/revival/VerifyAabSignature.java',aab,'--release-cert-sha256',certificate]))
     libraries=inspect_bundle_libraries(aab)
-    return dict(schema=1,mode='aab',artifactSha256=digest(aab),manifest=metadata,signature=signature,
-                libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroPassed'] for x in libraries),
-                artifactCheckScope='AAB bundle validation, base manifest, payload signature and all bundled ARM64 ELF LOAD/RELRO only',
+    return dict(schema=2,mode='aab',artifactSha256=digest(aab),manifest=metadata,signature=signature,
+                libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries),
+                artifactCheckScope='AAB bundle validation, base manifest, payload signature, ARM64 ELF LOAD and conservative RELRO layout; raw end-modulo remains diagnostic',
                 deliveredApkZipAlignmentVerified=False, arm64NativeRuntimeVerified=False,
                 productionBinary16KBVerified=False,
                 releaseReady=False,unverified=UNVERIFIED,
