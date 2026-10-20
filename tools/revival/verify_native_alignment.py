@@ -5,7 +5,8 @@ Compressed libraries require extraction; their ZIP data offset is not a mmap
 alignment requirement. Manifest extraction settings and AAB splits are not checked.
 --strict-relro additionally requires 16 KB end alignment for every present RELRO
 segment per the Android guide. Absence is reported, not an alignment failure.
-A failed end-modulo check alone does not prove a runtime crash.
+A failed end-modulo check alone does not prove a runtime crash. Schema 4 also
+reports a separate conservative RELRO layout check, including whole-LOAD cases.
 
 References:
 https://developer.android.com/guide/practices/page-sizes
@@ -82,6 +83,8 @@ def inspect_elf(data):
             errors.append('p_offset and p_vaddr are not congruent modulo 16384')
         if filesz > memsz:
             errors.append('p_filesz exceeds p_memsz')
+        if vaddr + memsz > 1 << result['bits']:
+            errors.append('PT_LOAD virtual range exceeds ELF address width')
         if offset > len(data) or filesz > len(data) - offset:
             errors.append('PT_LOAD file range extends beyond ELF data')
         result['loadSegments'].append(dict(index=index, offset=offset,
@@ -106,7 +109,63 @@ def inspect_elf(data):
                                          .format(relro['index']))
     result['relroPresent'] = bool(result['relroSegments'])
     result['relroChecksPassed'] = not result['relroErrors']
+    inspect_relro_layout(result)
     return result
+
+
+def inspect_relro_layout(result):
+    """Keep raw modulo evidence; accept only bounded, unambiguous safe layouts.
+
+    Android's whole-LOAD exception requires rounded protection not to cover
+    writable data outside RELRO. Check every LOAD conservatively, without
+    assuming a missing permission bit means the bytes are safe to protect.
+    This may reject some read-only overlaps; it is not a full loader model.
+    """
+    limit = 1 << result['bits']
+    loads, relros = result['loadSegments'], result['relroSegments']
+    invalid_load = any(not (0 <= s['virtualAddress'] <=
+        s['virtualAddress'] + s['memorySize'] <= limit) for s in loads)
+    result['relroLayoutErrors'] = []
+    for relro in relros:
+        start, end = relro['virtualAddress'], relro['endAddress']
+        low, high = start // PAGE_SIZE * PAGE_SIZE, (end + PAGE_SIZE - 1) // PAGE_SIZE * PAGE_SIZE
+        errors, overlaps = [], []
+        owners = [s for s in loads if s['virtualAddress'] <= start < end <=
+                  s['virtualAddress'] + s['memorySize']]
+        protected_loads = [s['index'] for s in loads if
+                           max(s['virtualAddress'], low) <
+                           min(s['virtualAddress'] + s['memorySize'], high)]
+        if not (0 <= start < end <= limit) or invalid_load:
+            errors.append('Invalid or overflowing RELRO/LOAD virtual address range')
+        if len(owners) != 1:
+            errors.append('RELRO must be contained in exactly one LOAD segment')
+        elif protected_loads != [owners[0]['index']]:
+            # Another LOAD may be nested wholly inside RELRO. It does not
+            # affect `owners` or the expansion intervals, but remains an
+            # ambiguous mapping that this conservative check cannot accept.
+            errors.append('RELRO protection intersects a different LOAD segment')
+        if len(relros) != 1:
+            errors.append('Multiple RELRO segments are unsupported by this layout check')
+        whole = len(owners) == 1 and (
+            owners[0]['virtualAddress'] == start and owners[0]['memorySize'] == relro['memorySize'])
+        if not relro['endAligned16KB'] and not whole:
+            errors.append('Unaligned RELRO end requires the whole-LOAD exception')
+        for segment in loads:
+            a, b = segment['virtualAddress'], segment['virtualAddress'] + segment['memorySize']
+            for side, left, right in (('before', low, start), ('after', end, high)):
+                if max(a, left) < min(b, right):
+                    overlaps.append(dict(loadIndex=segment['index'], side=side,
+                        startAddress=max(a, left), endAddress=min(b, right)))
+        if overlaps:
+            errors.append('Rounded RELRO protection overlaps LOAD bytes outside RELRO')
+        relro.update(protectionStart16KB=low, protectionEnd16KB=high,
+                     containingLoadIndexes=[s['index'] for s in owners],
+                     protectedLoadIndexes=protected_loads,
+                     protectionExpansionOverlaps=overlaps, layoutErrors=errors,
+                     layoutCompatible16KB=not errors,
+                     wholeLoadExceptionApplied=not errors and not relro['endAligned16KB'])
+        result['relroLayoutErrors'].extend('PT_GNU_RELRO {}: {}'.format(relro['index'], e) for e in errors)
+    result['relroLayoutChecksPassed'] = not result['relroLayoutErrors']
 
 
 def zip_data_offset(stream, info, apk_size):
@@ -130,11 +189,13 @@ def inspect_apk(apk, expected_abis=('arm64-v8a',), strict_relro=False):
     """Collect failures instead of accepting empty or partially inspected APKs."""
     apk = Path(apk).resolve()
     apk_label = apk.relative_to(ROOT).as_posix() if apk.is_relative_to(ROOT) else str(apk)
-    report = dict(schemaVersion=3, apk=apk_label, bytes=None, sha256=None,
+    report = dict(schemaVersion=4, apk=apk_label, bytes=None, sha256=None,
         pageSize=PAGE_SIZE, expectedAbis=sorted(set(expected_abis)), abis=[],
         arm64Only=False, libraries=[], errors=[], loadZipChecksPassed=False,
         relroChecksPassed=False, relroErrors=[], strictRelro=strict_relro,
-        relroCheckScope='For each present RELRO: (virtualAddress + memorySize) modulo 16384; absence is diagnostic',
+        relroLayoutChecksPassed=False, relroLayoutErrors=[],
+        relroCheckScope='Legacy raw end-modulo diagnostic; --strict-relro retains this additional constraint',
+        relroLayoutCheckScope='Bounded single RELRO within one LOAD; aligned end or whole LOAD; no LOAD bytes outside RELRO may be newly protected and no other LOAD may intersect the protected range',
         runtime16KBVerified=False,
         limitations=[
             'loadZipChecksPassed covers LOAD alignment, ZIP native packaging, ABI and inspected structure only.',
@@ -142,6 +203,7 @@ def inspect_apk(apk, expected_abis=('arm64-v8a',), strict_relro=False):
             'relroChecksPassed checks the Android guide end-modulo condition for present GNU_RELRO segments; absence passes alignment but does not evidence RELRO security protection.',
             'A nonzero RELRO end remainder alone does not prove a runtime blocker: Bionic treats whole-LOAD RELRO differently from a prefix with a writable tail.',
             'RELRO layout fields are evidence, not a complete linker simulation; no device execution or store approval is established.',
+            'relroLayoutChecksPassed applies the official whole-LOAD exception conservatively: even overlaps with read-only LOAD bytes are rejected.',
             'AAB configuration, generated split APKs and native libraries outside lib/ are not checked.',
             'APK signing, non-native ZIP entry alignment and runtime page-size assumptions are not checked.'
         ],
@@ -164,7 +226,8 @@ def inspect_apk(apk, expected_abis=('arm64-v8a',), strict_relro=False):
                         zipLocalHeaderOffset=info.header_offset, zipDataOffset=None,
                         zipAlignmentRequired=info.compress_type == zipfile.ZIP_STORED,
                         zipAligned16KB=None, elf=None, errors=[], loadZipChecksPassed=False,
-                        relroChecksPassed=False, relroErrors=[])
+                        relroChecksPassed=False, relroErrors=[],
+                        relroLayoutChecksPassed=False, relroLayoutErrors=[])
                     report['libraries'].append(entry)
                     parts = info.filename.split('/')
                     if (len(parts) != 3 or any(part in ('', '.', '..') for part in parts)
@@ -199,26 +262,34 @@ def inspect_apk(apk, expected_abis=('arm64-v8a',), strict_relro=False):
                     entry['loadZipChecksPassed'] = not entry['errors']
                     if entry['elf'] is None:
                         entry['relroErrors'].append('ELF was not inspected; RELRO cannot be verified')
+                        entry['relroLayoutErrors'].append('ELF was not inspected; RELRO layout cannot be verified')
                     else:
                         entry['relroErrors'] = entry['elf']['relroErrors']
                         entry['relroChecksPassed'] = entry['elf']['relroChecksPassed']
+                        entry['relroLayoutErrors'] = entry['elf']['relroLayoutErrors']
+                        entry['relroLayoutChecksPassed'] = entry['elf']['relroLayoutChecksPassed']
                     report['errors'].extend('{}: {}'.format(info.filename, error)
                                             for error in entry['errors'])
                     report['relroErrors'].extend('{}: {}'.format(info.filename, error)
                                                  for error in entry['relroErrors'])
+                    report['relroLayoutErrors'].extend('{}: {}'.format(info.filename, error)
+                                                       for error in entry['relroLayoutErrors'])
     except (OSError, ValueError, zipfile.BadZipFile) as error:
         report['errors'].append(str(error))
         report['relroErrors'].append('APK inspection did not complete; RELRO cannot be verified')
+        report['relroLayoutErrors'].append('APK inspection did not complete; RELRO layout cannot be verified')
     report['abis'] = sorted({entry['abi'] for entry in report['libraries'] if entry['abi']})
     report['arm64Only'] = report['abis'] == ['arm64-v8a']
     if not report['libraries']:
         report['errors'].append('No native libraries found in lib/; native check cannot pass')
         report['relroErrors'].append('No native libraries inspected; RELRO cannot be verified')
+        report['relroLayoutErrors'].append('No native libraries inspected; RELRO layout cannot be verified')
     if report['abis'] != report['expectedAbis']:
         report['errors'].append('APK ABIs do not match expected ABIs')
     report['nativeLibraryCount'] = len(report['libraries'])
     report['loadZipChecksPassed'] = not report['errors']
     report['relroChecksPassed'] = not report['relroErrors']
+    report['relroLayoutChecksPassed'] = not report['relroLayoutErrors']
     report['compressedNativeLibraryCount'] = sum(entry['compressed'] for entry in report['libraries'])
     relros = [segment for entry in report['libraries'] if entry['elf'] is not None
               for segment in entry['elf']['relroSegments']]

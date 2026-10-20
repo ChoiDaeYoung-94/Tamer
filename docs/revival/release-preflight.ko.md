@@ -2,6 +2,15 @@
 
 **현재 상태와 다음 순서는 [최신 복구 현황](current-recovery-status.ko.md)을 확인해 주세요.** 아래 날짜별 기록은 당시 소스·산출물·관측 범위의 이력이며 최신 코드 병합·기기 검증 상태를 대체하지 않습니다.
 
+## 2026-10-20 RELRO 배치 판정 보정
+
+[공식 whole-LOAD 예외를 반영한 별도 검사](relro-layout-20261020.ko.md)를 추가했습니다.
+원시 끝 modulo와 `--strict-relro`의 추가 제약은 그대로 보존하며, AAB schema2의
+정적 artifact gate는 LOAD와 `relroLayoutPassed`를 사용합니다. 실제6개 ELF의
+배치 통과와 원시 나머지3개, 과거 strict 실패를 함께 기록합니다.
+이 변경은 실제 ARM64 16KB·전달 APK/split·Store·정책 검증이나 출시 허가가 아닙니다.
+아래9월30일의 존재 RELRO 끝정렬 필수 설명은 당시 계약으로 보존합니다.
+
 ## 2026-10-08 UI 7차 중단·후보 코드 관측
 
 승인된 가입 UI 7차는 Registry.ToArray/IndexedSet.CopyTo 예외로 membership 확인·Camera.Render 전에 중단됐다. 실제 캡처·PNG·가독성 결과는 없고 8차는 STOP이다. Count+indexer helper 후보는 읽기 검토만 통과했으며 컴파일·실행은 미검증이다. 사후 원본/임시 파일·전체 내용/경로·Git clean·Editor 종료 검토는 완료하되 ProjectSettings NTFS 식별자 차이를 구분한다. 범위는 [후속 실행 기록](recovery-execution-backlog.ko.md)을 따른다.

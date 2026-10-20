@@ -115,7 +115,9 @@ class ReleaseCandidateTests(unittest.TestCase):
 
     def test_candidate_accepts_absent_relro_but_keeps_present_end_and_load_blockers(self):
         cases = [([dict(memsz=4096)], True, False),
-                 ([dict(memsz=4096), dict(kind=0x6474E552, memsz=4096)], False, True),
+                 ([dict(memsz=4096), dict(kind=0x6474E552, memsz=4096)], True, True),
+                 ([dict(memsz=32768), dict(kind=0x6474E552, memsz=4096)], False, True),
+                 ([dict(memsz=32768), dict(kind=0x6474E552, memsz=16384)], True, True),
                  ([dict(memsz=4096, align=4096)], False, False)]
         with tempfile.TemporaryDirectory() as folder:
             artifact=Path(folder)/'synthetic.aab'
@@ -134,9 +136,28 @@ class ReleaseCandidateTests(unittest.TestCase):
                     self.assertFalse(result['arm64NativeRuntimeVerified'])
                     self.assertFalse(result['productionBinary16KBVerified'])
                     self.assertIn('AAB',result['artifactCheckScope'])
-                    if present:
+                    if present and segments[-1]['memsz'] == 4096:
                         self.assertFalse(result['libraries'][0]['relroPassed'])
                         self.assertTrue(result['libraries'][0]['relroErrors'])
+                    self.assertEqual(passed if present else True,
+                                     result['libraries'][0]['relroLayoutPassed'])
+
+    def test_candidate_rejects_nested_load_inside_whole_relro(self):
+        with tempfile.TemporaryDirectory() as folder:
+            artifact = Path(folder) / 'synthetic.aab'
+            with zipfile.ZipFile(artifact, 'w') as archive:
+                archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture([
+                    dict(memsz=4096), dict(offset=512, vaddr=512, memsz=512),
+                    dict(kind=0x6474E552, memsz=4096)]))
+            with patch('verify_release_candidate.digest', return_value=SHA256), \
+                    patch('verify_release_candidate.subprocess.check_output',
+                          side_effect=['', self.manifest, '{}']):
+                result = candidate_checks(artifact, 27, 26, '0'*64,
+                                          Path('mock.jar'), Path('mock.java'))
+            self.assertTrue(result['libraries'][0]['loadPassed'])
+            self.assertFalse(result['libraries'][0]['relroLayoutPassed'])
+            self.assertFalse(result['artifactChecksPassed'])
+            self.assertFalse(result['releaseReady'])
 
 
 if __name__=='__main__': unittest.main()

@@ -36,14 +36,16 @@ class IapBundleManifestTests(unittest.TestCase):
         with self.assertRaises(ValueError): validate_manifest(xml)
 
 class IapBundleNativeExitTests(unittest.TestCase):
-    def check_bundle(self, alignment):
+    def check_bundle(self, alignment, *, dangerous_relro=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'Build/revival').mkdir(parents=True)
             (root / 'Logs/revival').mkdir(parents=True)
             with zipfile.ZipFile(root / 'Build/revival/Tamer-iap-test.aab', 'w') as archive:
-                archive.writestr('base/lib/arm64-v8a/libsynthetic.so',
-                                 elf_fixture([dict(align=alignment)]))
+                segments = [dict(align=alignment, memsz=32768)]
+                if dangerous_relro:
+                    segments.append(dict(kind=0x6474E552, memsz=4096))
+                archive.writestr('base/lib/arm64-v8a/libsynthetic.so', elf_fixture(segments))
             # Stub external signature/manifest tools only; inspect real synthetic ELF bytes.
             with patch.object(bundle, 'ROOT', root), \
                     patch.object(bundle, 'digest', return_value=bundle.SHA256), \
@@ -62,10 +64,11 @@ class IapBundleNativeExitTests(unittest.TestCase):
         self.assertTrue(native[0]['elf']['errors'])
 
     def test_load_success_keeps_relro_failure_separate(self):
-        status, report, _ = self.check_bundle(16384)
+        status, report, _ = self.check_bundle(16384, dangerous_relro=True)
         self.assertEqual(status, 0)
         self.assertTrue(report['elfLoadChecksPassed'])
         self.assertFalse(report['elfRelroChecksPassed'])
+        self.assertFalse(report['elfRelroLayoutChecksPassed'])
 
 
 class IapRecoveryInputTests(unittest.TestCase):

@@ -1,5 +1,11 @@
 # Android 네이티브 16KB 정렬 검증
 
+**2026-10-20 최신:** [RELRO 배치 판정 보정](relro-layout-20261020.ko.md)은
+원시 끝 modulo와 과거 strict 계약을 보존하고, 공식 whole-LOAD 예외를 별도
+`relroLayoutChecksPassed`로 검사합니다(native schema 4). 시험 AAB30은 원시 끝
+나머지3개가 남지만 보수적 배치6개가 통과했습니다. 실제16KB 실행·전달 split은
+미검증입니다. 아래 날짜별 schema2/3 기록은 당시 도구·산출물의 이력입니다.
+
 2026-09-30 도구 보정: RELRO 부재는 공식 안내에 따라 정렬 실패에서 제외하고
 `relroPresent`/`relroAbsentLibraryCount` 진단으로 표시한다. 존재하는 RELRO의 끝 modulo 검사와
 strict 실패는 유지한다. 아래 역사 기록의 존재 필수 설명은 당시 schema 2 동작이며,
