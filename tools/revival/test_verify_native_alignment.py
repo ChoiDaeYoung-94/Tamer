@@ -231,6 +231,8 @@ class NativeAlignmentTests(unittest.TestCase):
         self.assertFalse(report['relroChecksPassed'])
         self.assertTrue(relro['matchesWholeLoadSegment'])
         self.assertEqual(4096, relro['endRemainder16KB'])
+        self.assertTrue(report['relroLayoutChecksPassed'])
+        self.assertTrue(relro['wholeLoadExceptionApplied'])
         self.assertFalse(report['runtime16KBVerified'])
         self.assertNotIn('staticChecksPassed', report)
 
@@ -242,12 +244,14 @@ class NativeAlignmentTests(unittest.TestCase):
                 report = self.make_apk([('lib/arm64-v8a/libsynthetic.so', data)])
                 self.assertTrue(report['loadZipChecksPassed'])
                 self.assertEqual(expected, report['relroChecksPassed'])
+                self.assertEqual(expected, report['relroLayoutChecksPassed'])
                 self.assertFalse(report['libraries'][0]['elf']['relroSegments'][0]['matchesWholeLoadSegment'])
 
     def test_missing_relro_passes_alignment_without_evidencing_protection(self):
         report = self.make_apk()
         self.assertTrue(report['loadZipChecksPassed'])
         self.assertTrue(report['relroChecksPassed'])
+        self.assertTrue(report['relroLayoutChecksPassed'])
         self.assertEqual(0, report['relroSegmentCount'])
         self.assertEqual(1, report['relroAbsentLibraryCount'])
         self.assertFalse(report['libraries'][0]['elf']['relroPresent'])
@@ -255,6 +259,61 @@ class NativeAlignmentTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(0, verify.main(['--apk', str(self.apk), '--output',
                                            str(self.base / 'relro.json'), '--strict-relro']))
+
+    def test_whole_load_exception_needs_safe_rounded_start_and_end(self):
+        relro = dict(kind=verify.PT_GNU_RELRO, vaddr=16384 + 1024, memsz=4096)
+        owner = dict(vaddr=16384 + 1024, memsz=4096)
+        cases = [([], True),
+                 ([dict(vaddr=32768, memsz=512)], True),
+                 ([dict(vaddr=24576, memsz=512)], False),
+                 ([dict(vaddr=16384, memsz=512)], False)]
+        for others, expected in cases:
+            with self.subTest(others=others):
+                # Offset/vaddr congruence is checked separately below: these
+                # fixtures isolate the RELRO layout, not overall LOAD validity.
+                result = verify.inspect_elf(elf_fixture([owner, *others, relro]))
+                self.assertFalse(result['relroChecksPassed'])
+                self.assertEqual(expected, result['relroLayoutChecksPassed'])
+                self.assertEqual(expected, result['relroSegments'][0]['wholeLoadExceptionApplied'])
+
+    def test_aligned_end_does_not_hide_uncontained_or_rounded_head_overlap(self):
+        for segments in ([dict(memsz=512), dict(kind=verify.PT_GNU_RELRO, memsz=16384)],
+                         [dict(memsz=32768), dict(kind=verify.PT_GNU_RELRO, vaddr=4096, memsz=12288)]):
+            with self.subTest(segments=segments):
+                result = verify.inspect_elf(elf_fixture(segments))
+                self.assertTrue(result['relroChecksPassed'])
+                self.assertFalse(result['relroLayoutChecksPassed'])
+
+    def test_malformed_or_ambiguous_relro_layouts_fail_closed(self):
+        for bits in (32, 64):
+            for segments in (
+                    [dict(memsz=4096), dict(kind=verify.PT_GNU_RELRO, memsz=0)],
+                    [dict(vaddr=(1 << bits) - 512, memsz=1024),
+                     dict(kind=verify.PT_GNU_RELRO, vaddr=(1 << bits) - 512, memsz=1024)],
+                    [dict(memsz=4096), dict(memsz=4096), dict(kind=verify.PT_GNU_RELRO, memsz=4096)],
+                    [dict(memsz=32768), dict(kind=verify.PT_GNU_RELRO, memsz=16384),
+                     dict(kind=verify.PT_GNU_RELRO, vaddr=16384, memsz=16384)]):
+                with self.subTest(bits=bits, segments=segments):
+                    result = verify.inspect_elf(elf_fixture(segments, bits=bits))
+                    self.assertFalse(result['relroLayoutChecksPassed'])
+                    self.assertTrue(result['relroLayoutErrors'])
+
+    def test_safe_layout_does_not_hide_failed_load_or_zip(self):
+        segments = [dict(memsz=4096, align=4096), dict(kind=verify.PT_GNU_RELRO, memsz=4096)]
+        report = self.make_apk([('lib/arm64-v8a/libsynthetic.so', elf_fixture(segments))])
+        self.assertTrue(report['relroLayoutChecksPassed'])
+        self.assertFalse(report['loadZipChecksPassed'])
+        segments[0]['align'] = 16384
+        report = self.make_apk([('lib/arm64-v8a/libsynthetic.so', elf_fixture(segments))], aligned=False)
+        self.assertTrue(report['relroLayoutChecksPassed'])
+        self.assertFalse(report['loadZipChecksPassed'])
+
+    def test_layout_does_not_pass_empty_or_uninspected_native_input(self):
+        for entries in ([], [('lib/arm64-v8a/libsynthetic.so', b'not ELF')]):
+            with self.subTest(entries=entries):
+                report = self.make_apk(entries)
+                self.assertFalse(report['relroLayoutChecksPassed'])
+                self.assertTrue(report['relroLayoutErrors'])
 
     def test_strict_cli_fails_relro_but_default_exit_remains_load_zip_only(self):
         data = elf_fixture([dict(memsz=4096), dict(kind=verify.PT_GNU_RELRO, memsz=4096)])

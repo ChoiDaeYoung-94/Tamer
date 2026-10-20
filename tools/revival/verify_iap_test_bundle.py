@@ -95,6 +95,7 @@ def main(argv=None):
                   adServicesPermissionsRemain=any("ACCESS_ADSERVICES" in p for p in permissions), uploaded=False,
                   nativeElfCount=len(native), elfLoadChecksPassed=all(not p["elf"]["errors"] for p in native),
                   elfRelroChecksPassed=all(p["elf"]["relroChecksPassed"] for p in native),
+                  elfRelroLayoutChecksPassed=all(p["elf"]["relroLayoutChecksPassed"] for p in native),
                   deliveredApkZipAlignmentVerified=False)
     (ROOT / "Logs/revival/iap-bundle-native.json").write_text(json.dumps(native,indent=2)+"\n",encoding="utf-8")
     (ROOT / "Logs/revival/iap-bundle-verification.json").write_text(json.dumps(result,indent=2)+"\n",encoding="utf-8")
