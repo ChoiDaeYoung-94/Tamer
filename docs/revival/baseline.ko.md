@@ -86,7 +86,7 @@ Unity/EDM이 별도로 재직렬화하는 설정·캐시 파일이 있을 수 �
 - 복원: 공개 SDK와 비공개 에셋 원본 **4,537개**의 해시 확인. 서비스 설정 2개는 제외하고 중립 템플릿을 제공한다.
 - 복원 스크립트: 3개 테스트 통과 — 재실행/원본·GUID 보존, 충돌 시 전체 복사 전 중단, 경로 이탈 거부.
 - Unity EditMode: 3개 테스트 통과 — 기준 설정/marker, 검증 씬 저장·재열기, 원래 게임 씬 5개의 누락 스크립트 검사.
-- Pipeline: 프로젝트/Editor 식별, autotick, Console 오류 읽기, 씬 목록·hierarchy, C# 호출, 재컴파일 완료, 비동기 테스트 완료 확인.
+- Pipeline: 프로젝트/Editor 식별, autotick, Console 오류 읽기, 씬 목록·hierarchy, C# 호출, 재컴파일 완료, 비동기 테스트 완료 확인. 여러 Editor가 열려 있거나 실행 소유권을 회수할 때는 [오프라인 연결 사전 점검](pipeline-connection-preflight.ko.md)으로 descriptor·실제 PID·포트 소유권·고정 버전을 먼저 대조할 수 있습니다. 사전 점검 통과는 실제 연결 성공이나 중단된 시험의 재개 승인이 아닙니다.
 - 캡처: Edit Mode camera 방식 1280×720 PNG 생성·육안 확인. CLI의 `save_path Logs/...`가 실제로는 `Assets/Logs/...`로 해석되어 그 경로에서 읽은 후 로컬 Logs에도 보관했다.
 - 참조 검사: 자체 YAML 132개 검사. 구형 URP XR 참조 1개를 null로 정리한 뒤 미해결 외부 GUID 0개. 로컬 fileID/시각적 외관/모든 구매 에셋의 사용하지 않는 데모 씬까지 보장하는 검사는 아니다.
 - 첫 Android 개발 APK: BuildReport `Succeeded`, errors 0. APK 자체의 min24/target36/ARM64/1.0.5/code26/debug 서명을 aapt2/apksigner로 확인했다.
