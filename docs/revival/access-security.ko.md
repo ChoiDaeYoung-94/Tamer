@@ -1,5 +1,26 @@
 # 저장소 접근 권한과 병합 운영
 
+## 2026-10-20 현재 접근 범위와 보호 규칙
+
+10월20일 **16:57~17:00 KST**, main `c7dda7828f87cc4e043a5089a8cc4db6c16e4f1d`를 기준으로 인증된 REST GET을 다시 확인했습니다. 아래는 해당 시점의 읽기 관측이며 설정 변경이나 실제 외부 계정의 push 시험 결과가 아닙니다.
+
+| 확인 범위 | 현재 관측과 의미 |
+| --- | --- |
+| 공개 참여 | public 열람·clone·fork와 이슈·외부 PR 제안은 유지합니다. 공개 참여 자체가 원본의 push·merge·릴리스·관리 권한을 부여하지 않습니다. |
+| 협업자·초대·배포 키 | 전체 협업자는 소유자1명, 외부 협업자0명, 대기 초대0개, deploy key0개입니다. 목록의 다음 페이지가 없음을 확인했습니다. |
+| main 실제 규칙 | `branches/main`은 protected=true이며 활성 ruleset의 effective rules는 PR 필수·삭제 금지·non-fast-forward 금지입니다. bypass actor는 없습니다. classic protection API의404만으로 ruleset까지 없다고 판정하지 않습니다. |
+| 1인 개발·병합 방식 | 필수 타인 승인0명, 리뷰 대화 해결 필요입니다. merge/squash/rebase가 모두 허용되어 있으므로 **Squash merge는 현재 프로젝트 작업 규칙으로 준수**하며 플랫폼이 squash만 강제하는 상태는 아닙니다. required status check도 설정되어 있지 않습니다. |
+| CI/CD 보류 | 저장소 Actions disabled, 기본 workflow token read, Actions의 PR 승인 불가, 외부 기여자 workflow 승인 필요입니다. self-hosted runner0개와 조회한 대기·진행 run0건을 확인했습니다. workflow 자체의 active 표시를 저장소 실행 허용으로 해석하지 않습니다. |
+| Codex Connector | 사용자가 제공한 설치 설정 화면에서 **All repositories**와 코드·이슈·PR·workflow 읽기/쓰기를 확인했습니다. 현재 및 향후 소유 저장소에 대한 이 앱의 허용 범위이며, 일반 방문자나 다른 앱의 권한이 아닙니다. 재인증 대기는 해소됐고 접근 범위는 변경하지 않았습니다. |
+| 나머지 계정 자격증명 | 다른 설치 앱·OAuth·PAT 전체 목록, 필요성·저장소 범위·유효 여부는 이번 API 인증으로 확인하지 못했습니다. 현재 사용한 자격증명의 응답을 모든 앱·토큰의 최소 권한 증명으로 확대하지 않습니다. |
+| 보안 탐지 | secret scanning·push protection·Dependabot security updates는 disabled입니다. 기능 비활성은 비밀 유출·취약점0건이라는 검사 결과가 아닙니다. code scanning의 분석 없음은10월18일 별도 관측이며 이번에 재검사하지 않았습니다. |
+
+목록은 `per_page=100`과 응답의 다음 페이지 링크를 대조했습니다. 비밀 값·키 본문·계정별 자격증명 목록·원시 로그는 공개하지 않습니다. 저장소 설정과 앱·토큰의 생성·회수·범위 변경, Actions 실행·runner 등록·배포는 하지 않았습니다. 소유자는 보호 규칙의 설정 자체를 바꿀 수 있으므로 이 보호를 계정 탈취나 모든 기존 연동에 대한 완전한 차단으로 표현하지 않습니다.
+
+**남은 범위:** [#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)는 다른 설치 앱·OAuth·PAT와 기존 서명 후속의 미확인 범위를 유지해 닫지 않습니다. 별도 필요가 확인되기 전에는 새 권한을 요구하거나 기존 연동을 해지하지 않습니다. squash 전용 강제와 보안 탐지 기능 활성화는 이번 점검에서 적용한 변경이 아닙니다. 기존 App Center 구성과 CI/CD 보류를 유지합니다.
+
+API 해석 근거: [협업자 조회](https://docs.github.com/en/rest/collaborators/collaborators), [ruleset과 effective rules](https://docs.github.com/en/rest/repos/rules), [Actions 권한](https://docs.github.com/en/rest/actions/permissions), [앱 user-token 조회 범위](https://docs.github.com/en/rest/apps/installations#list-app-installations-accessible-to-the-user-access-token).
+
 ## 2026-10-16 읽기 전용 재점검
 
 main `63fae4f5c549805775c38a3ec3bb6d71954c886a` 기준으로 인증된 관리자 REST API에서 현재 설정을 다시 읽었습니다. 소스 검증 전 통합 후보는 별도 Draft PR #369이며, 이 점검은 코드 실행이나 보호 설정 변경이 아닙니다.
