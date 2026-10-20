@@ -308,6 +308,31 @@ class NativeAlignmentTests(unittest.TestCase):
         self.assertTrue(report['relroLayoutChecksPassed'])
         self.assertFalse(report['loadZipChecksPassed'])
 
+    def test_nested_load_inside_relro_is_not_a_safe_whole_load_exception(self):
+        for size in (4096, 16384):
+            with self.subTest(size=size):
+                result = verify.inspect_elf(elf_fixture([
+                    dict(memsz=size),
+                    dict(offset=512, vaddr=512, memsz=512),
+                    dict(kind=verify.PT_GNU_RELRO, memsz=size)]))
+                self.assertTrue(result['passed'])
+                self.assertEqual(size == 16384, result['relroChecksPassed'])
+                self.assertFalse(result['relroLayoutChecksPassed'])
+                self.assertFalse(result['relroSegments'][0]['wholeLoadExceptionApplied'])
+
+    def test_official_whole_load_example_has_valid_load_and_layout(self):
+        # Zero padding only. Both actual LOAD file ranges are valid, and their
+        # offset/vaddr pairs are congruent at 16KB despite the unaligned end.
+        data = elf_fixture([
+            dict(filesz=0x680, memsz=0x680),
+            dict(offset=0x680, vaddr=0x4680, filesz=0x1d8, memsz=0x980),
+            dict(kind=verify.PT_GNU_RELRO, offset=0x680, vaddr=0x4680,
+                 filesz=0x1d8, memsz=0x980)]).ljust(4096, b'\0')
+        result = verify.inspect_elf(data)
+        self.assertTrue(result['passed'], result['errors'])
+        self.assertFalse(result['relroChecksPassed'])
+        self.assertTrue(result['relroLayoutChecksPassed'], result['relroLayoutErrors'])
+
     def test_layout_does_not_pass_empty_or_uninspected_native_input(self):
         for entries in ([], [('lib/arm64-v8a/libsynthetic.so', b'not ELF')]):
             with self.subTest(entries=entries):

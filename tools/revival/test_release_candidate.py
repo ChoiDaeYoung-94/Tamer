@@ -142,5 +142,22 @@ class ReleaseCandidateTests(unittest.TestCase):
                     self.assertEqual(passed if present else True,
                                      result['libraries'][0]['relroLayoutPassed'])
 
+    def test_candidate_rejects_nested_load_inside_whole_relro(self):
+        with tempfile.TemporaryDirectory() as folder:
+            artifact = Path(folder) / 'synthetic.aab'
+            with zipfile.ZipFile(artifact, 'w') as archive:
+                archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture([
+                    dict(memsz=4096), dict(offset=512, vaddr=512, memsz=512),
+                    dict(kind=0x6474E552, memsz=4096)]))
+            with patch('verify_release_candidate.digest', return_value=SHA256), \
+                    patch('verify_release_candidate.subprocess.check_output',
+                          side_effect=['', self.manifest, '{}']):
+                result = candidate_checks(artifact, 27, 26, '0'*64,
+                                          Path('mock.jar'), Path('mock.java'))
+            self.assertTrue(result['libraries'][0]['loadPassed'])
+            self.assertFalse(result['libraries'][0]['relroLayoutPassed'])
+            self.assertFalse(result['artifactChecksPassed'])
+            self.assertFalse(result['releaseReady'])
+
 
 if __name__=='__main__': unittest.main()

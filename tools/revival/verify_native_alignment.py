@@ -132,10 +132,18 @@ def inspect_relro_layout(result):
         errors, overlaps = [], []
         owners = [s for s in loads if s['virtualAddress'] <= start < end <=
                   s['virtualAddress'] + s['memorySize']]
+        protected_loads = [s['index'] for s in loads if
+                           max(s['virtualAddress'], low) <
+                           min(s['virtualAddress'] + s['memorySize'], high)]
         if not (0 <= start < end <= limit) or invalid_load:
             errors.append('Invalid or overflowing RELRO/LOAD virtual address range')
         if len(owners) != 1:
             errors.append('RELRO must be contained in exactly one LOAD segment')
+        elif protected_loads != [owners[0]['index']]:
+            # Another LOAD may be nested wholly inside RELRO. It does not
+            # affect `owners` or the expansion intervals, but remains an
+            # ambiguous mapping that this conservative check cannot accept.
+            errors.append('RELRO protection intersects a different LOAD segment')
         if len(relros) != 1:
             errors.append('Multiple RELRO segments are unsupported by this layout check')
         whole = len(owners) == 1 and (
@@ -152,6 +160,7 @@ def inspect_relro_layout(result):
             errors.append('Rounded RELRO protection overlaps LOAD bytes outside RELRO')
         relro.update(protectionStart16KB=low, protectionEnd16KB=high,
                      containingLoadIndexes=[s['index'] for s in owners],
+                     protectedLoadIndexes=protected_loads,
                      protectionExpansionOverlaps=overlaps, layoutErrors=errors,
                      layoutCompatible16KB=not errors,
                      wholeLoadExceptionApplied=not errors and not relro['endAligned16KB'])
