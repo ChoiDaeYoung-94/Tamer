@@ -31,6 +31,79 @@ public class RevivalIapAccountRecoveryTests
     private string Prepare(string account, string slot) => (string)Call(Runtime("RevivalIapRecoveryProfile"), null,
         "Prepare", _root, "12B656", account, slot);
 
+    [TestCase("ProductNoAds", true)]
+    [TestCase("Other, ProductNoAds", true)]
+    [TestCase("ProductNoAdsExtra", false)]
+    [TestCase("", false)]
+    public void Revival_Recovery_ReadOnlyNoAdsUsesExactTokenAndPreservesFiles(string entitlement, bool expected)
+    {
+        string path = Prepare("synthetic-A", Guid.NewGuid().ToString("N"));
+        File.WriteAllText(path, "{\"GooglePlay\":\"" + entitlement + "\",\"__TamerAccountOwner\":\"synthetic-A\"}");
+        byte[] original = File.ReadAllBytes(path);
+        string[] files = Directory.GetFiles(_root, "*", SearchOption.AllDirectories);
+        object[] args = { path, "synthetic-A", false };
+        Assert.That(Call(Runtime("DataManager"), null, "TryReadIapNoAdsFile", args), Is.True);
+        Assert.That(args[2], Is.EqualTo(expected));
+        Assert.That(File.ReadAllBytes(path), Is.EqualTo(original));
+        Assert.That(Directory.GetFiles(_root, "*", SearchOption.AllDirectories), Is.EquivalentTo(files));
+    }
+
+    [TestCase("{\"GooglePlay\":\"ProductNoAds\",\"__TamerAccountOwner\":\"synthetic-B\"}")]
+    [TestCase("{\"GooglePlay\":\"ProductNoAds\"}")]
+    [TestCase("not-json")]
+    public void Revival_Recovery_ReadOnlyNoAdsRejectsForeignOwnerOrMalformedFileWithoutRepair(string raw)
+    {
+        string path = Prepare("synthetic-A", Guid.NewGuid().ToString("N"));
+        File.WriteAllText(path, raw);
+        byte[] original = File.ReadAllBytes(path);
+        object[] args = { path, "synthetic-A", true };
+        Assert.That(Call(Runtime("DataManager"), null, "TryReadIapNoAdsFile", args), Is.False);
+        Assert.That(args[2], Is.False);
+        Assert.That(File.ReadAllBytes(path), Is.EqualTo(original));
+        Assert.That(File.Exists(Path.Combine(_root, "recovery-attempt-v1.lock")), Is.False);
+    }
+
+    [Test]
+    public void Revival_Recovery_ReadOnlyNoAdsRejectsMissingOrOversizeWithoutCreatingFiles()
+    {
+        string path = Prepare("synthetic-A", Guid.NewGuid().ToString("N"));
+        object[] args = { path, "synthetic-A", true };
+        Assert.That(Call(Runtime("DataManager"), null, "TryReadIapNoAdsFile", args), Is.False);
+        Assert.That(File.Exists(path), Is.False);
+        File.WriteAllBytes(path, new byte[1024 * 1024 + 1]);
+        args[2] = true;
+        Assert.That(Call(Runtime("DataManager"), null, "TryReadIapNoAdsFile", args), Is.False);
+        Assert.That(args[2], Is.False);
+        Assert.That(new FileInfo(path).Length, Is.EqualTo(1024 * 1024 + 1));
+    }
+
+    [Test]
+    public void Revival_Recovery_ReadOnlyNoAdsReloadsCommittedEntitlementWithoutStoreOrGrant()
+    {
+        string path = Prepare("synthetic-A", Guid.NewGuid().ToString("N"));
+        File.WriteAllText(path, "{\"Gold\":\"0\",\"GooglePlay\":\"ProductNoAds\",\"__TamerAccountOwner\":\"synthetic-A\"}");
+        byte[] original = File.ReadAllBytes(path);
+        var dataType = Runtime("DataManager");
+        var go = new GameObject("Synthetic read-only No Ads restart");
+        object server = null;
+        try
+        {
+            var data = go.AddComponent(dataType);
+            server = Activator.CreateInstance(Runtime("ServerManager"), new object[] { data });
+            Call(dataType, data, "InitializeIapRecovery", path, server, _root);
+            Call(dataType, data, "BeginAccountSession", "synthetic-A");
+            dataType.GetProperty("IsServerDataReady").SetValue(data, true); // Synthetic ready gate; no SDK request.
+            Assert.That(Call(dataType, data, "ReadIapNoAdsObservation"),
+                Is.EqualTo("No Ads local: memory=present; disk=present; owner=matched"));
+            Call(dataType, data, "SuspendAccountSession");
+            Assert.That(Call(dataType, data, "ReadIapNoAdsObservation"),
+                Is.EqualTo("No Ads local: unavailable (authenticate first)"));
+            Assert.That(File.ReadAllBytes(path), Is.EqualTo(original));
+            Assert.That(Directory.GetFiles(_root, "recovery-attempt-v1.lock", SearchOption.AllDirectories), Is.Empty);
+        }
+        finally { (server as IDisposable)?.Dispose(); UnityEngine.Object.DestroyImmediate(go); }
+    }
+
     [Test]
     public void Revival_Recovery_PreparePreservesOriginalBytesAndRejectsReuseOrForeignOwner()
     {

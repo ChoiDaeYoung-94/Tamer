@@ -32,6 +32,8 @@ namespace AD
         private static readonly RevivalIapRecoveryGate Gate = new RevivalIapRecoveryGate();
         public static ReceiptSession Session { get; private set; }
         public static string Status { get; private set; } = "STOP: two prior receipt failures. Recovery authentication required.";
+        public static string NoAdsBeforeReauthentication { get; private set; } = "Saved No Ads before reauthentication: not checked";
+        public static string NoAdsObservation { get; private set; } = "No Ads local: unavailable (authenticate first)";
         public static bool IsStaging => _staging != null;
         public static bool ResumeBuildApproved =>
 #if TAMER_IAP_RECOVERY_RESUME_APPROVED && TAMER_IAP_HARNESS
@@ -140,6 +142,10 @@ namespace AD
                                     ? RevivalIapRecoveryProfile.Selected(Application.persistentDataPath, _configuration.testTitle, captured.AccountId)
                                     : RevivalIapRecoveryProfile.Prepare(Application.persistentDataPath,
                                         _configuration.testTitle, captured.AccountId, Guid.NewGuid().ToString("N"));
+                                // Capture the existing disk value BEFORE CompleteIapRecovery can bind/merge/write.
+                                string beforeBinding = !reopenProfile ? "not checked (new profile)" :
+                                    DataManager.TryReadIapNoAdsFile(path, captured.AccountId, out var savedNoAds)
+                                        ? (savedNoAds ? "present" : "absent") : "unavailable (files preserved)";
                                 if (!Current(stage, owner)) throw new InvalidOperationException();
                                 Managers.Instance.CompleteIapRecovery(path, captured, reopenProfile);
                                 _activeOwner = Managers.DataM;
@@ -150,6 +156,8 @@ namespace AD
                                         Managers.DataM.IsServerDataReady, Managers.DataM.PlayFabId) == null)
                                     throw new InvalidOperationException();
                                 Session = captured; // Publish only after owner, inventory and durable profile are ready.
+                                NoAdsBeforeReauthentication = "Saved No Ads before reauthentication: " + beforeBinding;
+                                RefreshNoAdsObservation();
                                 stage.Cancel(); _staging = null; _stagingOwner = null;
                                 Status = reopenProfile ? "Existing recovery profile reauthenticated. STOP remains locked."
                                     : "Existing account ready in a NEW blank local profile. STOP remains locked.";
@@ -176,6 +184,11 @@ namespace AD
             else if (Session != null && CurrentSession() == null)
                 CancelRecovery("Recovery owner or authentication generation changed; Store remains stopped");
         }
+        public static void RefreshNoAdsObservation()
+        {
+            NoAdsObservation = CurrentSession() == null ? "No Ads local: unavailable (authenticate first)"
+                : Managers.DataM.ReadIapNoAdsObservation();
+        }
         public static void CancelRecovery(string fixedStatus = "Recovery cancelled; originals preserved")
         {
             var ownedData = _activeOwner != null ? _activeOwner : _stagingOwner;
@@ -184,6 +197,8 @@ namespace AD
                 : ReferenceEquals(ownedData, _stagingOwner) && ownedData.AccountGeneration == _stagingOwnerGeneration);
             _staging?.Cancel(); _staging = null; _stagingOwner = null;
             Session = null; _activeOwner = null; _binding = null; Gate.Close();
+            NoAdsObservation = "No Ads local: unavailable (authenticate first)";
+            NoAdsBeforeReauthentication = "Saved No Ads before reauthentication: not checked";
             // An expired callback/old harness must never suspend a replacement manager.
             if (ownsGeneration && ReferenceEquals(Managers.DataM, ownedData)) ownedData.SuspendAccountSession();
             Status = fixedStatus;

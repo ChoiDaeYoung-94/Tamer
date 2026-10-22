@@ -1,4 +1,25 @@
-# 최신 복구 상태와 남은 순서 — 2026-10-20
+# 최신 복구 상태와 남은 순서 — 2026-10-22
+
+**32번의 기존 구매 복원·로컬 저장·재시작 후 유지 관측을 완료했습니다.** 복원 직후 Store Ready / Receipt Verified / before absent / 현재 memory·disk present·owner matched를 확인했고, 사용자 강제 중지·재인증 후14:18 화면에서도 before present / 현재 memory·disk present·owner matched를 확인했습니다. 이때 Store NotInitialized·Receipt NotStarted로 새 Store 실행 없이 저장값을 읽었습니다. 설치 해시나 사용자 강제 중지 동작을 원격 계측한 것으로 표현하지 않습니다. [32번 빌드·기기 관측 근거](iap-v32-build-verification.ko.md). 같은 시험을 반복하지 않고 다음 게임 통합 검증으로 이동합니다. 현재 이 흐름의 추가 폰 조작은 없으며, 부모 후보의 게임8Draft·광고/정책·16KB·출시 게이트는 별도입니다.
+
+**복원 전 이력:** 데이터 삭제 후 기존 프로필 선택으로 준비가 중단된 다음, 사용자가 강제 중지·체크 해제로 새 로컬 프로필을 준비했습니다.11:38 제공 화면은 Existing account ready in a NEW blank local profile / before not checked (new profile) / memory=absent; disk=absent; owner=matched / Store NotInitialized·Receipt NotStarted였습니다. 이 기록은 위32번 복원 전의 상태로 보존합니다. [초기화 후 프로필 준비 근거](iap-noads-retention-observation.ko.md)
+
+## 데이터 삭제 전 확인 결과
+
+**기존 구매 영수증 검증 성공 후,31번 시험 앱의 업데이트·기존 프로필 재인증 화면에서 No Ads 저장값 보존을 확인했습니다.** 재인증 전 디스크는 `present`, 이후는 `memory=present; disk=present; owner=matched`입니다. 추가 강제 종료·재시작 후 유지 확인은 아직 남아 있습니다. [저장 관측 구현·빌드·기기 근거](iap-noads-retention-observation.ko.md)
+
+| 항목 | 실제 확인 | 다음 조건 |
+| --- | --- | --- |
+| 기존 구매 복원 | 사용자 제공30번 시험 앱 화면의 `Store: Ready`, `Receipt check: Verified` | 기존 실패·단일 실행 원장 보존. 다른 계정·기기·모든 구매 사례 완료로 확대하지 않음 |
+| No Ads 저장 | 사용자 제공31번 화면에서 재인증 전 디스크 존재, 이후 메모리/디스크 존재와 소유자 일치 확인 | 앱 강제 중지 후 같은 기존 프로필 재인증으로 유지 확인. 앱 삭제·초기화·Store 복원 반복 없음 |
+| 관측 코드·산출물 | Editor25/25 PASS,31번 AAB 서명·bundletool·manifest·ELF LOAD/보수적 RELRO 배치 PASS. 생성 getter=false로 복원 실행 잠금 | 기기 관측을 포함한 PR395는 미병합 후보에 의존하는 Draft. 추가 재시작 관측 전 완료/병합하지 않음 |
+| 나머지 복구 | 기존 게임8Draft와 광고·개인정보·16KB·출시·최종정리 범위 유지 | 이번 구매 성공으로 다른 기능·운영 앱·최종 스토어 검증을 완료 처리하지 않음 |
+
+31번 업로드·업데이트는 사용자 보고이며 위 상태값은 제공 사진에서 직접 확인했습니다. 사진의 설치 파일 해시까지 독립 확인한 결과는 아닙니다. 전체 진행률·변화pp는 고정 산정표의 세부 완료 점수가 없어 미산정이며 과거75.1%를 현재 실측값으로 사용하지 않습니다.
+
+## 2026-10-20 당시 기록
+
+아래 현재·대기 표현은10월20일 시점의 이력입니다. 오늘 순서와 기기 관측은 위 최신 상태를 따릅니다.
 
 **후속 수정이 포함된 시험30번 AAB를 빌드·검증해 로컬 전달 준비를 마쳤습니다. 아직 업로드·휴대폰 실행·기존 구매 복원은 하지 않았습니다.** Play 내부 제공은 오늘 읽기 기준으로29번이며 `releaseReady=false`를 유지합니다. [30번 빌드·검증·한계](iap-v30-build-verification.ko.md)
 

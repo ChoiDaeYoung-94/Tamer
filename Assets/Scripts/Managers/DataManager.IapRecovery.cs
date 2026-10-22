@@ -18,6 +18,47 @@ namespace AD
 
         internal Dictionary<string, string> IapRecoveryDefaults() => new Dictionary<string, string>(_defaults);
 
+        // Diagnostic reads never bind a session, grant an entitlement or repair a file.
+        internal static bool TryReadIapNoAdsFile(string path, string expectedOwner, out bool present)
+        {
+            present = false;
+            if (string.IsNullOrWhiteSpace(expectedOwner) || string.IsNullOrEmpty(path) || !Path.IsPathRooted(path))
+                return false;
+            try
+            {
+                RevivalIapRecoveryProfile.CheckAncestors(Path.GetDirectoryName(path));
+                if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) return false;
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    if (stream.Length <= 0 || stream.Length > 1024 * 1024) return false;
+                    using (var reader = new StreamReader(stream))
+                    {
+                        var stored = ParseData(reader.ReadToEnd());
+                        if (!stored.TryGetValue(OwnerKey, out var owner) || owner != expectedOwner) return false;
+                        stored.TryGetValue("GooglePlay", out var values);
+                        present = HasIapNoAds(values);
+                        return true;
+                    }
+                }
+            }
+            catch (Exception) { return false; } // Do not display paths, account IDs or raw JSON.
+        }
+
+        private static bool HasIapNoAds(string values) => !string.IsNullOrEmpty(values) &&
+            values.Split(',').Any(value => value.Trim() == "ProductNoAds");
+
+        internal string ReadIapNoAdsObservation()
+        {
+            if (!_initialized || _shutdown || ReceiptOnly || !IsServerDataReady || DeletionInProgress ||
+                _deletionSignedOut || LocalPlayerData == null || string.IsNullOrEmpty(_localOwner) ||
+                _localOwner != PlayFabId) return "No Ads local: unavailable (authenticate first)";
+            if (!TryReadIapNoAdsFile(_playerDataPath, _localOwner, out var saved))
+                return "No Ads local: unavailable (read failed; files preserved)";
+            LocalPlayerData.TryGetValue("GooglePlay", out var current);
+            return "No Ads local: memory=" + (HasIapNoAds(current) ? "present" : "absent") +
+                "; disk=" + (saved ? "present" : "absent") + "; owner=matched";
+        }
+
         internal void InitializeIapRecovery(string path, ServerManager server, string persistentRoot)
         {
             if (_initialized || _shutdown) throw new InvalidOperationException("Fresh recovery manager required.");
