@@ -1,5 +1,7 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-22
 
+**다음 오프라인 게임 후보를 준비했습니다.** PR395는 부모 후보에 Squash f30a9e6으로 반영했고 이슈351은 완료했습니다. 같은 소스에서 별도 gameplay APK를 빌드해 패키지·버전·debug 서명·ARM64/min25/target36 및 인터넷/결제/GMS광고ID/광고 초기화 제공자 부재를 확인했습니다. 실제 기기·게임 화면은 아직 실행하지 않았고 기존8Draft/main 출시 게이트는 유지합니다. 전달 APK는 Play Console IAP 시험 앱에 올리는 파일이 아닙니다. [게임 후보 빌드·해시·보존·다음 범위](gameplay-candidate-20261022.ko.md)
+
 **32번의 기존 구매 복원·로컬 저장·재시작 후 유지 관측을 완료했습니다.** 복원 직후 Store Ready / Receipt Verified / before absent / 현재 memory·disk present·owner matched를 확인했고, 사용자 강제 중지·재인증 후14:18 화면에서도 before present / 현재 memory·disk present·owner matched를 확인했습니다. 이때 Store NotInitialized·Receipt NotStarted로 새 Store 실행 없이 저장값을 읽었습니다. 설치 해시나 사용자 강제 중지 동작을 원격 계측한 것으로 표현하지 않습니다. [32번 빌드·기기 관측 근거](iap-v32-build-verification.ko.md). 같은 시험을 반복하지 않고 다음 게임 통합 검증으로 이동합니다. 현재 이 흐름의 추가 폰 조작은 없으며, 부모 후보의 게임8Draft·광고/정책·16KB·출시 게이트는 별도입니다.
 
 **복원 전 이력:** 데이터 삭제 후 기존 프로필 선택으로 준비가 중단된 다음, 사용자가 강제 중지·체크 해제로 새 로컬 프로필을 준비했습니다.11:38 제공 화면은 Existing account ready in a NEW blank local profile / before not checked (new profile) / memory=absent; disk=absent; owner=matched / Store NotInitialized·Receipt NotStarted였습니다. 이 기록은 위32번 복원 전의 상태로 보존합니다. [초기화 후 프로필 준비 근거](iap-noads-retention-observation.ko.md)
