@@ -33,7 +33,7 @@
 1. **Monster Tamer IAP Test** 내부 테스트에32번을 수동 업로드·제공하고, 현재 앱을 삭제하거나 데이터를 지우지 않고 업데이트합니다.
 2. 기존 두 입력값을 사용하고 이번에는 **Reauthenticate the previously committed recovery profile**을 체크해 Authenticate를 한 번 누릅니다.11:38에 이미 만든 새 로컬 프로필을 다시 여는 단계이므로 다른 빈 프로필을 만들지 않습니다. 최초 No Ads absent는 현재 프로필의 예상 상태입니다.
 3. 같은 기존 시험 계정/기존 구매임을 확인한 뒤 **Coordinator has recorded user approval…** 체크를 켜고 **Run approved recovery ONCE / fetch owned purchases**를 한 번만 누릅니다. 새 결제는 하지 않습니다.
-4. Receipt check와 No Ads local 표시를 Slack에 공유합니다. 필요하면 **Read saved No Ads (no Store call)**로 로컬 표시만 갱신합니다. 실패·원장 이미 사용 안내가 나오면 반복하지 않고 결과를 공유합니다.
+4. Receipt check 결과가 나오면 **Read saved No Ads (no Store call)**를 눌러 로컬 표시를 갱신한 뒤 Receipt check와 No Ads local 표시를 Slack에 공유합니다. 이 표시는 자동 갱신 값이 아니므로 복원 전 absent를 복원 후 결과로 읽지 않습니다. 읽기 버튼은 Store를 다시 호출하지 않습니다. 실패·원장 이미 사용 안내가 나오면 복원 버튼을 반복하지 않고 결과를 공유합니다.
 5. 결과 확인 후 강제 중지·재실행·같은 프로필 재인증으로 재시작 전 디스크와 현재 No Ads가 유지되는지 관측합니다. 이때 복원 버튼은 다시 누르지 않습니다.
 
 31번의 Store 잠금과32번의 명시적 단일 실행 후보를 구분합니다. 실제 기기·저장 유지 외에도 게임8Draft, 광고·정책·16KB·운영 출시·최종 README와 시험 자원 정리는 남아 있으며 이 빌드 성공으로 완료 처리하지 않습니다.
