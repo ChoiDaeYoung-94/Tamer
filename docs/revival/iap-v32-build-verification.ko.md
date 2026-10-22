@@ -1,6 +1,6 @@
 # 시험32번 복원·저장 관측 후보
 
-2026년10월22일 데이터 초기화 후 새 로컬 프로필을 준비한 기존 시험 계정에서, 기존 구매 복원과 로컬 No Ads 재저장 결과를 사용자 제공 화면으로 확인했습니다. **앱 표시가 Store Ready / Receipt Verified이며, 복원 전 디스크 absent에서 복원 후 memory=present; disk=present; owner=matched로 바뀌었습니다.** 추가 강제 중지·재시작 후 저장 유지 검증은 아직 남아 `releaseReady=false`와 PR395 Draft를 유지합니다.
+2026년10월22일 데이터 초기화 후 새 로컬 프로필을 준비한 기존 시험 계정에서, 기존 구매 복원과 로컬 No Ads 재저장 결과를 사용자 제공 화면으로 확인했습니다. **복원 직후 Store Ready / Receipt Verified / memory·disk present·owner matched를 확인했고, 사용자 강제 중지·재인증 뒤에도 before present / memory·disk present·owner matched를 확인했습니다.** 이 계정·기기의 관측 흐름은 완료했지만 부모 통합 후보의 다른 게임·정책·출시 검증은 별도로 남아 `releaseReady=false`를 유지합니다.
 
 ## 사용자 제공 기기 관측
 
@@ -41,7 +41,22 @@ No Ads local: memory=present; disk=present; owner=matched
 - 로컬 전달 폴더: `C:/Users/user/Downloads/deployment/tamer-iap-v32-20261022`.
 - 같은 폴더에 `SHA256SUMS.txt`와 `업로드 안내.ko.txt`를 제공했습니다. 키·암호·계정 ID·CustomID·영수증은 포함하지 않습니다.
 
-## 다음 사용자 조치: 재시작 유지 확인
+## 강제 중지 후 재시작 관측 완료
+
+사용자가 강제 중지 후 기존 프로필을 다시 인증했다고 알린 뒤,14:18:32에 Slack에 올린 결과 화면을 확인했습니다.
+
+```text
+Saved No Ads before reauthentication: present
+No Ads local: memory=present; disk=present; owner=matched
+Store: NotInitialized
+Receipt check: NotStarted
+```
+
+재인증으로 세션을 바인딩·동기화·저장하기 전에도 디스크 값이 present였고, 인증 후 메모리·디스크와 소유자가 일치했습니다. 새 Store 영수증 실행 없이 복원 후 저장값을 다시 읽은 근거입니다. 강제 중지 조작과 설치 버전은 사용자 보고이며 원격 기기 프로세스/설치 해시를 독립 계측한 것으로 표현하지 않습니다. 이전 복원 전 absent·복원 후 present·이번 재실행 전후 present를 서로 다른 관측으로 보존합니다.
+
+별도 읽기 탭을 지정 작업 Chrome 창 안에 배치해 확인한 후 그 탭만 닫았습니다. 다른 프로젝트가 사용 중인 기존 Slack 탭은 조작하지 않았습니다. 같은 계정의 추가 복원·재시작 시험을 반복하지 않습니다. 관련 코드25/25와 기기 관측 근거를 묶어 관측 PR을 부모 통합 후보에 반영할 수 있으며, 이를 main 출시나 전체 게임 검증 완료와 동일시하지 않습니다.
+
+## 재시작 확인 때의 사용자 순서 (완료 이력)
 
 1. 휴대폰 설정의 **앱/애플리케이션 → Monster Tamer IAP Test → 강제 중지**만 누릅니다. 데이터·캐시 삭제나 앱 삭제는 하지 않습니다.
 2. 다시 실행해 기존 두 값을 입력하고 **Reauthenticate the previously committed recovery profile**을 체크한 뒤 Authenticate를 한 번 누릅니다. 새 로컬 프로필을 만들지 않습니다.

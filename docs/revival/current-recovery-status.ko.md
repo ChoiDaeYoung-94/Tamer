@@ -1,6 +1,6 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-22
 
-**32번의 복원과 로컬 No Ads 재저장을 확인했습니다.** 사용자가32번 업로드·업데이트·조작을 완료했다고 알린 뒤 대화에 직접 첨부한 화면은 Store Ready / Receipt Verified / before absent / 현재 memory=present; disk=present; owner=matched입니다. 초기화 후 기본 프로필에 없던 로컬 권한이 복원 후 저장된 근거이며, 설치 파일 해시나 강제 중지 후 재시작까지 확인한 것은 아닙니다. 다음은 **앱 정보에서 강제 중지만 수행 → 재실행 → 기존 프로필 재인증 체크/Authenticate 한 번 → before/current 모두 present 확인**입니다. 데이터·캐시 삭제나 Store 복원 반복은 요청하지 않습니다. [32번 빌드·기기 근거·남은 순서](iap-v32-build-verification.ko.md). 재시작 유지와 다른 실행 게이트가 남아 PR395와 기존8Draft는 유지합니다.
+**32번의 기존 구매 복원·로컬 저장·재시작 후 유지 관측을 완료했습니다.** 복원 직후 Store Ready / Receipt Verified / before absent / 현재 memory·disk present·owner matched를 확인했고, 사용자 강제 중지·재인증 후14:18 화면에서도 before present / 현재 memory·disk present·owner matched를 확인했습니다. 이때 Store NotInitialized·Receipt NotStarted로 새 Store 실행 없이 저장값을 읽었습니다. 설치 해시나 사용자 강제 중지 동작을 원격 계측한 것으로 표현하지 않습니다. [32번 빌드·기기 관측 근거](iap-v32-build-verification.ko.md). 같은 시험을 반복하지 않고 다음 게임 통합 검증으로 이동합니다. 현재 이 흐름의 추가 폰 조작은 없으며, 부모 후보의 게임8Draft·광고/정책·16KB·출시 게이트는 별도입니다.
 
 **복원 전 이력:** 데이터 삭제 후 기존 프로필 선택으로 준비가 중단된 다음, 사용자가 강제 중지·체크 해제로 새 로컬 프로필을 준비했습니다.11:38 제공 화면은 Existing account ready in a NEW blank local profile / before not checked (new profile) / memory=absent; disk=absent; owner=matched / Store NotInitialized·Receipt NotStarted였습니다. 이 기록은 위32번 복원 전의 상태로 보존합니다. [초기화 후 프로필 준비 근거](iap-noads-retention-observation.ko.md)
 
