@@ -52,6 +52,12 @@ No Ads local: memory=present; disk=present; owner=matched
 
 새 로컬 프로필은 스키마 기본값과 격리된 메모리 서버로 시작합니다. 기존 PlayFab No Ads 인벤토리는 준비 허용 조건으로 확인하지만 그 사실만으로 로컬 No Ads를 지급하지는 않습니다. 따라서 이 단계의 `not checked (new profile)` 또는 `memory=absent; disk=absent; owner=matched`는 새 기본 프로필의 관측이며 구매 권한 상실이나 복원 완료를 의미하지 않습니다. 다음 단계는 이 결과를 확인하고 로컬 권한 재반영 경로를 따로 정하는 것입니다. 기존 Store 단일 실행 성공·실패 이력과 실행 잠금은 유지합니다.
 
+### 새 로컬 프로필 준비 결과
+
+2026년10월22일11:38 사용자 제공 화면에서 `Existing account ready in a NEW blank local profile. STOP remains locked.`, `Saved No Ads before reauthentication: not checked (new profile)`, `No Ads local: memory=absent; disk=absent; owner=matched`를 확인했습니다. Store는 NotInitialized, Receipt check는 NotStarted입니다. 기존 서버 계정의 인증과 새 기본 로컬 프로필 준비는 완료됐으며, 로컬 No Ads 재반영과 이후 재시작 보존은 아직 완료되지 않았습니다.
+
+이 결과는 인벤토리 소유 확인을 거쳐 새 프로필이 준비되는 실제 경로와 일치합니다. 새 프로필 준비를 No Ads 재지급이나 Store 복원 성공으로 계산하지 않습니다. 추가 인증·데이터 삭제·Store 버튼 반복 대신 현재 프로필을 보존하고 다음 복원 실행 경로를 준비합니다.31번의 Store 실행 잠금은 계속 유지합니다.
+
 ## 데이터 삭제 전 시험 절차 (과거 안내)
 
 31번 시험 AAB를 준비할 때에는 복원 재개 define을 넣지 않고, 실제 산출물의 getter=false를 확인합니다. 기존 단일 실행 원장과 저장 파일을 유지하며 새 결제·복원 재실행은 하지 않습니다.

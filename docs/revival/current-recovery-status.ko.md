@@ -1,6 +1,6 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-22
 
-**최신 후속:** 사용자가 시험 앱 데이터·캐시를 삭제한 뒤 기존 프로필 재인증을 다시 실행했습니다. 제공 화면은 Profile preparation stopped / No Ads not checked·unavailable / Store NotInitialized·Receipt NotStarted입니다. 기존 프로필 파일을 요구하는 보호 동작과 일치하며, 아래 삭제 전 저장 성공은 과거 근거로 보존합니다. 현재는 강제 중지 후 **Reauthenticate 체크 해제**로 기존 서버 계정의 새 로컬 프로필 준비를 한 번 수행할 차례입니다. 새 프로필은 기본값이므로 No Ads가 absent일 수 있으며 복원 완료로 세지 않습니다. Store 호출·새 결제·추가 데이터 삭제는 하지 않습니다. [진단과 변경된 안내](iap-noads-retention-observation.ko.md)
+**최신 후속:** 데이터 삭제 후 기존 프로필 선택으로 준비가 중단된 다음, 사용자가 강제 중지·체크 해제로 새 로컬 프로필을 준비했습니다.11:38 제공 화면은 Existing account ready in a NEW blank local profile / before not checked (new profile) / memory=absent; disk=absent; owner=matched / Store NotInitialized·Receipt NotStarted입니다. 기존 서버 계정 인증과 새 로컬 프로필 준비는 완료됐지만 로컬 No Ads 재반영은 미완료입니다. 아래 삭제 전 저장 성공은 과거 근거로 보존합니다. 현재 프로필을 보존하고 다음 복원 실행 경로를 준비하며, 인증·Store 버튼 반복·새 결제·추가 데이터 삭제를 요청하지 않습니다. [진단과 변경된 안내](iap-noads-retention-observation.ko.md)
 
 ## 데이터 삭제 전 확인 결과
 
