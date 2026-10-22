@@ -42,7 +42,17 @@ No Ads local: memory=present; disk=present; owner=matched
 
 실제 Store 복원 성공은 이전30번 화면, 이후 저장값 보존은 이번31번 화면으로 구분합니다.31번의 실행 잠금을 유지하며 Store 복원을 다시 호출하거나 기존 원장을 초기화하지 않습니다.
 
-## 다음 시험 절차
+## 데이터 삭제 후 관측과 변경된 안내
+
+첫 저장 관측 후 사용자가 시험 앱 데이터·캐시를 삭제하고 기존 프로필 재인증을 다시 실행했다고 알려주셨습니다. 이어 공유한 화면에서 `Profile preparation stopped; all files preserved; restart requires reauthentication`, `Saved No Ads before reauthentication: not checked`, `No Ads local: unavailable (authenticate first)`, Store NotInitialized / Receipt NotStarted를 확인했습니다. 삭제 전 성공 관측은 유지하지만 이 결과를 강제 중지 후 저장 보존 성공이나 추가 영수증 실패로 계산하지 않습니다.
+
+코드상 기존 프로필 재인증은 로컬 selection·ready·PlayerData 파일이 있어야 하며, 파일이 없는 경우 자동으로 새 프로필을 만들지 않고 중단합니다. 화면의 준비 중단은 이 보호 동작과 일치합니다. 예외 원문이나 실제 기기 파일을 수집한 결과는 아니므로 개별 파일의 부재를 직접 확인한 것으로 표현하지 않습니다.
+
+현재 프로세스는 한 번 준비를 시도하면 재시도를 막습니다. 앱을 **강제 중지**한 후 다시 열고, 이전 계정 입력값을 사용하되 **Reauthenticate 체크를 해제**해 새 로컬 프로필 준비를 한 번 실행하는 것이 다음 단계입니다. PlayFab 로그인은 CreateAccount=false이며 새 서버 계정을 만드는 동작이 아닙니다. 추가 데이터 삭제·원장 삭제·새 결제·Store 복원을 요청하지 않습니다.
+
+새 로컬 프로필은 스키마 기본값과 격리된 메모리 서버로 시작합니다. 기존 PlayFab No Ads 인벤토리는 준비 허용 조건으로 확인하지만 그 사실만으로 로컬 No Ads를 지급하지는 않습니다. 따라서 이 단계의 `not checked (new profile)` 또는 `memory=absent; disk=absent; owner=matched`는 새 기본 프로필의 관측이며 구매 권한 상실이나 복원 완료를 의미하지 않습니다. 다음 단계는 이 결과를 확인하고 로컬 권한 재반영 경로를 따로 정하는 것입니다. 기존 Store 단일 실행 성공·실패 이력과 실행 잠금은 유지합니다.
+
+## 데이터 삭제 전 시험 절차 (과거 안내)
 
 31번 시험 AAB를 준비할 때에는 복원 재개 define을 넣지 않고, 실제 산출물의 getter=false를 확인합니다. 기존 단일 실행 원장과 저장 파일을 유지하며 새 결제·복원 재실행은 하지 않습니다.
 
