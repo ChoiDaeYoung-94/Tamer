@@ -1,8 +1,8 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-22
 
-**현재 전달 후보는32번입니다.** 소스22e8286, Unity6000.3.25f1/min25·target36·ARM64, 기존 시험 서명과 manifest·bundletool·네이티브 LOAD/보수적 RELRO 배치 검사 및 소스53개 복구를 통과했습니다. 복원 재개 getter=true, 사용자 명시 확인과 원장이 필요한 실행 예산1입니다. 실제 Store 실행·업로드·32번 기기 검증은 아직 하지 않았습니다. 다음은 사용자 수동 업로드·현재 앱 업데이트 → 기존 프로필 재인증 체크 → 승인 체크와 기존 구매 복원1회 → 결과 확인 후 강제 중지·재인증으로 저장 유지 확인입니다. [32번 빌드·파일·한계·사용자 순서](iap-v32-build-verification.ko.md). PR395와 기존8Draft는 실제 검증 전 Draft를 유지합니다.
+**32번의 복원과 로컬 No Ads 재저장을 확인했습니다.** 사용자가32번 업로드·업데이트·조작을 완료했다고 알린 뒤 대화에 직접 첨부한 화면은 Store Ready / Receipt Verified / before absent / 현재 memory=present; disk=present; owner=matched입니다. 초기화 후 기본 프로필에 없던 로컬 권한이 복원 후 저장된 근거이며, 설치 파일 해시나 강제 중지 후 재시작까지 확인한 것은 아닙니다. 다음은 **앱 정보에서 강제 중지만 수행 → 재실행 → 기존 프로필 재인증 체크/Authenticate 한 번 → before/current 모두 present 확인**입니다. 데이터·캐시 삭제나 Store 복원 반복은 요청하지 않습니다. [32번 빌드·기기 근거·남은 순서](iap-v32-build-verification.ko.md). 재시작 유지와 다른 실행 게이트가 남아 PR395와 기존8Draft는 유지합니다.
 
-**최신 후속:** 데이터 삭제 후 기존 프로필 선택으로 준비가 중단된 다음, 사용자가 강제 중지·체크 해제로 새 로컬 프로필을 준비했습니다.11:38 제공 화면은 Existing account ready in a NEW blank local profile / before not checked (new profile) / memory=absent; disk=absent; owner=matched / Store NotInitialized·Receipt NotStarted입니다. 기존 서버 계정 인증과 새 로컬 프로필 준비는 완료됐지만 로컬 No Ads 재반영은 미완료입니다. 아래 삭제 전 저장 성공은 과거 근거로 보존합니다. 현재 프로필을 보존하고 다음 복원 실행 경로를 준비하며, 인증·Store 버튼 반복·새 결제·추가 데이터 삭제를 요청하지 않습니다. [진단과 변경된 안내](iap-noads-retention-observation.ko.md)
+**복원 전 이력:** 데이터 삭제 후 기존 프로필 선택으로 준비가 중단된 다음, 사용자가 강제 중지·체크 해제로 새 로컬 프로필을 준비했습니다.11:38 제공 화면은 Existing account ready in a NEW blank local profile / before not checked (new profile) / memory=absent; disk=absent; owner=matched / Store NotInitialized·Receipt NotStarted였습니다. 이 기록은 위32번 복원 전의 상태로 보존합니다. [초기화 후 프로필 준비 근거](iap-noads-retention-observation.ko.md)
 
 ## 데이터 삭제 전 확인 결과
 

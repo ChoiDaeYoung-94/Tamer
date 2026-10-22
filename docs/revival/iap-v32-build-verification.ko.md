@@ -1,6 +1,19 @@
 # 시험32번 복원·저장 관측 후보
 
-2026년10월22일 데이터 초기화 후 새 로컬 프로필을 준비한 기존 시험 계정에서, 기존 구매 복원을 한 번 수행하고 저장 상태를 관측할 후보를 준비했습니다. **빌드·산출물 검사와 소스 복구는 완료했지만 업로드·32번 폰 실행·복원·재시작 검증은 아직 하지 않았습니다.** `releaseReady=false`와 PR395 Draft를 유지합니다.
+2026년10월22일 데이터 초기화 후 새 로컬 프로필을 준비한 기존 시험 계정에서, 기존 구매 복원과 로컬 No Ads 재저장 결과를 사용자 제공 화면으로 확인했습니다. **앱 표시가 Store Ready / Receipt Verified이며, 복원 전 디스크 absent에서 복원 후 memory=present; disk=present; owner=matched로 바뀌었습니다.** 추가 강제 중지·재시작 후 저장 유지 검증은 아직 남아 `releaseReady=false`와 PR395 Draft를 유지합니다.
+
+## 사용자 제공 기기 관측
+
+사용자는32번 업로드·업데이트와 안내한 조작을 마쳤다고 알렸고, 대화에 첨부한 결과 화면에서 아래 값을 직접 확인했습니다.
+
+```text
+Store: Ready
+Receipt check: Verified
+Saved No Ads before reauthentication: absent
+No Ads local: memory=present; disk=present; owner=matched
+```
+
+재인증 전 값은 초기화 후 준비한 기본 프로필에 No Ads가 없었던 시점의 기록입니다. 현재 메모리·디스크 모두 present인 결과는 같은 소유 계정의 복원 후 로컬 권한 재반영 근거이며, before 값이 absent인 것을 복원 실패로 읽지 않습니다. 이 한 화면으로 강제 중지 후 재실행까지 검증했다고 판단하지 않습니다. 설치32번과 수행 순서는 사용자 보고이고, 사진 자체로 설치 파일 해시나 개별 서버 응답 원문을 독립 확인한 것은 아닙니다. 비공개 원본과 판정 기록은 로컬 접근 제한 경로에 보존하며 공개 문서에 계정값·영수증을 첨부하지 않습니다.
 
 ## 소스와 빌드
 
@@ -10,7 +23,7 @@
 - versionCode32 / versionName1.0.5 / 시험 앱 `com.AeDeong.MonsterTamer.iaptest`. 운영 앱이나 서버 설정은 변경하지 않았습니다.
 - 빌드 실행: 2026-10-22 11:46:45~11:49:59 KST, 종료0, 첫 시도 성공.
 - 시험31번과 게임 코드 차이는 없고, 이번 빌드에만 복원 재개 define을 포함했습니다. 생성 IL2CPP의 ResumeBuildApproved getter가 정확히 한 곳에서 true인 것을 검사했습니다.
-- 런타임 복원 예산1, 사용자 명시 체크/버튼과 내구성 원장이 필요합니다. 신규 구매·자동 재시도는 차단하고 실제 Store 실행은 하지 않았습니다. 사용자 데이터 삭제를 과거 원장 이력 초기화나 무제한 재시도 승인으로 취급하지 않습니다.
+- 런타임 복원 예산1, 사용자 명시 체크/버튼과 내구성 원장이 필요합니다. 신규 구매·자동 재시도는 차단합니다. 빌드 담당이 실제 Store 실행을 하지 않고 사용자에게 실행을 인계했으며, 이후 위 결과 화면을 확인했습니다. 사용자 데이터 삭제를 과거 원장 이력 초기화나 무제한 재시도 승인으로 취급하지 않습니다.
 
 ## 검사와 보존
 
@@ -28,7 +41,15 @@
 - 로컬 전달 폴더: `C:/Users/user/Downloads/deployment/tamer-iap-v32-20261022`.
 - 같은 폴더에 `SHA256SUMS.txt`와 `업로드 안내.ko.txt`를 제공했습니다. 키·암호·계정 ID·CustomID·영수증은 포함하지 않습니다.
 
-## 사용자 진행 순서
+## 다음 사용자 조치: 재시작 유지 확인
+
+1. 휴대폰 설정의 **앱/애플리케이션 → Monster Tamer IAP Test → 강제 중지**만 누릅니다. 데이터·캐시 삭제나 앱 삭제는 하지 않습니다.
+2. 다시 실행해 기존 두 값을 입력하고 **Reauthenticate the previously committed recovery profile**을 체크한 뒤 Authenticate를 한 번 누릅니다. 새 로컬 프로필을 만들지 않습니다.
+3. `Saved No Ads before reauthentication: present`와 `No Ads local: memory=present; disk=present; owner=matched`를 확인해 결과 화면을 공유합니다. 복원 승인 체크와 Run approved recovery ONCE는 다시 누르지 않습니다.
+
+재시작 직후 Store NotInitialized / Receipt NotStarted는 이번 단계에서 새 Store 호출을 하지 않는 상태이며, 저장 유지 관측과 구분합니다. 앞선 복원 성공이 재시작 후 영수증 재실행을 요구하는 것은 아닙니다.
+
+## 최초 전달 때의 사용자 진행 순서 (이력)
 
 1. **Monster Tamer IAP Test** 내부 테스트에32번을 수동 업로드·제공하고, 현재 앱을 삭제하거나 데이터를 지우지 않고 업데이트합니다.
 2. 기존 두 입력값을 사용하고 이번에는 **Reauthenticate the previously committed recovery profile**을 체크해 Authenticate를 한 번 누릅니다.11:38에 이미 만든 새 로컬 프로필을 다시 여는 단계이므로 다른 빈 프로필을 만들지 않습니다. 최초 No Ads absent는 현재 프로필의 예상 상태입니다.
