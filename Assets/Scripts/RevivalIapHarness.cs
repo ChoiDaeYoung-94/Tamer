@@ -40,6 +40,13 @@ public sealed class RevivalIapHarness : MonoBehaviour
         GUILayout.Label("Store: " + (iap == null ? "Waiting for managers" : iap.Status.ToString()));
         if (iap != null && !string.IsNullOrEmpty(iap.VerificationDiagnostic))
             GUILayout.Label("Receipt check: " + iap.VerificationDiagnostic);
+        var observationStyle = new GUIStyle(GUI.skin.label) { fontSize = 24, wordWrap = true };
+        GUILayout.Label(RevivalIapIsolation.NoAdsBeforeReauthentication, observationStyle);
+        GUILayout.Label(RevivalIapIsolation.NoAdsObservation, observationStyle);
+        GUI.enabled = RevivalIapIsolation.Session != null;
+        if (GUILayout.Button("Read saved No Ads (no Store call)", GUILayout.Height(60)))
+            RevivalIapIsolation.RefreshNoAdsObservation();
+        GUI.enabled = true;
         if (iap != null && iap.VerificationRetryStopped)
             GUILayout.Label("Approved recovery failed: STOP. Further execution requires coordinator review.");
         if (Managers.DataM != null && !RevivalIapIsolation.CanPrepare && !RevivalIapIsolation.IsStaging && RevivalIapIsolation.Session == null)
