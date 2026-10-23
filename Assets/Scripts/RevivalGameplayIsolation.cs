@@ -145,31 +145,46 @@ namespace AD
                 Seed();
 #endif
 #if TAMER_SHOP_HARNESS
-            string cloudPath = Path.Combine(Path.GetDirectoryName(SavePath), "SyntheticCloud.json");
-            if (UnityEngine.Application.identifier != ShopPurchaseApplicationId || !UnityEngine.Debug.isDebugBuild ||
-                Path.GetFileName(Path.GetDirectoryName(cloudPath)) != "RevivalShopPurchase")
-                throw new InvalidOperationException("Dedicated synthetic shop cloud required.");
-            if (File.Exists(cloudPath))
+            string cloudPath = null;
+            bool shopCloudLoaded = false;
+            void EnsureShopCloud()
             {
-                var stored = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(cloudPath));
-                if (stored == null || stored.Count > 256 || cloud.Keys.Any(key => !stored.ContainsKey(key)) ||
-                    !int.TryParse(stored["Gold"], out int savedGold) || savedGold < 0)
-                    throw new InvalidDataException("Synthetic cloud structure changed; preserve.");
-                cloud = stored;
+                if (shopCloudLoaded) return;
+                // Managers constructs the server before DataManager creates its private path.
+                // First synthetic request runs after initialization has established that path.
+                cloudPath = Path.Combine(Path.GetDirectoryName(SavePath), "SyntheticCloud.json");
+                if (UnityEngine.Application.identifier != ShopPurchaseApplicationId || !UnityEngine.Debug.isDebugBuild ||
+                    Path.GetFileName(Path.GetDirectoryName(cloudPath)) != "RevivalShopPurchase")
+                    throw new InvalidOperationException("Dedicated synthetic shop cloud required.");
+                if (File.Exists(cloudPath))
+                {
+                    var stored = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(cloudPath));
+                    if (stored == null || stored.Count > 256 || cloud.Keys.Any(key => !stored.ContainsKey(key)) ||
+                        !int.TryParse(stored["Gold"], out int savedGold) || savedGold < 0)
+                        throw new InvalidDataException("Synthetic cloud structure changed; preserve.");
+                    cloud = stored;
+                }
+                else cloud["Gold"] = "20000";
+                shopCloudLoaded = true;
             }
-            else cloud["Gold"] = "20000";
 #endif
             return new ServerManager(() => owner != null ? owner.PlayFabId : null,
                 () => owner != null && owner.IsServerDataReady,
                 (account, success, failure) =>
                 {
                     if (string.IsNullOrEmpty(account) || account != expectedAccount?.Invoke()) { failure(403); return; }
+#if TAMER_SHOP_HARNESS
+                    EnsureShopCloud();
+#endif
                     Reads++;
                     success(new Dictionary<string, string>(cloud));
                 },
                 (account, patch, success, failure) =>
                 {
                     if (string.IsNullOrEmpty(account) || account != expectedAccount?.Invoke()) { failure(403); return; }
+#if TAMER_SHOP_HARNESS
+                    EnsureShopCloud();
+#endif
                     Writes++;
                     foreach (var entry in patch)
                         if (entry.Value == null) cloud.Remove(entry.Key);
