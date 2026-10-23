@@ -62,9 +62,25 @@ namespace AD
         public static int BlockedLogins { get; private set; }
         public static int BlockedPurchases { get; private set; }
         public static string SavePath { get; private set; }
+        public static string ReadApplyStage { get; private set; } = "not-started";
+
+        public static void SetReadApplyStage(string stage) => ReadApplyStage = stage;
 
         public static void BlockLogin() => BlockedLogins++;
         public static void BlockPurchase() => BlockedPurchases++;
+
+        public static bool IsOfflinePlayerConnectionDiagnostic(string applicationId, bool development,
+            bool editor, string message, UnityEngine.LogType type)
+        {
+            if (editor || !development || type != UnityEngine.LogType.Error ||
+                (applicationId != ApplicationId && applicationId != PlayerRestoreApplicationId &&
+                 applicationId != SessionApplicationId && applicationId != InventoryRestoreApplicationId &&
+                 applicationId != AgeChoiceApplicationId)) return false;
+            // These exact engine diagnostics occur because the offline development APK has
+            // no INTERNET permission. Other socket errors and all exceptions still fail.
+            return message == "Socket: Failed to set blocking mode" ||
+                message == "Unable to setup multicast socket for player connection.";
+        }
 
         public static string CreateSavePath(string persistentRoot)
         {
@@ -144,7 +160,20 @@ namespace AD
                     var records = new Dictionary<string, UserDataRecord>();
                     foreach (var entry in snapshot) records.Add(entry.Key, new UserDataRecord { Value = entry.Value });
                     owner.PlayFabPlayerData = records;
-                    if (update) owner.UpdateData();
+                    if (update)
+                    {
+                        SetReadApplyStage("enter-update");
+                        try { owner.UpdateData(); }
+                        catch (Exception error)
+                        {
+                            // Fixed checkpoint + type only: never print exception messages,
+                            // account/save values, paths, or the snapshot itself.
+                            UnityEngine.Debug.LogWarning("GAMEPLAY_HARNESS SYNTHETIC_READ_FAILED stage=" +
+                                ReadApplyStage + " exception=" + error.GetType().Name +
+                                " hresult=0x" + error.HResult.ToString("X8"));
+                            throw;
+                        }
+                    }
                 });
         }
     }

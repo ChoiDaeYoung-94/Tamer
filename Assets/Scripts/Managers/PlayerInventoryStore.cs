@@ -48,9 +48,53 @@ namespace AD
         }
         public string PathFor(string account) => Path.Combine(_directory, OwnerKey(account) + ".json");
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("TAMER_GAMEPLAY_HARNESS")]
+        private static void MarkSyntheticInventoryStage(string stage)
+        {
+#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+            RevivalGameplayIsolation.SetReadApplyStage("inventory-" + stage);
+#endif
+        }
+
+        [System.Diagnostics.Conditional("TAMER_GAMEPLAY_HARNESS")]
+        private static void ObserveSyntheticMove(string phase, string source, string destination, int expectedBytes)
+        {
+#if TAMER_GAMEPLAY_HARNESS
+            try
+            {
+                string full = Path.GetFullPath(source);
+                long readableBytes = -1;
+                string readFailure = "none";
+                try { readableBytes = File.ReadAllBytes(source).LongLength; }
+                catch (Exception error) { readFailure = error.GetType().Name; }
+                bool javaExists = false;
+                long javaBytes = -1;
+#if UNITY_ANDROID && !UNITY_EDITOR
+                using (var file = new UnityEngine.AndroidJavaObject("java.io.File", source))
+                { javaExists = file.Call<bool>("exists"); javaBytes = file.Call<long>("length"); }
+#endif
+                // Only booleans, lengths and exception type: never paths, names or file contents.
+                UnityEngine.Debug.Log("GAMEPLAY_INVENTORY_MOVE phase=" + phase +
+                    " sourceExists=" + File.Exists(source) + " fullSourceExists=" + File.Exists(full) +
+                    " parentExists=" + Directory.Exists(Path.GetDirectoryName(source)) +
+                    " destinationExists=" + File.Exists(destination) +
+                    " destinationDirectory=" + Directory.Exists(destination) +
+                    " fullPathUnchanged=" + (source == full) +
+                    " sameParent=" + (Path.GetDirectoryName(source) == Path.GetDirectoryName(destination)) +
+                    " sourceChars=" + source.Length + " nameChars=" + Path.GetFileName(source).Length +
+                    " expectedBytes=" + expectedBytes + " readableBytes=" + readableBytes +
+                    " readFailure=" + readFailure + " javaExists=" + javaExists + " javaBytes=" + javaBytes);
+            }
+            catch (Exception error)
+            { UnityEngine.Debug.LogWarning("GAMEPLAY_INVENTORY_MOVE observationException=" + error.GetType().Name); }
+#endif
+        }
+
         // Unlike Load, this never creates a directory or changes a session binding.
         internal Envelope ReadEnvelope(string account)
         {
+            MarkSyntheticInventoryStage("read-envelope");
             var record = ReadRecord(PathFor(account));
             return record == null ? null : new Envelope(record.Session,
                 Validate(account, record.Owner, record.Collection, record.OwnedItems, record.Equipped));
@@ -96,6 +140,7 @@ namespace AD
 
         private static Record ReadRecord(string path)
         {
+            MarkSyntheticInventoryStage("read-record");
             string json;
             try { json = File.ReadAllText(path, Encoding.UTF8); }
             catch (FileNotFoundException) { return null; }
@@ -146,8 +191,10 @@ namespace AD
 
         public PlayerInventorySnapshot Load(string account)
         {
+            MarkSyntheticInventoryStage("load-path-key");
             string path = PathFor(account);
             // Creating the directory fails visibly if storage is unavailable; absence is not an I/O fallback.
+            MarkSyntheticInventoryStage("create-directory");
             Directory.CreateDirectory(_directory);
             var record = ReadRecord(path);
             if (record == null) return Validate(account, account, Array.Empty<string>(), Array.Empty<string>(), EmptySlots());
@@ -187,19 +234,44 @@ namespace AD
         private void WriteRecord(string account, PlayerInventorySnapshot candidate, string session, Func<bool> canCommit = null,
             Action replacing = null)
         {
-            string path = PathFor(account), temporary = path + ".pending-" + Guid.NewGuid().ToString("N");
+            MarkSyntheticInventoryStage("write-path-key");
+            string path = PathFor(account);
+            // Keep the atomic temporary beside its destination without repeating the 64-char
+            // owner key. Some Android translation layers truncate long paths on open while
+            // stat/move use the full path, leaving a written temporary that cannot be moved.
+            string temporary = Path.Combine(_directory, ".pending-" + Guid.NewGuid().ToString("N"));
             var record = new Record { Version = 1, Owner = account, Collection = candidate.Collection.ToArray(),
                 OwnedItems = candidate.OwnedItems.ToArray(), Equipped = new Dictionary<string, string>(candidate.Equipped), Session = session };
+            MarkSyntheticInventoryStage("serialize");
             byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(record));
+            MarkSyntheticInventoryStage("open-pending");
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            { stream.Write(bytes, 0, bytes.Length); stream.Flush(true); }
+            {
+                MarkSyntheticInventoryStage("write-pending");
+                stream.Write(bytes, 0, bytes.Length);
+                MarkSyntheticInventoryStage("flush-pending");
+                stream.Flush(true);
+            }
 #if UNITY_EDITOR
             InventoryWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
 #endif
+            MarkSyntheticInventoryStage("validate-current-owner");
             if (canCommit != null && !canCommit()) throw new InvalidOperationException("Inventory owner changed.");
+            MarkSyntheticInventoryStage("replace-callback");
             replacing?.Invoke(); // Any error from this point may follow a durable replacement.
+            MarkSyntheticInventoryStage("move-to-destination");
+            ObserveSyntheticMove("before", temporary, path, bytes.Length);
             try { File.Move(temporary, path); }
-            catch (IOException) when (File.Exists(path)) { File.Replace(temporary, path, null); }
+            catch (IOException) when (File.Exists(path))
+            {
+                MarkSyntheticInventoryStage("replace-existing");
+                File.Replace(temporary, path, null);
+            }
+            catch (IOException)
+            {
+                ObserveSyntheticMove("failed", temporary, path, bytes.Length);
+                throw;
+            }
 #if UNITY_EDITOR
             InventoryWriteCheckpoint?.Invoke(path, temporary, "replaced");
 #endif
