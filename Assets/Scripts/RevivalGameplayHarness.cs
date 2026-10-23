@@ -205,9 +205,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         Mark("CAPTURE_ASSIST target=Bat invincible=true captureRoll=true; use original combat and Capture button");
     }
 
-    private void VerifyNavigationReceivers()
+    private async void VerifyNavigationReceivers()
     {
         if (!RevivalGameplayIsolation.AllowsCaptureAssist || _busy || !Ready("Game")) return;
+        _busy = true;
         Monster issuer = null, recipient = null;
         var owned = new System.Collections.Generic.List<GameObject>();
         UnityEngine.AI.NavMeshData arena = null;
@@ -239,6 +240,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             stage = "healthy-receiver";
             move.Invoke(issuer, new object[] { recipient, original.position });
             Require(recipient.State == Creature.CreatureState.Move && _errors == errorsBefore);
+            Mark("NAVIGATION_GUARD_STEP healthy=accepted");
 
             stage = "disabled-receiver";
             recipient.State = Creature.CreatureState.Idle;
@@ -246,6 +248,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             Require(issuer.CanNavigateCurrentSession && !recipient.CanNavigateCurrentSession);
             move.Invoke(issuer, new object[] { recipient, original.position });
             Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);
+            Mark("NAVIGATION_GUARD_STEP disabled=rejected");
             recipient.NavMeshAgent.enabled = true;
             Require(recipient.NavMeshAgent.Warp(original.position) && recipient.CanNavigateCurrentSession);
 
@@ -260,13 +263,19 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
                     new UnityEngine.AI.NavMeshBuildSource { shape = UnityEngine.AI.NavMeshBuildSourceShape.Box,
                         transform = Matrix4x4.Translate(center), size = new Vector3(8, 1, 8), area = 0 }
                 }, new Bounds(center, new Vector3(12, 6, 12)), Vector3.zero, Quaternion.identity);
+            stage = "offmesh-arena-built";
             Require(arena != null);
             arenaInstance = UnityEngine.AI.NavMesh.AddNavMeshData(arena);
+            stage = "offmesh-arena-sample";
             Require(UnityEngine.AI.NavMesh.SamplePosition(center, out var isolated, 2, UnityEngine.AI.NavMesh.AllAreas));
+            stage = "offmesh-arena-warp";
             Require(recipient.NavMeshAgent.Warp(isolated.position) && recipient.CanNavigateCurrentSession);
             arenaInstance.Remove();
+            await Awaitable.NextFrameAsync(); // Native agent membership updates after removing owned data.
+            stage = "offmesh-membership";
             Require(recipient.NavMeshAgent.isActiveAndEnabled && !recipient.NavMeshAgent.isOnNavMesh &&
                 issuer.CanNavigateCurrentSession);
+            stage = "offmesh-rejected";
             move.Invoke(issuer, new object[] { recipient, original.position });
             Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);
             Require(recipient.NavMeshAgent.Warp(original.position) && recipient.CanNavigateCurrentSession);
@@ -296,6 +305,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
                     else Managers.PoolM.PushToPool(instance);
                 });
             Cleanup("arena-data", () => { if (arena != null) Destroy(arena); });
+            _busy = false;
         }
         if (checksPassed && !cleanupFailed && _errors == errorsBefore)
             Mark("NAVIGATION_GUARD_PASS healthy=accepted disabled=rejected offmesh=rejected errorsDelta=0 cleanup=completed");
