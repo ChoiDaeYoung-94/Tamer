@@ -49,12 +49,14 @@ Monster Tamer의 기존 공개 스토어 페이지입니다. 설치 가능 여�
 
 | 확인한 내용 | 근거 |
 | --- | --- |
-| 실제 포획 → 동료 추가 → 로컬 저장·메모리 서버 반영, 사망 후 복귀 | [게임플레이 검증](docs/revival/gameplay-capture-lifecycle.ko.md) |
-| 격리 앱의 무료 테스트 구매, No Ads 저장·동일 설치 복원·재로그인 유지 | [스토어·구매 검증](docs/revival/iap-test-bundle.ko.md) |
+| 계정·저장·구매 복구 및 게임플레이 변경의 main 통합, 중복 통합 PR 정리 | [최신 복구 현황](docs/revival/current-recovery-status.ko.md) |
+| 실제 포획·동료 추가·사망/복귀, 장비 구매·캐릭터 선택·재시작 | [게임플레이 근거와 남은 순서](docs/revival/release-readiness-20261023.ko.md) |
+| 격리 시험32의 기존 구매 복원, No Ads 저장·재인증·재시작 유지 | [스토어·구매 검증](docs/revival/iap-test-bundle.ko.md) |
 | 샘플 광고 보상 후 Home 복귀, 보상 1회·BGM 복귀, 일반 release 광고 요청 차단 | [광고 검증](docs/revival/families-ad-followup-20260914.ko.md) |
-| 결제 없는 진행도 검증 앱과 Editor 회귀 400개 통과 | [진행도 검증 준비](docs/revival/progress-only-harness.ko.md) |
+| 통합 Editor 896개 중895통과·Pipeline 오류1건, 영향2사례 별도 재검증 통과 | [실패 원인·재검증·한계](docs/revival/integration-editor-20261023.ko.md) |
+| 새 일반 오프라인 APK의 정확한 설치물 대조와 LD Main/Game 왕복·오류0 | [전달 후보 검증](docs/revival/gameplay-delivery-20261023.ko.md) |
 
-새 개발 APK의 소스 생성 라이브러리 2개는 LOAD·RELRO 검사에 통과했습니다. 사전 빌드 라이브러리 문제와 실제 ARM64 16KB 실행·최종 출시 AAB·스토어 검증은 별도로 남아 있습니다. 번역 AVD 참고 시도는 앱 설치 전 중단되어 앱 실행 근거가 아닙니다. [최종 후보 준비 조건](docs/revival/release-preflight.ko.md)과 [전체 실행 목록](docs/revival/recovery-execution-backlog.ko.md)에서 기능·운영·정책을 포함한 남은 범위를 확인할 수 있습니다.
+운영 광고·개인정보 자료와 최종 제공판 신고 대조, 운영 서명 AAB·Play 전달물·실제 기기/스토어 검증은 남아 있습니다. LD플레이어의 Android14·ARM64 번역·4KB 결과를 실제 ARM64·16KB 실행으로 계산하지 않습니다. 현재 남은 순서는 [main 이후 출시 준비](docs/revival/release-readiness-20261023.ko.md), 과거 실행 이력은 [전체 실행 목록](docs/revival/recovery-execution-backlog.ko.md)에서 확인할 수 있습니다.
 
 개발 기준은 **Unity 6000.3.25f1 · Android min API 25 / target API 36 · ARM64**입니다. [도구 잠금](tools/revival/toolchain.json)과 [UPM 잠금](Packages/packages-lock.json)을 따릅니다. **CI/CD는 보류 중**이며 기존 App Center 설정을 보존합니다.
 
