@@ -68,7 +68,11 @@ namespace AD
         public static string SavePath { get; private set; }
         public static string ReadApplyStage { get; private set; } = "not-started";
 #if TAMER_SHOP_HARNESS
+#if TAMER_SHOP_AFTER_INVENTORY
+        internal const string ShopFixtureDirectoryName = "RevivalShopAfterInventory";
+#else
         internal const string ShopFixtureDirectoryName = "RevivalShopPurchaseV2";
+#endif
         internal static bool ShopCloudRestored { get; private set; }
         internal static int ShopCloudInitialGold { get; private set; } = -1;
 #endif
@@ -172,7 +176,12 @@ namespace AD
                     cloud = stored;
                     ShopCloudRestored = true;
                 }
-                else cloud["Gold"] = "20000";
+                else cloud["Gold"] =
+#if TAMER_SHOP_AFTER_INVENTORY
+                    "20100";
+#else
+                    "20000";
+#endif
                 ShopCloudInitialGold = int.Parse(cloud["Gold"], System.Globalization.CultureInfo.InvariantCulture);
                 shopCloudLoaded = true;
             }
