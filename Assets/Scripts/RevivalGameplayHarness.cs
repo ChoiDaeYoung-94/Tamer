@@ -209,17 +209,21 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     {
         if (!RevivalGameplayIsolation.AllowsCaptureAssist || _busy || !Ready("Game")) return;
         Monster issuer = null, recipient = null;
+        var owned = new System.Collections.Generic.List<GameObject>();
         UnityEngine.AI.NavMeshData arena = null;
         UnityEngine.AI.NavMeshDataInstance arenaInstance = default;
         string stage = "prepare";
         int errorsBefore = _errors;
+        bool checksPassed = false, cleanupFailed = false;
         const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance |
             System.Reflection.BindingFlags.NonPublic;
         var move = typeof(Monster).GetMethod("SafeSetDestination", flags);
         void Require(bool value) { if (!value) throw new InvalidOperationException(); }
         Monster Spawn(Vector3 point)
         {
-            var monster = Managers.PoolM.PopFromPool("Bat").GetComponent<Monster>();
+            var instance = Managers.PoolM.PopFromPool("Bat");
+            owned.Add(instance); // Retain ownership even if setup fails before returning.
+            var monster = instance.GetComponent<Monster>();
             monster.transform.SetParent(MonsterGenerator.Instance.transform, true);
             monster.SetEnemyRole(true);
             Require(monster.NavMeshAgent.Warp(point));
@@ -266,17 +270,37 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             move.Invoke(issuer, new object[] { recipient, original.position });
             Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);
             Require(recipient.NavMeshAgent.Warp(original.position) && recipient.CanNavigateCurrentSession);
-            Mark("NAVIGATION_GUARD_PASS healthy=accepted disabled=rejected offmesh=rejected errorsDelta=0");
+            checksPassed = true;
         }
         catch (Exception error)
         { Mark("NAVIGATION_GUARD_FAIL stage=" + stage + " type=" + error.GetBaseException().GetType().Name); }
         finally
         {
-            if (arenaInstance.valid) arenaInstance.Remove();
-            if (recipient != null) recipient.RetireSession();
-            if (issuer != null) issuer.RetireSession();
-            if (arena != null) Destroy(arena);
+            void Cleanup(string name, Action action)
+            {
+                try { action(); }
+                catch (Exception error)
+                {
+                    cleanupFailed = true;
+                    Mark("NAVIGATION_GUARD_FAIL stage=cleanup-" + name +
+                        " type=" + error.GetBaseException().GetType().Name);
+                }
+            }
+            Cleanup("arena-instance", () => { if (arenaInstance.valid) arenaInstance.Remove(); });
+            foreach (var instance in owned)
+                Cleanup("fixture", () =>
+                {
+                    if (instance == null) return;
+                    var monster = instance.GetComponent<Monster>();
+                    if (monster != null) monster.RetireSession();
+                    else Managers.PoolM.PushToPool(instance);
+                });
+            Cleanup("arena-data", () => { if (arena != null) Destroy(arena); });
         }
+        if (checksPassed && !cleanupFailed && _errors == errorsBefore)
+            Mark("NAVIGATION_GUARD_PASS healthy=accepted disabled=rejected offmesh=rejected errorsDelta=0 cleanup=completed");
+        else if (checksPassed && !cleanupFailed)
+            Mark("NAVIGATION_GUARD_FAIL stage=cleanup-error-count");
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
