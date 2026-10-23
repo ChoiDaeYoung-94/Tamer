@@ -18,7 +18,6 @@ namespace AD
         public const string ShopPurchaseApplicationId = "com.AeDeong.MonsterTamer.revival.shoppurchase";
         public static string RuntimeApplicationId =>
 #if TAMER_SHOP_HARNESS
-        internal const string ShopFixtureDirectoryName = "RevivalShopPurchaseV2";
             ShopPurchaseApplicationId;
 #elif TAMER_INVENTORY_RESTORE
             InventoryRestoreApplicationId;
@@ -69,6 +68,7 @@ namespace AD
         public static string SavePath { get; private set; }
         public static string ReadApplyStage { get; private set; } = "not-started";
 #if TAMER_SHOP_HARNESS
+        internal const string ShopFixtureDirectoryName = "RevivalShopPurchaseV2";
         internal static bool ShopCloudRestored { get; private set; }
         internal static int ShopCloudInitialGold { get; private set; } = -1;
 #endif
