@@ -71,12 +71,15 @@ namespace AD
             _view = view; _record = record; _owner = owner;
             foreach (var button in new[] { view.RequestButton, view.ConfirmButton, view.SessionConfirmButton, view.CancelButton,
                 view.RetryButton, view.ReauthenticateButton }) button.gameObject.SetActive(false);
-            view.CloseButton.GetComponentInChildren<TMP_Text>().text = "Return to sign-in";
+            bool receiptOnly = owner != null && owner.ReceiptOnly;
+            view.CloseButton.GetComponentInChildren<TMP_Text>().text = receiptOnly ? "Close recovery" : "Return to sign-in";
             if (blocked == null && (owner == null || record == null || !owner.CanApplyDeletionReceipt(record)))
                 blocked = "A different account is active or the request binding is unclear. No account credentials or local data were changed.";
             if (blocked != null)
             {
-                view.Message.text = blocked + " You may close this screen. Signing in to an existing account can check its own request; this does not confirm deletion or safe rejoining.";
+                view.Message.text = blocked + (receiptOnly
+                    ? " You may close this screen. Sign-in is unavailable in this recovery session. Restart the app after local handling; this does not confirm deletion or safe rejoining."
+                    : " You may close this screen. Signing in to an existing account can check its own request; this does not confirm deletion or safe rejoining.");
                 view.RefreshButton.gameObject.SetActive(false);
                 return;
             }
@@ -119,7 +122,14 @@ namespace AD
             }
             catch (Exception)
             {
-                if (!_lifetime.IsCancellationRequested) _view.Message.text = "This receipt cannot be checked now. Access may have expired, the protected key may be missing, or the connection may be unavailable. Acceptance remains unknown; data is preserved. Close this screen to stop, or sign in explicitly to an existing account to check its request. No new account or deletion is created by this recovery.";
+                if (!_lifetime.IsCancellationRequested)
+                {
+                    _view.Message.text = "This receipt cannot be checked now. Access may have expired, the protected key may be missing, or the connection may be unavailable. Acceptance remains unknown; data is preserved. "
+                        + (_owner != null && _owner.ReceiptOnly
+                            ? "Close this screen to stop. Sign-in is unavailable in this recovery session. Restart the app after local handling. "
+                            : "Close this screen to stop, or sign in explicitly to an existing account to check its request. ")
+                        + "No new account or deletion is created by this recovery.";
+                }
             }
             finally { _busy = false; if (!_lifetime.IsCancellationRequested) _view.RefreshButton.interactable = true; }
         }
