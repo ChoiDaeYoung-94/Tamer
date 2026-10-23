@@ -205,6 +205,80 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         Mark("CAPTURE_ASSIST target=Bat invincible=true captureRoll=true; use original combat and Capture button");
     }
 
+    private void VerifyNavigationReceivers()
+    {
+        if (!RevivalGameplayIsolation.AllowsCaptureAssist || _busy || !Ready("Game")) return;
+        Monster issuer = null, recipient = null;
+        UnityEngine.AI.NavMeshData arena = null;
+        UnityEngine.AI.NavMeshDataInstance arenaInstance = default;
+        string stage = "prepare";
+        int errorsBefore = _errors;
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic;
+        var move = typeof(Monster).GetMethod("SafeSetDestination", flags);
+        void Require(bool value) { if (!value) throw new InvalidOperationException(); }
+        Monster Spawn(Vector3 point)
+        {
+            var monster = Managers.PoolM.PopFromPool("Bat").GetComponent<Monster>();
+            monster.transform.SetParent(MonsterGenerator.Instance.transform, true);
+            monster.SetEnemyRole(true);
+            Require(monster.NavMeshAgent.Warp(point));
+            return monster;
+        }
+        try
+        {
+            Require(UnityEngine.AI.NavMesh.SamplePosition(Player.Instance.transform.position + Vector3.forward * 2,
+                out var original, 3, UnityEngine.AI.NavMesh.AllAreas));
+            issuer = Spawn(original.position);
+            recipient = Spawn(original.position);
+            Require(issuer.CanNavigateCurrentSession && recipient.CanNavigateCurrentSession);
+            stage = "healthy-receiver";
+            move.Invoke(issuer, new object[] { recipient, original.position });
+            Require(recipient.State == Creature.CreatureState.Move && _errors == errorsBefore);
+
+            stage = "disabled-receiver";
+            recipient.State = Creature.CreatureState.Idle;
+            recipient.NavMeshAgent.enabled = false;
+            Require(issuer.CanNavigateCurrentSession && !recipient.CanNavigateCurrentSession);
+            move.Invoke(issuer, new object[] { recipient, original.position });
+            Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);
+            recipient.NavMeshAgent.enabled = true;
+            Require(recipient.NavMeshAgent.Warp(original.position) && recipient.CanNavigateCurrentSession);
+
+            stage = "offmesh-receiver";
+            // An additive, owned arena lets us remove ONLY this receiver's NavMesh.
+            // Original scene meshes, accounts, HP and inventory remain unchanged.
+            Vector3 center = new Vector3(10000, 0, 10000);
+            arena = UnityEngine.AI.NavMeshBuilder.BuildNavMeshData(
+                UnityEngine.AI.NavMesh.GetSettingsByID(recipient.NavMeshAgent.agentTypeID),
+                new System.Collections.Generic.List<UnityEngine.AI.NavMeshBuildSource>
+                {
+                    new UnityEngine.AI.NavMeshBuildSource { shape = UnityEngine.AI.NavMeshBuildSourceShape.Box,
+                        transform = Matrix4x4.Translate(center), size = new Vector3(8, 1, 8), area = 0 }
+                }, new Bounds(center, new Vector3(12, 6, 12)), Vector3.zero, Quaternion.identity);
+            Require(arena != null);
+            arenaInstance = UnityEngine.AI.NavMesh.AddNavMeshData(arena);
+            Require(UnityEngine.AI.NavMesh.SamplePosition(center, out var isolated, 2, UnityEngine.AI.NavMesh.AllAreas));
+            Require(recipient.NavMeshAgent.Warp(isolated.position) && recipient.CanNavigateCurrentSession);
+            arenaInstance.Remove();
+            Require(recipient.NavMeshAgent.isActiveAndEnabled && !recipient.NavMeshAgent.isOnNavMesh &&
+                issuer.CanNavigateCurrentSession);
+            move.Invoke(issuer, new object[] { recipient, original.position });
+            Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);
+            Require(recipient.NavMeshAgent.Warp(original.position) && recipient.CanNavigateCurrentSession);
+            Mark("NAVIGATION_GUARD_PASS healthy=accepted disabled=rejected offmesh=rejected errorsDelta=0");
+        }
+        catch (Exception error)
+        { Mark("NAVIGATION_GUARD_FAIL stage=" + stage + " type=" + error.GetBaseException().GetType().Name); }
+        finally
+        {
+            if (arenaInstance.valid) arenaInstance.Remove();
+            if (recipient != null) recipient.RetireSession();
+            if (issuer != null) issuer.RetireSession();
+            if (arena != null) Destroy(arena);
+        }
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
@@ -526,6 +600,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUI.enabled = _captureAssist;
         if (GUILayout.Button("Disable capture-test invincibility (original combat)", GUILayout.Height(45)))
         { _captureAssist = false; Mark("CAPTURE_ASSIST_DISABLED original damage restored"); }
+        GUI.enabled = !_busy && Ready("Game") && RevivalGameplayIsolation.AllowsCaptureAssist;
+        if (GUILayout.Button("Check navigation receivers (isolated fixtures)", GUILayout.Height(45))) VerifyNavigationReceivers();
         GUI.enabled = true;
 #endif
 #if TAMER_GAMEPLAY_PHOTO
