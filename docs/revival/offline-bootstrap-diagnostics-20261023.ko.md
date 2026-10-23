@@ -1,5 +1,15 @@
 # LD 오프라인 초기화 복구 — 2026-10-23
 
+## 후속 판정 — 개발 연결 진단 분리와 별도 NavMesh 오류
+
+- sourceff51a06: 집중 `RevivalGameplayIsolationTests`31/31 PASS. 알려진2문자열을 별도 개발 앱/개발 빌드/nonEditor/Error에만 분류하며 총계는 유지합니다. 예외·Assert·유사 오류·운영 앱에는 적용하지 않습니다. 문자열 기반 분류/로그 구독 시점 이후 관측이라는 한계가 있습니다.
+- 새 APK SHA256 `5c02ed0433e89bc314365757e891dc7c752825e9a03b7d1b2cc1e759970183ab`,153854991bytes,16:17:10–16:19:54 KST 빌드0. 보호53복구·서명/격리 권한·설치base 바이트 대조 완료.
+- 실제6차 MainReady와 HOME/resume 동일PID 후 ROUNDTRIP_OK count1/errors0/totalErrors5/playerConnectionDiagnostics5. 전체 오류0으로 표현하지 않습니다. 직전의 같은 조건 실패 기록은 보존합니다.
+- 원래 조이스틱→상점 trigger→장비 부족잔액 거부/Gold1000 유지 확인. 잠긴 동료 상품 클릭은 조건에 따라 거부. 포획 보조 Bat를 원래 Capture로 잡은 뒤 동료1/Gold1082를 Main까지 유지한 사진·로그가 있습니다.
+- 그러나 그 Game→Main 시점 SafeSetDestination→CommanderDetectionMove에서 active/onNavMesh 수신 조건 오류1건을 별도로 검출했습니다(errors1,total6,개발연결5). 수신 개체의 구체 역할은 미확정입니다. [이슈400](https://github.com/ChoiDaeYoung-94/Tamer/issues/400)에서 원인 수정·재검증하며 동료 포함 전환을 통과로 처리하지 않습니다. 초기화 수정 PR과 main/전체 게임 완료를 구분합니다.
+
+
+
 ## 최신 결과
 
 사용자가 두 번 실패 후 재승인 규칙을 제거하도록 지시해 관리·구현 AGENTS를 수정했습니다. 실패와 원인 판별 근거는 누적 기록하고 같은 조건의 무의미한 반복은 하지 않습니다. 운영 계정·저장·No Ads·키 보호는 유지합니다.
