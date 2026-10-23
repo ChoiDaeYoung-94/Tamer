@@ -57,6 +57,40 @@ namespace AD
 #endif
         }
 
+        [System.Diagnostics.Conditional("TAMER_GAMEPLAY_HARNESS")]
+        private static void ObserveSyntheticMove(string phase, string source, string destination, int expectedBytes)
+        {
+#if TAMER_GAMEPLAY_HARNESS
+            try
+            {
+                string full = Path.GetFullPath(source);
+                long readableBytes = -1;
+                string readFailure = "none";
+                try { readableBytes = File.ReadAllBytes(source).LongLength; }
+                catch (Exception error) { readFailure = error.GetType().Name; }
+                bool javaExists = false;
+                long javaBytes = -1;
+#if UNITY_ANDROID && !UNITY_EDITOR
+                using (var file = new UnityEngine.AndroidJavaObject("java.io.File", source))
+                { javaExists = file.Call<bool>("exists"); javaBytes = file.Call<long>("length"); }
+#endif
+                // Only booleans, lengths and exception type: never paths, names or file contents.
+                UnityEngine.Debug.Log("GAMEPLAY_INVENTORY_MOVE phase=" + phase +
+                    " sourceExists=" + File.Exists(source) + " fullSourceExists=" + File.Exists(full) +
+                    " parentExists=" + Directory.Exists(Path.GetDirectoryName(source)) +
+                    " destinationExists=" + File.Exists(destination) +
+                    " destinationDirectory=" + Directory.Exists(destination) +
+                    " fullPathUnchanged=" + (source == full) +
+                    " sameParent=" + (Path.GetDirectoryName(source) == Path.GetDirectoryName(destination)) +
+                    " sourceChars=" + source.Length + " nameChars=" + Path.GetFileName(source).Length +
+                    " expectedBytes=" + expectedBytes + " readableBytes=" + readableBytes +
+                    " readFailure=" + readFailure + " javaExists=" + javaExists + " javaBytes=" + javaBytes);
+            }
+            catch (Exception error)
+            { UnityEngine.Debug.LogWarning("GAMEPLAY_INVENTORY_MOVE observationException=" + error.GetType().Name); }
+#endif
+        }
+
         // Unlike Load, this never creates a directory or changes a session binding.
         internal Envelope ReadEnvelope(string account)
         {
@@ -222,11 +256,17 @@ namespace AD
             MarkSyntheticInventoryStage("replace-callback");
             replacing?.Invoke(); // Any error from this point may follow a durable replacement.
             MarkSyntheticInventoryStage("move-to-destination");
+            ObserveSyntheticMove("before", temporary, path, bytes.Length);
             try { File.Move(temporary, path); }
             catch (IOException) when (File.Exists(path))
             {
                 MarkSyntheticInventoryStage("replace-existing");
                 File.Replace(temporary, path, null);
+            }
+            catch (IOException)
+            {
+                ObserveSyntheticMove("failed", temporary, path, bytes.Length);
+                throw;
             }
 #if UNITY_EDITOR
             InventoryWriteCheckpoint?.Invoke(path, temporary, "replaced");
