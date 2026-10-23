@@ -380,7 +380,25 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (Managers.GoogleAdMobM.CanRequestAds)
         { Mark("FAIL advertising guard"); yield break; }
         Mark("ISOLATION_OK login=blocked ads=blocked memory-server=ready app-private-save=ready");
+#if TAMER_CHARACTER_UI
+        bool needsCharacter = string.IsNullOrEmpty(Managers.DataM.LocalPlayerData["Sex"]);
+        if (needsCharacter)
+        {
+            Managers.SceneM.NextScene(GameConstants.Scene.SetCharacter);
+            float characterDeadline = Time.realtimeSinceStartup + 40;
+            while ((UnitySceneManager.GetActiveScene().name != "SetCharacter" || Managers.SceneM.IsTransitioning ||
+                FindFirstObjectByType<CanvasSelectCharacter>() == null) && Time.realtimeSinceStartup < characterDeadline)
+                yield return null;
+            if (UnitySceneManager.GetActiveScene().name != "SetCharacter" || Managers.SceneM.IsTransitioning ||
+                FindFirstObjectByType<CanvasSelectCharacter>() == null)
+            { Mark("CHARACTER_UI_FAIL selection entry"); yield break; }
+            Mark("CHARACTER_UI_READY original direction and Play buttons; no automatic choice/save");
+            while (UnitySceneManager.GetActiveScene().name != "Main") yield return null;
+        }
+        else Managers.SceneM.NextScene(GameConstants.Scene.Main);
+#else
         Managers.SceneM.NextScene(GameConstants.Scene.Main);
+#endif
 #if TAMER_AGE_CHOICE
         // The real first-run age modal pauses gameplay. Do not interpret that pause as a failed scene load.
         float deadline = Time.realtimeSinceStartup + 40;
@@ -395,7 +413,23 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
-#if TAMER_SHOP_UI
+#if TAMER_CHARACTER_UI
+        string gender = Managers.DataM.LocalPlayerData["Sex"];
+        var characterInventory = Managers.DataM.ReadInventory();
+        var characterCloud = Newtonsoft.Json.JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, string>>(
+            File.ReadAllText(Path.Combine(Path.GetDirectoryName(RevivalGameplayIsolation.SavePath), "SyntheticCloud.json")));
+        bool characterValid = gender == "Woman" && characterCloud["Sex"] == gender &&
+            Player.Instance.transform.root.name.StartsWith("Player_" + gender, StringComparison.Ordinal) &&
+            Player.Instance.Gold == 20000 && characterInventory.OwnedItems.Count == 0 && _errors == 0 &&
+            !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable;
+        Mark((characterValid ? "CHARACTER_UI_PASS" : "CHARACTER_UI_FAIL") +
+            " phase=" + (needsCharacter ? "selection" : "restart") + " gender=" + gender +
+            " cloudGenderMatches=" + (characterCloud["Sex"] == gender) + " modelMatches=" +
+            Player.Instance.transform.root.name.StartsWith("Player_" + gender, StringComparison.Ordinal) +
+            " gold=" + Player.Instance.Gold + " cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
+            " errors=" + _errors);
+        yield break;
+#elif TAMER_SHOP_UI
         Mark("SHOP_UI_READY original joystick/shop controls; no automatic purchase; synthetic cloud only" +
             " cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
             " initialCloudGold=" + RevivalGameplayIsolation.ShopCloudInitialGold);
