@@ -20,7 +20,7 @@ namespace AD
             internal PlayerInventorySnapshot Snapshot { get; }
             internal Envelope(string session, PlayerInventorySnapshot snapshot) { Session = session; Snapshot = snapshot; }
         }
-#if UNITY_EDITOR
+#if UNITY_EDITOR || TAMER_SHOP_HARNESS
         internal static Action<string, string, string> InventoryWriteCheckpoint;
 #endif
         private sealed class Record
@@ -252,7 +252,7 @@ namespace AD
                 MarkSyntheticInventoryStage("flush-pending");
                 stream.Flush(true);
             }
-#if UNITY_EDITOR
+#if UNITY_EDITOR || TAMER_SHOP_HARNESS
             InventoryWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
 #endif
             MarkSyntheticInventoryStage("validate-current-owner");
@@ -272,7 +272,7 @@ namespace AD
                 ObserveSyntheticMove("failed", temporary, path, bytes.Length);
                 throw;
             }
-#if UNITY_EDITOR
+#if UNITY_EDITOR || TAMER_SHOP_HARNESS
             InventoryWriteCheckpoint?.Invoke(path, temporary, "replaced");
 #endif
         }

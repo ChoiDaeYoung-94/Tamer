@@ -389,6 +389,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
+#if TAMER_SHOP_HARNESS
+        VerifyShopPurchase();
+        yield break;
+#endif
 #if TAMER_INVENTORY_RESTORE
         VerifyInventoryRestore();
         yield break;
@@ -421,6 +425,154 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         Player.Instance != null && Player.Instance.gameObject.activeInHierarchy &&
         CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
         CanTransitionPlayer();
+
+#if TAMER_SHOP_HARNESS
+    private void VerifyShopPurchase()
+    {
+#if TAMER_SHOP_AFTER_INVENTORY
+        const bool afterInventory = true;
+#else
+        const bool afterInventory = false;
+#endif
+        string stage = "isolation";
+        void Require(bool value) { if (!value) throw new InvalidOperationException(); }
+        try
+        {
+            Require(Application.identifier == RevivalGameplayIsolation.ShopPurchaseApplicationId && Debug.isDebugBuild &&
+                !Application.isEditor && !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable);
+            var data = Managers.DataM;
+            var player = Player.Instance;
+            string marker = Path.Combine(Path.GetDirectoryName(RevivalGameplayIsolation.SavePath), "PendingSword.txt");
+            var snapshot = data.ReadInventory();
+            if (File.Exists(marker))
+            {
+                stage = "restart-record-read";
+                var record = EquipmentPurchaseRecord.Parse(EquipmentPurchaseRecord.Extract(File.ReadAllText(RevivalGameplayIsolation.SavePath)));
+                Mark("SHOP_RESTART_OBSERVATION cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
+                    " initialCloudGold=" + RevivalGameplayIsolation.ShopCloudInitialGold + " playerGold=" + player.Gold +
+                    " owned=" + snapshot.OwnedItems.Count + " equipped=" + player.PlayerEquippedItems.Count +
+                    " hp=" + player.Hp + " power=" + player.Power + " attack=" + player.AttackSpeed + " move=" + player.MoveSpeed +
+                    " receiptPresent=" + (record != null) + " receiptComplete=" + (record != null && !record.Materializing) +
+                    " receiptMatches=" + (record != null && record.TransactionId == File.ReadAllText(marker)));
+                stage = "restart-cloud";
+                Require(RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == 15000);
+                stage = "restart-receipt";
+                string transaction = File.ReadAllText(marker);
+                // Complete receipts deliberately omit item/payment details; bind their hash
+                // to the original request and inspect actual inventory/progress separately.
+                Require(record != null && !record.Materializing && record.Owner == RevivalGameplayIsolation.AccountId &&
+                    record.Sequence == 2 && record.TransactionId == transaction &&
+                    record.RequestHash == EquipmentPurchaseRecord.Request(RevivalGameplayIsolation.AccountId,
+                        2, transaction, "MasterSword", "Sword", 15000));
+                stage = "restart-player-projection";
+                Require(data.LocalPlayerData["Gold"] == "0" && player.Gold == 0 && snapshot.OwnedItems.Count == 2 &&
+                    snapshot.OwnedItems.Contains("SimpleShield") && snapshot.OwnedItems.Contains("MasterSword") &&
+                    snapshot.Equipped["Sword"] == "MasterSword" && snapshot.Equipped["Shield"] == "SimpleShield" &&
+                    player.PlayerEquippedItems.Count == 2 && player.MasterSword.activeSelf && player.Simpleshield.activeSelf &&
+                    !player.SimpleSword.activeSelf && !player.Mastershield.activeSelf &&
+                    Mathf.Approximately(player.Hp, 150) && Mathf.Approximately(player.Power, 60) &&
+                    Mathf.Approximately(player.AttackSpeed, 1.5f) && Mathf.Approximately(player.MoveSpeed, 3) && _errors == 0);
+                Require(player.GetCurMonsterCount() == (afterInventory ? 1 : 0) &&
+                    snapshot.Collection.SequenceEqual(afterInventory ? new[] { "Bat" } : Array.Empty<string>()));
+                stage = "restart-repurchase-blocked";
+                Require(player.PrepareEquipmentPurchase("MasterSword", 15000) == null);
+                Mark("SHOP_TRANSACTION_PASS phase=restart cut=" + (afterInventory ? "I-after" : "P-after") +
+                    " gold=0 owned=2 equipped=2 allies=" + player.GetCurMonsterCount() +
+                    " models=matched hp=150 power=60 attack=1.5 move=3 sameTransaction=true syntheticCloudLoaded=true initialCloudGold=15000 errors=0");
+                return;
+            }
+
+            stage = "initial-state";
+            int initialGold = afterInventory ? 20100 : 20000;
+            Require(!RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == initialGold &&
+                snapshot.OwnedItems.Count == 0 && snapshot.Collection.Count == 0 && player.Gold == initialGold && _errors == 0);
+            if (afterInventory)
+            {
+                stage = "ally-unlock-fixture";
+                data.WriteInventory(RevivalGameplayIsolation.AccountId, data.AccountGeneration,
+                    new[] { "Bat" }, snapshot.OwnedItems, snapshot.Equipped);
+                var ally = player.PrepareAllyPurchase("Bat", 100);
+                Require(ally != null);
+                int allyPresented = 0;
+                Require(player.TryPurchaseAlly(ally, () => allyPresented++) && allyPresented == 1 &&
+                    player.Gold == 20000 && player.GetCurMonsterCount() == 1);
+                string allyProgress = File.ReadAllText(RevivalGameplayIsolation.SavePath);
+                Require(!player.TryPurchaseAlly(ally, () => allyPresented++) && allyPresented == 1 &&
+                    player.Gold == 20000 && player.GetCurMonsterCount() == 1 &&
+                    File.ReadAllText(RevivalGameplayIsolation.SavePath) == allyProgress && _errors == 0);
+                Mark("SHOP_ALLY_STEP normal=completed sameIntent=rejected gold=20000 allies=1 presentations=1 fileUnchanged=true errors=0");
+            }
+            stage = "normal-shield";
+            var shield = player.PrepareEquipmentPurchase("SimpleShield", 5000);
+            Require(shield != null);
+            int presented = 0;
+            Require(player.TryPurchaseEquipment(shield, () => presented++) == EquipmentPurchaseResult.Completed);
+            Require(player.Gold == 15000 && Mathf.Approximately(player.Hp, 150) && player.Simpleshield.activeSelf && presented == 1);
+            string progress = File.ReadAllText(RevivalGameplayIsolation.SavePath);
+            var inventory = data.ReadInventory();
+            stage = "same-intent-replay";
+            Require(player.TryPurchaseEquipment(shield, () => presented++) == EquipmentPurchaseResult.AlreadyCommittedCompleted);
+            Require(player.Gold == 15000 && Mathf.Approximately(player.Hp, 150) && presented == 1 &&
+                data.ReadInventory().OwnedItems.SequenceEqual(inventory.OwnedItems) &&
+                File.ReadAllText(RevivalGameplayIsolation.SavePath) == progress && _errors == 0);
+            var cloud = Newtonsoft.Json.JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, string>>(
+                File.ReadAllText(Path.Combine(Path.GetDirectoryName(marker), "SyntheticCloud.json")));
+            Require(cloud != null && cloud["Gold"] == "15000" && !cloud.ContainsKey(EquipmentPurchaseRecord.Key));
+            Mark("SHOP_TRANSACTION_STEP normal=completed replay=already-completed gold=15000 hp=150 presentations=1 syntheticCloudStored=15000 errors=0");
+
+            stage = "cut-prepare";
+            var sword = player.PrepareEquipmentPurchase("MasterSword", 15000);
+            Require(sword != null && DataManager.JournalWriteCheckpoint == null && PlayerInventoryStore.InventoryWriteCheckpoint == null);
+            File.WriteAllText(marker, sword.Id);
+            bool cutReached = false;
+            EquipmentPurchaseResult result;
+            try
+            {
+                if (afterInventory)
+                    PlayerInventoryStore.InventoryWriteCheckpoint = (path, temporary, checkpoint) =>
+                    {
+                        if (checkpoint == "replaced" && !cutReached)
+                        { cutReached = true; throw new IOException("Synthetic post-inventory cut"); }
+                    };
+                else
+                    DataManager.JournalWriteCheckpoint = (path, temporary, checkpoint) =>
+                    {
+                        if (path == RevivalGameplayIsolation.SavePath && checkpoint == "replaced" && !cutReached)
+                        { cutReached = true; throw new IOException("Synthetic post-commit cut"); }
+                    };
+                stage = afterInventory ? "post-inventory-cut" : "post-commit-cut";
+                result = player.TryPurchaseEquipment(sword, () => presented++);
+            }
+            finally { DataManager.JournalWriteCheckpoint = null; PlayerInventoryStore.InventoryWriteCheckpoint = null; }
+            Require(cutReached && result == EquipmentPurchaseResult.RecoveryRequired && !data.IsServerDataReady && presented == 1);
+            var pending = EquipmentPurchaseRecord.Parse(EquipmentPurchaseRecord.Extract(File.ReadAllText(RevivalGameplayIsolation.SavePath)));
+            Require(pending != null && pending.Materializing && pending.ItemId == "MasterSword" &&
+                pending.TransactionId == sword.Id && pending.Sequence == 2 && pending.GoldBefore == 15000 && pending.GoldAfter == 0);
+            string committed = File.ReadAllText(RevivalGameplayIsolation.SavePath);
+            stage = "blocked-replay-after-cut";
+            Require(player.TryPurchaseEquipment(sword, () => presented++) == EquipmentPurchaseResult.Rejected &&
+                File.ReadAllText(RevivalGameplayIsolation.SavePath) == committed && presented == 1 && _errors == 0);
+            if (afterInventory)
+            {
+                stage = "unfinished-direct-replay";
+                string inventoryPath = Path.Combine(RevivalGameplayIsolation.SavePath + ".inventory",
+                    PlayerInventoryStore.OwnerKey(RevivalGameplayIsolation.AccountId) + ".json");
+                string inventoryBytes = File.ReadAllText(inventoryPath);
+                var stored = Newtonsoft.Json.Linq.JObject.Parse(inventoryBytes);
+                Require(stored["OwnedItems"].Values<string>().Count() == 2 &&
+                    (string)stored["Equipped"]["Sword"] == "MasterSword");
+                Require(data.TryCommitEquipmentPurchase(sword, 15000, () => true) == EquipmentPurchaseResult.CommittedPendingMaterialization &&
+                    File.ReadAllText(RevivalGameplayIsolation.SavePath) == committed &&
+                    File.ReadAllText(inventoryPath) == inventoryBytes && _errors == 0);
+                Mark("SHOP_UNFINISHED_REPLAY_PASS result=pending successCallbacks=0 progressUnchanged=true inventoryUnchanged=true errors=0");
+            }
+            Mark("SHOP_TRANSACTION_CUT_READY phase=" + (afterInventory ? "I-after" : "P-after") +
+                " goldCommitted=0 item=MasterSword pending=true replay=rejected ready=false errors=0; force-stop then restart this app without clearing data");
+        }
+        catch (Exception error)
+        { Mark("SHOP_TRANSACTION_FAIL stage=" + stage + " type=" + error.GetBaseException().GetType().Name); }
+    }
+#endif
 
 #if TAMER_INVENTORY_RESTORE
     private void VerifyInventoryRestore()
@@ -624,7 +776,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUILayout.Label(_status + " | errors=" + _errors + " totalErrors=" + _totalErrors +
             " playerConnectionDiagnostics=" + _playerConnectionDiagnostics);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
-#if TAMER_PLAYER_RESTORE || TAMER_INVENTORY_RESTORE
+#if TAMER_PLAYER_RESTORE || TAMER_INVENTORY_RESTORE || TAMER_SHOP_HARNESS
         GUILayout.Label("Restore inspection only — no automatic round trip; preserve this app and its evidence");
         GUILayout.EndArea();
         return;

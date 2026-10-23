@@ -675,13 +675,13 @@ namespace AD
                 byte[] bytes = new UTF8Encoding(false).GetBytes(contents);
                 using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 { stream.Write(bytes, 0, bytes.Length); stream.Flush(true); }
-#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS
+#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS || TAMER_SHOP_HARNESS
                 JournalWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
 #endif
                 if (canCommit != null && !canCommit()) throw new InvalidOperationException("Save owner changed.");
                 if (File.Exists(path)) File.Replace(temporary, path, null);
                 else File.Move(temporary, path);
-#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS
+#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS || TAMER_SHOP_HARNESS
                 JournalWriteCheckpoint?.Invoke(path, temporary, "replaced");
 #endif
             }
