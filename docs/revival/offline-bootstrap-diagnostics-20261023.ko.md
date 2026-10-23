@@ -1,3 +1,44 @@
+# LD 오프라인 초기화 복구 — 2026-10-23
+
+## 최신 결과
+
+사용자가 두 번 실패 후 재승인 규칙을 제거하도록 지시해 관리·구현 AGENTS를 수정했습니다. 실패와 원인 판별 근거는 누적 기록하고 같은 조건의 무의미한 반복은 하지 않습니다. 운영 계정·저장·No Ads·키 보호는 유지합니다.
+
+인벤토리 임시 파일명만 줄인 `2abb43734c24deeac115374e45b40f55e3b3fcfa` APK에서 LD 초기화와 Main 진입, Main→Game→Main 왕복 1회가 통과했습니다. 기존 네 번의 실패를 성공으로 재분류하지 않습니다. 이 결과는 Android14/API34·ARM64 번역·4KB인 해당 LD 환경의 격리 앱 검증입니다. 실제 기기·운영 로그인·구매/광고·16KB·스토어 출시 통과를 뜻하지 않습니다.
+
+## 원인 판별과 수정
+
+| 시도 | 실제 소스 | 결과·구분 근거 |
+|---|---|---|
+| 1 | f30a9e6 | 합성 초기화 실패, 별도 native PGS 선택창 관측 |
+| 2 | e612312 | bind-inventory / FileNotFoundException; offline manifest의 PGS 제공자 제거 후 선택창 관측 안 됨 |
+| 3 | 9d8be01 | inventory-move-to-destination / FileNotFoundException / 0x80070002 |
+| 4 | 0216b95 | 같은 Move 실패. 경로266자/임시명110자, ReadAllBytes165bytes인데 managed·Java 존재 조회=false. 실제 목록은 임시명100자/UUID22자·전체경로256자 |
+| 5 | 2abb437 | 짧은 경로197자/임시명41자. managed·Java 존재=true/165bytes, ISOLATION_OK→연령 미응답 선택→MAIN_READY→ROUNDTRIP_OK count1/errors0 |
+
+같은 LD 환경에서 긴 이름으로 생성한 파일이 잘린 이름으로 남아 open/read와 stat/Move 결과가 어긋나는 현상을 확인했습니다. 정확히 어느 에뮬레이터·번역 내부층이 잘랐는지와 모든 환경의 길이 임계값은 미확정입니다. 일반 Android 전체의 256자 제한으로 단정하지 않습니다.
+
+수정은 같은 디렉토리의 `.pending-<UUID32>`만 사용하도록 했습니다. 계정별 최종 파일명·위치·JSON Owner/Session·CreateNew·durable flush·현재 세션 fence·Move/Replace는 유지합니다. 기존 실패 pending을 가져오거나 지우지 않고, File.Copy+Delete나 실패 무시로 우회하지 않았습니다. 모든 임의 길이 부모 경로를 보장한다는 주장도 하지 않습니다.
+
+## 검증과 보호
+
+- `RevivalInventoryStoreTests` **39/39 PASS**, 실패·skip0. 새3case는 짧은 형제 파일/기존 pending 보존/새 저장 재로드와 임시 소스 실종 시 최초·기존 원본 보존을 확인합니다. 기존 계정 전환·거래 중단 복구·교체 fence 검사도 포함합니다.
+- 이전 manifest/진단 집중21/21은 당시 소스 근거로 구분합니다. 서로 다른 실행 수를 고유 테스트 수로 합산하지 않습니다.
+- 수정 APK 빌드16:05:40–16:07:37 KST 종료0. source2abb437, 153856026bytes, SHA256 `9366fe3f3e6cdc9e8feafef589fa00329310347abfc253b8c509f12f76869ba8`.
+- Unity6000.3.25f1/e1dba0a9aba4, CLI1.0.0-beta.8, 별도 gameplay ID/debug/min25target36/ARM64/version26. 서명·native provider2개·INTERNET/BILLING/GMS광고ID 부재 확인. AdServices 권한은 남아 있어 SDK 전체 처리 OFF로 표현하지 않습니다.
+- 각 실행은 보호53개·GUID·범위밖 변경을 대조합니다. 이번 집중검증의 복구는 원바이트 복구 후 마지막 Editor 상태 검사에서 실패했으나, 재복구 없이 실제 프로젝트별 프로세스·보호53개 해시·Git clean을 읽기 전용으로 재확인했습니다. 별도 사후 검증 기록을 보존하며 실패를 누락하지 않습니다. 빌드 복구는 각1회 정상 완료했습니다.
+- 설치한 base.apk 바이트를 원본 APK와 직접 대조했고 운영 앱/IAP 앱 데이터·키·Library·다른 프로젝트 Editor를 변경하지 않았습니다.
+
+## 다음 확인
+
+기존 게임 이동·상점·장착·포획·사망·백그라운드 관측은 각 결과를 구분해 추가합니다. 공개 로그에는 경로·계정·파일 내용·원시 예외를 넣지 않습니다. 원시 증거와 스크린샷은 비공개 Logs에 보존합니다.
+
+[이슈398](https://github.com/ChoiDaeYoung-94/Tamer/issues/398), [PR399](https://github.com/ChoiDaeYoung-94/Tamer/pull/399). 부모 후보 병합과 main 출시 완료는 별개입니다.
+
+---
+
+## 이전 진단 기록 — 아래 승인 대기·미실행은 당시 상태
+
 # LD 오프라인 게임 초기화 진단 — 2026-10-23
 
 ## 현재 판정
