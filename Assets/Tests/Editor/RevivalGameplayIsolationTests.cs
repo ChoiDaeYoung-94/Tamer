@@ -11,6 +11,23 @@ using UnityEngine.SceneManagement;
 
 public class RevivalGameplayIsolationTests
 {
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Socket: Failed to set blocking mode", LogType.Error, true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Unable to setup multicast socket for player connection.", LogType.Error, true)]
+    [TestCase("com.AeDeong.MonsterTamer", true, false, "Socket: Failed to set blocking mode", LogType.Error, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", false, false, "Socket: Failed to set blocking mode", LogType.Error, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, true, "Socket: Failed to set blocking mode", LogType.Error, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Socket: Failed to set blocking mode", LogType.Exception, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Socket: Failed to set blocking mode", LogType.Assert, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Socket: Failed to set blocking mode unexpected", LogType.Error, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Connection failed", LogType.Error, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, null, LogType.Error, false)]
+    public void Revival_OfflineConnectionDiagnosticRequiresExactMessageAndPrivateDevelopmentRuntime(
+        string package, bool development, bool editor, string message, LogType type, bool expected)
+    {
+        var policy = Runtime("AD.RevivalGameplayIsolation").GetMethod("IsOfflinePlayerConnectionDiagnostic");
+        Assert.That(policy.Invoke(null, new object[] { package, development, editor, message, type }), Is.EqualTo(expected));
+    }
+
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", false, null, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.playerrestore", false, null, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.agechoice", true, null, false)]

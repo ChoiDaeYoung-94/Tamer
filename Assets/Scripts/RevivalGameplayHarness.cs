@@ -13,6 +13,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 {
     private string _status = "Starting isolated gameplay";
     private int _errors;
+    private int _totalErrors;
+    private int _playerConnectionDiagnostics;
     private int _roundTrips;
     private bool _busy;
     private Player _originalPlayer;
@@ -230,7 +232,11 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     }
     private void OnLog(string message, string trace, LogType type)
     {
-        if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) _errors++;
+        if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+        _totalErrors++;
+        if (RevivalGameplayIsolation.IsOfflinePlayerConnectionDiagnostic(Application.identifier,
+            Debug.isDebugBuild, Application.isEditor, message, type)) _playerConnectionDiagnostics++;
+        else _errors++;
     }
     private void Mark(string value)
     {
@@ -473,7 +479,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         { Mark("FAIL return/guard/errors=" + _errors); _busy = false; yield break; }
         _roundTrips++;
         Mark("ROUNDTRIP_OK count=" + _roundTrips + " reads=" + RevivalGameplayIsolation.Reads +
-            " writes=" + RevivalGameplayIsolation.Writes + " errors=" + _errors);
+            " writes=" + RevivalGameplayIsolation.Writes + " errors=" + _errors +
+            " totalErrors=" + _totalErrors + " playerConnectionDiagnostics=" + _playerConnectionDiagnostics);
         _busy = false;
     }
 
@@ -498,7 +505,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 #endif
         ), GUI.skin.box);
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
-        GUILayout.Label(_status + " | errors=" + _errors);
+        GUILayout.Label(_status + " | errors=" + _errors + " totalErrors=" + _totalErrors +
+            " playerConnectionDiagnostics=" + _playerConnectionDiagnostics);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
 #if TAMER_PLAYER_RESTORE || TAMER_INVENTORY_RESTORE
         GUILayout.Label("Restore inspection only — no automatic round trip; preserve this app and its evidence");

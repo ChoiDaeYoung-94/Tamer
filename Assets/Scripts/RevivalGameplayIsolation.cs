@@ -69,6 +69,19 @@ namespace AD
         public static void BlockLogin() => BlockedLogins++;
         public static void BlockPurchase() => BlockedPurchases++;
 
+        public static bool IsOfflinePlayerConnectionDiagnostic(string applicationId, bool development,
+            bool editor, string message, UnityEngine.LogType type)
+        {
+            if (editor || !development || type != UnityEngine.LogType.Error ||
+                (applicationId != ApplicationId && applicationId != PlayerRestoreApplicationId &&
+                 applicationId != SessionApplicationId && applicationId != InventoryRestoreApplicationId &&
+                 applicationId != AgeChoiceApplicationId)) return false;
+            // These exact engine diagnostics occur because the offline development APK has
+            // no INTERNET permission. Other socket errors and all exceptions still fail.
+            return message == "Socket: Failed to set blocking mode" ||
+                message == "Unable to setup multicast socket for player connection.";
+        }
+
         public static string CreateSavePath(string persistentRoot)
         {
 #if TAMER_INVENTORY_RESTORE
