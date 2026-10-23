@@ -24,7 +24,7 @@ python tools/revival/verify_play_artifacts.py `
 
 원본 AAB의 `base/lib/<abi>/*.so`와 APK의 `lib/<abi>/*.so` 전체 경로 집합 및 각 SHA-256이 같아야 합니다. `verify_native_alignment.inspect_apk(..., strict_relro=False)`의 동일 APK 해시·LOAD/ZIP 성공도 요구합니다. RELRO 결과는 별도 진단으로 남기며 실패를 숨기지 않습니다. strict RELRO 옵션은 제공하지 않습니다. runtime 16KB·기기별 split·정책·실제 구매/복구·스토어 승인·전체 출시 준비는 이 검사 범위 밖이며 결과의 관련 필드는 `false`입니다.
 
-검사 실패는 exit 1이며 새 성공 JSON을 쓰지 않습니다. 기존 출력은 덮어쓰지 않고 원본도 변경하지 않습니다. CLI는 원시 도구 로그를 출력하지 않으며, 모듈 API `verify_artifacts(...)`는 guard 실패를 예외로 전달합니다. 실패 이력과 횟수는 실행 담당자가 별도 보존하고 같은 검사 두 번 실패 시 중단합니다. 실패 뒤 이름을 바꾸어 재실행하거나 과거 native 결과를 새 실행 결과로 기록하지 않습니다.
+검사 실패는 exit 1이며 새 성공 JSON을 쓰지 않습니다. 기존 출력은 덮어쓰지 않고 원본도 변경하지 않습니다. CLI는 원시 도구 로그를 출력하지 않으며, 모듈 API `verify_artifacts(...)`는 guard 실패를 예외로 전달합니다. 2026-10-23 AGENTS 기준으로 고정된 두 번 실패 중단 규칙은 제거됐습니다. 승인된 범위에서 가설·원인·변경 조건·대상 SHA·원시 로그·실패 누적을 보존하고 필요한 재검증을 진행합니다. 파일 이름만 바꾼 동일 조건 반복이나 과거 native 결과를 새 실행 결과로 기록하는 일은 하지 않습니다. 운영 계정·저장·No Ads·서명키 보호와 총괄의 실행 직렬화는 유지합니다.
 
 최소 합성 회귀(실제 SDK 도구는 mock, ELF/ZIP은 합성 데이터):
 
