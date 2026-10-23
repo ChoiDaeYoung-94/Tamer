@@ -243,7 +243,8 @@ public class RevivalGameplayIsolationTests
             // must fail closed instead of claiming ready or exposing the response.
             server = Runtime("AD.RevivalGameplayIsolation").GetMethod("CreateServer").Invoke(null, new object[] { data });
             UnityEngine.TestTools.LogAssert.Expect(LogType.Warning,
-                "GAMEPLAY_HARNESS SYNTHETIC_READ_FAILED stage=validate-session exception=InvalidOperationException");
+                new System.Text.RegularExpressions.Regex(
+                    "^GAMEPLAY_HARNESS SYNTHETIC_READ_FAILED stage=validate-session exception=InvalidOperationException hresult=0x[0-9A-F]{8}$"));
             server.GetType().GetMethod("GetAllData").Invoke(server, new object[] { true });
             Assert.That(server.GetType().GetProperty("HasFailed").GetValue(server), Is.True);
             Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(data), Is.False);

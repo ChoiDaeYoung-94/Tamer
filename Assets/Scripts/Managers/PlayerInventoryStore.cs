@@ -48,9 +48,19 @@ namespace AD
         }
         public string PathFor(string account) => Path.Combine(_directory, OwnerKey(account) + ".json");
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("TAMER_GAMEPLAY_HARNESS")]
+        private static void MarkSyntheticInventoryStage(string stage)
+        {
+#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+            RevivalGameplayIsolation.SetReadApplyStage("inventory-" + stage);
+#endif
+        }
+
         // Unlike Load, this never creates a directory or changes a session binding.
         internal Envelope ReadEnvelope(string account)
         {
+            MarkSyntheticInventoryStage("read-envelope");
             var record = ReadRecord(PathFor(account));
             return record == null ? null : new Envelope(record.Session,
                 Validate(account, record.Owner, record.Collection, record.OwnedItems, record.Equipped));
@@ -96,6 +106,7 @@ namespace AD
 
         private static Record ReadRecord(string path)
         {
+            MarkSyntheticInventoryStage("read-record");
             string json;
             try { json = File.ReadAllText(path, Encoding.UTF8); }
             catch (FileNotFoundException) { return null; }
@@ -146,8 +157,10 @@ namespace AD
 
         public PlayerInventorySnapshot Load(string account)
         {
+            MarkSyntheticInventoryStage("load-path-key");
             string path = PathFor(account);
             // Creating the directory fails visibly if storage is unavailable; absence is not an I/O fallback.
+            MarkSyntheticInventoryStage("create-directory");
             Directory.CreateDirectory(_directory);
             var record = ReadRecord(path);
             if (record == null) return Validate(account, account, Array.Empty<string>(), Array.Empty<string>(), EmptySlots());
@@ -187,19 +200,34 @@ namespace AD
         private void WriteRecord(string account, PlayerInventorySnapshot candidate, string session, Func<bool> canCommit = null,
             Action replacing = null)
         {
+            MarkSyntheticInventoryStage("write-path-key");
             string path = PathFor(account), temporary = path + ".pending-" + Guid.NewGuid().ToString("N");
             var record = new Record { Version = 1, Owner = account, Collection = candidate.Collection.ToArray(),
                 OwnedItems = candidate.OwnedItems.ToArray(), Equipped = new Dictionary<string, string>(candidate.Equipped), Session = session };
+            MarkSyntheticInventoryStage("serialize");
             byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(record));
+            MarkSyntheticInventoryStage("open-pending");
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            { stream.Write(bytes, 0, bytes.Length); stream.Flush(true); }
+            {
+                MarkSyntheticInventoryStage("write-pending");
+                stream.Write(bytes, 0, bytes.Length);
+                MarkSyntheticInventoryStage("flush-pending");
+                stream.Flush(true);
+            }
 #if UNITY_EDITOR
             InventoryWriteCheckpoint?.Invoke(path, temporary, "temporary-closed");
 #endif
+            MarkSyntheticInventoryStage("validate-current-owner");
             if (canCommit != null && !canCommit()) throw new InvalidOperationException("Inventory owner changed.");
+            MarkSyntheticInventoryStage("replace-callback");
             replacing?.Invoke(); // Any error from this point may follow a durable replacement.
+            MarkSyntheticInventoryStage("move-to-destination");
             try { File.Move(temporary, path); }
-            catch (IOException) when (File.Exists(path)) { File.Replace(temporary, path, null); }
+            catch (IOException) when (File.Exists(path))
+            {
+                MarkSyntheticInventoryStage("replace-existing");
+                File.Replace(temporary, path, null);
+            }
 #if UNITY_EDITOR
             InventoryWriteCheckpoint?.Invoke(path, temporary, "replaced");
 #endif

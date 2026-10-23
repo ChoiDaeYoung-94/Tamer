@@ -156,7 +156,8 @@ namespace AD
                             // Fixed checkpoint + type only: never print exception messages,
                             // account/save values, paths, or the snapshot itself.
                             UnityEngine.Debug.LogWarning("GAMEPLAY_HARNESS SYNTHETIC_READ_FAILED stage=" +
-                                ReadApplyStage + " exception=" + error.GetType().Name);
+                                ReadApplyStage + " exception=" + error.GetType().Name +
+                                " hresult=0x" + error.HResult.ToString("X8"));
                             throw;
                         }
                     }
