@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using PlayFab.ClientModels;
 
 namespace AD
@@ -14,8 +15,11 @@ namespace AD
         public const string SessionApplicationId = "com.AeDeong.MonsterTamer.revival.sessionguard";
         public const string InventoryRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.inventoryrestore";
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
+        public const string ShopPurchaseApplicationId = "com.AeDeong.MonsterTamer.revival.shoppurchase";
         public static string RuntimeApplicationId =>
-#if TAMER_INVENTORY_RESTORE
+#if TAMER_SHOP_HARNESS
+            ShopPurchaseApplicationId;
+#elif TAMER_INVENTORY_RESTORE
             InventoryRestoreApplicationId;
 #elif TAMER_SESSION_HARNESS
             SessionApplicationId;
@@ -75,7 +79,7 @@ namespace AD
             if (editor || !development || type != UnityEngine.LogType.Error ||
                 (applicationId != ApplicationId && applicationId != PlayerRestoreApplicationId &&
                  applicationId != SessionApplicationId && applicationId != InventoryRestoreApplicationId &&
-                 applicationId != AgeChoiceApplicationId)) return false;
+                 applicationId != AgeChoiceApplicationId && applicationId != ShopPurchaseApplicationId)) return false;
             // These exact engine diagnostics occur because the offline development APK has
             // no INTERNET permission. Other socket errors and all exceptions still fail.
             return message == "Socket: Failed to set blocking mode" ||
@@ -84,7 +88,12 @@ namespace AD
 
         public static string CreateSavePath(string persistentRoot)
         {
-#if TAMER_INVENTORY_RESTORE
+#if TAMER_SHOP_HARNESS
+            ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
+                UnityEngine.PlayerPrefs.HasKey, ShopPurchaseApplicationId);
+            if (!UnityEngine.Debug.isDebugBuild) throw new InvalidOperationException("Debug shop fixture required.");
+            string directory = Path.Combine(persistentRoot, "RevivalShopPurchase");
+#elif TAMER_INVENTORY_RESTORE
             ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
                 UnityEngine.PlayerPrefs.HasKey, InventoryRestoreApplicationId);
             // Only this separate offline application reopens its own previous process's inventory.
@@ -135,6 +144,21 @@ namespace AD
 #else
                 Seed();
 #endif
+#if TAMER_SHOP_HARNESS
+            string cloudPath = Path.Combine(Path.GetDirectoryName(SavePath), "SyntheticCloud.json");
+            if (UnityEngine.Application.identifier != ShopPurchaseApplicationId || !UnityEngine.Debug.isDebugBuild ||
+                Path.GetFileName(Path.GetDirectoryName(cloudPath)) != "RevivalShopPurchase")
+                throw new InvalidOperationException("Dedicated synthetic shop cloud required.");
+            if (File.Exists(cloudPath))
+            {
+                var stored = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(cloudPath));
+                if (stored == null || stored.Count > 256 || cloud.Keys.Any(key => !stored.ContainsKey(key)) ||
+                    !int.TryParse(stored["Gold"], out int savedGold) || savedGold < 0)
+                    throw new InvalidDataException("Synthetic cloud structure changed; preserve.");
+                cloud = stored;
+            }
+            else cloud["Gold"] = "20000";
+#endif
             return new ServerManager(() => owner != null ? owner.PlayFabId : null,
                 () => owner != null && owner.IsServerDataReady,
                 (account, success, failure) =>
@@ -150,6 +174,20 @@ namespace AD
                     foreach (var entry in patch)
                         if (entry.Value == null) cloud.Remove(entry.Key);
                         else cloud[entry.Key] = entry.Value;
+#if TAMER_SHOP_HARNESS
+                    // Persist only this separate fixture's simulated server between processes.
+                    // This is not evidence of real remote or multi-device atomicity.
+                    string temporary = Path.Combine(Path.GetDirectoryName(cloudPath), ".cloud-" + Guid.NewGuid().ToString("N"));
+                    try
+                    {
+                        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(cloud));
+                        using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                        { stream.Write(bytes, 0, bytes.Length); stream.Flush(true); }
+                        if (File.Exists(cloudPath)) File.Replace(temporary, cloudPath, null);
+                        else File.Move(temporary, cloudPath);
+                    }
+                    finally { if (File.Exists(temporary)) File.Delete(temporary); }
+#endif
                     success();
                 },
                 // This transport completes synchronously; no external timer or retry is needed.

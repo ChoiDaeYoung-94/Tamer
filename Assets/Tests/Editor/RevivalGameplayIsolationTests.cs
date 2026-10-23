@@ -13,6 +13,9 @@ public class RevivalGameplayIsolationTests
 {
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Socket: Failed to set blocking mode", LogType.Error, true)]
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, false, "Unable to setup multicast socket for player connection.", LogType.Error, true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.shoppurchase", true, false, "Socket: Failed to set blocking mode", LogType.Error, true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.shoppurchase", false, false, "Socket: Failed to set blocking mode", LogType.Error, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.shoppurchase", true, false, "Socket: Failed to set blocking mode", LogType.Exception, false)]
     [TestCase("com.AeDeong.MonsterTamer", true, false, "Socket: Failed to set blocking mode", LogType.Error, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", false, false, "Socket: Failed to set blocking mode", LogType.Error, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true, true, "Socket: Failed to set blocking mode", LogType.Error, false)]
