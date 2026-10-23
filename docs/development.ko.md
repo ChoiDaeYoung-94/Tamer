@@ -1,6 +1,7 @@
 # Tamer 개발·검증 안내
 
 이 문서는 Windows PowerShell 기준이다. 현재 동작하는 복구 도구와 확인된 한계를 설명한다.
+LDPlayer 보조 게임 시험의 대상 고정·ADB 읽기 확인과 한계는 [LDPlayer 검증 안내](revival/ldplayer-validation.ko.md)를 따른다. 에뮬레이터 결과를 실제 휴대폰·ARM64 16KB·스토어 검증으로 대체하지 않는다.
 최신 실행 결과와 남은 작업은 [통합 검증 요약](revival/completion-summary.ko.md)과 [통합 데이터](revival/integration-validation.json), 초기 이력은 [기준 빌드 기록](revival/baseline.ko.md), 단계별 추적은 [로드맵](revival/plan.ko.md)을 따른다.
 
 ## 1. 새 작업본 준비

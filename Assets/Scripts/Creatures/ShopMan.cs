@@ -23,6 +23,8 @@ public class ShopMan : MonoBehaviour
     private int _currentItemPrice = 0;
     private const string _successBuyMessage = "Purchase completed.";
     private const string _failedBuyMessage = "You don't have enough Gold.";
+    private const string _confirmAllyMessage = "Confirm this ally purchase.";
+    private const string _unavailableAllyMessage = "Purchase could not finish. Sign in again before trying another purchase.";
 
     public string _currentItemsText = string.Empty;
     public List<string> CurrentItemsList = new List<string>();
@@ -34,6 +36,8 @@ public class ShopMan : MonoBehaviour
     private bool _purchaseResultOpen;
     private string _inventoryOwner;
     private int _inventoryGeneration = -1;
+    private AD.DataManager.AllyPurchaseIntent _pendingAllyPurchase;
+    private AD.DataManager.EquipmentPurchaseIntent _pendingEquipmentPurchase;
 
     private void Awake()
     {
@@ -57,6 +61,8 @@ public class ShopMan : MonoBehaviour
     public void ClearInventorySession()
     {
         _purchasePending = false;
+        _pendingAllyPurchase = null;
+        _pendingEquipmentPurchase = null;
         _inventoryOwner = null; _inventoryGeneration = -1;
         _currentItemsText = string.Empty; CurrentItemsList.Clear();
     }
@@ -96,6 +102,8 @@ public class ShopMan : MonoBehaviour
     public void ChooseItem(string itemName, string price, string info, bool isEquipment)
     {
         _purchasePending = false;
+        _pendingAllyPurchase = null;
+        _pendingEquipmentPurchase = null;
         AD.Managers.SoundM.UI_Click();
 
         _currentItemName = itemName;
@@ -109,6 +117,8 @@ public class ShopMan : MonoBehaviour
     {
         AD.Managers.SoundM.UI_Click();
         _purchasePending = false;
+        _pendingAllyPurchase = null;
+        _pendingEquipmentPurchase = null;
 
         if (_currentItemPrice < 0 || string.IsNullOrEmpty(_currentItemName) ||
             _currentItemPrice > Player.Instance.Gold ||
@@ -118,8 +128,23 @@ public class ShopMan : MonoBehaviour
             return;
         }
 
+        if (_isEquipmentItem)
+        {
+            try { _pendingEquipmentPurchase = Player.Instance.PrepareEquipmentPurchase(_currentItemName, _currentItemPrice); }
+            catch (Exception) { _pendingEquipmentPurchase = null; }
+            if (_pendingEquipmentPurchase == null) { ShowPurchaseResult(_unavailableAllyMessage); return; }
+        }
+        else
+        {
+            _pendingAllyPurchase = Player.Instance.PrepareAllyPurchase(_currentItemName, _currentItemPrice);
+            if (_pendingAllyPurchase == null)
+            {
+                ShowPurchaseResult(_unavailableAllyMessage);
+                return;
+            }
+        }
         _purchasePending = true;
-        ShowPurchaseResult(_successBuyMessage);
+        ShowPurchaseResult(_isEquipmentItem ? "Confirm this equipment purchase." : _confirmAllyMessage);
     }
 
     private void ShowPurchaseResult(string message)
@@ -143,25 +168,38 @@ public class ShopMan : MonoBehaviour
 
         if (!TryConsumePurchase(Player.Instance.Gold))
         {
+            _pendingAllyPurchase = null;
+            _pendingEquipmentPurchase = null;
             ShowPurchaseResult(_failedBuyMessage);
             return;
         }
 
-        AD.Managers.PopupM.DisablePop();
-        AD.Managers.PopupM.DisablePop();
-
-        if (_isEquipmentItem)
+        if (!_isEquipmentItem)
         {
-            SaveItem(_currentItemName);
-            AD.Managers.EquipmentM.Equip(_currentItemName);
-        }
-        else
-        {
-            Player.Instance.BuyAllyMonster(_currentItemName);
-            ResetItems();
+            var purchase = _pendingAllyPurchase;
+            _pendingAllyPurchase = null; // No popup callback may replay this confirmation.
+            if (!Player.Instance.TryPurchaseAlly(purchase, () =>
+            {
+                ResetItems();
+                PlayerUICanvas.Instance.UpdatePlayerInfo();
+                ShowPurchaseResult(_successBuyMessage);
+            })) ShowPurchaseResult(_unavailableAllyMessage);
+            return;
         }
 
-        Player.Instance.MinusGold(_currentItemPrice);
+        var equipment = _pendingEquipmentPurchase;
+        _pendingEquipmentPurchase = null;
+        var result = Player.Instance.TryPurchaseEquipment(equipment, () =>
+        {
+            // RefreshInventorySession is a no-op for an unchanged session; use the saved snapshot directly.
+            var inventory = AD.Managers.DataM.ReadInventory();
+            CurrentItemsList = inventory.OwnedItems.ToList();
+            _currentItemsText = string.Join(",", CurrentItemsList);
+            ResetItems(); PlayerUICanvas.Instance.UpdatePlayerInfo();
+            ShowPurchaseResult(_successBuyMessage);
+        });
+        if (result == AD.EquipmentPurchaseResult.AlreadyCommittedCompleted) ShowPurchaseResult(_successBuyMessage);
+        else if (result != AD.EquipmentPurchaseResult.Completed) ShowPurchaseResult(_unavailableAllyMessage);
     }
 
     private bool TryConsumePurchase(int availableGold)

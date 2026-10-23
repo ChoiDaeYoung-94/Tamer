@@ -6,6 +6,16 @@ using System.Threading.Tasks;
 
 namespace AD.Purchasing
 {
+    // Optional test composition policy. Normal purchasing constructors have no gate.
+    public interface IIapExecutionGate
+    {
+        bool CanAccessStore { get; }
+        bool AllowPurchases { get; }
+        bool AllowAutomaticRetry { get; }
+        bool TryBeginVerification();
+        void Close();
+    }
+
     public sealed class ReceiptSession
     {
         public string AccountId { get; }

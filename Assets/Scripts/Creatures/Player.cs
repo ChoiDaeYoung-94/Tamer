@@ -55,8 +55,37 @@ public class Player : Creature
     }
     private string _inventoryOwner;
     private int _inventoryGeneration = -1;
+    private bool _equippingInventory;
     private string _targetInventoryOwner;
     private int _targetInventoryGeneration = -1;
+    private int _targetMonsterLifetime = -1;
+
+    internal bool IsCurrentCombatSession() => ReferenceEquals(_instance, this) &&
+        !isDie && GameplaySessionCurrent();
+
+    private bool CombatTargetCurrent() => _curTargetMonsterObject != null && _curTargetMonster != null &&
+        _curTargetMonster.gameObject == _curTargetMonsterObject && _curTargetMonster.isActiveAndEnabled &&
+        _curTargetMonster.Hp > 0 && _curTargetMonster.gameObject.layer == enemyLayer &&
+        _curTargetMonster.IsCurrentSession(_targetMonsterLifetime);
+
+    // Keep the selected corpse until its death callback records the collection entry.
+    private bool WaitingForTargetDeath() => _curTargetMonsterObject != null && _curTargetMonster != null &&
+        _curTargetMonster.isActiveAndEnabled && _curTargetMonster.Hp <= 0 &&
+        _curTargetMonster.gameObject.layer == dieLayer && _curTargetMonster.IsCurrentSession(_targetMonsterLifetime);
+
+    private void ClearCombatTarget()
+    {
+        _curTargetMonsterObject = null; _curTargetMonster = null;
+        _targetInventoryOwner = null; _targetInventoryGeneration = -1; _targetMonsterLifetime = -1;
+    }
+
+    private void SetCombatTarget(Monster target)
+    {
+        _curTargetMonster = target;
+        _curTargetMonsterObject = target != null ? target.gameObject : null;
+        _targetMonsterLifetime = target != null ? target.SessionLifetime : -1;
+        _targetInventoryOwner = _inventoryOwner; _targetInventoryGeneration = _inventoryGeneration;
+    }
 
     private const string PLAYER_MONSTERS_KEY = "AllyMonsters";
     private const string PLAYER_EQUIPPED_ITEMS_KEY = "playerEquippedItems";
@@ -224,6 +253,11 @@ public class Player : Creature
     protected override void AttackTarget()
     {
         if (isDie || !GameplaySessionCurrent()) return;
+        if (!CombatTargetCurrent())
+        {
+            if (!WaitingForTargetDeath()) ClearCombatTarget();
+            return;
+        }
         if (_curTargetMonsterObject != null)
         {
             float power = IsBuffing ? BuffPower : Power;
@@ -268,9 +302,15 @@ public class Player : Creature
         {
             if (_curTargetMonsterObject != null)
             {
-                float distance = Vector3.Distance(transform.position, _curTargetMonsterObject.transform.position);
-                if (distance > _curTargetMonster.FlockingRadius + 0.3f)
-                    _curTargetMonsterObject = null;
+                if (!CombatTargetCurrent())
+                {
+                    if (!WaitingForTargetDeath()) ClearCombatTarget();
+                }
+                else
+                {
+                    float distance = Vector3.Distance(transform.position, _curTargetMonsterObject.transform.position);
+                    if (distance > _curTargetMonster.FlockingRadius + 0.3f) ClearCombatTarget();
+                }
             }
             await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken: token);
         }
@@ -312,6 +352,167 @@ public class Player : Creature
         AddAllyMonster(monster);
     }
 
+    internal AD.DataManager.AllyPurchaseIntent PrepareAllyPurchase(string name, int price)
+    {
+        return AllyPurchasePlayerCurrent() ? _gameplayData.PrepareAllyPurchase(name, price) : null;
+    }
+
+    private bool AllyPurchasePlayerCurrent() => ReferenceEquals(_instance, this) && GameplaySessionCurrent();
+
+    internal AD.DataManager.EquipmentPurchaseIntent PrepareEquipmentPurchase(string item, int price)
+    {
+        if (!AllyPurchasePlayerCurrent()) return null;
+        // Parse/model checks precede the spend; no numerical or scene effects here.
+        var intent = _gameplayData.PrepareEquipmentPurchase(item, price);
+        if (intent == null) return null;
+        var slots = new Dictionary<string, string>(_gameplayData.ReadInventory().Equipped) { [intent.Slot] = item };
+        var nextItems = new[] { slots["Sword"], slots["Shield"] }.Where(n => n != null).ToList();
+        foreach (var name in PlayerEquippedItems.Concat(nextItems).Distinct(StringComparer.Ordinal))
+        {
+            ReadEquipmentStats(name);
+            if (!AD.Managers.EquipmentM.EquipmentMapping.TryGetValue(name, out var model) || model == null)
+                return null;
+        }
+        EquipmentStatProjection(nextItems);
+        return intent;
+    }
+
+    internal AD.EquipmentPurchaseResult TryPurchaseEquipment(AD.DataManager.EquipmentPurchaseIntent intent,
+        Action afterCommit, Action<AD.PlayerInventorySnapshot> present = null)
+    {
+        if (!AllyPurchasePlayerCurrent()) return AD.EquipmentPurchaseResult.Rejected;
+        var owner = _gameplayData;
+        var result = owner.TryCommitEquipmentPurchase(intent, _gold, () => AllyPurchasePlayerCurrent());
+        if (result != AD.EquipmentPurchaseResult.Completed) return result; // Includes durable-but-unfinished duplicate.
+        try
+        {
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Equipment owner changed.");
+            var snapshot = owner.ReadInventory();
+            _gold = int.Parse(owner.LocalPlayerData[GOLD_KEY], NumberStyles.Integer, CultureInfo.InvariantCulture);
+            if (present != null) present(snapshot);
+            else ApplyPurchasedEquipment(snapshot);
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Equipment owner changed.");
+            afterCommit?.Invoke();
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Equipment owner changed.");
+            owner.UpdatePlayerData();
+            return result;
+        }
+        catch (Exception)
+        {
+            owner.StopEquipmentPresentation(intent);
+            Debug.LogWarning("[Tamer/Player] Equipment data preserved; sign in again to restore its presentation.");
+            return AD.EquipmentPurchaseResult.RecoveryRequired;
+        }
+    }
+
+    private float[] ReadEquipmentStats(string item) => ReadEquipmentStats(AD.Managers.DataM, item);
+
+    private static float[] ReadEquipmentStats(AD.DataManager owner, string item)
+    {
+        var data = owner.ItemData[item] as Dictionary<string, object>;
+        var result = new float[4];
+        string[] keys = { "Hp", "Power", "AttackSpeed", "MoveSpeed" };
+        for (int i = 0; i < keys.Length; i++)
+            if (data == null || !data.TryGetValue(keys[i], out var value) ||
+                !float.TryParse(value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out result[i]) ||
+                float.IsNaN(result[i]) || float.IsInfinity(result[i]))
+                throw new InvalidOperationException("Equipment statistics are unavailable.");
+        return result;
+    }
+
+    private float[] EquipmentStatProjection(IEnumerable<string> nextItems) => EquipmentStatProjection(nextItems, AD.Managers.DataM);
+
+    private float[] EquipmentStatProjection(IEnumerable<string> nextItems, AD.DataManager owner)
+    {
+        var previous = new HashSet<string>(PlayerEquippedItems, StringComparer.Ordinal);
+        var next = new HashSet<string>(nextItems, StringComparer.Ordinal);
+        float[] delta = new float[4];
+        foreach (var item in previous.Except(next))
+        { var stats = ReadEquipmentStats(owner, item); for (int i = 0; i < 4; i++) delta[i] -= stats[i]; }
+        foreach (var item in next.Except(previous))
+        { var stats = ReadEquipmentStats(owner, item); for (int i = 0; i < 4; i++) delta[i] += stats[i]; }
+        float hp = _hp + delta[0], power = _power + delta[1], attack = _attackSpeed + delta[2], move = _moveSpeed + delta[3];
+        if (new[] { hp, power, attack, move }.Any(v => float.IsNaN(v) || float.IsInfinity(v)))
+            throw new InvalidOperationException("Equipment statistics exceed their supported range.");
+        return new[] { hp, power, attack, move };
+    }
+
+    // No disk writes. Commit the numerical/list projection before invoking model/HUD callbacks.
+    private void ApplyPurchasedEquipment(AD.PlayerInventorySnapshot snapshot)
+    {
+        var nextItems = new[] { snapshot.Equipped["Sword"], snapshot.Equipped["Shield"] }.Where(n => n != null).ToList();
+        var previous = new HashSet<string>(PlayerEquippedItems, StringComparer.Ordinal);
+        var next = new HashSet<string>(nextItems, StringComparer.Ordinal);
+        var stats = EquipmentStatProjection(nextItems);
+        string text = string.Join(",", nextItems);
+        if (!previous.SetEquals(next))
+        { _hp = _itemAdditionalHp = stats[0]; _power = stats[1]; _attackSpeed = stats[2]; _moveSpeed = stats[3]; }
+        PlayerEquippedItems = nextItems; EquippedItems = text;
+        foreach (var model in AD.Managers.EquipmentM.EquipmentMapping)
+        {
+            if (model.Value == null)
+            {
+                if (next.Contains(model.Key) || previous.Contains(model.Key)) throw new InvalidOperationException("Equipment model is unavailable.");
+                continue;
+            }
+            model.Value.SetActive(next.Contains(model.Key));
+        }
+    }
+
+    // Presentation is deliberately downstream of the one-file Gold/roster commit.
+    // The delegate permits isolated scene tests without a live pool or HUD.
+    internal bool TryPurchaseAlly(AD.DataManager.AllyPurchaseIntent purchase, Action afterCommit,
+        Action<string> presentAlly = null)
+    {
+        if (!AllyPurchasePlayerCurrent()) return false;
+        var owner = _gameplayData;
+        if (!owner.TryCommitAllyPurchase(purchase, _gold, () => AllyPurchasePlayerCurrent())) return false;
+        try
+        {
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            _gold = int.Parse(owner.LocalPlayerData[GOLD_KEY], NumberStyles.Integer, CultureInfo.InvariantCulture);
+            if (presentAlly != null) presentAlly(purchase.MonsterName);
+            else PresentPurchasedAlly(purchase.MonsterName);
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            afterCommit?.Invoke();
+            if (!AllyPurchasePlayerCurrent()) throw new InvalidOperationException("Purchase owner changed.");
+            owner.UpdatePlayerData();
+            return true;
+        }
+        catch (Exception)
+        {
+            // Includes pool, popup and HUD failures. Never run MinusGold/AddAllyMonster again,
+            // and never allow the periodic save to publish an old Player cache over the commit.
+            owner.StopAllyPurchaseSession(purchase);
+            Debug.LogWarning("[Tamer/Player] Purchase data saved; sign in again to restore its presentation.");
+            return false;
+        }
+    }
+
+    private void PresentPurchasedAlly(string name)
+    {
+        Monster monster = null;
+        GameObject pooled = null;
+        try
+        {
+            pooled = AD.Managers.PoolM.PopFromPool(name, AD.Managers.PoolM.RootPlayer);
+            monster = pooled.GetComponent<Monster>();
+            if (monster == null) throw new InvalidOperationException("Purchased ally is unavailable.");
+            monster.AllySetting(playerPosition: transform.position, setting: true);
+            if (!AllyPurchasePlayerCurrent() || !monster.IsCurrentSession(monster.SessionLifetime))
+                throw new InvalidOperationException("Purchased ally session changed.");
+            // The CSV is already durable. AddAllyMonster would append and save it a second time.
+            _allyMonsters.Add(monster);
+            _isAllyAvailable = true;
+        }
+        catch
+        {
+            if (monster != null) monster.RetireSession();
+            else if (pooled != null) AD.Managers.PoolM.PushToPool(pooled);
+            throw;
+        }
+    }
+
     public void MoveSound() => PlaySFX(AD.Managers.SoundM.SFXWalkClip);
 
     /// <summary>
@@ -319,13 +520,20 @@ public class Player : Creature
     /// </summary>
     private void AllyMove()
     {
+        if (!GameplaySessionCurrent() || AD.Managers.SceneM == null || AD.Managers.SceneM.IsTransitioning ||
+            _allyMonsters.Count == 0) return;
+        Monster leader = null;
+        foreach (var candidate in _allyMonsters)
+            if (candidate != null && candidate.CanNavigateCurrentSession) { leader = candidate; break; }
+        if (leader == null) return;
         int row = 2;
         int countInRow = 0;
         int listCount = _allyMonsters.Count;
-        Vector3 startRowPosition = transform.position + (-transform.forward * _allyMonsters[0].FlockingRadius);
+        Vector3 startRowPosition = transform.position + (-transform.forward * leader.FlockingRadius);
 
         for (int i = 0; i < listCount; i++)
         {
+            if (_allyMonsters[i] == null || !_allyMonsters[i].CanNavigateCurrentSession) continue;
             if (countInRow >= row)
             {
                 row++;
@@ -497,8 +705,7 @@ public class Player : Creature
             if (monster != null) monster.RetireSession();
         _allyMonsters.Clear(); _isAllyAvailable = false;
         _gold = 0;
-        _curTargetMonsterObject = null; _curTargetMonster = null;
-        _targetInventoryOwner = null; _targetInventoryGeneration = -1;
+        ClearCombatTarget();
         ClearCaptureTarget();
         foreach (var item in PlayerEquippedItems)
         {
@@ -539,21 +746,69 @@ public class Player : Creature
 
     public void EquipInventoryItem(string item)
     {
-        var data = AD.Managers.DataM;
-        var current = data.ReadInventory();
-        var slots = new Dictionary<string, string>(current.Equipped);
-        string slot = AD.Managers.EquipmentM.SegmentedEquipment.First(pair => pair.Value.Contains(item)).Key;
-        string previous = slots[slot]; slots[slot] = item;
-        var saved = data.WriteInventory(_inventoryOwner, _inventoryGeneration, current.Collection, current.OwnedItems, slots);
-        // Slot replacement is one durable write; failed validation/I/O leaves equipment and stats untouched.
-        if (previous != null)
+        TryEquipInventoryItem(item, null, null);
+    }
+
+    internal bool TryEquipInventoryItem(string item, Action refreshShop, Action refreshHud)
+    {
+        if (_equippingInventory || !AllyPurchasePlayerCurrent()) return false;
+        var data = _gameplayData;
+        var equipment = AD.Managers.EquipmentM;
+        string owner = _inventoryOwner, session = data.InventorySession;
+        int generation = _inventoryGeneration, epoch = data.DeletionEpoch;
+        bool replacing = false;
+        Func<bool> current = () => ReferenceEquals(_instance, this) && ReferenceEquals(_gameplayData, data) &&
+            ReferenceEquals(AD.Managers.DataM, data) && ReferenceEquals(AD.Managers.EquipmentM, equipment) &&
+            _inventoryOwner == owner && _inventoryGeneration == generation && data.PlayFabId == owner &&
+            data.AccountGeneration == generation && data.DeletionEpoch == epoch && data.InventorySession == session &&
+            data.IsServerDataReady && !data.DeletionInProgress;
+        _equippingInventory = true;
+        try
         {
-            UnequipEquipment(previous);
-            AD.Managers.EquipmentM.EquipmentMapping[previous].SetActive(false);
+            if (equipment == null || !current()) return false;
+            var before = data.ReadInventory();
+            string slot = equipment.SegmentedEquipment.FirstOrDefault(pair => pair.Value.Contains(item)).Key;
+            if (slot == null || !before.OwnedItems.Contains(item)) return false;
+            var slots = new Dictionary<string, string>(before.Equipped) { [slot] = item };
+            var nextItems = slots.Values.Where(value => value != null).ToList();
+            if (before.Equipped[slot] == item && new HashSet<string>(PlayerEquippedItems).SetEquals(nextItems)) return true;
+            // Validate the complete numerical projection and capture only this owner's model references before I/O.
+            foreach (var name in PlayerEquippedItems.Concat(nextItems).Distinct()) ReadEquipmentStats(data, name);
+            var stats = EquipmentStatProjection(nextItems, data);
+            var models = new Dictionary<string, GameObject>();
+            foreach (var name in PlayerEquippedItems.Concat(before.Equipped.Values).Concat(nextItems).Where(n => n != null).Distinct())
+            {
+                if (!equipment.EquipmentMapping.TryGetValue(name, out var model) || model == null)
+                    throw new InvalidOperationException("Equipment model is unavailable.");
+                models.Add(name, model);
+            }
+            Func<bool> presentationCurrent = () => current() && models.All(pair => pair.Value != null &&
+                equipment.EquipmentMapping.TryGetValue(pair.Key, out var model) && ReferenceEquals(model, pair.Value));
+            if (!presentationCurrent()) return false;
+            data.WriteInventoryCurrent(owner, generation, epoch, session, before, slots, presentationCurrent, () => replacing = true);
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment owner changed after saving.");
+            // Publish the list and all numbers without callbacks; model/HUD effects follow under the same boundary.
+            _hp = _itemAdditionalHp = stats[0]; _power = stats[1]; _attackSpeed = stats[2]; _moveSpeed = stats[3];
+            PlayerEquippedItems = nextItems; EquippedItems = string.Join(",", nextItems);
+            foreach (var pair in models)
+            {
+                if (!presentationCurrent()) throw new InvalidOperationException("Equipment presentation changed.");
+                pair.Value.SetActive(nextItems.Contains(pair.Key));
+            }
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment presentation changed.");
+            refreshShop?.Invoke();
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment shop changed the session.");
+            refreshHud?.Invoke();
+            if (!presentationCurrent()) throw new InvalidOperationException("Equipment HUD changed the session.");
+            return true;
         }
-        PlayerEquippedItems = saved.Equipped.Values.Where(value => value != null).ToList();
-        EquippedItems = string.Join(",", PlayerEquippedItems);
-        ApplyEquipment(item); AD.Managers.EquipmentM.EquipmentMapping[item].SetActive(true);
+        catch (Exception)
+        {
+            if (replacing) data.StopDirectEquipmentSession(owner, generation, epoch, session);
+            Debug.LogWarning("[Tamer/Player] Equipment change could not finish; saved data preserved.");
+            return false;
+        }
+        finally { _equippingInventory = false; }
     }
 
     public string SavePrefs(List<string> list, string str, string data, string key)
@@ -609,10 +864,10 @@ public class Player : Creature
     {
         if (target == null || target != _curTargetMonsterObject || _curTargetMonster == null ||
             _targetInventoryOwner == null || _targetInventoryOwner != _inventoryOwner ||
-            _targetInventoryGeneration != _inventoryGeneration) return;
+            _targetInventoryGeneration != _inventoryGeneration || !_curTargetMonster.IsCurrentSession(_targetMonsterLifetime)) return;
         _monsterCollection = SavePrefs(PlayerMonsterCollection, _monsterCollection,
             _curTargetMonster.CreatureType.ToString(), PLAYER_MONSTERS_KEY);
-        _curTargetMonsterObject = null; _curTargetMonster = null;
+        ClearCombatTarget();
     }
 
     /// <summary>
@@ -650,10 +905,7 @@ public class Player : Creature
         {
             if (_curTargetMonsterObject == null)
             {
-                _curTargetMonsterObject = col.gameObject;
-                _curTargetMonster = _curTargetMonsterObject.GetComponent<Monster>();
-                _targetInventoryOwner = _inventoryOwner;
-                _targetInventoryGeneration = _inventoryGeneration;
+                SetCombatTarget(col.GetComponent<Monster>());
             }
         }
     }

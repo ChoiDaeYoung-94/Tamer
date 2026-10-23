@@ -13,6 +13,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 {
     private string _status = "Starting isolated gameplay";
     private int _errors;
+    private int _totalErrors;
+    private int _playerConnectionDiagnostics;
     private int _roundTrips;
     private bool _busy;
     private Player _originalPlayer;
@@ -25,6 +27,9 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private int _previousGameSceneHandle;
     private Monster[] _previousMonsters = Array.Empty<Monster>();
     private string _lastCaptureObservation;
+#if TAMER_SHOP_UI
+    private string _lastShopObservation;
+#endif
 #if TAMER_GAMEPLAY_PHOTO
     private bool _photoMode;
     private int _photoRestoreTaps;
@@ -79,6 +84,9 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (player == null || Managers.Instance != _originalManagers) return;
         ObserveSceneLifetime();
         ObserveCaptures(player);
+#if TAMER_SHOP_UI
+        ObserveShopUi(player);
+#endif
 #if TAMER_GAMEPLAY_HARNESS && !TAMER_GAMEPLAY_PHOTO && !TAMER_AGE_CHOICE && !TAMER_SESSION_HARNESS && !TAMER_PLAYER_RESTORE && !TAMER_INVENTORY_RESTORE
         ObserveCombat(player);
 #endif
@@ -203,6 +211,122 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         Mark("CAPTURE_ASSIST target=Bat invincible=true captureRoll=true; use original combat and Capture button");
     }
 
+    private async void VerifyNavigationReceivers()
+    {
+        if (!RevivalGameplayIsolation.AllowsCaptureAssist || _busy || !Ready("Game")) return;
+        _busy = true;
+        Monster issuer = null, recipient = null;
+        var owned = new System.Collections.Generic.List<GameObject>();
+        UnityEngine.AI.NavMeshData arena = null;
+        UnityEngine.AI.NavMeshDataInstance arenaInstance = default;
+        string stage = "prepare";
+        int errorsBefore = _errors;
+        bool checksPassed = false, cleanupFailed = false;
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic;
+        var move = typeof(Monster).GetMethod("SafeSetDestination", flags);
+        void Require(bool value) { if (!value) throw new InvalidOperationException(); }
+        Monster Spawn(Vector3 point)
+        {
+            var instance = Managers.PoolM.PopFromPool("Bat");
+            owned.Add(instance); // Retain ownership even if setup fails before returning.
+            var monster = instance.GetComponent<Monster>();
+            monster.transform.SetParent(MonsterGenerator.Instance.transform, true);
+            monster.SetEnemyRole(true);
+            Require(monster.NavMeshAgent.Warp(point));
+            return monster;
+        }
+        try
+        {
+            Require(UnityEngine.AI.NavMesh.SamplePosition(Player.Instance.transform.position + Vector3.forward * 2,
+                out var original, 3, UnityEngine.AI.NavMesh.AllAreas));
+            issuer = Spawn(original.position);
+            recipient = Spawn(original.position);
+            Require(issuer.CanNavigateCurrentSession && recipient.CanNavigateCurrentSession);
+            stage = "healthy-receiver";
+            move.Invoke(issuer, new object[] { recipient, original.position });
+            Require(recipient.State == Creature.CreatureState.Move && _errors == errorsBefore);
+            Mark("NAVIGATION_GUARD_STEP healthy=accepted");
+
+            stage = "disabled-receiver";
+            recipient.State = Creature.CreatureState.Idle;
+            recipient.NavMeshAgent.enabled = false;
+            Require(issuer.CanNavigateCurrentSession && !recipient.CanNavigateCurrentSession);
+            move.Invoke(issuer, new object[] { recipient, original.position });
+            Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);
+            Mark("NAVIGATION_GUARD_STEP disabled=rejected");
+            recipient.NavMeshAgent.enabled = true;
+            Require(recipient.NavMeshAgent.Warp(original.position) && recipient.CanNavigateCurrentSession);
+
+            stage = "offmesh-receiver";
+            // An additive, owned arena lets us remove ONLY this receiver's NavMesh.
+            // Original scene meshes, accounts, HP and inventory remain unchanged.
+            Vector3 center = new Vector3(10000, 0, 10000);
+            arena = UnityEngine.AI.NavMeshBuilder.BuildNavMeshData(
+                UnityEngine.AI.NavMesh.GetSettingsByID(recipient.NavMeshAgent.agentTypeID),
+                new System.Collections.Generic.List<UnityEngine.AI.NavMeshBuildSource>
+                {
+                    new UnityEngine.AI.NavMeshBuildSource { shape = UnityEngine.AI.NavMeshBuildSourceShape.Box,
+                        transform = Matrix4x4.Translate(center), size = new Vector3(8, 1, 8), area = 0 }
+                }, new Bounds(center, new Vector3(12, 6, 12)), Vector3.zero, Quaternion.identity);
+            stage = "offmesh-arena-built";
+            Require(arena != null);
+            arenaInstance = UnityEngine.AI.NavMesh.AddNavMeshData(arena);
+            stage = "offmesh-arena-sample";
+            Require(UnityEngine.AI.NavMesh.SamplePosition(center, out var isolated, 2, UnityEngine.AI.NavMesh.AllAreas));
+            stage = "offmesh-arena-warp";
+            Require(recipient.NavMeshAgent.Warp(isolated.position) && recipient.CanNavigateCurrentSession);
+            arenaInstance.Remove();
+            for (int frame = 0; frame < 5; frame++) await Awaitable.NextFrameAsync();
+            stage = "offmesh-membership";
+            bool nearbyMesh = UnityEngine.AI.NavMesh.SamplePosition(recipient.transform.position,
+                out _, 2, UnityEngine.AI.NavMesh.AllAreas);
+            Mark("NAVIGATION_GUARD_MEMBERSHIP recipientActive=" + recipient.NavMeshAgent.isActiveAndEnabled +
+                " recipientOnMesh=" + recipient.NavMeshAgent.isOnNavMesh + " issuerCurrent=" + issuer.CanNavigateCurrentSession +
+                " nearbyMesh=" + nearbyMesh + " arenaValid=" + arenaInstance.valid +
+                " receiverAtArena=" + (Vector3.Distance(recipient.transform.position, isolated.position) < 1));
+            // isOnNavMesh may be stale after native data removal: require actual mesh absence
+            // and the production guard's rejection, without pretending the native flag changed.
+            Require(recipient.NavMeshAgent.isActiveAndEnabled && !nearbyMesh &&
+                !recipient.CanNavigateCurrentSession && issuer.CanNavigateCurrentSession);
+            stage = "offmesh-rejected";
+            move.Invoke(issuer, new object[] { recipient, original.position });
+            Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);
+            Require(recipient.NavMeshAgent.Warp(original.position) && recipient.CanNavigateCurrentSession);
+            checksPassed = true;
+        }
+        catch (Exception error)
+        { Mark("NAVIGATION_GUARD_FAIL stage=" + stage + " type=" + error.GetBaseException().GetType().Name); }
+        finally
+        {
+            void Cleanup(string name, Action action)
+            {
+                try { action(); }
+                catch (Exception error)
+                {
+                    cleanupFailed = true;
+                    Mark("NAVIGATION_GUARD_FAIL stage=cleanup-" + name +
+                        " type=" + error.GetBaseException().GetType().Name);
+                }
+            }
+            Cleanup("arena-instance", () => { if (arenaInstance.valid) arenaInstance.Remove(); });
+            foreach (var instance in owned)
+                Cleanup("fixture", () =>
+                {
+                    if (instance == null) return;
+                    var monster = instance.GetComponent<Monster>();
+                    if (monster != null) monster.RetireSession();
+                    else Managers.PoolM.PushToPool(instance);
+                });
+            Cleanup("arena-data", () => { if (arena != null) Destroy(arena); });
+            _busy = false;
+        }
+        if (checksPassed && !cleanupFailed && _errors == errorsBefore)
+            Mark("NAVIGATION_GUARD_PASS healthy=accepted disabled=rejected offmesh=rejected errorsDelta=0 cleanup=completed");
+        else if (checksPassed && !cleanupFailed)
+            Mark("NAVIGATION_GUARD_FAIL stage=cleanup-error-count");
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
@@ -230,7 +354,11 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     }
     private void OnLog(string message, string trace, LogType type)
     {
-        if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert) _errors++;
+        if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+        _totalErrors++;
+        if (RevivalGameplayIsolation.IsOfflinePlayerConnectionDiagnostic(Application.identifier,
+            Debug.isDebugBuild, Application.isEditor, message, type)) _playerConnectionDiagnostics++;
+        else _errors++;
     }
     private void Mark(string value)
     {
@@ -252,7 +380,25 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (Managers.GoogleAdMobM.CanRequestAds)
         { Mark("FAIL advertising guard"); yield break; }
         Mark("ISOLATION_OK login=blocked ads=blocked memory-server=ready app-private-save=ready");
+#if TAMER_CHARACTER_UI
+        bool needsCharacter = string.IsNullOrEmpty(Managers.DataM.LocalPlayerData["Sex"]);
+        if (needsCharacter)
+        {
+            Managers.SceneM.NextScene(GameConstants.Scene.SetCharacter);
+            float characterDeadline = Time.realtimeSinceStartup + 40;
+            while ((UnitySceneManager.GetActiveScene().name != "SetCharacter" || Managers.SceneM.IsTransitioning ||
+                FindFirstObjectByType<CanvasSelectCharacter>() == null) && Time.realtimeSinceStartup < characterDeadline)
+                yield return null;
+            if (UnitySceneManager.GetActiveScene().name != "SetCharacter" || Managers.SceneM.IsTransitioning ||
+                FindFirstObjectByType<CanvasSelectCharacter>() == null)
+            { Mark("CHARACTER_UI_FAIL selection entry"); yield break; }
+            Mark("CHARACTER_UI_READY original direction and Play buttons; no automatic choice/save");
+            while (UnitySceneManager.GetActiveScene().name != "Main") yield return null;
+        }
+        else Managers.SceneM.NextScene(GameConstants.Scene.Main);
+#else
         Managers.SceneM.NextScene(GameConstants.Scene.Main);
+#endif
 #if TAMER_AGE_CHOICE
         // The real first-run age modal pauses gameplay. Do not interpret that pause as a failed scene load.
         float deadline = Time.realtimeSinceStartup + 40;
@@ -267,6 +413,32 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
+#if TAMER_CHARACTER_UI
+        string gender = Managers.DataM.LocalPlayerData["Sex"];
+        var characterInventory = Managers.DataM.ReadInventory();
+        var characterCloud = Newtonsoft.Json.JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, string>>(
+            File.ReadAllText(Path.Combine(Path.GetDirectoryName(RevivalGameplayIsolation.SavePath), "SyntheticCloud.json")));
+        bool characterValid = gender == "Woman" && characterCloud["Sex"] == gender &&
+            Player.Instance.transform.root.name.StartsWith("Player_" + gender, StringComparison.Ordinal) &&
+            Player.Instance.Gold == 20000 && characterInventory.OwnedItems.Count == 0 && _errors == 0 &&
+            !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable;
+        Mark((characterValid ? "CHARACTER_UI_PASS" : "CHARACTER_UI_FAIL") +
+            " phase=" + (needsCharacter ? "selection" : "restart") + " gender=" + gender +
+            " cloudGenderMatches=" + (characterCloud["Sex"] == gender) + " modelMatches=" +
+            Player.Instance.transform.root.name.StartsWith("Player_" + gender, StringComparison.Ordinal) +
+            " gold=" + Player.Instance.Gold + " cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
+            " errors=" + _errors);
+        yield break;
+#elif TAMER_SHOP_UI
+        Mark("SHOP_UI_READY original joystick/shop controls; no automatic purchase; synthetic cloud only" +
+            " cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
+            " initialCloudGold=" + RevivalGameplayIsolation.ShopCloudInitialGold);
+        yield break;
+#elif TAMER_SHOP_HARNESS
+        VerifyShopPurchase();
+        yield break;
+#endif
+
 #if TAMER_INVENTORY_RESTORE
         VerifyInventoryRestore();
         yield break;
@@ -294,11 +466,185 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 #endif
     }
 
+#if TAMER_SHOP_UI
+    private void ObserveShopUi(Player player)
+    {
+        var data = Managers.DataM;
+        if (!data.IsServerDataReady || !Ready("Main") || ShopMan.Instance == null) return;
+        var saved = data.ReadInventory();
+        const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic;
+        var goldLabel = typeof(PlayerUICanvas).GetField("_goldText", fields).GetValue(PlayerUICanvas.Instance) as TMPro.TMP_Text;
+        string text = "gold=" + player.Gold + " storedGold=" + data.LocalPlayerData["Gold"] +
+            " owned=" + string.Join(",", saved.OwnedItems.OrderBy(value => value)) +
+            " equipped=" + string.Join(",", saved.Equipped.OrderBy(pair => pair.Key).Select(pair => pair.Key + ":" + pair.Value)) +
+            " models=" + player.SimpleSword.activeSelf + "," + player.MasterSword.activeSelf + "," +
+                player.Simpleshield.activeSelf + "," + player.Mastershield.activeSelf +
+            " hp=" + player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " power=" + player.Power.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " attack=" + player.AttackSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " move=" + player.MoveSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " hudGoldMatches=" + (goldLabel != null && goldLabel.text == "Gold - " + player.Gold) +
+            " errors=" + _errors + " totalErrors=" + _totalErrors;
+        if (text == _lastShopObservation) return;
+        _lastShopObservation = text;
+        Debug.Log("SHOP_UI_STATE " + text);
+    }
+#endif
+
     private bool Ready(string scene) => UnitySceneManager.GetActiveScene().name == scene &&
         Managers.Instance == _originalManagers && Managers.SceneM != null && !Managers.SceneM.IsTransitioning &&
         Player.Instance != null && Player.Instance.gameObject.activeInHierarchy &&
         CameraManage.Instance != null && JoyStick.Instance != null && PlayerUICanvas.Instance != null &&
         CanTransitionPlayer();
+
+#if TAMER_SHOP_HARNESS
+    private void VerifyShopPurchase()
+    {
+#if TAMER_SHOP_AFTER_INVENTORY
+        const bool afterInventory = true;
+#else
+        const bool afterInventory = false;
+#endif
+        string stage = "isolation";
+        void Require(bool value) { if (!value) throw new InvalidOperationException(); }
+        try
+        {
+            Require(Application.identifier == RevivalGameplayIsolation.ShopPurchaseApplicationId && Debug.isDebugBuild &&
+                !Application.isEditor && !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable);
+            var data = Managers.DataM;
+            var player = Player.Instance;
+            string marker = Path.Combine(Path.GetDirectoryName(RevivalGameplayIsolation.SavePath), "PendingSword.txt");
+            var snapshot = data.ReadInventory();
+            if (File.Exists(marker))
+            {
+                stage = "restart-record-read";
+                var record = EquipmentPurchaseRecord.Parse(EquipmentPurchaseRecord.Extract(File.ReadAllText(RevivalGameplayIsolation.SavePath)));
+                Mark("SHOP_RESTART_OBSERVATION cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
+                    " initialCloudGold=" + RevivalGameplayIsolation.ShopCloudInitialGold + " playerGold=" + player.Gold +
+                    " owned=" + snapshot.OwnedItems.Count + " equipped=" + player.PlayerEquippedItems.Count +
+                    " hp=" + player.Hp + " power=" + player.Power + " attack=" + player.AttackSpeed + " move=" + player.MoveSpeed +
+                    " receiptPresent=" + (record != null) + " receiptComplete=" + (record != null && !record.Materializing) +
+                    " receiptMatches=" + (record != null && record.TransactionId == File.ReadAllText(marker)));
+                stage = "restart-cloud";
+                Require(RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == 15000);
+                stage = "restart-receipt";
+                string transaction = File.ReadAllText(marker);
+                // Complete receipts deliberately omit item/payment details; bind their hash
+                // to the original request and inspect actual inventory/progress separately.
+                Require(record != null && !record.Materializing && record.Owner == RevivalGameplayIsolation.AccountId &&
+                    record.Sequence == 2 && record.TransactionId == transaction &&
+                    record.RequestHash == EquipmentPurchaseRecord.Request(RevivalGameplayIsolation.AccountId,
+                        2, transaction, "MasterSword", "Sword", 15000));
+                stage = "restart-player-projection";
+                Require(data.LocalPlayerData["Gold"] == "0" && player.Gold == 0 && snapshot.OwnedItems.Count == 2 &&
+                    snapshot.OwnedItems.Contains("SimpleShield") && snapshot.OwnedItems.Contains("MasterSword") &&
+                    snapshot.Equipped["Sword"] == "MasterSword" && snapshot.Equipped["Shield"] == "SimpleShield" &&
+                    player.PlayerEquippedItems.Count == 2 && player.MasterSword.activeSelf && player.Simpleshield.activeSelf &&
+                    !player.SimpleSword.activeSelf && !player.Mastershield.activeSelf &&
+                    Mathf.Approximately(player.Hp, 150) && Mathf.Approximately(player.Power, 60) &&
+                    Mathf.Approximately(player.AttackSpeed, 1.5f) && Mathf.Approximately(player.MoveSpeed, 3) && _errors == 0);
+                Require(player.GetCurMonsterCount() == (afterInventory ? 1 : 0) &&
+                    snapshot.Collection.SequenceEqual(afterInventory ? new[] { "Bat" } : Array.Empty<string>()));
+                stage = "restart-repurchase-blocked";
+                Require(player.PrepareEquipmentPurchase("MasterSword", 15000) == null);
+                Mark("SHOP_TRANSACTION_PASS phase=restart cut=" + (afterInventory ? "I-after" : "P-after") +
+                    " gold=0 owned=2 equipped=2 allies=" + player.GetCurMonsterCount() +
+                    " models=matched hp=150 power=60 attack=1.5 move=3 sameTransaction=true syntheticCloudLoaded=true initialCloudGold=15000 errors=0");
+                return;
+            }
+
+            stage = "initial-state";
+            int initialGold = afterInventory ? 20100 : 20000;
+            Require(!RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == initialGold &&
+                snapshot.OwnedItems.Count == 0 && snapshot.Collection.Count == 0 && player.Gold == initialGold && _errors == 0);
+            if (afterInventory)
+            {
+                stage = "ally-unlock-fixture";
+                data.WriteInventory(RevivalGameplayIsolation.AccountId, data.AccountGeneration,
+                    new[] { "Bat" }, snapshot.OwnedItems, snapshot.Equipped);
+                var ally = player.PrepareAllyPurchase("Bat", 100);
+                Require(ally != null);
+                int allyPresented = 0;
+                Require(player.TryPurchaseAlly(ally, () => allyPresented++) && allyPresented == 1 &&
+                    player.Gold == 20000 && player.GetCurMonsterCount() == 1);
+                string allyProgress = File.ReadAllText(RevivalGameplayIsolation.SavePath);
+                Require(!player.TryPurchaseAlly(ally, () => allyPresented++) && allyPresented == 1 &&
+                    player.Gold == 20000 && player.GetCurMonsterCount() == 1 &&
+                    File.ReadAllText(RevivalGameplayIsolation.SavePath) == allyProgress && _errors == 0);
+                Mark("SHOP_ALLY_STEP normal=completed sameIntent=rejected gold=20000 allies=1 presentations=1 fileUnchanged=true errors=0");
+            }
+            stage = "normal-shield";
+            var shield = player.PrepareEquipmentPurchase("SimpleShield", 5000);
+            Require(shield != null);
+            int presented = 0;
+            Require(player.TryPurchaseEquipment(shield, () => presented++) == EquipmentPurchaseResult.Completed);
+            Require(player.Gold == 15000 && Mathf.Approximately(player.Hp, 150) && player.Simpleshield.activeSelf && presented == 1);
+            string progress = File.ReadAllText(RevivalGameplayIsolation.SavePath);
+            var inventory = data.ReadInventory();
+            stage = "same-intent-replay";
+            Require(player.TryPurchaseEquipment(shield, () => presented++) == EquipmentPurchaseResult.AlreadyCommittedCompleted);
+            Require(player.Gold == 15000 && Mathf.Approximately(player.Hp, 150) && presented == 1 &&
+                data.ReadInventory().OwnedItems.SequenceEqual(inventory.OwnedItems) &&
+                File.ReadAllText(RevivalGameplayIsolation.SavePath) == progress && _errors == 0);
+            var cloud = Newtonsoft.Json.JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, string>>(
+                File.ReadAllText(Path.Combine(Path.GetDirectoryName(marker), "SyntheticCloud.json")));
+            Require(cloud != null && cloud["Gold"] == "15000" && !cloud.ContainsKey(EquipmentPurchaseRecord.Key));
+            Mark("SHOP_TRANSACTION_STEP normal=completed replay=already-completed gold=15000 hp=150 presentations=1 syntheticCloudStored=15000 errors=0");
+
+            stage = "cut-prepare";
+            var sword = player.PrepareEquipmentPurchase("MasterSword", 15000);
+            Require(sword != null && DataManager.JournalWriteCheckpoint == null && PlayerInventoryStore.InventoryWriteCheckpoint == null);
+            File.WriteAllText(marker, sword.Id);
+            bool cutReached = false;
+            EquipmentPurchaseResult result;
+            try
+            {
+                if (afterInventory)
+                    PlayerInventoryStore.InventoryWriteCheckpoint = (path, temporary, checkpoint) =>
+                    {
+                        if (checkpoint == "replaced" && !cutReached)
+                        { cutReached = true; throw new IOException("Synthetic post-inventory cut"); }
+                    };
+                else
+                    DataManager.JournalWriteCheckpoint = (path, temporary, checkpoint) =>
+                    {
+                        if (path == RevivalGameplayIsolation.SavePath && checkpoint == "replaced" && !cutReached)
+                        { cutReached = true; throw new IOException("Synthetic post-commit cut"); }
+                    };
+                stage = afterInventory ? "post-inventory-cut" : "post-commit-cut";
+                result = player.TryPurchaseEquipment(sword, () => presented++);
+            }
+            finally { DataManager.JournalWriteCheckpoint = null; PlayerInventoryStore.InventoryWriteCheckpoint = null; }
+            Require(cutReached && result == EquipmentPurchaseResult.RecoveryRequired && !data.IsServerDataReady && presented == 1);
+            var pending = EquipmentPurchaseRecord.Parse(EquipmentPurchaseRecord.Extract(File.ReadAllText(RevivalGameplayIsolation.SavePath)));
+            Require(pending != null && pending.Materializing && pending.ItemId == "MasterSword" &&
+                pending.TransactionId == sword.Id && pending.Sequence == 2 && pending.GoldBefore == 15000 && pending.GoldAfter == 0);
+            string committed = File.ReadAllText(RevivalGameplayIsolation.SavePath);
+            stage = "blocked-replay-after-cut";
+            Require(player.TryPurchaseEquipment(sword, () => presented++) == EquipmentPurchaseResult.Rejected &&
+                File.ReadAllText(RevivalGameplayIsolation.SavePath) == committed && presented == 1 && _errors == 0);
+            if (afterInventory)
+            {
+                stage = "unfinished-direct-replay";
+                string inventoryPath = Path.Combine(RevivalGameplayIsolation.SavePath + ".inventory",
+                    PlayerInventoryStore.OwnerKey(RevivalGameplayIsolation.AccountId) + ".json");
+                string inventoryBytes = File.ReadAllText(inventoryPath);
+                var stored = Newtonsoft.Json.Linq.JObject.Parse(inventoryBytes);
+                Require(stored["OwnedItems"].Values<string>().Count() == 2 &&
+                    (string)stored["Equipped"]["Sword"] == "MasterSword");
+                Require(data.TryCommitEquipmentPurchase(sword, 15000, () => true) == EquipmentPurchaseResult.CommittedPendingMaterialization &&
+                    File.ReadAllText(RevivalGameplayIsolation.SavePath) == committed &&
+                    File.ReadAllText(inventoryPath) == inventoryBytes && _errors == 0);
+                Mark("SHOP_UNFINISHED_REPLAY_PASS result=pending successCallbacks=0 progressUnchanged=true inventoryUnchanged=true errors=0");
+            }
+            Mark("SHOP_TRANSACTION_CUT_READY phase=" + (afterInventory ? "I-after" : "P-after") +
+                " goldCommitted=0 item=MasterSword pending=true replay=rejected ready=false errors=0; force-stop then restart this app without clearing data");
+        }
+        catch (Exception error)
+        { Mark("SHOP_TRANSACTION_FAIL stage=" + stage + " type=" + error.GetBaseException().GetType().Name); }
+    }
+#endif
 
 #if TAMER_INVENTORY_RESTORE
     private void VerifyInventoryRestore()
@@ -473,7 +819,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         { Mark("FAIL return/guard/errors=" + _errors); _busy = false; yield break; }
         _roundTrips++;
         Mark("ROUNDTRIP_OK count=" + _roundTrips + " reads=" + RevivalGameplayIsolation.Reads +
-            " writes=" + RevivalGameplayIsolation.Writes + " errors=" + _errors);
+            " writes=" + RevivalGameplayIsolation.Writes + " errors=" + _errors +
+            " totalErrors=" + _totalErrors + " playerConnectionDiagnostics=" + _playerConnectionDiagnostics);
         _busy = false;
     }
 
@@ -498,9 +845,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 #endif
         ), GUI.skin.box);
         GUILayout.Label("OFFLINE TEST APP — original Main/Game scenes, synthetic account only");
-        GUILayout.Label(_status + " | errors=" + _errors);
+        GUILayout.Label(_status + " | errors=" + _errors + " totalErrors=" + _totalErrors +
+            " playerConnectionDiagnostics=" + _playerConnectionDiagnostics);
         GUILayout.Label(_lastObservation ?? "Waiting for player");
-#if TAMER_PLAYER_RESTORE || TAMER_INVENTORY_RESTORE
+#if TAMER_PLAYER_RESTORE || TAMER_INVENTORY_RESTORE || TAMER_SHOP_HARNESS
         GUILayout.Label("Restore inspection only — no automatic round trip; preserve this app and its evidence");
         GUILayout.EndArea();
         return;
@@ -518,6 +866,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUI.enabled = _captureAssist;
         if (GUILayout.Button("Disable capture-test invincibility (original combat)", GUILayout.Height(45)))
         { _captureAssist = false; Mark("CAPTURE_ASSIST_DISABLED original damage restored"); }
+        GUI.enabled = !_busy && Ready("Game") && RevivalGameplayIsolation.AllowsCaptureAssist;
+        if (GUILayout.Button("Check navigation receivers (isolated fixtures)", GUILayout.Height(45))) VerifyNavigationReceivers();
         GUI.enabled = true;
 #endif
 #if TAMER_GAMEPLAY_PHOTO

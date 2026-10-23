@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS
+#if UNITY_EDITOR || TAMER_JOURNAL_HARNESS || TAMER_SHOP_HARNESS
 using System;
 using System.Collections.Generic;
 using System.IO;

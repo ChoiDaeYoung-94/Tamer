@@ -46,6 +46,10 @@ namespace AD
         private readonly int _maxVerificationFailures;
         private readonly Dictionary<string, int> _verificationFailures = new Dictionary<string, int>();
         private string _localVerificationDiagnostic;
+        private readonly IIapExecutionGate _executionGate;
+        private bool _recoveryInitializationStarted;
+        private bool _recoveryCatalogStarted;
+        private bool _recoveryFetchStarted;
 
         public IAPManager() { }
 
@@ -56,11 +60,16 @@ namespace AD
 
         public IAPManager(IReceiptVerifier receiptVerifier, Func<ReceiptSession> receiptSession,
             int maxVerificationFailures)
+            : this(receiptVerifier, receiptSession, maxVerificationFailures, null) { }
+
+        public IAPManager(IReceiptVerifier receiptVerifier, Func<ReceiptSession> receiptSession,
+            int maxVerificationFailures, IIapExecutionGate executionGate)
         {
             if (maxVerificationFailures < 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationFailures));
             _receiptVerifier = receiptVerifier ?? throw new ArgumentNullException(nameof(receiptVerifier));
             _receiptSession = receiptSession ?? throw new ArgumentNullException(nameof(receiptSession));
             _maxVerificationFailures = maxVerificationFailures;
+            _executionGate = executionGate;
         }
 
         public string ProductNoAds => NoAdsPurchaseFulfillment.ProductId;
@@ -77,12 +86,18 @@ namespace AD
 
         public async void InitializePurchasing()
         {
+            if (_executionGate != null && !_executionGate.CanAccessStore) return;
 #if TAMER_GAMEPLAY_HARNESS
             RevivalGameplayIsolation.BlockPurchase();
             Status = IAPStatus.Unavailable;
             return;
 #endif
             if (_disposed || _connecting || _initialFetchInProgress || _restoring || _purchaseInProgress || IsReadyToPurchase) return;
+            if (_executionGate != null)
+            {
+                if (_recoveryInitializationStarted) return;
+                _recoveryInitializationStarted = true;
+            }
             _connecting = true;
             _nextInitializationAttempt = DateTime.UtcNow.AddSeconds(30);
             try
@@ -105,9 +120,15 @@ namespace AD
                     // Keep the SDK's pending reroute enabled. On Android resume,
                     // its background fetch only emits OnPurchasePending, not
                     // OnPurchasesFetched (including newly approved deferred orders).
-                    _store.ProcessPendingOrdersOnPurchasesFetched(true);
+                    // Recovery queues only the explicitly fetched Orders below. Do not reroute
+                    // SDK background pending fetches into another recovery verification.
+                    _store.ProcessPendingOrdersOnPurchasesFetched(_executionGate == null);
                     _ = RetryLoopAsync(_lifetime.Token);
                 }
+
+                // The SDK has its own reconnect policy, independent of RetryLoopAsync.
+                if (_executionGate != null)
+                    _store.SetStoreReconnectionRetryPolicyOnDisconnection(new NoRetriesPolicy());
 
                 if (_connected)
                 {
@@ -125,6 +146,7 @@ namespace AD
             }
             catch (Exception)
             {
+                _executionGate?.Close();
                 _initialFetchInProgress = false;
                 if (!_disposed) SetStatus(IAPStatus.Failed);
             }
@@ -133,25 +155,36 @@ namespace AD
 
         private void OnStoreConnected()
         {
-            if (_disposed) return;
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
             _connected = true;
             FetchCatalog();
         }
 
         private void FetchCatalog()
         {
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
+            if (_executionGate != null)
+            {
+                if (_recoveryCatalogStarted) return;
+                _recoveryCatalogStarted = true;
+            }
             _initialFetchInProgress = true;
             _productsLoaded = false;
             _purchasesLoaded = false;
             SetStatus(IAPStatus.LoadingProducts);
-            _store.FetchProducts(new List<ProductDefinition>
+            var products = new List<ProductDefinition>
             {
                 new ProductDefinition(ProductNoAds, ProductType.NonConsumable)
-            });
+            };
+            // Explicit policy: the pinned SDK's NoRetries convenience method forwards null,
+            // which ProductService replaces with its default exponential retry policy.
+            if (_executionGate != null) _store.FetchProducts(products, new NoRetriesPolicy());
+            else _store.FetchProducts(products);
         }
 
         private void OnStoreDisconnected(StoreConnectionFailureDescription failure)
         {
+            _executionGate?.Close();
             _connected = false;
             _productsLoaded = false;
             _purchasesLoaded = false;
@@ -164,7 +197,7 @@ namespace AD
 
         private void OnProductsFetched(List<Product> products)
         {
-            if (_disposed) return;
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
             _productsLoaded = products != null && products.Any(p => p != null &&
                 p.definition != null && p.definition.id == ProductNoAds &&
                 p.definition.type == ProductType.NonConsumable);
@@ -174,14 +207,19 @@ namespace AD
 
         private void OnProductsFetchFailed(ProductFetchFailed failure)
         {
-            if (_disposed) return;
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
             _productsLoaded = false;
             FetchOwnedPurchases();
         }
 
         private void FetchOwnedPurchases()
         {
-            if (_disposed) return;
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
+            if (_executionGate != null)
+            {
+                if (_recoveryFetchStarted) return;
+                _recoveryFetchStarted = true; // Consume before the SDK can call back synchronously.
+            }
             if (!_connected)
             {
                 _initialFetchInProgress = false;
@@ -195,6 +233,8 @@ namespace AD
 
         private void OnPurchasesFetchFailed(PurchasesFetchFailureDescription failure)
         {
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore)) return;
+            _executionGate?.Close();
             _initialFetchInProgress = false;
             _purchasesLoaded = false;
             _restoring = false;
@@ -204,6 +244,8 @@ namespace AD
         private void OnAuthAccountChanged()
         {
             if (_disposed) return;
+            // Recovery cannot switch billing identities or acquire a second execution budget.
+            if (_executionGate != null) { Dispose(); return; }
             _validationGeneration++;
             _validating.Clear();
             _verificationFailures.Clear();
@@ -219,6 +261,7 @@ namespace AD
 
         public void BuyProductID(string productId)
         {
+            if (_executionGate != null && !_executionGate.AllowPurchases) return;
             if (!string.Equals(productId, ProductNoAds, StringComparison.Ordinal)) return;
             if (!IsReadyToPurchase)
             {
@@ -266,6 +309,8 @@ namespace AD
         // fetches confirmed non-consumables for automatic Google Play restore.
         public void RestorePurchases()
         {
+            // Recovery owns one explicit startup fetch; RestoreTransactions would fetch again.
+            if (_executionGate != null) return;
             if (_disposed) return;
             if (!_connected)
             {
@@ -298,7 +343,7 @@ namespace AD
 
         private void OnPurchasesFetched(Orders orders)
         {
-            if (_disposed || orders == null) return;
+            if (_disposed || orders == null || (_executionGate != null && !_executionGate.CanAccessStore)) return;
             _initialFetchInProgress = false;
             _purchasesLoaded = true;
             _restoring = false;
@@ -320,7 +365,7 @@ namespace AD
 
         private void QueueOrder(Order order)
         {
-            if (_disposed || !IsSupportedPaidOrder(order)) return;
+            if (_disposed || (_executionGate != null && !_executionGate.CanAccessStore) || !IsSupportedPaidOrder(order)) return;
             string key = OrderKey(order);
             // A stale fetch callback may redeliver PendingOrder after a successful
             // confirmation. Google Play silently ignores a second acknowledgement
@@ -368,6 +413,8 @@ namespace AD
                     SetStatus(IAPStatus.VerificationFailed);
                     return;
                 }
+                if (_validating.Contains(key)) return;
+                if (_executionGate != null && !_executionGate.TryBeginVerification()) return;
                 if (_validating.Add(key)) _ = VerifyAndFulfillAsync(key, order, _validationGeneration);
                 return;
             }
@@ -470,6 +517,7 @@ namespace AD
 
         public void RetryPendingPurchases()
         {
+            if (_executionGate != null && !_executionGate.AllowAutomaticRetry) return;
             if (_disposed || !_connected) return;
             foreach (var entry in _unfinished.ToArray()) Fulfill(entry.Key, entry.Value);
         }
@@ -490,6 +538,7 @@ namespace AD
         }
 
         private bool ShouldRetryInitialization(DateTime now) => !_disposed && !_connecting &&
+            (_executionGate == null || _executionGate.AllowAutomaticRetry) &&
             !_initialFetchInProgress && !_restoring && !_purchaseInProgress &&
             !IsReadyToPurchase && now >= _nextInitializationAttempt;
 
@@ -531,6 +580,7 @@ namespace AD
         public void Dispose()
         {
             if (_disposed) return;
+            _executionGate?.Close();
             _disposed = true;
             _validationGeneration++;
             _validating.Clear();

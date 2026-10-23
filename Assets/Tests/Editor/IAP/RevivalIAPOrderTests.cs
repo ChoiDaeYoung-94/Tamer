@@ -16,6 +16,15 @@ public class RevivalIAPOrderTests
             System.Threading.CancellationToken token) => throw new InvalidOperationException("Unexpected network path");
     }
 
+    private sealed class ControlledVerifier : IReceiptVerifier
+    {
+        public readonly System.Threading.Tasks.TaskCompletionSource<bool> Completion =
+            new System.Threading.Tasks.TaskCompletionSource<bool>();
+        public int Calls;
+        public System.Threading.Tasks.Task<bool> VerifyAsync(string receipt, ReceiptSession session,
+            System.Threading.CancellationToken token) { Calls++; return Completion.Task; }
+    }
+
     [TestCase(0, 3, false)]
     [TestCase(2, 2, true)]
     public void Revival_IAP_TrialFailureCapRetainsOrderAndStopsThirdAttempt(
@@ -87,6 +96,219 @@ public class RevivalIAPOrderTests
         public event Action<Orders> OnPurchasesFetched { add { } remove { } }
         public event Action<PurchasesFetchFailureDescription> OnPurchasesFetchFailed { add { } remove { } }
         public event Action<Entitlement> OnCheckEntitlement { add { } remove { } }
+    }
+
+    private sealed class OfflineConnection : IStoreService
+    {
+        public int Connects;
+        public IRetryPolicy Policy;
+        public IAppleStoreExtendedService Apple => null;
+        public IGooglePlayStoreExtendedService Google => null;
+        public IPaymentProvidersExtendedService PaymentProviders => null;
+        public System.Threading.Tasks.Task Connect() { Connects++; return System.Threading.Tasks.Task.CompletedTask; }
+        public ConnectionState GetConnectionState() => ConnectionState.Connected;
+        public void SetStoreReconnectionRetryPolicyOnDisconnection(IRetryPolicy policy) => Policy = policy;
+        public event Action<StoreConnectionFailureDescription> OnStoreDisconnected { add { } remove { } }
+        public event Action OnStoreConnected { add { } remove { } }
+        public event Action OnAuthAccountChanged { add { } remove { } }
+    }
+
+    private sealed class OfflineProducts : IProductService
+    {
+        public int Fetches;
+        public IRetryPolicy Policy;
+        public IAppleStoreExtendedProductService Apple => null;
+        public void FetchProductsWithNoRetries(List<ProductDefinition> products) =>
+            throw new InvalidOperationException("Use an explicit policy: the pinned SDK convenience method forwards null.");
+        public void FetchProducts(List<ProductDefinition> products, IRetryPolicy retryPolicy = null)
+        { Fetches++; Policy = retryPolicy; }
+        public ReadOnlyObservableCollection<Product> GetProducts() => throw new NotSupportedException();
+        public Product GetProductById(string id) => null;
+        public Product GetProductByCatalogListingId(string id) => null;
+        public event Action<List<Product>> OnProductsFetched { add { } remove { } }
+        public event Action<ProductFetchFailed> OnProductsFetchFailed { add { } remove { } }
+    }
+
+    private static Type RecoveryGateType => AppDomain.CurrentDomain.GetAssemblies()
+        .Select(a => a.GetType("AD.RevivalIapRecoveryGate")).First(t => t != null);
+
+    private static void WithOfflineServices(bool recovery,
+        Action<object, OfflineConnection, OfflineProducts, OfflinePurchases, IIapExecutionGate> check)
+    {
+        string root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "RevivalIapSingleFetch-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(root);
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var gate = recovery ? (IIapExecutionGate)Activator.CreateInstance(RecoveryGateType) : null;
+        object manager = null;
+        try
+        {
+            if (gate != null)
+                Assert.That(RecoveryGateType.GetMethod("Open").Invoke(gate, new object[] { root, true, true }), Is.True);
+            manager = recovery ? Activator.CreateInstance(ManagerType, new object[] {
+                new NoNetworkVerifier(), (Func<ReceiptSession>)(() => null), 1, gate }) : Activator.CreateInstance(ManagerType);
+            var connection = new OfflineConnection();
+            var products = new OfflineProducts();
+            var purchases = new OfflinePurchases();
+            var store = (StoreController)FormatterServices.GetUninitializedObject(typeof(StoreController));
+            typeof(StoreController).GetField("m_StoreService", flags).SetValue(store, connection);
+            typeof(StoreController).GetField("m_ProductService", flags).SetValue(store, products);
+            typeof(StoreController).GetField("m_PurchaseService", flags).SetValue(store, purchases);
+            ManagerType.GetField("_store", flags).SetValue(manager, store);
+            check(manager, connection, products, purchases, gate);
+        }
+        finally
+        {
+            if (manager != null)
+            {
+                ManagerType.GetField("_store", flags).SetValue(manager, null);
+                ((IDisposable)manager).Dispose();
+            }
+            System.IO.Directory.Delete(root, true); // Only this unique synthetic test root.
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_IAP_OnlyRecoveryOverridesSdkConnectionAndCatalogRetryPolicies(bool recovery)
+    {
+        WithOfflineServices(recovery, (manager, connection, products, purchases, gate) =>
+        {
+            ManagerType.GetMethod("InitializePurchasing").Invoke(manager, null);
+            Assert.That(connection.Connects, Is.EqualTo(1));
+            ManagerType.GetMethod("OnStoreConnected", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(manager, null);
+            Assert.That(products.Fetches, Is.EqualTo(1));
+            if (recovery)
+            {
+                Assert.That(connection.Policy, Is.TypeOf<NoRetriesPolicy>());
+                Assert.That(products.Policy, Is.TypeOf<NoRetriesPolicy>());
+            }
+            else
+            {
+                Assert.That(connection.Policy, Is.Null, "Normal purchasing keeps the SDK connection policy.");
+                Assert.That(products.Policy, Is.Null, "Normal catalog fetch keeps the SDK default policy.");
+            }
+            Assert.That(purchases.Fetches, Is.Zero);
+        });
+    }
+
+    [TestCase("in-flight")]
+    [TestCase("empty")]
+    [TestCase("failed")]
+    public void Revival_IAP_RecoveryCannotRefetchAfterDuplicateCallbacksOrExplicitRetry(string outcome)
+    {
+        WithOfflineServices(true, (manager, connection, products, purchases, gate) =>
+        {
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            ManagerType.GetMethod("InitializePurchasing").Invoke(manager, null);
+            ManagerType.GetMethod("OnStoreConnected", flags).Invoke(manager, null);
+            ManagerType.GetMethod("OnProductsFetched", flags).Invoke(manager, new object[] { new List<Product>() });
+            Assert.That(purchases.Fetches, Is.EqualTo(1));
+            if (outcome == "empty")
+                ManagerType.GetMethod("OnPurchasesFetched", flags).Invoke(manager, new object[] {
+                    new Orders(Array.Empty<ConfirmedOrder>(), Array.Empty<PendingOrder>(), Array.Empty<DeferredOrder>()) });
+            else if (outcome == "failed")
+                ManagerType.GetMethod("OnPurchasesFetchFailed", flags).Invoke(manager, new object[] { null });
+            ManagerType.GetMethod("OnProductsFetched", flags).Invoke(manager, new object[] { new List<Product>() });
+            ManagerType.GetMethod("OnProductsFetchFailed", flags).Invoke(manager, new object[] { null });
+            ManagerType.GetMethod("OnStoreConnected", flags).Invoke(manager, null);
+            ManagerType.GetMethod("InitializePurchasing").Invoke(manager, null);
+            ManagerType.GetMethod("RestorePurchases").Invoke(manager, null);
+            ManagerType.GetMethod("RetryPendingPurchases").Invoke(manager, null);
+            Assert.That(purchases.Fetches, Is.EqualTo(1), "An open receipt budget must not permit a second Store fetch.");
+            Assert.That(purchases.Restores, Is.Zero);
+            Assert.That(connection.Connects, Is.EqualTo(1));
+            Assert.That(products.Fetches, Is.EqualTo(1));
+            Assert.That(gate.CanAccessStore, Is.EqualTo(outcome != "failed"));
+        });
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_IAP_RecoveryClosedOrSpentGateRejectsLateFetchAndPendingCallbacks(bool spent)
+    {
+        WithOfflineServices(true, (manager, connection, products, purchases, gate) =>
+        {
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            ManagerType.GetField("_connected", flags).SetValue(manager, true);
+            var first = new PendingOrder(new Cart(Item()), new FakeOrderInfo());
+            var unfinished = (System.Collections.IDictionary)ManagerType.GetField("_unfinished", flags).GetValue(manager);
+            if (spent)
+            {
+                unfinished[first.Info.TransactionID] = first; // Captured order awaiting its only verification.
+                Assert.That(gate.TryBeginVerification(), Is.True);
+            }
+            else ManagerType.GetMethod("OnStoreDisconnected", flags).Invoke(manager, new object[] { null });
+            var late = new PendingOrder(new Cart(Item()), new FakeOrderInfo());
+            ManagerType.GetMethod("OnPurchasePending", flags).Invoke(manager, new object[] { late });
+            ManagerType.GetMethod("OnPurchasesFetched", flags).Invoke(manager, new object[] {
+                new Orders(Array.Empty<ConfirmedOrder>(), new[] { late }, Array.Empty<DeferredOrder>()) });
+            ManagerType.GetMethod("OnPurchasesFetchFailed", flags).Invoke(manager, new object[] { null });
+            ManagerType.GetMethod("OnStoreConnected", flags).Invoke(manager, null);
+            Assert.That(gate.CanAccessStore || gate.TryBeginVerification(), Is.False);
+            Assert.That(unfinished.Count, Is.EqualTo(spent ? 1 : 0));
+            if (spent) Assert.That(unfinished[first.Info.TransactionID], Is.SameAs(first),
+                "A duplicate must not replace the order captured by the only in-flight verification.");
+            Assert.That(purchases.Fetches + purchases.Restores + products.Fetches + connection.Connects, Is.Zero);
+        });
+    }
+
+    [Test]
+    public async System.Threading.Tasks.Task Revival_IAP_RecoveryDuplicateDuringVerificationKeepsOriginalCompletion()
+    {
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var hostType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.Managers")).First(t => t != null);
+        var dataType = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.DataManager")).First(t => t != null);
+        var singleton = hostType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.That(singleton.GetValue(null), Is.Null, "Requires an isolated synthetic manager host.");
+        var go = new UnityEngine.GameObject("Synthetic receipt continuation owner");
+        go.SetActive(false); // Never run Managers.Awake or initialize services.
+        object manager = null;
+        var session = new ReceiptSession("synthetic-account", "synthetic-ticket");
+        var verifier = new ControlledVerifier();
+        var gate = (IIapExecutionGate)Activator.CreateInstance(RecoveryGateType);
+        string root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "RevivalIapContinuation-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(root);
+        try
+        {
+            var host = go.AddComponent(hostType);
+            var data = go.AddComponent(dataType);
+            hostType.GetField("_dataM", flags).SetValue(host, data);
+            dataType.GetField("<PlayFabId>k__BackingField", flags).SetValue(data, session.AccountId);
+            dataType.GetField("<IsServerDataReady>k__BackingField", flags).SetValue(data, true);
+            singleton.SetValue(null, host);
+            Assert.That(RecoveryGateType.GetMethod("Open").Invoke(gate, new object[] { root, true, true }), Is.True);
+            Assert.That(gate.TryBeginVerification(), Is.True);
+            manager = Activator.CreateInstance(ManagerType, new object[] { verifier, (Func<ReceiptSession>)(() => session), 1, gate });
+            ManagerType.GetField("_connected", flags).SetValue(manager, true);
+            var first = new PendingOrder(new Cart(Item()), new FakeOrderInfo());
+            var unfinished = (System.Collections.IDictionary)ManagerType.GetField("_unfinished", flags).GetValue(manager);
+            unfinished[first.Info.TransactionID] = first;
+            var completion = (System.Threading.Tasks.Task)ManagerType.GetMethod("VerifyAndFulfillAsync", flags)
+                .Invoke(manager, new object[] { first.Info.TransactionID, first, 0 });
+            Assert.That(completion.IsCompleted, Is.False);
+            Assert.That(verifier.Calls, Is.EqualTo(1));
+            var duplicate = new PendingOrder(new Cart(Item()), new FakeOrderInfo());
+            ManagerType.GetMethod("OnPurchasePending", flags).Invoke(manager, new object[] { duplicate });
+            ManagerType.GetMethod("OnPurchasesFetched", flags).Invoke(manager, new object[] {
+                new Orders(Array.Empty<ConfirmedOrder>(), new[] { duplicate }, Array.Empty<DeferredOrder>()) });
+            verifier.Completion.SetResult(true);
+            await completion;
+            Assert.That(unfinished[first.Info.TransactionID], Is.SameAs(first));
+            Assert.That(verifier.Calls, Is.EqualTo(1));
+            // No local save was initialized. Reaching this state proves the verified result
+            // survived duplicate delivery and was stopped by the real persistence guard.
+            Assert.That(ManagerType.GetProperty("Status").GetValue(manager).ToString(), Is.EqualTo("WaitingForPersistence"));
+            Assert.That(ManagerType.GetField("_store", flags).GetValue(manager), Is.Null,
+                "No Store, Confirm or network was started by this continuation test.");
+        }
+        finally
+        {
+            verifier.Completion.TrySetResult(false);
+            (manager as IDisposable)?.Dispose();
+            singleton.SetValue(null, null);
+            UnityEngine.Object.DestroyImmediate(go);
+            System.IO.Directory.Delete(root, true); // Only this unique synthetic test root.
+        }
     }
 
     private static void WithOfflinePurchases(Action<object, OfflinePurchases> check)

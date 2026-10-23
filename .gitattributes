@@ -1,2 +1,3 @@
 # Preserve vendored SDK bytes so the restoration manifest is independent of core.autocrlf.
 /Assets/ThirdParty/** -text
+/tools/revival/package-overrides/core-17.3.0/** -text
