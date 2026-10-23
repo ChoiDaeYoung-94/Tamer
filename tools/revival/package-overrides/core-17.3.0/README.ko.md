@@ -51,6 +51,6 @@ file:../tools/revival/package-overrides/core-17.3.0/com.unity.render-pipelines.c
 
 원래 FinalPost/GLES3/Subshader0/Vertex `_DITHERING _FILM_GRAIN _POINT_SAMPLING` 경로가 새 소스를 처리하고 FP32 분기를 선택한 증거가 필요합니다. cache hit·CLI exit0·APK 생성만으로 셰이더 해결을 선언하지 않습니다. GLES3의 FSR 연산 비용/정밀도 변화는 남은 확인 항목이며 다른 API 분기는 소스상 그대로입니다. Unity 버전/API/variant/Library를 변경·삭제하여 통과시키지 않습니다.
 
-현재 같은 셰이더 오류 누적은 1회입니다. 실제 다음 재실패는 누적 2회 STOP이며 3차 실행과 의존 빌드를 중단합니다. 기존 clang AAB/strict RELRO STOP과 운영 계정·저장·구매·광고·스토어 경로는 재개하지 않습니다. 패키징 roundtrip의 최초 1회 실패(긴 경로 PAX path를 과도하게 거부)는 안전 검사 수정 후 성공했으며 셰이더 실패와 별도입니다.
+이 절의 최초 작성 당시 셰이더 오류 누적은1회였고, 누적2회 STOP과 clang AAB/strict RELRO 중단 조건을 사용했습니다. 현재 일반 재시도는 2026-10-23에 개정한 AGENTS의 원인 진단·변경 조건·실행 원장 기준을 따릅니다. 당시 실패와 후속 검증은 보존하며 이 문서만으로 운영 계정·실제 구매·광고·스토어 경로를 새로 실행하지 않습니다. 패키징 roundtrip의 최초1회 실패(긴 경로 PAX path를 과도하게 거부)는 안전 검사 수정 후 성공했으며 셰이더 실패와 별도입니다.
 
 upstream의 해당 오류 수정이 공식적으로 확인되고 같은 요구 범위 검증이 준비되면 이 override 제거를 별도 검토합니다. cache나 Library를 삭제하여 제거를 대신하지 않습니다.
