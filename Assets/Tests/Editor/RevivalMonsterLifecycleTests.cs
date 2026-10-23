@@ -93,6 +93,48 @@ public class RevivalMonsterLifecycleTests
         UnityEngine.Random.state = _randomState;
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_ValidDestinationDoesNotMoveDisabledOrOffMeshRecipient(bool removeSourceMesh)
+    {
+        NavMeshData Bake(Vector3 center) => NavMeshBuilder.BuildNavMeshData(
+            NavMesh.GetSettingsByIndex(0), new List<NavMeshBuildSource>
+            {
+                new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Box,
+                    transform = Matrix4x4.Translate(center), size = new Vector3(8, 1, 8), area = 0 }
+            }, new Bounds(center, new Vector3(12, 6, 12)), Vector3.zero, Quaternion.identity);
+        var source = Bake(Vector3.zero);
+        var target = Bake(new Vector3(20, 0, 0));
+        Assert.That(source, Is.Not.Null); Assert.That(target, Is.Not.Null);
+        var first = NavMesh.AddNavMeshData(source);
+        var second = NavMesh.AddNavMeshData(target);
+        var agentObject = new GameObject("Revival navigation recipient");
+        _objects.Add(agentObject);
+        try
+        {
+            agentObject.transform.position = new Vector3(0, .5f, 0);
+            var agent = agentObject.AddComponent<NavMeshAgent>();
+            Assert.That(agent.isOnNavMesh, Is.True);
+            if (removeSourceMesh) { first.Remove(); Assert.That(agent.isOnNavMesh, Is.False); }
+            else agent.enabled = false;
+            Assert.That(NavMesh.SamplePosition(new Vector3(20, .5f, 0), out var hit, 1, NavMesh.AllAreas), Is.True,
+                "The destination is valid; the receiver must still be rejected.");
+            var monster = CreateMonster();
+            Set(monster, "NavMeshAgent", agent);
+            Call(monster, "SafeSetDestination", monster, hit.position);
+            Assert.That(Get(monster, "_state").ToString(), Is.EqualTo("Idle"));
+            UnityEngine.TestTools.LogAssert.NoUnexpectedReceived();
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(agentObject);
+            if (first.valid) first.Remove();
+            if (second.valid) second.Remove();
+            UnityEngine.Object.DestroyImmediate(source);
+            UnityEngine.Object.DestroyImmediate(target);
+        }
+    }
+
     [Test]
     public void Revival_GeneratorInitializationHasOneLoopAndDisableIsRepeatable()
     {
