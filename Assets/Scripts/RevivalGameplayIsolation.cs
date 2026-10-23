@@ -68,7 +68,9 @@ namespace AD
         public static string SavePath { get; private set; }
         public static string ReadApplyStage { get; private set; } = "not-started";
 #if TAMER_SHOP_HARNESS
-#if TAMER_SHOP_AFTER_INVENTORY
+#if TAMER_SHOP_UI
+        internal const string ShopFixtureDirectoryName = "RevivalShopManualUi";
+#elif TAMER_SHOP_AFTER_INVENTORY
         internal const string ShopFixtureDirectoryName = "RevivalShopAfterInventory";
 #else
         internal const string ShopFixtureDirectoryName = "RevivalShopPurchaseV2";
