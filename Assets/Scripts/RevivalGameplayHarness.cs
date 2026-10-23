@@ -441,11 +441,20 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             var snapshot = data.ReadInventory();
             if (File.Exists(marker))
             {
-                stage = "restart-recovery";
-                Require(RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == 15000);
+                stage = "restart-record-read";
                 var record = EquipmentPurchaseRecord.Parse(EquipmentPurchaseRecord.Extract(File.ReadAllText(RevivalGameplayIsolation.SavePath)));
+                Mark("SHOP_RESTART_OBSERVATION cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
+                    " initialCloudGold=" + RevivalGameplayIsolation.ShopCloudInitialGold + " playerGold=" + player.Gold +
+                    " owned=" + snapshot.OwnedItems.Count + " equipped=" + player.PlayerEquippedItems.Count +
+                    " hp=" + player.Hp + " power=" + player.Power + " attack=" + player.AttackSpeed + " move=" + player.MoveSpeed +
+                    " receiptPresent=" + (record != null) + " receiptComplete=" + (record != null && !record.Materializing) +
+                    " receiptMatches=" + (record != null && record.TransactionId == File.ReadAllText(marker)));
+                stage = "restart-cloud";
+                Require(RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == 15000);
+                stage = "restart-receipt";
                 Require(record != null && !record.Materializing && record.ItemId == "MasterSword" &&
                     record.Sequence == 2 && record.TransactionId == File.ReadAllText(marker) && record.GoldAfter == 0);
+                stage = "restart-player-projection";
                 Require(player.Gold == 0 && snapshot.OwnedItems.Count == 2 &&
                     snapshot.OwnedItems.Contains("SimpleShield") && snapshot.OwnedItems.Contains("MasterSword") &&
                     snapshot.Equipped["Sword"] == "MasterSword" && snapshot.Equipped["Shield"] == "SimpleShield" &&
@@ -453,6 +462,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
                     !player.SimpleSword.activeSelf && !player.Mastershield.activeSelf &&
                     Mathf.Approximately(player.Hp, 150) && Mathf.Approximately(player.Power, 60) &&
                     Mathf.Approximately(player.AttackSpeed, 1.5f) && Mathf.Approximately(player.MoveSpeed, 3) && _errors == 0);
+                stage = "restart-repurchase-blocked";
                 Require(player.PrepareEquipmentPurchase("MasterSword", 15000) == null);
                 Mark("SHOP_TRANSACTION_PASS phase=restart gold=0 owned=2 equipped=2 models=matched hp=150 power=60 attack=1.5 move=3 sameTransaction=true syntheticCloudLoaded=true initialCloudGold=15000 errors=0");
                 return;

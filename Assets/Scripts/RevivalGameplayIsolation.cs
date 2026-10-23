@@ -18,6 +18,7 @@ namespace AD
         public const string ShopPurchaseApplicationId = "com.AeDeong.MonsterTamer.revival.shoppurchase";
         public static string RuntimeApplicationId =>
 #if TAMER_SHOP_HARNESS
+        internal const string ShopFixtureDirectoryName = "RevivalShopPurchaseV2";
             ShopPurchaseApplicationId;
 #elif TAMER_INVENTORY_RESTORE
             InventoryRestoreApplicationId;
@@ -96,7 +97,7 @@ namespace AD
             ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
                 UnityEngine.PlayerPrefs.HasKey, ShopPurchaseApplicationId);
             if (!UnityEngine.Debug.isDebugBuild) throw new InvalidOperationException("Debug shop fixture required.");
-            string directory = Path.Combine(persistentRoot, "RevivalShopPurchase");
+            string directory = Path.Combine(persistentRoot, ShopFixtureDirectoryName);
 #elif TAMER_INVENTORY_RESTORE
             ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
                 UnityEngine.PlayerPrefs.HasKey, InventoryRestoreApplicationId);
@@ -158,7 +159,7 @@ namespace AD
                 // First synthetic request runs after initialization has established that path.
                 cloudPath = Path.Combine(Path.GetDirectoryName(SavePath), "SyntheticCloud.json");
                 if (UnityEngine.Application.identifier != ShopPurchaseApplicationId || !UnityEngine.Debug.isDebugBuild ||
-                    Path.GetFileName(Path.GetDirectoryName(cloudPath)) != "RevivalShopPurchase")
+                    Path.GetFileName(Path.GetDirectoryName(cloudPath)) != ShopFixtureDirectoryName)
                     throw new InvalidOperationException("Dedicated synthetic shop cloud required.");
                 if (!File.Exists(cloudPath) && File.Exists(Path.Combine(Path.GetDirectoryName(cloudPath), "PendingSword.txt")))
                     throw new InvalidDataException("Synthetic cloud missing after purchase; preserve.");
