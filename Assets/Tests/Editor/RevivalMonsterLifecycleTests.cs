@@ -94,6 +94,34 @@ public class RevivalMonsterLifecycleTests
     }
 
     [Test]
+    public void Revival_InactiveIssuerDoesNotMoveRecipientEvenWithValidDestination()
+    {
+        NavMeshData Bake(Vector3 center) => NavMeshBuilder.BuildNavMeshData(
+            NavMesh.GetSettingsByIndex(0), new List<NavMeshBuildSource>
+            {
+                new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Box,
+                    transform = Matrix4x4.Translate(center), size = new Vector3(8, 1, 8), area = 0 }
+            }, new Bounds(center, new Vector3(12, 6, 12)), Vector3.zero, Quaternion.identity);
+        var target = Bake(new Vector3(20, 0, 0));
+        Assert.That(target, Is.Not.Null);
+        var second = NavMesh.AddNavMeshData(target);
+        try
+        {
+            Assert.That(NavMesh.SamplePosition(new Vector3(20, .5f, 0), out var hit, 1, NavMesh.AllAreas), Is.True,
+                "Sampling a valid destination cannot authorize an inactive issuer.");
+            var monster = CreateMonster();
+            Call(monster, "SafeSetDestination", monster, hit.position);
+            Assert.That(Get(monster, "_state").ToString(), Is.EqualTo("Idle"));
+            UnityEngine.TestTools.LogAssert.NoUnexpectedReceived();
+        }
+        finally
+        {
+            if (second.valid) second.Remove();
+            UnityEngine.Object.DestroyImmediate(target);
+        }
+    }
+
+    [Test]
     public void Revival_GeneratorInitializationHasOneLoopAndDisableIsRepeatable()
     {
         Component generator = Create("MonsterGenerator");

@@ -520,13 +520,20 @@ public class Player : Creature
     /// </summary>
     private void AllyMove()
     {
+        if (!GameplaySessionCurrent() || AD.Managers.SceneM == null || AD.Managers.SceneM.IsTransitioning ||
+            _allyMonsters.Count == 0) return;
+        Monster leader = null;
+        foreach (var candidate in _allyMonsters)
+            if (candidate != null && candidate.CanNavigateCurrentSession) { leader = candidate; break; }
+        if (leader == null) return;
         int row = 2;
         int countInRow = 0;
         int listCount = _allyMonsters.Count;
-        Vector3 startRowPosition = transform.position + (-transform.forward * _allyMonsters[0].FlockingRadius);
+        Vector3 startRowPosition = transform.position + (-transform.forward * leader.FlockingRadius);
 
         for (int i = 0; i < listCount; i++)
         {
+            if (_allyMonsters[i] == null || !_allyMonsters[i].CanNavigateCurrentSession) continue;
             if (countInRow >= row)
             {
                 row++;

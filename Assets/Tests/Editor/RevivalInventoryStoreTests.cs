@@ -504,6 +504,61 @@ public class RevivalInventoryStoreTests
         Assert.That(((IDictionary<string,string>)Value(Load("A"),"Equipped"))["Sword"],Is.EqualTo("MasterSword"));
     }
 
+    [Test] public void Revival_InventoryTemporaryUsesShortSiblingAndPreservesOldPendingEvidence()
+    {
+        Directory.CreateDirectory(_root);
+        string abandoned = PathFor("A") + ".pending-" + new string('a', 32);
+        File.WriteAllText(abandoned, "preserved old pending");
+        var hook = Runtime("AD.PlayerInventoryStore").GetField("InventoryWriteCheckpoint", BindingFlags.NonPublic | BindingFlags.Static);
+        object previous = hook.GetValue(null);
+        int observed = 0;
+        try
+        {
+            hook.SetValue(null, (Action<string, string, string>)((path, temporary, stage) =>
+            {
+                if (stage != "temporary-closed") return;
+                observed++;
+                Assert.That(path, Is.EqualTo(PathFor("A")), "The persisted owner filename must not change.");
+                Assert.That(Path.GetDirectoryName(temporary), Is.EqualTo(Path.GetDirectoryName(path)));
+                string name = Path.GetFileName(temporary);
+                Assert.That(name, Does.StartWith(".pending-"));
+                Assert.That(name.Length, Is.LessThanOrEqualTo(41), "Avoid the observed 110-char temporary filename.");
+                Assert.That(Guid.TryParseExact(name.Substring(9), "N", out _), Is.True);
+                Assert.That(File.ReadAllText(temporary), Does.Contain("\"Owner\":\"A\""));
+            }));
+            Save("A", new[] { "Bat" }, new[] { "SimpleSword" }, "SimpleSword");
+        }
+        finally { hook.SetValue(null, previous); }
+        Assert.That(observed, Is.EqualTo(1));
+        Assert.That(File.ReadAllText(abandoned), Is.EqualTo("preserved old pending"));
+        Assert.That((IEnumerable)Value(Call(NewStore(), "Load", "A"), "Collection"), Is.EqualTo(new[] { "Bat" }));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_InventoryMissingTemporaryFailsWithoutPublishingOrReplacingOriginal(bool existing)
+    {
+        if (existing) Save("A", new[] { "Bat" }, new[] { "SimpleSword" }, "SimpleSword");
+        string path = PathFor("A");
+        byte[] original = existing ? File.ReadAllBytes(path) : null;
+        var hook = Runtime("AD.PlayerInventoryStore").GetField("InventoryWriteCheckpoint", BindingFlags.NonPublic | BindingFlags.Static);
+        object previous = hook.GetValue(null);
+        int replacements = 0;
+        try
+        {
+            hook.SetValue(null, (Action<string, string, string>)((destination, temporary, stage) =>
+            {
+                if (stage == "temporary-closed") File.Delete(temporary);
+                if (stage == "replaced") replacements++;
+            }));
+            Assert.Throws<FileNotFoundException>(() => Save("A", new[] { "Crab" }, new[] { "MasterSword" }, "MasterSword"));
+        }
+        finally { hook.SetValue(null, previous); }
+        Assert.That(replacements, Is.Zero);
+        Assert.That(File.Exists(path), Is.EqualTo(existing));
+        if (existing) Assert.That(File.ReadAllBytes(path), Is.EqualTo(original));
+    }
+
     [Test] public void Revival_InventorySessionRejectsUnreadyAndStaleCallbacksWithoutWriting()
     {
         var root=new GameObject("Inventory session guard"); root.SetActive(false);

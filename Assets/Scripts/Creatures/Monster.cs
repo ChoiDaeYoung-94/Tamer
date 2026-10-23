@@ -50,6 +50,12 @@ public class Monster : Creature
     private bool _deathHandled;
     private bool _deathCallbackPending;
     public int SessionLifetime => _session.Lifetime;
+    public bool CanNavigateCurrentSession => isActiveAndEnabled && !isDie &&
+        NavMeshAgent != null && NavMeshAgent.isActiveAndEnabled && NavMeshAgent.isOnNavMesh &&
+        AD.Managers.SceneM != null && !AD.Managers.SceneM.IsTransitioning && IsCurrentSession(SessionLifetime) &&
+        // Native membership can remain true after its NavMesh data is removed.
+        NavMesh.SamplePosition(NavMeshAgent.transform.position, out _, Mathf.Max(.5f, NavMeshAgent.height),
+            new NavMeshQueryFilter { agentTypeID = NavMeshAgent.agentTypeID, areaMask = NavMeshAgent.areaMask });
     public bool IsCurrentSession(int lifetime)
     {
         var data = AD.Managers.DataM;
@@ -247,6 +253,7 @@ public class Monster : Creature
     /// </summary>
     private void CommanderMove()
     {
+        if (!CanNavigateCurrentSession) return;
         Vector3 targetDirection = GetRandomDirection(_commanderMoveRadius, transform.position);
         const int maxAttempts = 10;
         int attempt = 0;
@@ -266,6 +273,7 @@ public class Monster : Creature
 
     private void GroupMonsterMove(Vector3 commanderDestination)
     {
+        if (!CanNavigateCurrentSession) return;
         int row = 2;
         int countInRow = 0;
         int listCount = MonsterGroupList.Count;
@@ -273,7 +281,7 @@ public class Monster : Creature
 
         for (int i = 0; i < listCount; i++)
         {
-            if (MonsterGroupList[i].isDie)
+            if (MonsterGroupList[i] == null || !MonsterGroupList[i].CanNavigateCurrentSession)
                 continue;
 
             if (countInRow >= row)
@@ -399,6 +407,9 @@ public class Monster : Creature
 
     private void SafeSetDestination(Monster monster, Vector3 targetPosition)
     {
+        // Sampling a valid destination does not make an inactive/off-mesh receiver valid.
+        // Check both the issuer and recipient: a retired commander cannot move a reused member.
+        if (!CanNavigateCurrentSession || monster == null || !monster.CanNavigateCurrentSession) return;
         int failCount = 0;
         float maxDistance = 5f;
         const int maxAttempts = 30;
@@ -425,12 +436,13 @@ public class Monster : Creature
 
     private void CommanderDetectionMove(Vector3 targetPosition)
     {
+        if (!CanNavigateCurrentSession) return;
         if (_commanderTarget == null)
             SafeSetDestination(this, targetPosition);
 
         foreach (Monster monster in MonsterGroupList)
         {
-            if (monster.isDie)
+            if (monster == null || !monster.CanNavigateCurrentSession)
                 continue;
 
             if (monster._followerTarget == null)
@@ -449,7 +461,7 @@ public class Monster : Creature
 
     private void SetTarget(GameObject go)
     {
-        if (_isTarget || !NavMeshAgent.isOnNavMesh)
+        if (_isTarget || !CanNavigateCurrentSession)
             return;
 
         _isTarget = true;
@@ -482,7 +494,7 @@ public class Monster : Creature
         {
             foreach (Monster monster in MonsterGroupList)
             {
-                if (monster.isDie || monster.NavMeshAgent.isStopped) continue;
+                if (monster == null || !monster.CanNavigateCurrentSession || monster.NavMeshAgent.isStopped) continue;
                 BattleMove(monster, targetCreature.transform.position);
             }
         }
