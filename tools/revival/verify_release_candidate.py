@@ -19,8 +19,41 @@ UNVERIFIED = ['Play Console active upload certificate and highest published vers
               'Families operating settings and creative compliance',
               'Actual ARM64 16KB runtime and device-targeted split validation',
               'Internal-track upload and submission approval']
+PIPELINE_RUNTIME_CONFIG = 'ProjectSettings/Packages/com.unity.pipeline/RuntimePipelineConfig.json'
+PIPELINE_GENERATED_RESOURCES = ['Assets/Settings/Pipeline/Resources/RuntimePipelineConfig.asset',
+                                'Assets/Settings/Pipeline/Resources/RuntimePipelineBuildInfo.asset']
 SOURCE_INPUTS = ['ProjectSettings/ProjectSettings.asset', 'ProjectSettings/ProjectVersion.txt',
-                 'ProjectSettings/EditorBuildSettings.asset', 'Assets/Resources/IAPProductCatalog.json']
+                 'ProjectSettings/EditorBuildSettings.asset', 'Assets/Resources/IAPProductCatalog.json',
+                 PIPELINE_RUNTIME_CONFIG, *PIPELINE_GENERATED_RESOURCES]
+
+
+def pipeline_runtime_disabled(root):
+    path = root / PIPELINE_RUNTIME_CONFIG
+    if not path.exists():
+        return True  # The pinned package's default is disabled when no config exists.
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate Pipeline setting')
+            result[key] = value
+        return result
+    def reject_constant(_):
+        raise ValueError('Non-JSON Pipeline setting')
+    try:
+        config = json.loads(path.read_text(encoding='utf-8-sig'), object_pairs_hook=unique,
+                            parse_constant=reject_constant)
+        return type(config) is dict and config.get('enableInBuilds', False) is False
+    except (OSError, UnicodeError, ValueError):
+        return False
+
+
+def no_staged_pipeline_resources(root):
+    assets = root / 'Assets'
+    names = {'runtimepipelineconfig.asset', 'runtimepipelinebuildinfo.asset'}
+    return not any(path.name.casefold() in names and
+                   any(part.casefold() == 'resources' for part in path.relative_to(assets).parts[:-1])
+                   for path in assets.rglob('*.asset'))
 
 
 def ensure_output_safe(output, inputs):
@@ -81,6 +114,8 @@ def source_checks(root):
         'iapAutoInitExplicitlyDisabled': catalog.get('enableCodelessAutoInitialization') is False and catalog.get('enableUnityGamingServicesAutoInitialization') is False,
         'loginFirstScene': bool(scenes) and scenes[0].strip() == 'Assets/Scenes/Login.unity',
         'noLegacyBuildMarkers': not any((root/'Build'/name).exists() for name in ('AOSSettingAPK.txt','AOSSettingAAB.txt','checkedBuilding.txt')),
+        'pipelineRuntimeDisabled': pipeline_runtime_disabled(root),
+        'noStagedPipelineResources': no_staged_pipeline_resources(root),
     }
     return dict(schema=1, mode='source', checks=checks, sourceChecksPassed=all(checks.values()),
                 currentVersionCode=scalar('AndroidBundleVersionCode'), releaseReady=False,

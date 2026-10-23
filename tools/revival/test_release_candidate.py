@@ -6,7 +6,7 @@ import sys
 import zipfile
 from unittest.mock import patch
 from pathlib import Path
-from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, candidate_checks, SHA256, main
+from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, candidate_checks, SHA256, main, PIPELINE_RUNTIME_CONFIG
 from test_verify_native_alignment import elf_fixture
 
 
@@ -51,10 +51,77 @@ class ReleaseCandidateTests(unittest.TestCase):
             (root/'Assets/Resources/IAPProductCatalog.json').write_text(json.dumps({'enableCodelessAutoInitialization':False,'enableUnityGamingServicesAutoInitialization':False}))
             self.assertTrue(source_checks(root)['sourceChecksPassed'])
             self.assertFalse(source_checks(root)['releaseReady'])
+            pipeline = root / PIPELINE_RUNTIME_CONFIG
+            pipeline.parent.mkdir(parents=True)
+            pipeline.write_text('{"enableInBuilds":true,"autoStart":false}')
+            enabled = source_checks(root)
+            self.assertFalse(enabled['sourceChecksPassed'])
+            self.assertEqual(['pipelineRuntimeDisabled'], [key for key, value in enabled['checks'].items() if not value])
+            pipeline.write_text('{"enableInBuilds":false}')
+            self.assertTrue(source_checks(root)['sourceChecksPassed'])
             settings.write_text(settings.read_text().replace('DOTWEEN','DOTWEEN;TAMER_GAMEPLAY_HARNESS'))
             self.assertFalse(source_checks(root)['checks']['noGlobalHarnessDefines'])
             scenes.write_text('  - enabled: 0\n    path: Assets/Scenes/Login.unity\n  - enabled: 1\n    path: Assets/Scenes/Main.unity\n')
             self.assertFalse(source_checks(root)['checks']['loginFirstScene'])
+
+    def test_pipeline_runtime_settings_reject_enablement_and_ambiguous_input_without_writes(self):
+        from verify_release_candidate import pipeline_runtime_disabled
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / PIPELINE_RUNTIME_CONFIG
+            self.assertTrue(pipeline_runtime_disabled(root))
+            path.parent.mkdir(parents=True)
+            cases = [('{}', True), ('{"autoStart":true}', True),
+                     ('{"enableInBuilds":false,"autoStart":true}', True),
+                     ('{"enableInBuilds":true,"autoStart":false}', False),
+                     ('{"enableInBuilds":false,"enableInBuilds":true}', False),
+                     ('{"enableInBuilds":true,"enableInBuilds":false}', False),
+                     ('{"enableInBuilds":"false"}', False), ('{"enableInBuilds":0}', False),
+                     ('{"enableInBuilds":null}', False), ('[]', False), ('{broken', False),
+                     ('{"enableInBuilds":false,"port":NaN}', False),
+                     ('{"enableInBuilds":false,"port":Infinity}', False)]
+            for content, expected in cases:
+                with self.subTest(content=content):
+                    path.write_bytes(content.encode('utf-8'))
+                    original = path.read_bytes()
+                    self.assertEqual(expected, pipeline_runtime_disabled(root))
+                    self.assertEqual(original, path.read_bytes())
+            path.write_bytes(b'\xff\xfe\x00')
+            self.assertFalse(pipeline_runtime_disabled(root))
+
+    def test_pipeline_resources_detect_nested_resources_and_preserve_nonresource_assets(self):
+        from verify_release_candidate import no_staged_pipeline_resources
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            outside = root / 'Assets/Settings/RuntimePipelineConfig.asset'
+            outside.parent.mkdir(parents=True)
+            outside.write_bytes(b'non-Resources fixture; preserve')
+            self.assertTrue(no_staged_pipeline_resources(root))
+            for relative in ['Assets/Resources/RuntimePipelineConfig.asset',
+                             'Assets/Settings/Pipeline/Resources/RuntimePipelineBuildInfo.asset',
+                             'Assets/Other/Nested/Resources/RuntimePipelineConfig.asset']:
+                with self.subTest(relative=relative):
+                    path = root / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(b'staged fixture; never delete it from the verifier')
+                    original = path.read_bytes()
+                    self.assertFalse(no_staged_pipeline_resources(root))
+                    self.assertEqual(original, path.read_bytes())
+                    path.unlink()
+            self.assertEqual(b'non-Resources fixture; preserve', outside.read_bytes())
+            self.assertTrue(no_staged_pipeline_resources(root))
+
+    def test_pipeline_settings_are_protected_report_inputs_even_when_missing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / PIPELINE_RUNTIME_CONFIG
+            args = ['verify_release_candidate', '--output', str(path), 'source']
+            with patch('verify_release_candidate.ROOT', root), patch.object(sys, 'argv', args), \
+                    patch('verify_release_candidate.source_checks') as check:
+                with self.assertRaisesRegex(ValueError, 'Output collides'):
+                    main()
+                check.assert_not_called()
+            self.assertFalse(path.exists())
 
     def test_output_collision_rejected_before_candidate_is_opened(self):
         with tempfile.TemporaryDirectory() as folder:

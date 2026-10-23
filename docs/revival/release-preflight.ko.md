@@ -169,6 +169,8 @@ toolchain·패키지·검증 도구의 전환 기준은 통합됐으며, 아래 
 
 ## 구현한 검사
 
+2026-10-23 후속으로 source 검사는 Pipeline 런타임 설정/남은 생성 리소스2항목을 더해12항목입니다. [추가 검사와 적용 범위](release-pipeline-preflight.ko.md)를 따릅니다. 아래10항목 수치는 당시 도구 실행 이력이며 새12항목 실행으로 바꾸어 쓰지 않습니다. source 검사와 최종 AAB 검사는 별도이며, 이 추가로 실제 AAB의 HTTP 서버 부재를 입증하지는 않습니다.
+
 아래 10개 통과와 Python101개 수치는 도구 최초 구현 당시의 이력이다. 현재 도구 기준은 toolchain의 Unity6000.3.25f1/min25·target36이며 이번 정리에서는 재실행하지 않았다.
 
 `python tools/revival/verify_release_candidate.py source`는 고정 Unity, 운영 앱 ID 보존, 당시 min24/target36,
