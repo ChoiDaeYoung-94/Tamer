@@ -68,7 +68,9 @@ namespace AD
         public static string SavePath { get; private set; }
         public static string ReadApplyStage { get; private set; } = "not-started";
 #if TAMER_SHOP_HARNESS
-#if TAMER_SHOP_UI
+#if TAMER_CHARACTER_UI
+        internal const string ShopFixtureDirectoryName = "RevivalCharacterManualUi";
+#elif TAMER_SHOP_UI
         internal const string ShopFixtureDirectoryName = "RevivalShopManualUi";
 #elif TAMER_SHOP_AFTER_INVENTORY
         internal const string ShopFixtureDirectoryName = "RevivalShopAfterInventory";
@@ -183,6 +185,9 @@ namespace AD
                     "20100";
 #else
                     "20000";
+#endif
+#if TAMER_CHARACTER_UI
+                if (!ShopCloudRestored) cloud["Sex"] = ""; // New synthetic profile; original UI must save the choice.
 #endif
                 ShopCloudInitialGold = int.Parse(cloud["Gold"], System.Globalization.CultureInfo.InvariantCulture);
                 shopCloudLoaded = true;
