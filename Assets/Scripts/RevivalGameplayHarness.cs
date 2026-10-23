@@ -452,10 +452,15 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
                 stage = "restart-cloud";
                 Require(RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == 15000);
                 stage = "restart-receipt";
-                Require(record != null && !record.Materializing && record.ItemId == "MasterSword" &&
-                    record.Sequence == 2 && record.TransactionId == File.ReadAllText(marker) && record.GoldAfter == 0);
+                string transaction = File.ReadAllText(marker);
+                // Complete receipts deliberately omit item/payment details; bind their hash
+                // to the original request and inspect actual inventory/progress separately.
+                Require(record != null && !record.Materializing && record.Owner == RevivalGameplayIsolation.AccountId &&
+                    record.Sequence == 2 && record.TransactionId == transaction &&
+                    record.RequestHash == EquipmentPurchaseRecord.Request(RevivalGameplayIsolation.AccountId,
+                        2, transaction, "MasterSword", "Sword", 15000));
                 stage = "restart-player-projection";
-                Require(player.Gold == 0 && snapshot.OwnedItems.Count == 2 &&
+                Require(data.LocalPlayerData["Gold"] == "0" && player.Gold == 0 && snapshot.OwnedItems.Count == 2 &&
                     snapshot.OwnedItems.Contains("SimpleShield") && snapshot.OwnedItems.Contains("MasterSword") &&
                     snapshot.Equipped["Sword"] == "MasterSword" && snapshot.Equipped["Shield"] == "SimpleShield" &&
                     player.PlayerEquippedItems.Count == 2 && player.MasterSword.activeSelf && player.Simpleshield.activeSelf &&
