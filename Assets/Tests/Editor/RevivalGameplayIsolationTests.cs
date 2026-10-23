@@ -203,6 +203,59 @@ public class RevivalGameplayIsolationTests
     }
 
     [Test]
+    public void Revival_OfflineManifestSuppressesNativePlayGamesBeforeUnityLogin()
+    {
+        const string source = "<manifest xmlns:android='http://schemas.android.com/apk/res/android'><application>" +
+            "<provider android:name='com.google.android.gms.games.provider.PlayGamesInitProvider' android:exported='false'/>" +
+            "<provider android:name='com.google.android.gms.ads.MobileAdsInitProvider'/>" +
+            "<provider android:name='unrelated.KeptProvider' android:exported='false'/>" +
+            "</application></manifest>";
+        var original = XDocument.Parse(source);
+        var document = XDocument.Parse((string)Runtime("RevivalGameplayBuild").GetMethod("OfflineManifest")
+            .Invoke(null, new object[] { source }));
+        XNamespace android = "http://schemas.android.com/apk/res/android";
+        XNamespace tools = "http://schemas.android.com/tools";
+        var providers = document.Root.Element("application").Elements("provider").ToArray();
+        foreach (string name in new[] { "com.google.android.gms.games.provider.PlayGamesInitProvider",
+            "com.google.android.gms.ads.MobileAdsInitProvider" })
+        {
+            var provider = providers.Single(p => (string)p.Attribute(android + "name") == name);
+            Assert.That((string)provider.Attribute(tools + "node"), Is.EqualTo("remove"));
+        }
+        var kept = providers.Single(p => (string)p.Attribute(android + "name") == "unrelated.KeptProvider");
+        Assert.That(XNode.DeepEquals(kept, original.Root.Element("application").Elements("provider").Last()), Is.True);
+    }
+
+    [Test]
+    public void Revival_SyntheticReadFailureReportsFixedStageAndTypeAndKeepsSessionUnready()
+    {
+        var scene = EditorSceneManager.NewPreviewScene();
+        object server = null;
+        try
+        {
+            var go = new GameObject("Offline diagnostic fixture");
+            go.SetActive(false);
+            SceneManager.MoveGameObjectToScene(go, scene);
+            var dataType = Runtime("AD.DataManager");
+            var data = go.AddComponent(dataType);
+            dataType.GetProperty("PlayFabId").GetSetMethod(true).Invoke(data, new object[] { "revival-offline-gameplay" });
+            // Deliberately no initialized local/default snapshot. The application step
+            // must fail closed instead of claiming ready or exposing the response.
+            server = Runtime("AD.RevivalGameplayIsolation").GetMethod("CreateServer").Invoke(null, new object[] { data });
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Warning,
+                "GAMEPLAY_HARNESS SYNTHETIC_READ_FAILED stage=validate-session exception=InvalidOperationException");
+            server.GetType().GetMethod("GetAllData").Invoke(server, new object[] { true });
+            Assert.That(server.GetType().GetProperty("HasFailed").GetValue(server), Is.True);
+            Assert.That(dataType.GetProperty("IsServerDataReady").GetValue(data), Is.False);
+        }
+        finally
+        {
+            (server as IDisposable)?.Dispose();
+            EditorSceneManager.ClosePreviewScene(scene);
+        }
+    }
+
+    [Test]
     public void Revival_GameplayManifestRemovesNetworkBillingAndAdProvider()
     {
         const string original = "<manifest xmlns:android='http://schemas.android.com/apk/res/android'><uses-permission android:name='android.permission.INTERNET'/><application><activity android:name='kept'/></application></manifest>";

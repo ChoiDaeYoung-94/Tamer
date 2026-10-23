@@ -62,6 +62,9 @@ namespace AD
         public static int BlockedLogins { get; private set; }
         public static int BlockedPurchases { get; private set; }
         public static string SavePath { get; private set; }
+        public static string ReadApplyStage { get; private set; } = "not-started";
+
+        public static void SetReadApplyStage(string stage) => ReadApplyStage = stage;
 
         public static void BlockLogin() => BlockedLogins++;
         public static void BlockPurchase() => BlockedPurchases++;
@@ -144,7 +147,19 @@ namespace AD
                     var records = new Dictionary<string, UserDataRecord>();
                     foreach (var entry in snapshot) records.Add(entry.Key, new UserDataRecord { Value = entry.Value });
                     owner.PlayFabPlayerData = records;
-                    if (update) owner.UpdateData();
+                    if (update)
+                    {
+                        SetReadApplyStage("enter-update");
+                        try { owner.UpdateData(); }
+                        catch (Exception error)
+                        {
+                            // Fixed checkpoint + type only: never print exception messages,
+                            // account/save values, paths, or the snapshot itself.
+                            UnityEngine.Debug.LogWarning("GAMEPLAY_HARNESS SYNTHETIC_READ_FAILED stage=" +
+                                ReadApplyStage + " exception=" + error.GetType().Name);
+                            throw;
+                        }
+                    }
                 });
         }
     }

@@ -725,9 +725,19 @@ namespace AD
             _changes = candidate;
         }
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("TAMER_GAMEPLAY_HARNESS")]
+        private static void MarkSyntheticReadStage(string stage)
+        {
+#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+            RevivalGameplayIsolation.SetReadApplyStage(stage);
+#endif
+        }
+
         /// <summary>Called only for a successful server read. No write requests originate here.</summary>
         public void UpdateData()
         {
+            MarkSyntheticReadStage("validate-session");
             if (ReceiptOnly) return;
             if (EquipmentBlocksWrites || _allyPurchaseWriting || _allyPurchaseReloadRequired) return;
             if (DeletionInProgress || _deletionSignedOut) return;
@@ -746,6 +756,7 @@ namespace AD
                 throw new InvalidOperationException("Local account mismatch; save preserved.");
             if (!_sessionBackupCreated)
             {
+                MarkSyntheticReadStage("backup-existing-file");
                 if (File.Exists(_playerDataPath))
                 {
                     var directory = Path.Combine(Path.GetDirectoryName(_playerDataPath), "PlayerDataBackups");
@@ -754,19 +765,25 @@ namespace AD
                 }
                 _sessionBackupCreated = true;
             }
+            MarkSyntheticReadStage("merge-snapshot");
             var merged = PlayerDataSyncPolicy.Merge(_defaults, LocalPlayerData, server, _changes.Snapshot());
             PlayerDataSyncPolicy.ValidateAllyMonsters(merged, MonsterData?.Keys);
             // A legacy file is bound on the first successful read; it is never used as a cloud patch.
             // Ownership and values are committed together in one atomic JSON replacement.
+            MarkSyntheticReadStage("write-player-data");
             WritePlayerData(merged, PlayFabId);
             LocalPlayerData = merged;
             _localOwner = PlayFabId;
             IsServerDataReady = false;
             IsConflict = false;
+            MarkSyntheticReadStage("bind-inventory");
             if (MonsterData != null && ItemData != null) BindInventoryForCurrentSession();
             IsServerDataReady = true;
+            MarkSyntheticReadStage("refresh-player");
             Player.Instance?.RefreshInventorySession();
+            MarkSyntheticReadStage("refresh-shop");
             ShopMan.Instance?.RefreshInventorySession();
+            MarkSyntheticReadStage("complete");
         }
 
         public void Shutdown()

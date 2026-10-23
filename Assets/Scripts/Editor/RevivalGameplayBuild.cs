@@ -30,8 +30,16 @@ public static class RevivalGameplayBuild
                 new XAttribute(tools + "node", "remove")));
         }
         var app = root.Element("application") ?? throw new BuildFailedException("Missing application.");
-        app.Add(new XElement("provider", new XAttribute(android + "name", "com.google.android.gms.ads.MobileAdsInitProvider"),
-            new XAttribute(tools + "node", "remove")));
+        // Native ContentProviders run before Unity's guarded Login.Start. Offline
+        // harnesses must also suppress Play Games' automatic sign-in entry point.
+        foreach (string provider in new[] { "com.google.android.gms.ads.MobileAdsInitProvider",
+            "com.google.android.gms.games.provider.PlayGamesInitProvider" })
+        {
+            foreach (var node in app.Elements("provider")
+                .Where(n => (string)n.Attribute(android + "name") == provider).ToArray()) node.Remove();
+            app.Add(new XElement("provider", new XAttribute(android + "name", provider),
+                new XAttribute(tools + "node", "remove")));
+        }
         return document.ToString();
     }
 
