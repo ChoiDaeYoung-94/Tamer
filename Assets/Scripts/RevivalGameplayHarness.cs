@@ -279,8 +279,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
                 " recipientOnMesh=" + recipient.NavMeshAgent.isOnNavMesh + " issuerCurrent=" + issuer.CanNavigateCurrentSession +
                 " nearbyMesh=" + nearbyMesh + " arenaValid=" + arenaInstance.valid +
                 " receiverAtArena=" + (Vector3.Distance(recipient.transform.position, isolated.position) < 1));
-            Require(recipient.NavMeshAgent.isActiveAndEnabled && !recipient.NavMeshAgent.isOnNavMesh &&
-                issuer.CanNavigateCurrentSession);
+            // isOnNavMesh may be stale after native data removal: require actual mesh absence
+            // and the production guard's rejection, without pretending the native flag changed.
+            Require(recipient.NavMeshAgent.isActiveAndEnabled && !nearbyMesh &&
+                !recipient.CanNavigateCurrentSession && issuer.CanNavigateCurrentSession);
             stage = "offmesh-rejected";
             move.Invoke(issuer, new object[] { recipient, original.position });
             Require(recipient.State == Creature.CreatureState.Idle && _errors == errorsBefore);

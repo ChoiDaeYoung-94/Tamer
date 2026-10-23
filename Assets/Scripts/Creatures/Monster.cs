@@ -52,7 +52,10 @@ public class Monster : Creature
     public int SessionLifetime => _session.Lifetime;
     public bool CanNavigateCurrentSession => isActiveAndEnabled && !isDie &&
         NavMeshAgent != null && NavMeshAgent.isActiveAndEnabled && NavMeshAgent.isOnNavMesh &&
-        AD.Managers.SceneM != null && !AD.Managers.SceneM.IsTransitioning && IsCurrentSession(SessionLifetime);
+        AD.Managers.SceneM != null && !AD.Managers.SceneM.IsTransitioning && IsCurrentSession(SessionLifetime) &&
+        // Native membership can remain true after its NavMesh data is removed.
+        NavMesh.SamplePosition(NavMeshAgent.transform.position, out _, Mathf.Max(.5f, NavMeshAgent.height),
+            new NavMeshQueryFilter { agentTypeID = NavMeshAgent.agentTypeID, areaMask = NavMeshAgent.areaMask });
     public bool IsCurrentSession(int lifetime)
     {
         var data = AD.Managers.DataM;
