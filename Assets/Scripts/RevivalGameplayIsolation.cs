@@ -67,6 +67,10 @@ namespace AD
         public static int BlockedPurchases { get; private set; }
         public static string SavePath { get; private set; }
         public static string ReadApplyStage { get; private set; } = "not-started";
+#if TAMER_SHOP_HARNESS
+        internal static bool ShopCloudRestored { get; private set; }
+        internal static int ShopCloudInitialGold { get; private set; } = -1;
+#endif
 
         public static void SetReadApplyStage(string stage) => ReadApplyStage = stage;
 
@@ -156,6 +160,8 @@ namespace AD
                 if (UnityEngine.Application.identifier != ShopPurchaseApplicationId || !UnityEngine.Debug.isDebugBuild ||
                     Path.GetFileName(Path.GetDirectoryName(cloudPath)) != "RevivalShopPurchase")
                     throw new InvalidOperationException("Dedicated synthetic shop cloud required.");
+                if (!File.Exists(cloudPath) && File.Exists(Path.Combine(Path.GetDirectoryName(cloudPath), "PendingSword.txt")))
+                    throw new InvalidDataException("Synthetic cloud missing after purchase; preserve.");
                 if (File.Exists(cloudPath))
                 {
                     var stored = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(cloudPath));
@@ -163,8 +169,10 @@ namespace AD
                         !int.TryParse(stored["Gold"], out int savedGold) || savedGold < 0)
                         throw new InvalidDataException("Synthetic cloud structure changed; preserve.");
                     cloud = stored;
+                    ShopCloudRestored = true;
                 }
                 else cloud["Gold"] = "20000";
+                ShopCloudInitialGold = int.Parse(cloud["Gold"], System.Globalization.CultureInfo.InvariantCulture);
                 shopCloudLoaded = true;
             }
 #endif

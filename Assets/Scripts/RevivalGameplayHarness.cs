@@ -442,6 +442,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             if (File.Exists(marker))
             {
                 stage = "restart-recovery";
+                Require(RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == 15000);
                 var record = EquipmentPurchaseRecord.Parse(EquipmentPurchaseRecord.Extract(File.ReadAllText(RevivalGameplayIsolation.SavePath)));
                 Require(record != null && !record.Materializing && record.ItemId == "MasterSword" &&
                     record.Sequence == 2 && record.TransactionId == File.ReadAllText(marker) && record.GoldAfter == 0);
@@ -453,12 +454,13 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
                     Mathf.Approximately(player.Hp, 150) && Mathf.Approximately(player.Power, 60) &&
                     Mathf.Approximately(player.AttackSpeed, 1.5f) && Mathf.Approximately(player.MoveSpeed, 3) && _errors == 0);
                 Require(player.PrepareEquipmentPurchase("MasterSword", 15000) == null);
-                Mark("SHOP_TRANSACTION_PASS phase=restart gold=0 owned=2 equipped=2 models=matched hp=150 power=60 attack=1.5 move=3 sameTransaction=true errors=0");
+                Mark("SHOP_TRANSACTION_PASS phase=restart gold=0 owned=2 equipped=2 models=matched hp=150 power=60 attack=1.5 move=3 sameTransaction=true syntheticCloudLoaded=true initialCloudGold=15000 errors=0");
                 return;
             }
 
             stage = "initial-state";
-            Require(snapshot.OwnedItems.Count == 0 && snapshot.Collection.Count == 0 && player.Gold == 20000 && _errors == 0);
+            Require(!RevivalGameplayIsolation.ShopCloudRestored && RevivalGameplayIsolation.ShopCloudInitialGold == 20000 &&
+                snapshot.OwnedItems.Count == 0 && snapshot.Collection.Count == 0 && player.Gold == 20000 && _errors == 0);
             stage = "normal-shield";
             var shield = player.PrepareEquipmentPurchase("SimpleShield", 5000);
             Require(shield != null);
@@ -472,7 +474,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             Require(player.Gold == 15000 && Mathf.Approximately(player.Hp, 150) && presented == 1 &&
                 data.ReadInventory().OwnedItems.SequenceEqual(inventory.OwnedItems) &&
                 File.ReadAllText(RevivalGameplayIsolation.SavePath) == progress && _errors == 0);
-            Mark("SHOP_TRANSACTION_STEP normal=completed replay=already-completed gold=15000 hp=150 presentations=1 errors=0");
+            var cloud = Newtonsoft.Json.JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, string>>(
+                File.ReadAllText(Path.Combine(Path.GetDirectoryName(marker), "SyntheticCloud.json")));
+            Require(cloud != null && cloud["Gold"] == "15000" && !cloud.ContainsKey(EquipmentPurchaseRecord.Key));
+            Mark("SHOP_TRANSACTION_STEP normal=completed replay=already-completed gold=15000 hp=150 presentations=1 syntheticCloudStored=15000 errors=0");
 
             stage = "cut-prepare";
             var sword = player.PrepareEquipmentPurchase("MasterSword", 15000);
