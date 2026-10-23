@@ -271,8 +271,14 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             stage = "offmesh-arena-warp";
             Require(recipient.NavMeshAgent.Warp(isolated.position) && recipient.CanNavigateCurrentSession);
             arenaInstance.Remove();
-            await Awaitable.NextFrameAsync(); // Native agent membership updates after removing owned data.
+            for (int frame = 0; frame < 5; frame++) await Awaitable.NextFrameAsync();
             stage = "offmesh-membership";
+            bool nearbyMesh = UnityEngine.AI.NavMesh.SamplePosition(recipient.transform.position,
+                out _, 2, UnityEngine.AI.NavMesh.AllAreas);
+            Mark("NAVIGATION_GUARD_MEMBERSHIP recipientActive=" + recipient.NavMeshAgent.isActiveAndEnabled +
+                " recipientOnMesh=" + recipient.NavMeshAgent.isOnNavMesh + " issuerCurrent=" + issuer.CanNavigateCurrentSession +
+                " nearbyMesh=" + nearbyMesh + " arenaValid=" + arenaInstance.valid +
+                " receiverAtArena=" + (Vector3.Distance(recipient.transform.position, isolated.position) < 1));
             Require(recipient.NavMeshAgent.isActiveAndEnabled && !recipient.NavMeshAgent.isOnNavMesh &&
                 issuer.CanNavigateCurrentSession);
             stage = "offmesh-rejected";
