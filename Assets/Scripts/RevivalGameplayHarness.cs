@@ -27,6 +27,9 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private int _previousGameSceneHandle;
     private Monster[] _previousMonsters = Array.Empty<Monster>();
     private string _lastCaptureObservation;
+#if TAMER_SHOP_UI
+    private string _lastShopObservation;
+#endif
 #if TAMER_GAMEPLAY_PHOTO
     private bool _photoMode;
     private int _photoRestoreTaps;
@@ -81,6 +84,9 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         if (player == null || Managers.Instance != _originalManagers) return;
         ObserveSceneLifetime();
         ObserveCaptures(player);
+#if TAMER_SHOP_UI
+        ObserveShopUi(player);
+#endif
 #if TAMER_GAMEPLAY_HARNESS && !TAMER_GAMEPLAY_PHOTO && !TAMER_AGE_CHOICE && !TAMER_SESSION_HARNESS && !TAMER_PLAYER_RESTORE && !TAMER_INVENTORY_RESTORE
         ObserveCombat(player);
 #endif
@@ -389,10 +395,16 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield return WaitForScene("Main");
         if (!Ready("Main")) { Mark("FAIL Main entry"); yield break; }
         _originalPlayer = Player.Instance;
-#if TAMER_SHOP_HARNESS
+#if TAMER_SHOP_UI
+        Mark("SHOP_UI_READY original joystick/shop controls; no automatic purchase; synthetic cloud only" +
+            " cloudRestored=" + RevivalGameplayIsolation.ShopCloudRestored +
+            " initialCloudGold=" + RevivalGameplayIsolation.ShopCloudInitialGold);
+        yield break;
+#elif TAMER_SHOP_HARNESS
         VerifyShopPurchase();
         yield break;
 #endif
+
 #if TAMER_INVENTORY_RESTORE
         VerifyInventoryRestore();
         yield break;
@@ -419,6 +431,32 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         yield break;
 #endif
     }
+
+#if TAMER_SHOP_UI
+    private void ObserveShopUi(Player player)
+    {
+        var data = Managers.DataM;
+        if (!data.IsServerDataReady || !Ready("Main") || ShopMan.Instance == null) return;
+        var saved = data.ReadInventory();
+        const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic;
+        var goldLabel = typeof(PlayerUICanvas).GetField("_goldText", fields).GetValue(PlayerUICanvas.Instance) as TMPro.TMP_Text;
+        string text = "gold=" + player.Gold + " storedGold=" + data.LocalPlayerData["Gold"] +
+            " owned=" + string.Join(",", saved.OwnedItems.OrderBy(value => value)) +
+            " equipped=" + string.Join(",", saved.Equipped.OrderBy(pair => pair.Key).Select(pair => pair.Key + ":" + pair.Value)) +
+            " models=" + player.SimpleSword.activeSelf + "," + player.MasterSword.activeSelf + "," +
+                player.Simpleshield.activeSelf + "," + player.Mastershield.activeSelf +
+            " hp=" + player.Hp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " power=" + player.Power.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " attack=" + player.AttackSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " move=" + player.MoveSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+            " hudGoldMatches=" + (goldLabel != null && goldLabel.text == "Gold - " + player.Gold) +
+            " errors=" + _errors + " totalErrors=" + _totalErrors;
+        if (text == _lastShopObservation) return;
+        _lastShopObservation = text;
+        Debug.Log("SHOP_UI_STATE " + text);
+    }
+#endif
 
     private bool Ready(string scene) => UnitySceneManager.GetActiveScene().name == scene &&
         Managers.Instance == _originalManagers && Managers.SceneM != null && !Managers.SceneM.IsTransitioning &&

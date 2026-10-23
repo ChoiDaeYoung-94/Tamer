@@ -47,6 +47,7 @@ public static class RevivalGameplayBuild
     public static void BuildInventoryRestoreAndroid() => Build(false, inventoryRestore: true);
     public static void BuildShopPurchaseAndroid() => Build(false, shopPurchase: true);
     public static void BuildShopInventoryCutAndroid() => Build(false, shopPurchase: true, shopAfterInventory: true);
+    public static void BuildShopUiAndroid() => Build(false, shopPurchase: true, shopUi: true);
     public static void BuildAndroid() => Build(false);
     public static void BuildPhotoAndroid() => Build(true);
     public static void BuildAgeChoiceAndroid() => Build(false, false, true);
@@ -93,7 +94,7 @@ public static class RevivalGameplayBuild
         }
     }
 
-    private static void Build(bool photo, bool playerRestore = false, bool ageChoice = false, bool session = false, bool inventoryRestore = false, bool shopPurchase = false, bool shopAfterInventory = false)
+    private static void Build(bool photo, bool playerRestore = false, bool ageChoice = false, bool session = false, bool inventoryRestore = false, bool shopPurchase = false, bool shopAfterInventory = false, bool shopUi = false)
     {
         int code = 1;
         var files = new[] { Manifest, AdsSettings, AdsManifest };
@@ -110,7 +111,7 @@ public static class RevivalGameplayBuild
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with Android build target.");
             string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
-            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_GAMEPLAY_PHOTO" || d == "TAMER_PLAYER_RESTORE" || d == "TAMER_AGE_CHOICE" || d == "TAMER_SESSION_HARNESS" || d == "TAMER_INVENTORY_RESTORE" || d == "TAMER_SHOP_HARNESS" || d == "TAMER_SHOP_AFTER_INVENTORY"))
+            if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_GAMEPLAY_PHOTO" || d == "TAMER_PLAYER_RESTORE" || d == "TAMER_AGE_CHOICE" || d == "TAMER_SESSION_HARNESS" || d == "TAMER_INVENTORY_RESTORE" || d == "TAMER_SHOP_HARNESS" || d == "TAMER_SHOP_AFTER_INVENTORY" || d == "TAMER_SHOP_UI"))
                 throw new BuildFailedException("Harness symbols must not be global.");
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
@@ -132,9 +133,9 @@ public static class RevivalGameplayBuild
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
-                locationPathName = shopAfterInventory ? "Build/revival/Tamer-shopinventorycut.apk" : shopPurchase ? "Build/revival/Tamer-shoppurchase.apk" : inventoryRestore ? "Build/revival/Tamer-inventoryrestore.apk" : session ? "Build/revival/Tamer-sessionguard.apk" : ageChoice ? "Build/revival/Tamer-agechoice.apk" : playerRestore ? "Build/revival/Tamer-playerrestore.apk" : photo ? "Build/revival/Tamer-gameplay-photo.apk" : "Build/revival/Tamer-gameplay.apk",
+                locationPathName = shopUi ? "Build/revival/Tamer-shopui.apk" : shopAfterInventory ? "Build/revival/Tamer-shopinventorycut.apk" : shopPurchase ? "Build/revival/Tamer-shoppurchase.apk" : inventoryRestore ? "Build/revival/Tamer-inventoryrestore.apk" : session ? "Build/revival/Tamer-sessionguard.apk" : ageChoice ? "Build/revival/Tamer-agechoice.apk" : playerRestore ? "Build/revival/Tamer-playerrestore.apk" : photo ? "Build/revival/Tamer-gameplay-photo.apk" : "Build/revival/Tamer-gameplay.apk",
                 options = BuildOptions.CompressWithLz4 | (photo ? BuildOptions.None : BuildOptions.Development),
-                extraScriptingDefines = shopAfterInventory ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_AFTER_INVENTORY" } : shopPurchase ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS" } : inventoryRestore ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_INVENTORY_RESTORE" } : session ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SESSION_HARNESS" } : ageChoice ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_AGE_CHOICE" } : playerRestore ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_PLAYER_RESTORE" } : photo
+                extraScriptingDefines = shopUi ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI" } : shopAfterInventory ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_AFTER_INVENTORY" } : shopPurchase ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS" } : inventoryRestore ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_INVENTORY_RESTORE" } : session ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SESSION_HARNESS" } : ageChoice ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_AGE_CHOICE" } : playerRestore ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_PLAYER_RESTORE" } : photo
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_GAMEPLAY_PHOTO" }
                     : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS" }
             });
