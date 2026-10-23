@@ -235,7 +235,11 @@ namespace AD
             Action replacing = null)
         {
             MarkSyntheticInventoryStage("write-path-key");
-            string path = PathFor(account), temporary = path + ".pending-" + Guid.NewGuid().ToString("N");
+            string path = PathFor(account);
+            // Keep the atomic temporary beside its destination without repeating the 64-char
+            // owner key. Some Android translation layers truncate long paths on open while
+            // stat/move use the full path, leaving a written temporary that cannot be moved.
+            string temporary = Path.Combine(_directory, ".pending-" + Guid.NewGuid().ToString("N"));
             var record = new Record { Version = 1, Owner = account, Collection = candidate.Collection.ToArray(),
                 OwnedItems = candidate.OwnedItems.ToArray(), Equipped = new Dictionary<string, string>(candidate.Equipped), Session = session };
             MarkSyntheticInventoryStage("serialize");
