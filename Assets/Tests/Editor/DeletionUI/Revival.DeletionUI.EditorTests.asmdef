@@ -1,1 +1,1 @@
-{"name":"Revival.DeletionUI.EditorTests","references":["Tamer.Privacy","Unity.ugui"],"includePlatforms":["Editor"],"optionalUnityReferences":["TestAssemblies"]}
+{"name":"Revival.DeletionUI.EditorTests","references":["Tamer.Privacy","Unity.ugui","AD.Advertising"],"includePlatforms":["Editor"],"optionalUnityReferences":["TestAssemblies"]}
