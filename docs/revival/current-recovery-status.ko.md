@@ -1,5 +1,12 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-24
 
+## 2026-10-24 추가 — cold UMP 오류 후 실제 native 재진입 통과
+
+- source9e3f315의 전용 privacycold 후보27에서 실제 Update1→fresh Required→Show1/code3 실패→같은 PID의 실제 load_complete→명시1회 재진입/Show2→native Do not consent 선택→실제 callback2 성공/OptionsClosed를 연결했습니다. 실제 폼 캡처와 단계별 근거는 [새 검증 문서](privacy-cold-explicit-retry-20261024.ko.md)에 있습니다. 최초 실패를 숨기거나 자동 반복하지 않았습니다.
+- 실제 두 번째 terminal 뒤 Declined 저장·새 PID의 합성 No Ads 복구·AgeRequired/SDK0도 확인했습니다. 동일 서명 버전26→27 업데이트 전후 내부/외부 자료 내용 일치와 기존 외부 증거15개 보존, 빌드 후62개 검증/설정8개 복구·전체 에셋4561/복사0·소스12항목 통과를 기록했습니다. 현재 시험 앱은 종료했고 데이터/증거는 보존했습니다.
+- 일반 MainPanel의 Android 버튼/오류 문구·실제 터치와 운영 흐름 결합은 별도 미검증으로 #419에 남깁니다. 실제 구매권한·모든 목적/공급자 철회·전지역/아동 정책·16KB·운영 AAB/Play 판정으로 확대하지 않습니다. Chrome 보류와 운영 승인 false/null은 유지합니다.
+- LD 목록의 다른 중지 인스턴스 PID=-1이 정상 Tamer 준비 검사까지 막던 문제는 PR425/main213af93로 수정했습니다. 관련 Python10/10과 실제 정확한 index/serial 조회를 확인했고 다른 인스턴스는 조작하지 않았습니다. 이후 간헐적 ADB offline은 대상 전송만 복구했으며 호스트 원인은 미확정입니다.
+
 ## 2026-10-24 12:27 최신 — Unity 6.3 새 작업본 재현 검사
 
 - main `cf3a519676911f07475c54a7ee5f0291df34b0f1`을 고정한 새 작업본에서 Library 없는 최초 복원·임포트 후 Editor **900/900**을 단일 실행으로 통과했습니다. 같은 소스의 개발 APK 빌드도 오류0/exit0, min25/target36/ARM64/debug 서명 검사 통과입니다. [정확한 시작 조건·APK·보호 복구·재검사·한계](cold-baseline-20261024.ko.md).
