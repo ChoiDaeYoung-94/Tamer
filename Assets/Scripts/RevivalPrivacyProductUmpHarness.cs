@@ -36,7 +36,7 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
         !AgeTreatmentPolicy.RegionalConsentReviewed && !AgeTreatmentPolicy.IsReviewed(AgeChoice.Under13) &&
         !AgeTreatmentPolicy.IsReviewed(AgeChoice.From13To15) && !AgeTreatmentPolicy.IsReviewed(AgeChoice.From16To17) &&
         !AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult);
-    public const string FixtureDirectory = "RevivalPrivacyProductUmpV1";
+    public const string FixtureDirectory = "RevivalPrivacyProductUmpV2";
     public const string Account = "privacy-product-ump-synthetic-v1";
     private const string ColdPurchaseKey = "Tamer.Harness.PrivacyCold.Purchases";
     private const string ColdFixtureKey = "Tamer.Harness.PrivacyCold.FixtureId";
@@ -44,7 +44,7 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
         ColdPurchaseKey, ColdFixtureKey, "AllyMonsters", "playerEquippedItems", "LocalItem",
         DataManager.DeletionLoginPauseKey, "AD_LastGpgsId", "AD_CustomId", "AD_LoginMode", "AD_GoogleSignupPending" };
     private static readonly string Token = Guid.NewGuid().ToString("N");
-    private static string _directory, _preferencesHash;
+    private static string _directory, _preferencesHash, _registrationInputPath;
     private static Dictionary<string, string> _preservedFiles;
     private static RevivalPrivacyProductUmpHarness _instance;
     private static bool _bootClaimed, _primeConsumed, _factoryConsumed;
@@ -119,6 +119,21 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
             !new[] { "AllyMonsters", "playerEquippedItems", "LocalItem" }.Any(PlayerPrefs.HasKey), "root-save-or-legacy-preserve-stop");
         _directory = Path.Combine(Application.persistentDataPath, FixtureDirectory);
         Require(!Directory.Exists(_directory) && !File.Exists(_directory), "new-fixture-never-overwrite");
+        // ADB-pushed external files belong to shell and cannot be opened for
+        // cleansing by the app. Receive only this transient copy in private files,
+        // created as the app UID by the debug runner; preserve the source receipt.
+        using (var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+        using (var activity = player.GetStatic<AndroidJavaObject>("currentActivity"))
+        using (var files = activity.Call<AndroidJavaObject>("getFilesDir"))
+        {
+            string root = files.Call<string>("getCanonicalPath");
+            Require(root == "/data/user/0/" + Application.identifier + "/files" ||
+                root == "/data/data/" + Application.identifier + "/files", "exact-private-user-zero-root");
+            string inputDirectory = Path.Combine(root, FixtureDirectory);
+            Require(!Directory.Exists(inputDirectory) && !File.Exists(inputDirectory), "private-input-never-overwrite");
+            Directory.CreateDirectory(inputDirectory);
+            _registrationInputPath = Path.Combine(inputDirectory, "registration.input");
+        }
         _preferencesHash = PreferenceHash();
         _preservedFiles = ExistingFiles();
         Directory.CreateDirectory(_directory);
@@ -200,8 +215,10 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
                 RequireContext(true);
                 _ready = true;
                 WriteNew(Path.Combine(_directory, "ready.tmp"), new { schema = 1, pid = Pid, token = Token,
-                    packageId = Application.identifier, versionCode = 28, commandSequence = 1,
-                    registrationInput = "registration.input", ordinaryColdFirstButtonTest = false });
+                    packageId = Application.identifier, versionCode = 29, commandSequence = 1,
+                    registrationInput = "registration.input", registrationInputTransport = "run-as-private-files",
+                    registrationInputRelativePath = "files/" + FixtureDirectory + "/registration.input",
+                    ordinaryColdFirstButtonTest = false });
                 File.Move(Path.Combine(_directory, "ready.tmp"), Path.Combine(_directory, "ready.json"));
                 Snapshot("main-ready");
             }
@@ -260,7 +277,7 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
                 Require(!_armed && !_primeConsumed && _registration == null, "arm-once");
                 _registrationReceiptSha256 = (string)command["registrationReceiptSha256"];
                 Require(System.Text.RegularExpressions.Regex.IsMatch(_registrationReceiptSha256 ?? "", "\\A[0-9a-f]{64}\\z"), "provenance-digest-required");
-                string path = Path.Combine(_directory, "registration.input");
+                string path = _registrationInputPath;
                 Require(File.Exists(path) && new FileInfo(path).Length <= 34, "new-ipc-input-only");
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
                 {
@@ -450,7 +467,7 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
             ["pid"] = Pid,
             ["token"] = Token,
             ["packageId"] = Application.identifier,
-            ["versionCode"] = 28,
+            ["versionCode"] = 29,
             ["commandSequence"] = _commandSequence,
             ["lastCommand"] = _lastCommand,
             ["syntheticAdultPlanOnly"] = true,

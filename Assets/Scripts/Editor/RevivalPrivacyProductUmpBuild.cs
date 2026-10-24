@@ -10,7 +10,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-/// <summary>Same-package debug 27 to 28 upgrade. Never changes ordinary privacy approval.</summary>
+/// <summary>Same-package debug 28 to 29 upgrade. Never changes ordinary privacy approval.</summary>
 public static class RevivalPrivacyProductUmpBuild
 {
     // Use public effective policy checks; the standalone helper is absent in this variant.
@@ -18,7 +18,7 @@ public static class RevivalPrivacyProductUmpBuild
         !AgeTreatmentPolicy.RegionalConsentReviewed && !AgeTreatmentPolicy.IsReviewed(AgeChoice.Under13) &&
         !AgeTreatmentPolicy.IsReviewed(AgeChoice.From13To15) && !AgeTreatmentPolicy.IsReviewed(AgeChoice.From16To17) &&
         !AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult);
-    internal const string Output = "Build/revival/Tamer-privacy-product-ump-v1.apk";
+    internal const string Output = "Build/revival/Tamer-privacy-product-ump-v2.apk";
     private const string ExpectedCheckout = "D:/codex/worktrees/tamer-working/Tamer";
     internal const string RulesName = "tamer_privacy_product_ump_rules";
     internal static bool Active { get; private set; }
@@ -49,8 +49,8 @@ public static class RevivalPrivacyProductUmpBuild
             if (!string.Equals(checkout.TrimEnd(Path.DirectorySeparatorChar),
                 Path.GetFullPath(ExpectedCheckout).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) ||
                 Environment.GetEnvironmentVariable("TAMER_PRIVACY_PRODUCT_UMP_BUILD_OPT_IN") != "1" ||
-                Environment.GetEnvironmentVariable("TAMER_PRIVACY_PRODUCT_UMP_INSTALLED_VERSION_CODE") != "27")
-                throw new BuildFailedException("Exact checkout, explicit opt-in and observed installed version 27 required.");
+                Environment.GetEnvironmentVariable("TAMER_PRIVACY_PRODUCT_UMP_INSTALLED_VERSION_CODE") != "28")
+                throw new BuildFailedException("Exact checkout, explicit opt-in and observed installed version 28 required.");
             RevivalBuild.RequireSavedScenes();
             RevivalBuild.ValidateBaseline();
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android ||
@@ -81,7 +81,7 @@ public static class RevivalPrivacyProductUmpBuild
             if (File.Exists(Output)) throw new BuildFailedException("Existing product UMP artifact must be preserved.");
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, AgeTreatmentPolicy.NativePrivacyColdHarnessPackage);
             PlayerSettings.Android.useCustomKeystore = false;
-            PlayerSettings.Android.bundleVersionCode = 28;
+            PlayerSettings.Android.bundleVersionCode = 29;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
             configured = true;
@@ -107,7 +107,7 @@ public static class RevivalPrivacyProductUmpBuild
             {
                 if (configured && (PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != AgeTreatmentPolicy.NativePrivacyColdHarnessPackage ||
                     PlayerSettings.Android.useCustomKeystore || PlayerSettings.Android.keyaliasName != oldAlias ||
-                    PlayerSettings.Android.bundleVersionCode != 28 || EditorUserBuildSettings.buildAppBundle ||
+                    PlayerSettings.Android.bundleVersionCode != 29 || EditorUserBuildSettings.buildAppBundle ||
                     PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) != ScriptingImplementation.IL2CPP))
                     throw new BuildFailedException("Concurrent owned setting change; preserve for external recovery.");
                 if (configured)
