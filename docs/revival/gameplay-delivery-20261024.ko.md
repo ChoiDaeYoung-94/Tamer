@@ -1,6 +1,6 @@
 # 최신 일반 오프라인 게임 APK 준비 — 2026-10-24
 
-**최신 통합 소스로 일반 게임 APK를 만들고, AdServices3권한 제거와 같은 파일의 LD 첫 Main 표시를 확인했습니다.** 빌드·실제 APK 정적 검사·기존 출력 보존·로컬 전달 준비와 기기 업데이트 후 첫 화면 확인까지 완료했습니다. Drive 업로드·실제 폰·이 새 파일의 Game 왕복은 미실행입니다.
+**최신 통합 소스로 일반 게임 APK를 만들고, AdServices3권한 제거와 같은 파일의 LD 첫 Main 및 씬 왕복을 확인했습니다.** 빌드·실제 APK 정적 검사·기존 출력 보존·로컬 전달 준비를 마쳤습니다. 22:20 추가 [Main → Game → Main 결과](gameplay-roundtrip-20261024.ko.md)는 아래18:55 첫 화면과 구분합니다. Drive 업로드·실제 폰 확인은 사용자 수동 단계이며 [전달 순서](manual-delivery-and-console-20261024.ko.md)를 따릅니다.
 
 | 항목 | 실제 결과 |
 | --- | --- |
@@ -44,4 +44,4 @@
 
 동일 앱만 종료하고 PID 부재를 확인했습니다. 기존 외부 non-IL2CPP26파일은 모두 byte가 같았고 삭제0, 새 파일2개는 단일 새 GUID 폴더의 OfflineHarness/합성 owner·빈 도감/보유품·미장착 Sword/Shield·빈 pending journal이었습니다. 바뀐 IL2CPP metadata/GUID cache2개는 새 APK와 byte가 같았습니다. 내부2파일은 전체 byte 불변이 아니며, prefs13항목 중9개 유지/Unity session4항목만 변경·count+1,24byte profile cache는 schema/result/size 유지·실제 앱 업데이트 시각만 변화했습니다. [설치 cache 해석 기준](privacy-product-real-ump-20261024.ko.md)과 같은 구조입니다. 초기 연결 사전검사와 마지막 PID 읽기의 거절·후속 정상 읽기, journal/미장착 슬롯의 스키마 해석 보완도 보존했고 이를 위해 앱을 다시 실행하거나 초기화하지 않았습니다.
 
-로컬 파일과 첫 확인 안내를 실제 결과에 맞춰 갱신했지만 Chrome 보류 때문에 Drive 전달은 대기입니다. 지금 사용자 휴대폰 조작이나 업로드가 필요한 단계는 아닙니다. 이 파일은 Play에 올리는 AAB나 IAP Test32·privacycold29가 아니며, 최종 운영 AAB는 여전히 없습니다. 운영 승인 false/null·`releaseReady=false`를 유지합니다.
+18:55 시점에는 Chrome 보류로 Drive 전달을 기다렸습니다. 이후 사용자가 수동 Chrome 작업을 맡았으며 최신 전달 순서는 위 링크를 따릅니다. 이 파일은 Play에 올리는 AAB나 IAP Test32·privacycold29가 아니며, 최종 운영 AAB는 여전히 없습니다. 운영 승인 false/null·`releaseReady=false`를 유지합니다.

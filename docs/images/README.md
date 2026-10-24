@@ -23,3 +23,5 @@
 - `privacy-product-real-ump-native-20261024.png`와 `privacy-product-real-ump-closed-20261024.png`: source0e3e802/debug APK SHA256 `18584f3e274db295ec3b2540e1813f36f634ed0c00ad3d02349d4f3294f572a7`의 LD Tamer 실제 캡처 원본입니다(720×1280). 개발용 합성 Adult 준비 이후 원래 게임 버튼으로 연 실제 UMP 창과 Do not consent 선택 후 원래 화면입니다. 합성 No Ads/Declined fixture이며 운영 최초 cold·영수증·정책 판정 자료는 아닙니다. 게임/SDK 앱 이름과 개발 로그 배지를 보존했고 계정 입력·등록 식별자·원시 로그는 포함하지 않습니다. [검증 조건](../revival/privacy-product-real-ump-20261024.ko.md).
 
 - `gameplay-main-20261024.png`: sourcec6b4ba1/debug APK SHA256 `cf666b84aaa91948b8d0d4b7ab172f60ca09bd2eee0dd11763744d00e04c1ffc`의 실제 LD Tamer 첫 Main 원본입니다(720×1280). 합성 프로필·오프라인/IAP 차단 시험이며 디버그 overlay를 보존했습니다. 표시 카운터0과 별도의 전체 PID 로그 E73/W7을 구분하며 운영 계정·실폰/16KB·새 파일의 Game 왕복 검증으로 표현하지 않습니다. [검증 조건](../revival/gameplay-delivery-20261024.ko.md).
+
+- `gameplay-roundtrip-20261024.png`: 위와 같은 정확한 APK의22:20 LD Tamer 왕복 완료 원본입니다(720×1280). PID3015의 화면 카운터0과 별도 전체 로그 E91/W7을 구분합니다. 합성 오프라인 씬 왕복이며 실제 폰·운영 저장/구매·16KB 검증은 아닙니다. [중단된 첫 시도와 성공 범위](../revival/gameplay-roundtrip-20261024.ko.md).
