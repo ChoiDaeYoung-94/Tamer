@@ -1,6 +1,9 @@
 #if TAMER_PRIVACY_COLD_HARNESS && !TAMER_PRIVACY_MANAGER_HARNESS
 #error Cold privacy harness requires the native privacy manager harness.
 #endif
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS && (!TAMER_PRIVACY_COLD_HARNESS || !TAMER_PRIVACY_MANAGER_HARNESS)
+#error Cold privacy retry harness requires both cold and native privacy manager harnesses.
+#endif
 using System;
 using System.Collections.Generic;
 using AD.Advertising;
@@ -221,6 +224,12 @@ namespace AD
             NativePrivacyHarnessNoAdsState && PrivacySettingsResult == AdPrivacyResult.FormFailed &&
             _privacyConsent != null && _privacyConsent.IsPrivacyRefreshOwner &&
             _privacyConsent.PrivacyOptionsRequired && !AdRequestPolicy.ProductionAdsEnabled &&
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+            _nativePrivacyColdConfigured && NativePrivacyColdContextAllowed &&
+            Application.identifier == AgeTreatmentPolicy.NativePrivacyColdHarnessPackage &&
+            AgeSelection.Value == AgeChoice.Adult && !AgeSelection.IsEditing && HasNoAds &&
+            PlayerPrefs.GetString(NativePrivacyColdPurchaseKey, "") == "ProductNoAds" &&
+#endif
             AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled &&
             AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(Application.isEditor,
                 Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
@@ -309,7 +318,7 @@ namespace AD
 
         public bool ReopenPrivacySettingsForNativeHarness()
         {
-#if TAMER_PRIVACY_COLD_HARNESS
+#if TAMER_PRIVACY_COLD_HARNESS && !TAMER_PRIVACY_COLD_RETRY_HARNESS
             return false; // This variant exercises a single cold refresh, never warm retry.
 #else
             if (!NativePrivacyHarnessCanReopen) return false;

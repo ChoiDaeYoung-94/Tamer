@@ -1,6 +1,9 @@
 #if TAMER_PRIVACY_COLD_HARNESS && !TAMER_PRIVACY_MANAGER_HARNESS
 #error Cold privacy harness requires the native privacy manager harness.
 #endif
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS && (!TAMER_PRIVACY_COLD_HARNESS || !TAMER_PRIVACY_MANAGER_HARNESS)
+#error Cold privacy retry harness requires both cold and native privacy manager harnesses.
+#endif
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS || TAMER_PRIVACY_UI_HARNESS
 #if TAMER_UMP_PUBLISHER_HARNESS && !TAMER_UMP_ONLY_HARNESS
 #error Publisher UMP harness requires the UMP-only path.
@@ -134,6 +137,11 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private int _coldStatus, _coldPid, _coldCommand, _coldSnapshot, _coldUpdate, _coldUpdateCallback, _coldShow, _coldShowCallback;
     private bool _coldFreshUpdate, _coldTerminal, _coldRegistration;
     private string _coldFreshStatus = "unread";
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+    private bool _coldRetryConsumed, _coldReopenAccepted, _coldFirstShowFailed, _coldLastShowSucceeded;
+    private int _coldManagerId, _coldTerminalOrdinal, _coldFirstErrorCode = -1, _coldLastErrorCode = -1;
+    private long _coldSdkSequence;
+#endif
 
     private sealed class ColdFixtureFailure : Exception
     {
@@ -157,6 +165,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
         System.IO.Directory.CreateDirectory(_coldDirectory);
         if (Ads == null || !Ads.ConfigureNativePrivacyColdFixture())
         { FailPrivacyCold("boot_context_or_purchase_input"); return; }
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+        _coldManagerId = Ads.GetInstanceID();
+#endif
         Ads.NativePrivacyColdSdkEvent += ObservePrivacyColdSdk;
         Ads.HarnessEvent += ObservePrivacyColdManagedAds;
         Record("privacy_cold_boot token=" + ColdProcessToken + " pid=" + _coldPid +
@@ -171,6 +182,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     {
         // Delivered on the owner thread; SDK receive time is distinct from dispatch time.
         Record("privacy_cold_sdk received=" + receivedAt.ToString("F6", CultureInfo.InvariantCulture) + " " + value);
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+        ObservePrivacyColdRetrySdk(value);
+#else
         if (value.StartsWith("update_call ", StringComparison.Ordinal))
         {
             if (++_coldUpdate > 1) FailPrivacyCold("multiple_update");
@@ -199,7 +213,99 @@ public sealed class RevivalAdHarness : MonoBehaviour
             if (++_coldShowCallback > 1 || _coldShow != 1) FailPrivacyCold("unexpected_show_callback");
         }
         else if (value.StartsWith("unexpected_gather", StringComparison.Ordinal)) FailPrivacyCold("unexpected_gather");
+#endif
     }
+
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+    private bool ColdRetryFixtureMatches(AgeChoice age)
+    {
+        string saved = PlayerPrefs.GetString(GoogleAdMobManager.AgeChoicePreferenceKey, "");
+        // Restore through the real decoder without allowing this independent reader to write.
+        var restored = new LocalAgeChoice(() => saved, _ => { throw new InvalidOperationException("Read-only fixture restore."); });
+        return Ads != null && Ads.GetInstanceID() == _coldManagerId && Managers.Instance == null &&
+            Ads.NativePrivacyColdContextAllowed && Ads.NativePrivacyHarnessNoAdsState && Ads.HasNoAds &&
+            PlayerPrefs.GetString(ColdFixtureKey, "") == _coldRun &&
+            PlayerPrefs.GetString(GoogleAdMobManager.NativePrivacyColdPurchaseKey, "") == "ProductNoAds" &&
+            !Ads.AgeSelection.IsEditing && Ads.AgeSelection.Value == age && restored.Value == age &&
+            saved == LocalAgeChoice.Encode(age);
+    }
+
+    private void ObservePrivacyColdRetrySdk(string value)
+    {
+        if (_coldFailure.Length != 0) return;
+        var sequence = System.Text.RegularExpressions.Regex.Match(value, @"(?:^| )sdk_sequence=([0-9]+)(?: |$)");
+        if (!sequence.Success || !long.TryParse(sequence.Groups[1].Value, NumberStyles.None,
+            CultureInfo.InvariantCulture, out long next) || next <= _coldSdkSequence)
+        { FailPrivacyCold("sdk_observation_order"); return; }
+        _coldSdkSequence = next;
+        if (Ads == null || Ads.GetInstanceID() != _coldManagerId)
+        { FailPrivacyCold("sdk_manager_owner_changed"); return; }
+        if (value.StartsWith("update_call ", StringComparison.Ordinal))
+        {
+            if (++_coldUpdate != 1 || _coldUpdateCallback != 0 || _coldStatus != 0 || _coldShow != 0 ||
+                (!_coldRegistration && (_coldPhase != "refreshPending" || !ColdRetryFixtureMatches(AgeChoice.Adult))))
+                FailPrivacyCold("unexpected_update_order_or_fixture");
+        }
+        else if (value.StartsWith("update_callback ", StringComparison.Ordinal))
+        {
+            if (++_coldUpdateCallback != 1 || _coldUpdate != 1 || _coldStatus != 0 || _coldShow != 0 ||
+                (!_coldRegistration && _coldPhase != "refreshPending"))
+            { FailPrivacyCold("unexpected_update_callback"); return; }
+            _coldFreshUpdate = value.StartsWith("update_callback ok=True ", StringComparison.Ordinal);
+        }
+        else if (value.StartsWith("status_read ", StringComparison.Ordinal))
+        {
+            if (++_coldStatus != 1 || !_coldFreshUpdate || _coldUpdate != 1 || _coldUpdateCallback != 1 ||
+                _coldRegistration || _coldPhase != "refreshPending" || _coldShow != 0)
+            { FailPrivacyCold("status_without_fresh_update"); return; }
+            _coldFreshStatus = value.Contains("value=Required ") ? "Required"
+                : value.Contains("value=NotRequired ") ? "NotRequired" : "Unknown";
+        }
+        else if (value.StartsWith("show_call ", StringComparison.Ordinal))
+        {
+            ++_coldShow;
+            bool first = _coldShow == 1 && _coldPhase == "refreshPending" && !_coldRetryConsumed && _coldShowCallback == 0;
+            bool retry = _coldShow == 2 && _coldPhase == "reopenPending" && _coldRetryConsumed &&
+                _coldReopenAccepted && _coldFirstShowFailed && _coldShowCallback == 1 && !_coldTerminal;
+            if ((!first && !retry) || !_coldFreshUpdate || _coldFreshStatus != "Required" || _coldStatus != 1 ||
+                _coldUpdate != 1 || _coldUpdateCallback != 1 || _coldRegistration || !ColdRetryFixtureMatches(AgeChoice.Adult))
+                FailPrivacyCold("show_without_explicit_fresh_owner");
+        }
+        else if (value.StartsWith("show_callback ", StringComparison.Ordinal))
+        {
+            ++_coldShowCallback;
+            if (_coldShowCallback != _coldShow || _coldShow < 1 || _coldShow > 2 ||
+                (_coldShow == 1 ? _coldPhase != "refreshPending" :
+                    _coldPhase != "reopenPending" || !_coldRetryConsumed || !_coldReopenAccepted))
+            { FailPrivacyCold("unexpected_show_callback"); return; }
+            var code = System.Text.RegularExpressions.Regex.Match(value, @" code=(-?[0-9]+)(?: |$)");
+            if (!code.Success || !int.TryParse(code.Groups[1].Value, NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture, out _coldLastErrorCode) ||
+                (!value.StartsWith("show_callback ok=True ", StringComparison.Ordinal) &&
+                 !value.StartsWith("show_callback ok=False ", StringComparison.Ordinal)))
+            { FailPrivacyCold("show_callback_shape"); return; }
+            _coldLastShowSucceeded = value.StartsWith("show_callback ok=True ", StringComparison.Ordinal);
+            if (_coldShow == 1)
+            {
+                _coldFirstShowFailed = !_coldLastShowSucceeded;
+                _coldFirstErrorCode = _coldLastErrorCode;
+            }
+        }
+        else FailPrivacyCold(value.StartsWith("unexpected_gather", StringComparison.Ordinal)
+            ? "unexpected_gather" : "unexpected_sdk_event");
+    }
+
+    private bool ColdRetryShowSettled(int ordinal) => _coldShow == ordinal && _coldShowCallback == ordinal &&
+        !Ads.IsConsentBusy && Ads.PrivacySettingsResult ==
+            (_coldLastShowSucceeded ? AdPrivacyResult.OptionsClosed : AdPrivacyResult.FormFailed);
+
+    private bool ColdRetryCanReopen => _coldFailure.Length == 0 && Ads != null &&
+        _coldPhase == "refreshTerminal" && _coldTerminal && _coldTerminalOrdinal == 1 &&
+        !_coldRetryConsumed && !_coldReopenAccepted && !_coldRegistration && _coldFreshUpdate &&
+        _coldUpdate == 1 && _coldUpdateCallback == 1 && _coldStatus == 1 && _coldFreshStatus == "Required" &&
+        _coldFirstShowFailed && ColdRetryShowSettled(1) && ColdRetryFixtureMatches(AgeChoice.Adult) &&
+        Ads.NativePrivacyHarnessCanReopen;
+#endif
 
     private void FailPrivacyCold(string name)
     {
@@ -215,12 +321,37 @@ public sealed class RevivalAdHarness : MonoBehaviour
         if (_coldDirectory == null) return;
         if (Ads == null || !Ads.NativePrivacyColdContextAllowed || Ads.CanRequestAds)
             FailPrivacyCold("context_or_ad_state_changed");
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+        if (Ads != null && Ads.GetInstanceID() != _coldManagerId) FailPrivacyCold("manager_owner_changed");
+#endif
         if (_coldFailure.Length == 0 && _coldPhase == "refreshPending" && !Ads.IsConsentBusy &&
             Ads.PrivacySettingsResult != AdPrivacyResult.Checking)
         {
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+            if (_coldShow != 0 && !ColdRetryShowSettled(1)) FailPrivacyCold("first_terminal_without_callback");
+            else
+            {
+                _coldTerminalOrdinal = _coldShow;
+#endif
             _coldTerminal = true;
             _coldPhase = Ads.PrivacySettingsResult == AdPrivacyResult.AgeRequired ? "ageBlocked" : "refreshTerminal";
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+            }
+#endif
         }
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+        if (_coldFailure.Length == 0 && _coldPhase == "reopenPending" && !Ads.IsConsentBusy &&
+            Ads.PrivacySettingsResult != AdPrivacyResult.Checking)
+        {
+            if (!ColdRetryShowSettled(2)) FailPrivacyCold("reopen_terminal_without_callback");
+            else
+            {
+                _coldTerminalOrdinal = 2;
+                _coldTerminal = true;
+                _coldPhase = "reopenTerminal";
+            }
+        }
+#endif
         if (_coldPhase == "registrationPending" && !_registrationInFlight)
             _coldPhase = "registrationTerminal"; // Callback/timeout details stay in SDK evidence.
         string ready = System.IO.Path.Combine(_coldDirectory, "command-" + ColdProcessToken + ".ready");
@@ -267,19 +398,63 @@ public sealed class RevivalAdHarness : MonoBehaviour
             if (!Ads.ConfigureNativePrivacyColdFixture() || !Ads.HasNoAds) throw new ColdFixtureFailure("purchase_fixture");
             _coldPhase = "fixturePrepared"; // SDK request requires a fresh process, enforced below.
         }
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+        else if (command.action == "prepareExistingAdultNoAdsForRetry")
+        {
+            if (_coldPhase != "boot" || Ads.IsConsentBusy || _registrationAttempted || _coldRegistration ||
+                GoogleAdMobManager.NativePrivacyHarnessAttempted || _coldUpdate != 0 || _coldUpdateCallback != 0 ||
+                _coldStatus != 0 || _coldShow != 0 || _coldShowCallback != 0 ||
+                !ColdRetryFixtureMatches(AgeChoice.Declined))
+                throw new ColdFixtureFailure("retry_prepare_requires_existing_declined_fixture");
+            Record("privacy_cold_retry_prepare before=" + LocalAgeChoice.Encode(Ads.AgeSelection.Value) +
+                " fixture=" + _coldRun + " sdk_calls=0 developer_action=true");
+            if (!Ads.AgeSelection.Select(AgeChoice.Adult) || !ColdRetryFixtureMatches(AgeChoice.Adult))
+                throw new ColdFixtureFailure("retry_prepare_restore_mismatch");
+            _coldPhase = "fixturePrepared"; // A new process is mandatory before any SDK request.
+            Record("privacy_cold_retry_prepare after=" + LocalAgeChoice.Encode(Ads.AgeSelection.Value) +
+                " fixture_preserved=true synthetic_purchase_preserved=true consent_reset=false developer_action=true");
+        }
+        else if (command.action == "reopenAfterTerminal")
+        {
+            if (!ColdRetryCanReopen)
+                throw new ColdFixtureFailure("reopen_requires_first_failed_fresh_owner");
+            // Consume and persist the explicit developer attempt before calling the existing owner.
+            _coldRetryConsumed = true;
+            _coldTerminal = false;
+            _coldTerminalOrdinal = 0;
+            _coldPhase = "reopenPending";
+            Record("privacy_cold_reopen_attempt developer_action=true retry_consumed=true sequence=" + _coldCommand);
+            ObservePrivacyColdState();
+            if (_coldFailure.Length != 0) throw new ColdFixtureFailure("reopen_attempt_evidence");
+            _coldReopenAccepted = Ads.ReopenPrivacySettingsForNativeHarness();
+            if (!_coldReopenAccepted) throw new ColdFixtureFailure("reopen_owner_rejected");
+        }
+#endif
         else if (command.action == "requestSavedPrivacy")
         {
             if (_coldPhase != "boot" || PlayerPrefs.GetString(ColdFixtureKey, "") != command.runId ||
                 !Ads.HasNoAds || _registrationAttempted)
                 throw new ColdFixtureFailure("request_requires_cold_saved_fixture");
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+            if (!ColdRetryFixtureMatches(Ads.AgeSelection.Value))
+                throw new ColdFixtureFailure("request_saved_fixture_restore_mismatch");
+#endif
             _coldPhase = "refreshPending";
             if (!Ads.RequestPrivacySettingsForNativeHarness(command.testDeviceHash))
                 throw new ColdFixtureFailure("request_prerequisite_or_hash");
         }
         else if (command.action == "saveDeclinedAfterTerminal")
         {
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+            if (!_coldTerminal || Ads.IsConsentBusy ||
+                (_coldRetryConsumed
+                    ? _coldPhase != "reopenTerminal" || _coldTerminalOrdinal != 2 || !ColdRetryShowSettled(2)
+                    : _coldPhase != "refreshTerminal" || _coldTerminalOrdinal != _coldShow ||
+                        (_coldShow != 0 && !ColdRetryShowSettled(1))))
+#else
             if (_coldPhase != "refreshTerminal" || !_coldTerminal || Ads.IsConsentBusy ||
                 (_coldShow != 0 && _coldShowCallback != 1))
+#endif
                 throw new ColdFixtureFailure("decline_requires_native_terminal");
             if (!Ads.AgeSelection.Select(AgeChoice.Declined)) throw new ColdFixtureFailure("declined_save");
             _coldPhase = "declinedSaved";
@@ -312,6 +487,14 @@ public sealed class RevivalAdHarness : MonoBehaviour
             " managersAbsent=" + (Managers.Instance == null) + " update=" + _coldUpdate +
             " updateCallback=" + _coldUpdateCallback + " freshStatus=" + _coldFreshStatus +
             " statusReads=" + _coldStatus + " show=" + _coldShow + " showCallback=" + _coldShowCallback;
+#if TAMER_PRIVACY_COLD_RETRY_HARNESS
+        state += " canReopen=" + ColdRetryCanReopen +
+            " retryConsumed=" + _coldRetryConsumed + " reopenAccepted=" + _coldReopenAccepted +
+            " firstShowFailed=" + _coldFirstShowFailed + " firstErrorCode=" + _coldFirstErrorCode +
+            " lastErrorCode=" + _coldLastErrorCode + " lastShowSucceeded=" + _coldLastShowSucceeded +
+            " showOrdinal=" + _coldShow + " terminal=" + _coldTerminal + " terminalSourceOrdinal=" + _coldTerminalOrdinal +
+            " managerOwner=" + _coldManagerId + " sdkSequence=" + _coldSdkSequence + " developerTransport=true";
+#endif
         if (state == _coldState) return;
         _coldState = state;
         Record("privacy_cold_state " + state);

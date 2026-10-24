@@ -63,6 +63,7 @@ public static class RevivalAdHarnessBuild
     public static void BuildUmpPrivacyAgeIsolated() => Build(true, true, true, true, true);
     public static void BuildUmpPrivacyManagerIsolated() => Build(true, true, true, true, true, true);
     public static void BuildUmpPrivacyColdIsolated() => Build(true, true, true, true, true, true, true);
+    public static void BuildUmpPrivacyColdRetryIsolated() => Build(true, true, true, true, true, true, true, true);
     internal static bool PrivacyUiBuildActive { get; private set; }
 
     public static void BuildPrivacyUi()
@@ -335,7 +336,7 @@ public static class RevivalAdHarnessBuild
     }
 
     private static void Build(bool development, bool umpOnly = false, bool publisher = false, bool privacyAge = false,
-        bool isolatePgs = false, bool nativePrivacyManager = false, bool privacyCold = false)
+        bool isolatePgs = false, bool nativePrivacyManager = false, bool privacyCold = false, bool privacyColdRetry = false)
     {
         int exitCode = 1;
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
@@ -343,13 +344,16 @@ public static class RevivalAdHarnessBuild
         string oldAlias = PlayerSettings.Android.keyaliasName;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
+        int oldVersionCode = PlayerSettings.Android.bundleVersionCode;
         byte[] settingsBytes = File.ReadAllBytes(SettingsPath), manifestBytes = File.ReadAllBytes(ManifestPath);
         byte[] publisherSceneBytes = null, publisherSceneMetaBytes = null;
         IsolatedManifestScope isolatedManifest = null;
+        FileStream retryOutputClaim = null;
         string variant = publisher ? "ump-publisher" : umpOnly ? "ump-sample" : development ? "sample" : "control";
         if (privacyAge) variant += "-privacy-age";
         if (isolatePgs) variant += "-pgs-isolated";
-        if (privacyCold) variant += "-privacy-cold-no-backup";
+        if (privacyColdRetry) variant += "-privacy-cold-retry-no-backup";
+        else if (privacyCold) variant += "-privacy-cold-no-backup";
         else if (nativePrivacyManager) variant += "-privacy-manager-reopen-no-backup";
         string applicationId = privacyCold ? AD.Advertising.AgeTreatmentPolicy.NativePrivacyColdHarnessPackage :
             nativePrivacyManager ? AD.Advertising.AgeTreatmentPolicy.NativePrivacyHarnessPackage :
@@ -357,6 +361,9 @@ public static class RevivalAdHarnessBuild
             development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";
         try
         {
+            if (privacyColdRetry && (!privacyCold || !nativePrivacyManager || !development || !umpOnly ||
+                !publisher || !privacyAge || !isolatePgs))
+                throw new BuildFailedException("Cold privacy retry requires the complete isolated cold development context.");
             if (privacyCold && (!nativePrivacyManager ||
                 Environment.GetEnvironmentVariable("TAMER_PRIVACY_COLD_BUILD_OPT_IN") != "1"))
                 throw new BuildFailedException("Cold privacy build requires explicit isolated manager opt-in.");
@@ -367,6 +374,22 @@ public static class RevivalAdHarnessBuild
             if (isolatePgs && File.Exists("Build/revival/Tamer-ads-" + variant + ".apk"))
                 throw new BuildFailedException("Existing isolated UMP artifact must be preserved.");
             RevivalBuild.ValidateBaseline();
+            int retryVersionCode = oldVersionCode;
+            if (privacyColdRetry)
+            {
+                // The execution owner supplies the observed installed trial version; never infer it from the baseline.
+                if (!int.TryParse(Environment.GetEnvironmentVariable("TAMER_PRIVACY_COLD_RETRY_INSTALLED_VERSION_CODE"),
+                    System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture,
+                    out int installedVersionCode) || installedVersionCode < 1 || installedVersionCode >= 2100000000)
+                    throw new BuildFailedException("Cold privacy retry requires an explicitly observed installed version code.");
+                retryVersionCode = checked(installedVersionCode + 1);
+                Directory.CreateDirectory("Build/revival");
+                string output = "Build/revival/Tamer-ads-" + variant + ".apk";
+                // Only this builder's new output is reserved. Prior APKs are never moved or overwritten.
+                retryOutputClaim = new FileStream(output + ".building", FileMode.CreateNew, FileAccess.ReadWrite,
+                    FileShare.None, 1, FileOptions.DeleteOnClose);
+                if (File.Exists(output)) throw new BuildFailedException("Existing retry artifact must be preserved.");
+            }
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
                 throw new BuildFailedException("Harness requires IAP/UGS catalog auto initialization disabled.");
@@ -401,6 +424,7 @@ public static class RevivalAdHarnessBuild
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
+            if (privacyColdRetry) PlayerSettings.Android.bundleVersionCode = retryVersionCode;
             Directory.CreateDirectory("Build/revival");
             if (isolatePgs)
             {
@@ -415,7 +439,9 @@ public static class RevivalAdHarnessBuild
                 scenes = new[] { ScenePath }, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
                 locationPathName = "Build/revival/Tamer-ads-" + variant + ".apk",
                 options = development ? BuildOptions.Development | BuildOptions.CompressWithLz4 : BuildOptions.None,
-                extraScriptingDefines = privacyCold
+                extraScriptingDefines = privacyColdRetry
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS", "TAMER_UMP_PUBLISHER_HARNESS", "TAMER_PRIVACY_MANAGER_HARNESS", "TAMER_PRIVACY_COLD_HARNESS", "TAMER_PRIVACY_COLD_RETRY_HARNESS" }
+                    : privacyCold
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS", "TAMER_UMP_PUBLISHER_HARNESS", "TAMER_PRIVACY_MANAGER_HARNESS", "TAMER_PRIVACY_COLD_HARNESS" }
                     : nativePrivacyManager
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS", "TAMER_UMP_PUBLISHER_HARNESS", "TAMER_PRIVACY_MANAGER_HARNESS" }
@@ -448,6 +474,8 @@ public static class RevivalAdHarnessBuild
             PlayerSettings.Android.keyaliasName = oldAlias;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
             EditorUserBuildSettings.buildAppBundle = oldBundle;
+            PlayerSettings.Android.bundleVersionCode = oldVersionCode;
+            retryOutputClaim?.Dispose();
             AssetDatabase.SaveAssets();
             File.WriteAllBytes(SettingsPath, settingsBytes);
             File.WriteAllBytes(ManifestPath, manifestBytes);
