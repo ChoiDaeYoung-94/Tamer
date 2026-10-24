@@ -62,6 +62,7 @@ public static class RevivalAdHarnessBuild
     public static void BuildUmpPrivacyAge() => Build(true, true, true, true);
     public static void BuildUmpPrivacyAgeIsolated() => Build(true, true, true, true, true);
     public static void BuildUmpPrivacyManagerIsolated() => Build(true, true, true, true, true, true);
+    public static void BuildUmpPrivacyColdIsolated() => Build(true, true, true, true, true, true, true);
     internal static bool PrivacyUiBuildActive { get; private set; }
 
     public static void BuildPrivacyUi()
@@ -334,7 +335,7 @@ public static class RevivalAdHarnessBuild
     }
 
     private static void Build(bool development, bool umpOnly = false, bool publisher = false, bool privacyAge = false,
-        bool isolatePgs = false, bool nativePrivacyManager = false)
+        bool isolatePgs = false, bool nativePrivacyManager = false, bool privacyCold = false)
     {
         int exitCode = 1;
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
@@ -348,12 +349,17 @@ public static class RevivalAdHarnessBuild
         string variant = publisher ? "ump-publisher" : umpOnly ? "ump-sample" : development ? "sample" : "control";
         if (privacyAge) variant += "-privacy-age";
         if (isolatePgs) variant += "-pgs-isolated";
-        if (nativePrivacyManager) variant += "-privacy-manager-reopen-no-backup";
-        string applicationId = nativePrivacyManager ? AD.Advertising.AgeTreatmentPolicy.NativePrivacyHarnessPackage :
+        if (privacyCold) variant += "-privacy-cold-no-backup";
+        else if (nativePrivacyManager) variant += "-privacy-manager-reopen-no-backup";
+        string applicationId = privacyCold ? AD.Advertising.AgeTreatmentPolicy.NativePrivacyColdHarnessPackage :
+            nativePrivacyManager ? AD.Advertising.AgeTreatmentPolicy.NativePrivacyHarnessPackage :
             publisher ? "com.AeDeong.MonsterTamer.revival.umppublisher" : umpOnly ? "com.AeDeong.MonsterTamer.revival.ump" :
             development ? "com.AeDeong.MonsterTamer.revival.ads" : "com.AeDeong.MonsterTamer.revival.adscontrol";
         try
         {
+            if (privacyCold && (!nativePrivacyManager ||
+                Environment.GetEnvironmentVariable("TAMER_PRIVACY_COLD_BUILD_OPT_IN") != "1"))
+                throw new BuildFailedException("Cold privacy build requires explicit isolated manager opt-in.");
             if (nativePrivacyManager && (!development || !umpOnly || !publisher || !privacyAge || !isolatePgs ||
                 Environment.GetEnvironmentVariable("TAMER_PRIVACY_MANAGER_BUILD_OPT_IN") != "1" ||
                 AD.Advertising.AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed))
@@ -409,7 +415,9 @@ public static class RevivalAdHarnessBuild
                 scenes = new[] { ScenePath }, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
                 locationPathName = "Build/revival/Tamer-ads-" + variant + ".apk",
                 options = development ? BuildOptions.Development | BuildOptions.CompressWithLz4 : BuildOptions.None,
-                extraScriptingDefines = nativePrivacyManager
+                extraScriptingDefines = privacyCold
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS", "TAMER_UMP_PUBLISHER_HARNESS", "TAMER_PRIVACY_MANAGER_HARNESS", "TAMER_PRIVACY_COLD_HARNESS" }
+                    : nativePrivacyManager
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS", "TAMER_UMP_PUBLISHER_HARNESS", "TAMER_PRIVACY_MANAGER_HARNESS" }
                     : publisher
                     ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_AD_TEST_HARNESS", "TAMER_UMP_ONLY_HARNESS", "TAMER_UMP_PUBLISHER_HARNESS" }

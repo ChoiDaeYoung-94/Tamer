@@ -1,3 +1,6 @@
+#if TAMER_PRIVACY_COLD_HARNESS && !TAMER_PRIVACY_MANAGER_HARNESS
+#error Cold privacy harness requires the native privacy manager harness.
+#endif
 using System;
 using System.Collections.Generic;
 using AD.Advertising;
@@ -226,6 +229,48 @@ namespace AD
         public bool NativePrivacyHarnessNoAdsState => !_initialized && !_initializing && !_loading &&
             _consent == null && _rewardedAd == null && _showingAd == null && _session == null && _closingSession == null;
 
+#if TAMER_PRIVACY_COLD_HARNESS
+        public const string NativePrivacyColdPurchaseKey = "Tamer.Harness.PrivacyCold.Purchases";
+        private bool _nativePrivacyColdConfigured;
+        public event Action<string, double> NativePrivacyColdSdkEvent;
+        public bool NativePrivacyColdContextAllowed => !_destroyed && NativePrivacyHarnessNoAdsState &&
+            !AdRequestPolicy.ProductionAdsEnabled && AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled &&
+            AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(Application.isEditor,
+                Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
+                Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
+                Managers.Instance != null);
+
+        // Reads synthetic package-local input only; never seeds it during boot.
+        public bool ConfigureNativePrivacyColdFixture()
+        {
+            if (!NativePrivacyColdContextAllowed || _nativePrivacyHarnessAttempted || IsConsentBusy) return false;
+            string purchases = PlayerPrefs.GetString(NativePrivacyColdPurchaseKey, "");
+            if (purchases != "" && purchases != "ProductNoAds") return false;
+            _nativePrivacyColdConfigured = true;
+            return true;
+        }
+
+        public void SealNativePrivacyColdFixture()
+        {
+            _nativePrivacyHarnessAttempted = true;
+            bool wasUpdating = _privacyConsent != null && _privacyConsent.IsUpdating;
+            // Cancels a pending Update owner; an already displayed form keeps its native callback ownership.
+            _privacyConsent?.SuspendForPrivacy();
+            if (wasUpdating) PrivacySettingsResult = AdPrivacyResult.Cancelled;
+        }
+
+        // The same process latch covers registration and privacy refresh.
+        public bool ReserveNativePrivacyColdRegistration()
+        {
+            if (!NativePrivacyColdContextAllowed || _nativePrivacyHarnessAttempted || _privacyConsent != null) return false;
+            _nativePrivacyHarnessAttempted = true;
+            return true;
+        }
+
+        private void ObserveNativePrivacyColdSdk(string value, double receivedAt) =>
+            Enqueue(() => NativePrivacyColdSdkEvent?.Invoke(value, receivedAt));
+#endif
+
         public bool RequestPrivacySettingsForNativeHarness(string testDeviceHash)
         {
             if (_nativePrivacyHarnessAttempted || _destroyed || !CanCheckPrivacySettings ||
@@ -235,22 +280,44 @@ namespace AD
                     Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
                     Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
                     Managers.Instance != null)) return false;
+#if TAMER_PRIVACY_COLD_HARNESS
+            if (!_nativePrivacyColdConfigured) return false;
+            // Consume even a blocked-age attempt, before hash validation or SDK construction.
+            if (!AgeSelection.HasAge || AgeSelection.IsEditing)
+            {
+                _nativePrivacyHarnessAttempted = true;
+                PrivacySettingsResult = AdPrivacyResult.AgeRequired;
+                return true;
+            }
+            if (AgeSelection.Value != AgeChoice.Adult) return false;
+            if (!AgeTreatmentPolicy.TryCreatePlan(AgeSelection.Value, out var plan)) return false;
+#else
+            if (!AgeTreatmentPolicy.TryCreatePlan(AgeChoice.Adult, out var plan)) return false;
+#endif
             try { GoogleUmpConsentClient.CreateDebugSettings(DebugGeography.EEA, testDeviceHash); }
             catch (ArgumentException) { return false; }
-            if (!AgeTreatmentPolicy.TryCreatePlan(AgeChoice.Adult, out var plan)) return false;
             _nativePrivacyHarnessAttempted = true;
+#if TAMER_PRIVACY_COLD_HARNESS
+            BeginPrivacyRefresh(plan, () => new GoogleUmpConsentClient(DebugGeography.EEA, testDeviceHash,
+                ObserveNativePrivacyColdSdk));
+#else
             BeginPrivacyRefresh(plan, () => new GoogleUmpConsentClient(DebugGeography.EEA, testDeviceHash),
                 value => Debug.Log("PRIVACY_MANAGER " + value));
+#endif
             return true;
         }
 
         public bool ReopenPrivacySettingsForNativeHarness()
         {
+#if TAMER_PRIVACY_COLD_HARNESS
+            return false; // This variant exercises a single cold refresh, never warm retry.
+#else
             if (!NativePrivacyHarnessCanReopen) return false;
             _nativePrivacyHarnessReopenAttempted = true;
             // Share the production entry: the retained fresh Required owner skips Update and the factory.
             RequestPrivacySettings();
             return true;
+#endif
         }
 #endif
 
@@ -314,11 +381,16 @@ namespace AD
         {
             get
             {
+#if TAMER_PRIVACY_COLD_HARNESS
+                return _nativePrivacyColdConfigured && NativePrivacyColdContextAllowed &&
+                    AdEntitlement.HasNoAds(PlayerPrefs.GetString(NativePrivacyColdPurchaseKey, ""));
+#else
                 if (Managers.Instance == null || Managers.DataM == null ||
                     Managers.DataM.LocalPlayerData == null ||
                     !Managers.DataM.LocalPlayerData.TryGetValue("GooglePlay", out string purchases))
                     return false;
                 return AdEntitlement.HasNoAds(purchases);
+#endif
             }
         }
 

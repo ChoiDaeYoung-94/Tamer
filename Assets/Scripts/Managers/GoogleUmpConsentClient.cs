@@ -27,14 +27,48 @@ namespace AD
                 TestDeviceHashedIds = new System.Collections.Generic.List<string> { testDeviceHash } };
         }
 #endif
+#if TAMER_PRIVACY_COLD_HARNESS
+        private readonly Action<string, double> _observer;
+        private static long _observationSequence;
+        internal GoogleUmpConsentClient(Action<string, double> observer) { _observer = observer; }
+        internal GoogleUmpConsentClient(DebugGeography geography, string testDeviceHash,
+            Action<string, double> observer) : this(geography, testDeviceHash) { _observer = observer; }
+        private void Observe(string value)
+        {
+            double receivedAt = (double)System.Diagnostics.Stopwatch.GetTimestamp() /
+                System.Diagnostics.Stopwatch.Frequency;
+            // Observation must never change the real SDK callback/result.
+            long sequence = System.Threading.Interlocked.Increment(ref _observationSequence);
+            try { _observer?.Invoke(value + " sdk_sequence=" + sequence, receivedAt); } catch (Exception) { }
+        }
+#endif
         public bool CanRequestAds => ConsentInformation.CanRequestAds();
         public bool PrivacyOptionsRequired => ConsentInformation.PrivacyOptionsRequirementStatus ==
             PrivacyOptionsRequirementStatus.Required;
+#if TAMER_PRIVACY_COLD_HARNESS
+        public AdPrivacyRequirement PrivacyRequirement
+        {
+            get
+            {
+                try
+                {
+                    var status = ConsentInformation.PrivacyOptionsRequirementStatus;
+                    Observe("status_read value=" + status);
+                    return status == PrivacyOptionsRequirementStatus.Required ? AdPrivacyRequirement.Required
+                        : status == PrivacyOptionsRequirementStatus.NotRequired ? AdPrivacyRequirement.NotRequired
+                        : AdPrivacyRequirement.Unknown;
+                }
+                catch (Exception error) { Observe("status_exception type=" + error.GetType().Name); throw; }
+            }
+        }
+#else
         public AdPrivacyRequirement PrivacyRequirement =>
             ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required
                 ? AdPrivacyRequirement.Required
                 : ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.NotRequired
                     ? AdPrivacyRequirement.NotRequired : AdPrivacyRequirement.Unknown;
+
+#endif
 
         public void Update(bool underAgeOfConsent, Action<bool> completed)
         {
@@ -42,14 +76,46 @@ namespace AD
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
             if (_debugSettings != null) parameters.ConsentDebugSettings = _debugSettings;
 #endif
+#if TAMER_PRIVACY_COLD_HARNESS
+            Observe("update_call tfua=" + underAgeOfConsent);
+            try
+            {
+                ConsentInformation.Update(parameters, error => {
+                    Observe("update_callback ok=" + (error == null) + " code=" + (error == null ? 0 : error.ErrorCode));
+                    completed(error == null);
+                });
+            }
+            catch (Exception error) { Observe("update_exception type=" + error.GetType().Name); throw; }
+#else
             ConsentInformation.Update(parameters,
                 error => completed(error == null));
+#endif
         }
 
+#if TAMER_PRIVACY_COLD_HARNESS
+        public void Gather(Action<bool> completed)
+        {
+            Observe("unexpected_gather");
+            throw new InvalidOperationException("Gather is excluded from the cold privacy fixture.");
+        }
+        public void ShowPrivacyOptions(Action<bool> completed)
+        {
+            Observe("show_call");
+            try
+            {
+                ConsentForm.ShowPrivacyOptionsForm(error => {
+                    Observe("show_callback ok=" + (error == null) + " code=" + (error == null ? 0 : error.ErrorCode));
+                    completed(error == null);
+                });
+            }
+            catch (Exception error) { Observe("show_exception type=" + error.GetType().Name); throw; }
+        }
+#else
         public void Gather(Action<bool> completed) =>
             ConsentForm.LoadAndShowConsentFormIfRequired(error => completed(error == null));
 
         public void ShowPrivacyOptions(Action<bool> completed) =>
             ConsentForm.ShowPrivacyOptionsForm(error => completed(error == null));
+#endif
     }
 }

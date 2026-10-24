@@ -82,7 +82,9 @@ class PrivateAdsSourceAuditTests(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content, encoding='utf-8')
             policy = root / 'Assets/Scripts/Advertising/AdRequestPolicy.cs'
-            for source in (declaration, '#if UNUSED\nint other;\n#endif\n' + declaration):
+            for source in (declaration, '#if UNUSED\nint other;\n#endif\n' + declaration,
+                           '#if TAMER_PRIVACY_COLD_HARNESS && !TAMER_PRIVACY_MANAGER_HARNESS\n'
+                           '#error Cold privacy harness requires the manager.\n#endif\n' + declaration):
                 policy.write_text(source, encoding='utf-8')
                 self.assertTrue(audit(root, config_path)['disabledPreparationValid'])
             invalid = [declaration.replace('false', 'true') + '\n/*\n' + declaration + '\n*/',
@@ -90,6 +92,9 @@ class PrivateAdsSourceAuditTests(unittest.TestCase):
                        'string example = @"\n' + declaration + '\n";',
                        '', declaration + '\n' + declaration,
                        '#if NEVER\n' + declaration + '\n#endif',
+                       '#error Broken unconditional source\n' + declaration,
+                       '#if FLAG\n#error Guard\n' + declaration + '\n#endif',
+                       '#unknown Unsupported directive\n' + declaration,
                        '/*\n' + declaration]
             for source in invalid:
                 with self.subTest(source=source), self.assertRaises(ValueError):

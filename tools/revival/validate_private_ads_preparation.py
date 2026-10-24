@@ -65,6 +65,11 @@ def require_disabled_declaration(source, name, declaration):
                 raise ValueError('Unbalanced preprocessor scope')
         elif kind in ('else', 'elif') and depth == 0:
             raise ValueError('Unbalanced preprocessor branch')
+        elif kind == 'error':
+            # A closed conditional compiler guard before an unconditional disabled
+            # declaration cannot enable that gate. Unconditional errors still fail.
+            if depth == 0:
+                raise ValueError('Unconditional compiler error')
         elif kind not in ('else', 'elif', 'region', 'endregion'):
             raise ValueError('Unsupported preprocessor contract')
     if depth:
