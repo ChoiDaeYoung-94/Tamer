@@ -1,5 +1,24 @@
 # 저장소 접근 권한과 병합 운영
 
+## 2026-10-24 현재 재확인 — 설정 변경 없음
+
+18:11~18:13 KST, 당시 main `c6b4ba136f7f211c712b2c66d062eb8c9d710342` 기준으로 저장소 REST GET과 공개 Git 접근 응답을 확인했습니다. [선별 관측값](access-security-20261024.json)은 개인 식별자·키 본문·secret 이름/값을 포함하지 않습니다. 아래10월20일 관측과 같은 항목을 현재 시점에 재확인한 결과입니다.
+
+| 확인 범위 | 10월24일 관측 |
+| --- | --- |
+| 공개 접근 | 인증 헤더 없는 저장소 GET200, Git upload-pack 광고200. 전체 clone이나 외부 계정의 쓰기 시험은 미실행 |
+| 인간 협업자·초대 | 전체 페이지 협업자는 소유자 admin1명, 외부 협업자0명, 대기 초대0개 |
+| 별도 연결 | deploy key0개, webhook0개, self-hosted runner0개 |
+| main 보호 | protected=true, active ruleset1개: PR 필수·force-push/삭제 차단·bypass actor0명·타인 승인 요구0명·리뷰 대화 해결 필요 |
+| 병합 방식 | merge/squash/rebase 허용, required status check 없음. 프로젝트는 Squash merge 규칙과 필요한 로컬 검증을 적용 |
+| CI/CD | 저장소 Actions disabled, 기본 token read, workflow의 PR 승인 불가, 모든 외부 기여자 workflow 승인 필요 |
+| workflow 원본 | 고정 source의 `.github/workflows/cicd.yml`1개, `workflow_dispatch`만 존재. API workflow 목록2개의 active 표시는 저장소 Actions 실행 허용과 구분 |
+| 남은 자격증명 | 계정 전체 GitHub Apps/OAuth/PAT 목록·필요성·저장소 접근 범위는 미확인 |
+
+공개 제안·열람과 원본 코드의 push/merge·설정 관리 권한을 구분합니다. 현재 인간 협업자 조회에서는 외부 쓰기 권한자가 없으며, 앱·토큰은 별도의 남은 계정 점검 범위입니다. 특정 앱 installation endpoint의401은 필요한 앱 인증 범위의 한계로 기록했습니다. classic protection API404도 활성 ruleset 부재로 해석하지 않습니다.
+
+이번에는 계정·앱 범위·토큰·규칙·CI 설정을 변경하지 않았고 workflow dispatch·runner 등록·배포도 하지 않았습니다. 기존 App Center 구성과 Chrome 보류를 유지합니다. [#94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94)는 확인한 항목을 갱신하고 계정 전체 자격증명 미확인 범위 때문에 OPEN으로 둡니다. 즉시 사용자 조치나 새 권한 요청은 없습니다. 아래 계정 화면 관측과 보안 탐지 설정은 각 과거 날짜의 이력이며 이번에 새로 확인한 항목으로 계산하지 않습니다.
+
 ## 2026-10-20 현재 접근 범위와 보호 규칙
 
 10월20일 **16:57~17:00 KST**, main `c7dda7828f87cc4e043a5089a8cc4db6c16e4f1d`를 기준으로 인증된 REST GET을 다시 확인했습니다. 아래는 해당 시점의 읽기 관측이며 설정 변경이나 실제 외부 계정의 push 시험 결과가 아닙니다.
