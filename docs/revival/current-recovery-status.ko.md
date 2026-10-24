@@ -11,7 +11,7 @@
 | 로그인·삭제 접수 | 원래 안내문 중복 수정, 합성 접수→원래 종료→다음 프로세스 Login 자동인증 보류→명시 C 계정의 빈 상태/상점 표시 확인. [정확한 범위](deletion-shop-login-20261024.ko.md) | 실제 운영 인증·제공판 확인. 접수 수락을 공급자 전체 삭제 완료로 표현하지 않음 |
 | 구매·No Ads | 시험32의 기존 영수증 Verified와 재인증/재시작 No Ads 유지 근거 보존. 상품과 기존 권한 유지 | 새 운영 후보·계정 삭제 후 복원 등 별도 범위. 검증을 위해 같은 구매 복원을 반복하지 않음 |
 | 개인정보 UI·실제 UMP | 가짜 SDK의 중복 입력/이전 callback 차단과 별도 실제 SDK+원래 버튼 warm 재진입/native Do not consent/원래 화면 복구 확인. [실제 캡처·한계](privacy-product-real-ump-20261024.ko.md) | 일반 운영 최초 cold 버튼·운영 연령/지역·실제 구매권한 결합. 운영 승인 false/null 유지 |
-| 개발 APK 전달 | sourcec6b4ba1 일반 gameplay APK의 AdServices3권한 제거·제한7권한/초기화 provider2개 부재·동일 debug 서명·62원본 보호/복구·로컬 전달3파일 완료. [정확한 APK](gameplay-delivery-20261024.ko.md) | 이 새 파일 설치/실행·Drive 업로드는 미실행. 운영 AAB와 구분 |
+| 개발 APK 전달 | sourcec6b4ba1 일반 gameplay APK의 권한 격리·62원본 보호/복구·로컬 전달3파일·정확한 설치물 업데이트/LD 첫 Main 확인 완료. [정확한 APK·진단·보존](gameplay-delivery-20261024.ko.md) | Drive·실제 폰·새 파일의 Game 왕복은 미실행. Android E73/W7을 보존하며 운영 AAB와 구분 |
 | 권한·CI | 10/24 GET: 인간 협업자는 소유자1명, 초대/배포키/Webhook/runner0, main PR필수·강제push/삭제 차단. Actions disabled/App Center 구성 보존. [현재 근거](access-security.ko.md) | 계정 전체 Apps/OAuth/PAT 범위 미확인. 설정 변경 없음 |
 | README·공개 안내 | 게임 이미지·기존 플레이 영상·Play 링크·개인정보처리방침·삭제 문의 안내 유지 | 최종 제공판에 맞춘 공개 안내/Console 신고 대조와 복구 결산 |
 | 최종 출시·정리 | AAB 입력 고정/서명·버전 검증 도구 준비, 완료 PR 브랜치 정리 | 운영 자료·서명/번호 확정→운영 AAB→사용자 수동 업로드→제공물/필요 기기·스토어 확인→시험 자원 정리→저장소 `tamer` 변경 |

@@ -1,5 +1,9 @@
 # main 통합 이후 출시 준비 — 2026-10-23
 
+## 2026-10-24 최신 보충 — 새 일반 APK 첫 Main 확인
+
+sourcec6b4ba1의 정확한 새 파일을 LD Tamer에 동일 서명/UID/user/code로 한 번 업데이트하고 첫 Main·격리/IAP 차단 표식·원래 화면을 확인한 뒤 해당 앱을 종료했습니다. 업데이트 직후2개 내부/34개 외부 파일 내용 일치, 실행 뒤 기존 게임 파일26개 불변·엔진 session/설치 cache 변화 별도 분류입니다. [실제 캡처·전체 Android E73/W7·범위와 한계](gameplay-delivery-20261024.ko.md). Drive·실폰·이 새 파일의 Game 왕복·운영 AAB·실제16KB는 미검증입니다. 아래의 설치/실행 미실행 문장은 정적 후보 준비 당시의 이력입니다.
+
 ## 2026-10-24 최신 보충 — 일반 오프라인 전달 후보 갱신
 
 최신 통합 소스 c6b4ba1의 별도 일반 게임 APK에서 이전 후보에 남았던 AdServices3권한 제거와 제한7권한·초기화 provider2개 부재를 확인했습니다. [실제 파일·원본 보존·로컬 전달 준비](gameplay-delivery-20261024.ko.md). 새 후보의 설치/실행·Drive 업로드는 미실행이며, 운영 Login/UMP·서명 AAB·스토어 제출과 구분합니다. 최종 운영 AAB 없음/Chrome 보류/releaseReady=false를 유지합니다.

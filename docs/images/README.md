@@ -1,6 +1,6 @@
 # README 플레이 이미지
 
-2026-09-14 사용자 요청에 따라 격리 게임을 직접 실행해 촬영한 화면입니다. 생성 이미지나 구매 에셋 원본이 아닙니다. 원본 PNG를 픽셀 편집 없이 보존하며 README 표시 폭만 지정했습니다. 모든 파일은 1080×2316이며 게임 HUD와 테스트 환경 표시가 포함됩니다.
+아래 gameplay 이미지3개는 2026-09-14 사용자 요청에 따라 격리 게임을 직접 실행해 촬영한 화면입니다. 생성 이미지나 구매 에셋 원본이 아닙니다. 원본 PNG를 픽셀 편집 없이 보존하며 README 표시 폭만 지정했습니다. 이3개 파일은1080×2316이며 게임 HUD와 테스트 환경 표시가 포함됩니다. 이후 추가한 검증 이미지는 각 항목의 해상도·출처를 따릅니다.
 
 촬영 소스는 `78b33c5f405724346326470851fb7a69ed523c38`, Unity 6000.0.81f1 photo 변형이며 APK SHA-256은 `6a21be0373be50c4d428776040a588d259716ddb39baf45481e627acb1925485`입니다. 회사 테스트폰의 별도 오프라인 게임 패키지에서 합성 계정을 사용했습니다. 원래 게임 HUD를 유지했으며 포획 화면에는 OfflineHarness 표시도 보입니다. 계정·업무 데이터·결제 화면은 포함하지 않습니다.
 
@@ -21,3 +21,5 @@
 - `privacy-product-ui-failed-20261024.png`: source896b163의 별도 오프라인 앱에서 원래 계정·개인정보 화면을 직접 캡처했습니다. 가짜 SDK adapter로 오류 안내와 실제 터치를 검증한 자료이며, 실제 운영 UMP/계정/스토어 검증으로 표현하지 않습니다. 원시 로그·식별자·계정 입력은 포함하지 않습니다.
 
 - `privacy-product-real-ump-native-20261024.png`와 `privacy-product-real-ump-closed-20261024.png`: source0e3e802/debug APK SHA256 `18584f3e274db295ec3b2540e1813f36f634ed0c00ad3d02349d4f3294f572a7`의 LD Tamer 실제 캡처 원본입니다(720×1280). 개발용 합성 Adult 준비 이후 원래 게임 버튼으로 연 실제 UMP 창과 Do not consent 선택 후 원래 화면입니다. 합성 No Ads/Declined fixture이며 운영 최초 cold·영수증·정책 판정 자료는 아닙니다. 게임/SDK 앱 이름과 개발 로그 배지를 보존했고 계정 입력·등록 식별자·원시 로그는 포함하지 않습니다. [검증 조건](../revival/privacy-product-real-ump-20261024.ko.md).
+
+- `gameplay-main-20261024.png`: sourcec6b4ba1/debug APK SHA256 `cf666b84aaa91948b8d0d4b7ab172f60ca09bd2eee0dd11763744d00e04c1ffc`의 실제 LD Tamer 첫 Main 원본입니다(720×1280). 합성 프로필·오프라인/IAP 차단 시험이며 디버그 overlay를 보존했습니다. 표시 카운터0과 별도의 전체 PID 로그 E73/W7을 구분하며 운영 계정·실폰/16KB·새 파일의 Game 왕복 검증으로 표현하지 않습니다. [검증 조건](../revival/gameplay-delivery-20261024.ko.md).
