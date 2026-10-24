@@ -55,7 +55,7 @@ namespace AD
                 case AdPrivacyResult.Cancelled: return "연령 선택이 변경되어 확인을 중단했습니다. 다시 확인해 주세요.";
                 case AdPrivacyResult.UpdateFailed:
                 case AdPrivacyResult.Unknown: return "개인정보 설정 상태를 확인하지 못했습니다. 다시 확인해 주세요.";
-                case AdPrivacyResult.FormFailed: return "개인정보 선택 창을 열지 못했습니다. 창이 준비 중이거나 연결에 문제가 있을 수 있습니다. 잠시 후 광고 개인정보 설정 확인 버튼을 다시 눌러 주세요.";
+                case AdPrivacyResult.FormFailed: return "개인정보 창을 열지 못했습니다. 준비 중이거나 연결에 문제가 있을 수 있습니다. 잠시 후 같은 버튼을 다시 눌러 주세요.";
                 default: return "개인정보 설정 상태를 직접 확인할 수 있습니다.";
             }
         }

@@ -72,6 +72,10 @@ public class RevivalAgeChoiceUITests
             Assert.That(privacy.gameObject.activeSelf && privacy.interactable, Is.True);
             Assert.That(age.interactable, Is.True);
             Assert.That(Status(label), Does.Contain("준비 중").And.Contain("다시 눌러"));
+            var preferred = (Vector2)label.GetType().GetMethod("GetPreferredValues",
+                new[] { typeof(string), typeof(float), typeof(float) }).Invoke(label,
+                new object[] { Status(label), 864f, float.PositiveInfinity });
+            Assert.That(preferred.y, Is.LessThanOrEqualTo(110f), "Status must fit the existing 1080-wide dialog's status slot.");
             Assert.That(ads.GetType().GetProperty("PrivacyOptionsRequired").GetValue(ads), Is.True);
             for (int i = 0; i < 3; i++) { Call(ads, "Update"); Call(entry, "Refresh"); }
             Assert.That(client.Shows, Is.EqualTo(1), "No frame-driven retry.");
