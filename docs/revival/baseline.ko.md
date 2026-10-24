@@ -1,5 +1,11 @@
 # 로컬 복구·기준 빌드
 
+## 최신 기준 — 2026-10-24
+
+현재 기준은 Unity6000.3.25f1/revision e1dba0a9aba4·Android min25/target36/ARM64입니다. main cf3a519의 새 작업본에서 최초 Library 부재→권한 원본 복원→Editor900/900→동일 source 개발 APK 빌드·정적 검사→원본59개 복구/검증과 명시 에셋4,561개 재검사를 완료했습니다. [실제 커밋·도구·APK·미검증 범위](cold-baseline-20261024.ko.md)를 현재 근거로 사용합니다.
+
+아래 2026-09-11·Unity6000.0.81f1 및 최초 clone 기록은 당시의 이력입니다. 새 기준의 runtime/운영 AAB/스토어 검증을 대신하지 않습니다.
+
 검증일: 2026-09-11. 관련: [#90](https://github.com/ChoiDaeYoung-94/Tamer/issues/90),
 [#92](https://github.com/ChoiDaeYoung-94/Tamer/issues/92),
 [접근권한 #94](https://github.com/ChoiDaeYoung-94/Tamer/issues/94).
