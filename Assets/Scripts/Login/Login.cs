@@ -142,6 +142,7 @@ namespace AD
                 if (_dataOwner != null && _dataOwner.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
                 if (_loading != null) _loading.SetActive(false);
                 if (_retry != null) _retry.SetActive(true);
+                EnsureRetryMessage();
                 if (_retryText != null) _retryText.text = "Receipt checking has stopped. Sign in explicitly to an existing account to check its request. No new account will be created.";
             }))
             {
@@ -1266,6 +1267,10 @@ namespace AD
         private void EnsureRetryMessage()
         {
             if (_retry == null || _retryText != null) return;
+            // Reuse the prefab's message, never the Retry button caption.
+            var existing = _retry.transform.Find("TMP_Contents");
+            if (existing != null) _retryText = existing.GetComponent<TMPro.TMP_Text>();
+            if (_retryText != null) return;
             var rect = DeletionView.Rect("RetryMessage", _retry.transform);
             rect.anchorMin = new Vector2(.1f, .35f);
             rect.anchorMax = new Vector2(.9f, .95f);

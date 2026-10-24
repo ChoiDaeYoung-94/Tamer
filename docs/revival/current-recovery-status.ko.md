@@ -1,5 +1,11 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-24
 
+## 2026-10-24 추가 — 로그인 재시도 안내 중복 수정
+
+- 기존 프리팹 안내문을 재사용하고 버튼 캡션과 분리했습니다. 접수 안내/Retry와 삭제 계정 안내/Contact support의 EditMode 미리보기를 확인했으며, 로그인61/61·삭제 접수20/20 검사는 각각 통과했습니다. [변경·정확한 소스·검증 한계](login-retry-message-20261024.ko.md).
+- `.meta`/GUID·기존 객체·버튼 영구 호출을 보존하고 비의도 Editor 설정 변경을 복구했습니다. 새 Android 수정판 실행은 미검증입니다. 아래의 Retry 중복 안내 대기 문구는 수정 전의 기록입니다.
+- Chrome이 필요한 현재 Console/Drive 조회는 사용자 요청으로 보류하고 로컬 코드·출시 준비 문서 작업을 우선합니다. UMP 최초 폼 로딩 오류와 실제 폼 표시/선택의 후속 검증은 남아 있습니다.
+
 ## 2026-10-24 추가 — UMP cold·합성 No Ads 관측
 
 - source `c9ce575`의 별도 시험 앱에서 SDK 등록 → 합성 Adult/No Ads 저장 → 새 프로세스의 Update 성공·fresh Required → 실제 FormFailed/code3 → 콜백 종료 뒤 합성 Declined 저장 → 새 프로세스의 AgeRequired/Update0·Show0을 관측했습니다. [정확한 파일·호출 순서·오류와 한계](privacy-cold-20261024.ko.md).
