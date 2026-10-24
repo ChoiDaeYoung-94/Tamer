@@ -22,7 +22,9 @@ public static class RevivalGameplayBuild
         var root = document.Root ?? throw new BuildFailedException("Missing manifest root.");
         root.SetAttributeValue(XNamespace.Xmlns + "tools", tools.NamespaceName);
         foreach (string permission in new[] { "android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE",
-            "com.android.vending.BILLING", "com.google.android.gms.permission.AD_ID" })
+            "com.android.vending.BILLING", "com.google.android.gms.permission.AD_ID",
+            "android.permission.ACCESS_ADSERVICES_AD_ID", "android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
+            "android.permission.ACCESS_ADSERVICES_TOPICS" })
         {
             foreach (var node in root.Elements("uses-permission").Where(n => (string)n.Attribute(android + "name") == permission).ToArray())
                 node.Remove();
