@@ -1,5 +1,11 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-24
 
+## 2026-10-24 최신 보충 — 원래 버튼과 실제 UMP warm 재진입
+
+원래 게임의 Main/설정/계정·개인정보 화면에서 실제 버튼을 눌러 UMP 네이티브 창을 열고, Do not consent 선택 뒤 OptionsClosed/버튼 복구를 확인했습니다. 같은 PID에서 Update1/Show2/실제 callback2, 최초 code3 실패 보존, 저장 Declined와 합성 No Ads=true 유지입니다. [실제 캡처·APK·원본 파일 대조·정확한 한계](privacy-product-real-ump-20261024.ko.md).
+
+개발용 합성 Adult 준비 이후의 warm 경계가 확인됐습니다. 일반 운영 최초 cold 버튼·실제 구매권한·최종 운영 AAB/Play·실제16KB는 별도 미검증입니다. 전체 파일 불변 검사는 실패한 원문을 유지하고 Unity/SDK metadata와 APK cache 변화만 별도로 대조했습니다. 운영 승인 false/null·releaseReady=false·Chrome 보류를 유지하며 #419의 운영 경계는 OPEN입니다. 아래의 실제 SDK와 원래 버튼 결합 대기는 각 과거 후보의 이력입니다.
+
 ## 2026-10-24 최신 보충 — 원래 개인정보 화면의 Android 터치
 
 원래 Main → Settings → Account & privacy를 실제 Android 터치로 열고 오류 문구 전체·명시 재진입·처리 중 중복 터치와 이전 callback 무시·종료 후 버튼 복구를 확인했습니다. [새 APK·같은 PID의 완전한 관측·한계](privacy-product-ui-20261024.ko.md). 이 UI 시험의 응답은 가짜 adapter이며 [앞선 실제 UMP 단독 관측](privacy-cold-explicit-retry-20261024.ko.md)과 합쳐 운영 통합 PASS로 표현하지 않습니다. #419는 실제 운영 흐름 결합 범위를 남겨 OPEN으로 유지합니다.

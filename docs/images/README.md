@@ -19,3 +19,5 @@
 공개 Google Play 링크는 기존 운영 주소입니다. 웹 조회에 페이지가 표시됐지만 해당 기기의 실제 설치 가능 여부와 복구 빌드 공개 배포는 확인하지 않았으므로 직접 APK 다운로드나 최신 배포 완료로 안내하지 않습니다. 기존 개인정보처리방침 접미부는 변경 전과 문자열 전체 일치를 확인했습니다.
 
 - `privacy-product-ui-failed-20261024.png`: source896b163의 별도 오프라인 앱에서 원래 계정·개인정보 화면을 직접 캡처했습니다. 가짜 SDK adapter로 오류 안내와 실제 터치를 검증한 자료이며, 실제 운영 UMP/계정/스토어 검증으로 표현하지 않습니다. 원시 로그·식별자·계정 입력은 포함하지 않습니다.
+
+- `privacy-product-real-ump-native-20261024.png`와 `privacy-product-real-ump-closed-20261024.png`: source0e3e802/debug APK SHA256 `18584f3e274db295ec3b2540e1813f36f634ed0c00ad3d02349d4f3294f572a7`의 LD Tamer 실제 캡처 원본입니다(720×1280). 개발용 합성 Adult 준비 이후 원래 게임 버튼으로 연 실제 UMP 창과 Do not consent 선택 후 원래 화면입니다. 합성 No Ads/Declined fixture이며 운영 최초 cold·영수증·정책 판정 자료는 아닙니다. 게임/SDK 앱 이름과 개발 로그 배지를 보존했고 계정 입력·등록 식별자·원시 로그는 포함하지 않습니다. [검증 조건](../revival/privacy-product-real-ump-20261024.ko.md).
