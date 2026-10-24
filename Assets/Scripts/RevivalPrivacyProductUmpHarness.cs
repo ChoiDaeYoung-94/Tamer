@@ -126,10 +126,10 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
         using (var activity = player.GetStatic<AndroidJavaObject>("currentActivity"))
         using (var files = activity.Call<AndroidJavaObject>("getFilesDir"))
         {
-            string root = files.Call<string>("getCanonicalPath");
-            Require(root == "/data/user/0/" + Application.identifier + "/files" ||
-                root == "/data/data/" + Application.identifier + "/files", "exact-private-user-zero-root");
-            string inputDirectory = Path.Combine(root, FixtureDirectory);
+            string privateFilesRoot = files.Call<string>("getCanonicalPath");
+            Require(privateFilesRoot == "/data/user/0/" + Application.identifier + "/files" ||
+                privateFilesRoot == "/data/data/" + Application.identifier + "/files", "exact-private-user-zero-root");
+            string inputDirectory = Path.Combine(privateFilesRoot, FixtureDirectory);
             Require(!Directory.Exists(inputDirectory) && !File.Exists(inputDirectory), "private-input-never-overwrite");
             Directory.CreateDirectory(inputDirectory);
             _registrationInputPath = Path.Combine(inputDirectory, "registration.input");
