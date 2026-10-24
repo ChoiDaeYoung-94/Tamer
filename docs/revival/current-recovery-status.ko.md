@@ -1,5 +1,9 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-24
 
+## 2026-10-24 최신 보충 — 일반 게임 후보의 권한 격리 확인
+
+main c6b4ba1의 일반 오프라인 게임 APK를 새로 빌드해 실제 manifest에서 AdServices3권한을 포함한 제한7권한·광고/PGS 초기화 provider2개 부재를 확인했습니다. 기존 출력/전달본 보존·62개 원본 대조/설정8개 복구·새 로컬 전달3파일까지 완료했습니다. [정확한 SHA·빌드 조건·한계](gameplay-delivery-20261024.ko.md). 새 파일의 설치/실행·Drive 전달은 미실행이며 운영 Login/UMP 검증이나 최종 운영 AAB로 표현하지 않습니다. Chrome 보류·releaseReady=false를 유지합니다.
+
 ## 2026-10-24 최신 보충 — 원래 버튼과 실제 UMP warm 재진입
 
 원래 게임의 Main/설정/계정·개인정보 화면에서 실제 버튼을 눌러 UMP 네이티브 창을 열고, Do not consent 선택 뒤 OptionsClosed/버튼 복구를 확인했습니다. 같은 PID에서 Update1/Show2/실제 callback2, 최초 code3 실패 보존, 저장 Declined와 합성 No Ads=true 유지입니다. [실제 캡처·APK·원본 파일 대조·정확한 한계](privacy-product-real-ump-20261024.ko.md).
