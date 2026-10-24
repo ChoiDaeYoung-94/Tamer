@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AD;
 using AD.Privacy;
+using AD.Advertising;
 using Newtonsoft.Json;
 using PlayFab;
 using PlayFab.ClientModels;
@@ -84,10 +85,13 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         if (_firstProcess)
         {
             Require(!File.Exists(Path.Combine(Application.persistentDataPath, "PlayerData.json")) &&
-                !LegacyKeys.Any(PlayerPrefs.HasKey) && !PlayerPrefs.HasKey(DataManager.DeletionLoginPauseKey));
+                !LegacyKeys.Any(PlayerPrefs.HasKey) && !PlayerPrefs.HasKey(DataManager.DeletionLoginPauseKey) &&
+                !PlayerPrefs.HasKey(GoogleAdMobManager.AgeChoicePreferenceKey));
             Directory.CreateDirectory(_directory);
             _state = new State { Phase = "prepared", InitialPid = Pid };
             for (int index = 0; index < LegacyKeys.Length; index++) PlayerPrefs.SetString(LegacyKeys[index], LegacyValues[index]);
+            // Synthetic fixture only: do not submit a user's age or drive the age-choice UI.
+            PlayerPrefs.SetString(GoogleAdMobManager.AgeChoicePreferenceKey, LocalAgeChoice.Encode(AgeChoice.Declined));
             PlayerPrefs.Save();
             WriteNew(Cloud(AccountA), Snapshot(AccountA));
             WriteNew(Cloud(AccountC), Snapshot(AccountC));
@@ -110,6 +114,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             _state.Phase = "cold-started";
             Replace(Marker, _state); // Consume this second process before waiting for explicit Retry.
         }
+        Require(PlayerPrefs.GetString(GoogleAdMobManager.AgeChoicePreferenceKey, "") == LocalAgeChoice.Encode(AgeChoice.Declined));
         _ready = true;
         _driverDirectory = Path.Combine(Application.persistentDataPath, "DeletionDriverV1");
         Directory.CreateDirectory(_driverDirectory);
@@ -119,7 +124,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         // Install only local delegates. CloudScriptDeletionClient does not install its SDK factory in gameplay builds.
         DeletionPresenter.RuntimeFlowFactory = CreateFlow;
         DeletionRecoveryGuard.HasPendingSubmission = account => false;
-        Mark("BOOT phase=" + (_firstProcess ? "initial-A" : "cold-pause") + " pid=" + Pid + " network=disabled");
+        Mark("BOOT phase=" + (_firstProcess ? "initial-A" : "cold-pause") + " pid=" + Pid + " network=disabled syntheticAge=Declined ageVerification=false");
     }
 
     public static string RequireSaveDirectory(string root)
