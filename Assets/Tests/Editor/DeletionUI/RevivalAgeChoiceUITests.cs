@@ -16,6 +16,105 @@ public class RevivalAgeChoiceUITests
     private static object Call(object owner, string name, params object[] args) =>
         owner.GetType().GetMethod(name, Flags).Invoke(owner, args);
 
+    private sealed class PreparingPrivacyClient : AD.Advertising.IAdConsentClient,
+        AD.Advertising.IAdPrivacyStatusClient
+    {
+        public int Updates, Shows;
+        public Action<bool> Updated, Closed;
+        public bool CanRequestAds => true; // A privacy-only retry must still block ads.
+        public bool PrivacyOptionsRequired => true;
+        public AD.Advertising.AdPrivacyRequirement PrivacyRequirement => AD.Advertising.AdPrivacyRequirement.Required;
+        public void Update(bool underAge, Action<bool> done) { Updates++; Updated = done; }
+        public void Gather(Action<bool> done) => Assert.Fail("Privacy discovery cannot gather ads consent.");
+        public void ShowPrivacyOptions(Action<bool> done) { Shows++; Closed = done; }
+    }
+
+    [Test]
+    public void Revival_PreparingPrivacyFormRequiresExplicitRetryAndKeepsOneNativeOwner()
+    {
+        var managersType = Find("AD.Managers");
+        var singleton = managersType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        object previous = singleton.GetValue(null);
+        var scene = EditorSceneManager.NewPreviewScene();
+        var root = new GameObject("Privacy form retry fixture", typeof(RectTransform));
+        SceneManager.MoveGameObjectToScene(root, scene);
+        Component bridge = null, ads = null, entry = null;
+        try
+        {
+            root.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            var inactive = new GameObject("Inactive Managers bridge");
+            inactive.transform.SetParent(root.transform, false); inactive.SetActive(false);
+            bridge = inactive.AddComponent(managersType);
+            Assert.That(singleton.GetValue(null), Is.SameAs(previous));
+            ads = root.AddComponent(Find("AD.GoogleAdMobManager"));
+            MemoryAge(ads, () => "1|18plus", _ => Assert.Fail("Retry cannot change saved age."));
+            managersType.GetField("_googleAdMobM", Flags).SetValue(bridge, ads);
+            singleton.SetValue(null, bridge);
+            var font = AssetDatabase.LoadAssetAtPath("Assets/Fonts/DungGeunMo SDF.asset", Find("TMPro.TMP_FontAsset"));
+            var view = Find("AD.DeletionView");
+            var makeButton = view.GetMethod("Button", BindingFlags.Static | BindingFlags.NonPublic);
+            var age = (Button)makeButton.Invoke(null, new object[] { "Age", root.transform, "연령대", font });
+            var privacy = (Button)makeButton.Invoke(null, new object[] { "Privacy", root.transform, "광고 개인정보 설정 확인", font });
+            var label = view.GetMethod("Label", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null,
+                new object[] { "PrivacyStatus", root.transform, "", font, 28, 110f });
+            entry = root.AddComponent(Find("AD.AgePrivacyOptionsEntry"));
+            Call(entry, "Bind", age, privacy, label, null);
+            Assert.That(AD.Advertising.AgeTreatmentPolicy.TryCreatePlan(AD.Advertising.AgeChoice.Adult, out var plan), Is.True);
+            var client = new PreparingPrivacyClient();
+            // Inject only the SDK adapter factory; the real manager owns dispatch and state.
+            Call(ads, "BeginPrivacyRefresh", plan,
+                (Func<AD.Advertising.IAdConsentClient>)(() => client), null);
+            client.Updated(true); Call(ads, "Update");
+            Assert.That(client.Shows, Is.EqualTo(1));
+            var firstCallback = client.Closed;
+            firstCallback(false); Call(ads, "Update"); Call(entry, "Refresh");
+            Assert.That(Result(ads), Is.EqualTo("FormFailed"));
+            Assert.That(privacy.gameObject.activeSelf && privacy.interactable, Is.True);
+            Assert.That(age.interactable, Is.True);
+            Assert.That(Status(label), Does.Contain("준비 중").And.Contain("다시 눌러"));
+            var preferred = (Vector2)label.GetType().GetMethod("GetPreferredValues",
+                new[] { typeof(string), typeof(float), typeof(float) }).Invoke(label,
+                new object[] { Status(label), 864f, float.PositiveInfinity });
+            Assert.That(preferred.y, Is.LessThanOrEqualTo(110f), "Status must fit the existing 1080-wide dialog's status slot.");
+            Assert.That(ads.GetType().GetProperty("PrivacyOptionsRequired").GetValue(ads), Is.True);
+            for (int i = 0; i < 3; i++) { Call(ads, "Update"); Call(entry, "Refresh"); }
+            Assert.That(client.Shows, Is.EqualTo(1), "No frame-driven retry.");
+            privacy.onClick.Invoke(); // Explicit entry; reuses fresh Required without another Update.
+            Assert.That(client.Updates, Is.EqualTo(1));
+            Assert.That(client.Shows, Is.EqualTo(2));
+            Assert.That(privacy.interactable, Is.False);
+            Assert.That(age.interactable, Is.False);
+            firstCallback(true); Call(ads, "Update"); Call(entry, "Refresh");
+            Assert.That(privacy.interactable, Is.False, "Stale first callback cannot release the second owner.");
+            privacy.onClick.Invoke(); // Even a direct duplicate event must not call the SDK again.
+            Assert.That(client.Shows, Is.EqualTo(2));
+            client.Closed(true); Call(ads, "Update"); Call(entry, "Refresh");
+            Assert.That(Result(ads), Is.EqualTo("OptionsClosed"));
+            Assert.That(privacy.interactable && age.interactable, Is.True);
+            Assert.That(Status(label), Does.Contain("닫았습니다"));
+            Assert.That(ads.GetType().GetProperty("CanRequestAds").GetValue(ads), Is.False);
+            Assert.That(client.Updates, Is.EqualTo(1));
+            foreach (var field in new[] { "_initialized", "_initializing", "_loading" })
+                Assert.That(ads.GetType().GetField(field, Flags).GetValue(ads), Is.False, field);
+            foreach (var field in new[] { "_consent", "_rewardedAd", "_showingAd" })
+                Assert.That(ads.GetType().GetField(field, Flags).GetValue(ads), Is.Null, field);
+            Assert.That(managersType.GetField("_initialized", Flags).GetValue(bridge), Is.False);
+            Assert.That(managersType.GetField("_ownsServices", Flags).GetValue(bridge), Is.False);
+        }
+        finally
+        {
+            try
+            {
+                if (entry != null) Call(entry, "OnDestroy");
+                if (ads != null) Call(ads, "OnDestroy");
+                if (bridge != null) Call(bridge, "OnDestroy");
+                UnityEngine.Object.DestroyImmediate(root);
+                if (scene.IsValid() && scene.isLoaded) EditorSceneManager.ClosePreviewScene(scene);
+            }
+            finally { singleton.SetValue(null, previous); }
+        }
+    }
+
     [Test]
     public void Revival_PrivacyEntryRestartUsesMemoryAgeAndNeverStartsSdk()
     {
