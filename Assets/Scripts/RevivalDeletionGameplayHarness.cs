@@ -35,6 +35,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
     private bool _mainObserved, _acceptedObserved;
     private string _lastShopUi;
     private DeletionView _observedView;
+    private static string _driverDirectory;
 
     [Serializable]
     private sealed class State
@@ -110,6 +111,8 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             Replace(Marker, _state); // Consume this second process before waiting for explicit Retry.
         }
         _ready = true;
+        _driverDirectory = Path.Combine(Application.persistentDataPath, "DeletionDriverV1");
+        Directory.CreateDirectory(_driverDirectory);
         var root = new GameObject("Offline deletion lifecycle verification");
         DontDestroyOnLoad(root);
         _instance = root.AddComponent<RevivalDeletionGameplayHarness>();
@@ -307,6 +310,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         if (!_ready) return;
         try
         {
+            DriveFixtureButton();
             var view = FindFirstObjectByType<DeletionView>();
             if (view != null && view != _observedView)
             {
@@ -364,6 +368,57 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         }
         catch (Exception error) { Fail("observe", error); }
     }
+
+    // A developer-only, package-private test driver. This invokes the original uGUI
+    // listeners; it is programmatic coverage, not a claim of native touch or authentication.
+    // The separate app has only local fixtures and no Internet permission.
+    private void DriveFixtureButton()
+    {
+        string input = Path.Combine(_driverDirectory, "command.txt");
+        if (!File.Exists(input)) return;
+        Require(_ready && _errors == 0 && File.ReadAllBytes(input).Length <= 32);
+        string command = File.ReadAllText(input).Trim();
+        UnityEngine.UI.Button button;
+        var view = FindFirstObjectByType<DeletionView>();
+        switch (command)
+        {
+            case "settings":
+                Require(_firstProcess && _mainObserved && !_cleanupVerified);
+                button = OriginalButton("OpenSetting");
+                break;
+            case "privacy":
+                Require(_firstProcess && _mainObserved && !_cleanupVerified && view == null);
+                button = FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None)
+                    .Single(value => value.name == "AccountPrivacyEntry" && value.gameObject.activeInHierarchy);
+                break;
+            case "request":
+                Require(_firstProcess && view != null && !_cleanupVerified && _submissions == 0);
+                button = view.RequestButton;
+                break;
+            case "confirm":
+                Require(_firstProcess && view != null && !_cleanupVerified && _submissions == 0);
+                button = view.ConfirmButton;
+                break;
+            case "exit":
+                Require(_firstProcess && _acceptedObserved && view != null && view.ExitOnClose);
+                button = view.CloseButton;
+                break;
+            case "retry":
+                Require(!_firstProcess && _paused && !_retry && !_authenticated);
+                button = OriginalButton("RetryConnection");
+                break;
+            default: throw new InvalidOperationException("Unknown fixture-only driver command.");
+        }
+        Require(button != null && button.gameObject.activeInHierarchy && button.IsInteractable());
+        File.Move(input, Path.Combine(_driverDirectory, command + ".used"));
+        Mark("PROGRAMMATIC_UGUI command=" + command + " fixtureOnly=true touchCoverage=false");
+        button.onClick.Invoke();
+    }
+
+    private static UnityEngine.UI.Button OriginalButton(string method) =>
+        FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Single(button =>
+            button.gameObject.activeInHierarchy && Enumerable.Range(0, button.onClick.GetPersistentEventCount())
+                .Any(index => button.onClick.GetPersistentMethodName(index) == method));
 
     private void ObserveVisibleShop()
     {
