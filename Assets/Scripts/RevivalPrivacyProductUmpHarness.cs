@@ -31,6 +31,11 @@ using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 /// This does not test ordinary cold first-button entry or approve a production policy.</summary>
 public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
 {
+    // Use public effective policy checks; the standalone helper is absent in this variant.
+    private static bool EffectiveReviewsDisabled => !AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
+        !AgeTreatmentPolicy.RegionalConsentReviewed && !AgeTreatmentPolicy.IsReviewed(AgeChoice.Under13) &&
+        !AgeTreatmentPolicy.IsReviewed(AgeChoice.From13To15) && !AgeTreatmentPolicy.IsReviewed(AgeChoice.From16To17) &&
+        !AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult);
     public const string FixtureDirectory = "RevivalPrivacyProductUmpV1";
     public const string Account = "privacy-product-ump-synthetic-v1";
     private const string ColdPurchaseKey = "Tamer.Harness.PrivacyCold.Purchases";
@@ -169,7 +174,7 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
             ReferenceEquals(Managers.GoogleAdMobM, _ads) && _data.PlayFabId == Account &&
             _data.IsServerDataReady && !_data.DeletionInProgress && _ads.HasNoAds && !_ads.CanRequestAds &&
             _data.LocalPlayerData["GooglePlay"] == "ProductNoAds" &&
-            !AdRequestPolicy.ProductionAdsEnabled && AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled &&
+            !AdRequestPolicy.ProductionAdsEnabled && EffectiveReviewsDisabled &&
             !PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial &&
             !Field<bool>(_ads, "_initialized") && !Field<bool>(_ads, "_initializing") && !Field<bool>(_ads, "_loading") &&
             Field<object>(_ads, "_consent") == null && Field<object>(_ads, "_rewardedAd") == null &&
@@ -468,7 +473,7 @@ public sealed class RevivalPrivacyProductUmpHarness : MonoBehaviour
             ageActive = ui && _ageButton.gameObject.activeInHierarchy, ageInteractable = ui && _ageButton.IsInteractable(),
             privacyRaycastTop = ui ? RaycastTop(_privacyButton) : null, ageRaycastTop = ui ? RaycastTop(_ageButton) : null,
             sdk = _sdk.ToArray(), productionAds = AdRequestPolicy.ProductionAdsEnabled,
-            reviewsDisabled = AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled, privatePrivacyBinding = PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial,
+            reviewsDisabled = EffectiveReviewsDisabled, privatePrivacyBinding = PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial,
             sealedRun = _finished, failure = _failure, nativeTouchEvidence = "external-only", networkScope = "real-UMP; native-provider-presence-external-verification",
             deletionLifecycleRetested = false, iapStoreRetested = false
         };

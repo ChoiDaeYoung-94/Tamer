@@ -13,6 +13,11 @@ using UnityEngine;
 /// <summary>Same-package debug 27 to 28 upgrade. Never changes ordinary privacy approval.</summary>
 public static class RevivalPrivacyProductUmpBuild
 {
+    // Use public effective policy checks; the standalone helper is absent in this variant.
+    private static bool EffectiveReviewsDisabled => !AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
+        !AgeTreatmentPolicy.RegionalConsentReviewed && !AgeTreatmentPolicy.IsReviewed(AgeChoice.Under13) &&
+        !AgeTreatmentPolicy.IsReviewed(AgeChoice.From13To15) && !AgeTreatmentPolicy.IsReviewed(AgeChoice.From16To17) &&
+        !AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult);
     internal const string Output = "Build/revival/Tamer-privacy-product-ump-v1.apk";
     private const string ExpectedCheckout = "D:/codex/worktrees/tamer-working/Tamer";
     internal const string RulesName = "tamer_privacy_product_ump_rules";
@@ -50,7 +55,7 @@ public static class RevivalPrivacyProductUmpBuild
             RevivalBuild.ValidateBaseline();
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android ||
                 PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android).Split(';').Any(symbol => symbol.Trim().StartsWith("TAMER_", StringComparison.Ordinal)) ||
-                AdRequestPolicy.ProductionAdsEnabled || !AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled ||
+                AdRequestPolicy.ProductionAdsEnabled || !EffectiveReviewsDisabled ||
                 PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial ||
                 PlayerSettings.Android.minSdkVersion != (AndroidSdkVersions)25 ||
                 PlayerSettings.Android.targetSdkVersion != (AndroidSdkVersions)36 ||
