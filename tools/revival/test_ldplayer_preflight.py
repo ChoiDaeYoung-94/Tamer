@@ -62,6 +62,28 @@ class LDPlayerPreflightTests(unittest.TestCase):
         self.assertFalse(result['transportReady'])
         self.assertEqual(len(calls), 2)
 
+    def test_stopped_other_instance_with_absent_pids_does_not_block_ready_tamer(self):
+        instances = LIST + '\n2,Stopped,0,0,0,-1,-1,1280,720,240'
+        result, calls = self.run_inspect('emulator-5556\tdevice', instance_list=instances)
+        self.assertTrue(result['transportReady'])
+        self.assertEqual(result['instance']['index'], 1)
+        self.assertTrue(all(call[3] == '1' for call in calls[2:]))
+
+    def test_absent_pids_on_stopped_target_never_allow_guest_queries(self):
+        for row in ('1,Tamer,0,0,0,-1,-1', '1,Tamer,0,0,0,-1,-1,1280,720,240'):
+            with self.subTest(row=row):
+                result, calls = self.run_inspect('emulator-5556\tdevice', instance_list=row)
+                self.assertFalse(result['transportReady'])
+                self.assertFalse(result['instance']['androidStarted'])
+                self.assertEqual(len(calls), 2)
+
+    def test_negative_metadata_remains_rejected_outside_stopped_pid_sentinels(self):
+        for row in ('1,Tamer,0,0,1,-1,-1', '1,Tamer,0,0,0,-2,-1',
+                    '1,Tamer,-1,0,0,-1,-1', '1,Tamer,0,0,0,-1,-1,-1,720,240',
+                    '-1,Tamer,0,0,0,-1,-1', '1,Tamer,0,0,2,100,101'):
+            with self.subTest(row=row), self.assertRaises(ValueError):
+                self.run_inspect('emulator-5556\tdevice', instance_list=row)
+
     def test_ready_transport_does_not_claim_runtime_or_installed_apk_pass(self):
         result, calls = self.run_inspect('emulator-5554\tdevice\nemulator-5556\tdevice')
         self.assertTrue(result['transportReady'])

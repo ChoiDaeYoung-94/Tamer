@@ -31,7 +31,11 @@ def parse_instances(output):
             numbers = [int(value) for value in (values[0], *values[2:])]
         except ValueError:
             raise ValueError('Non-numeric LDPlayer instance metadata.') from None
-        if any(value < 0 for value in numbers) or numbers[3] not in (0, 1):
+        # list2 uses -1 for absent host/VM PIDs on stopped instances.
+        # Preserve every row for duplicate/target checks; never substitute or start it.
+        if numbers[3] not in (0, 1) or any(
+                value < 0 and not (numbers[3] == 0 and column in (4, 5) and value == -1)
+                for column, value in enumerate(numbers)):
             raise ValueError('Invalid LDPlayer instance metadata.')
         instances.append(Instance(numbers[0], values[1], numbers[3] == 1))
     if len({instance.index for instance in instances}) != len(instances):
