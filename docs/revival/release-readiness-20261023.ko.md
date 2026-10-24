@@ -1,5 +1,9 @@
 # main 통합 이후 출시 준비 — 2026-10-23
 
+## 2026-10-24 최신 보충 — 일반 오프라인 전달 후보 갱신
+
+최신 통합 소스 c6b4ba1의 별도 일반 게임 APK에서 이전 후보에 남았던 AdServices3권한 제거와 제한7권한·초기화 provider2개 부재를 확인했습니다. [실제 파일·원본 보존·로컬 전달 준비](gameplay-delivery-20261024.ko.md). 새 후보의 설치/실행·Drive 업로드는 미실행이며, 운영 Login/UMP·서명 AAB·스토어 제출과 구분합니다. 최종 운영 AAB 없음/Chrome 보류/releaseReady=false를 유지합니다.
+
 ## 2026-10-24 최신 보충 — 실제 SDK와 원래 버튼의 warm 결합
 
 원래 Main/Settings/Account & privacy의 실제 버튼 → 실제 UMP 폼 → Do not consent → 원래 화면 복구를 같은 PID에서 확인했습니다. Update1/Show2/callback2이며 첫 code3는 실패로 보존합니다. [새 후보·픽셀·설정 복구와 데이터 대조](privacy-product-real-ump-20261024.ko.md). 개발용 합성 Adult 준비와 합성 No Ads fixture의 시험이며 일반 운영 최초 cold 진입과 실제 영수증 검증은 아닙니다. #419는 이 운영 경계를 남겨 OPEN으로 유지합니다.
