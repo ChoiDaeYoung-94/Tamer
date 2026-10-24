@@ -78,7 +78,11 @@ class ReleaseCandidateTests(unittest.TestCase):
   scriptingDefineSymbols:
     Android: DOTWEEN
 ''')
-            (root/'ProjectSettings/ProjectVersion.txt').write_text('m_EditorVersion: 6000.3.25f1')
+            (root/'ProjectSettings/ProjectVersion.txt').write_text(
+                'm_EditorVersion: 6000.3.25f1\nm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n')
+            (root/'tools/revival').mkdir(parents=True)
+            (root/'tools/revival/toolchain.json').write_text(json.dumps(
+                {'unityEditor':'6000.3.25f1','unityEditorRevision':'e1dba0a9aba4'}))
             scenes=root/'ProjectSettings/EditorBuildSettings.asset'
             scenes.write_text('  - enabled: 1\n    path: Assets/Scenes/Login.unity\n')
             (root/'Assets/Resources/IAPProductCatalog.json').write_text(json.dumps({'enableCodelessAutoInitialization':False,'enableUnityGamingServicesAutoInitialization':False}))
@@ -96,6 +100,47 @@ class ReleaseCandidateTests(unittest.TestCase):
             self.assertFalse(source_checks(root)['checks']['noGlobalHarnessDefines'])
             scenes.write_text('  - enabled: 0\n    path: Assets/Scenes/Login.unity\n  - enabled: 1\n    path: Assets/Scenes/Main.unity\n')
             self.assertFalse(source_checks(root)['checks']['loginFirstScene'])
+
+    def test_exact_unity_version_revision_and_toolchain_are_required_without_writes(self):
+        from verify_release_candidate import unity_source_pinned, TOOLCHAIN_CONFIG, SOURCE_INPUTS
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            project = root / 'ProjectSettings/ProjectVersion.txt'
+            config = root / TOOLCHAIN_CONFIG
+            project.parent.mkdir(parents=True)
+            config.parent.mkdir(parents=True)
+            expected = 'm_EditorVersion: 6000.3.25f1\nm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n'
+            valid = json.dumps({'unityEditor':'6000.3.25f1', 'unityEditorRevision':'e1dba0a9aba4'})
+            config.write_text(valid)
+            for value in [expected, '\ufeff' + expected.replace('\n', '\r\n')]:
+                project.write_bytes(value.encode('utf-8'))
+                before = project.read_bytes(), config.read_bytes()
+                self.assertTrue(unity_source_pinned(root))
+                self.assertEqual(before, (project.read_bytes(), config.read_bytes()))
+            invalid_projects = [expected.replace('6000.3.25f1', '6000.3.25f10'),
+                '# m_EditorVersion: 6000.3.25f1\nm_EditorVersion: 6000.3.26f1\n',
+                expected.replace('e1dba0a9aba4', '000000000000'),
+                'm_EditorVersion: 6000.3.25f1\n', expected + 'm_EditorVersion: 6000.3.25f1\n',
+                expected + 'm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n']
+            for value in invalid_projects:
+                with self.subTest(project=value):
+                    project.write_text(value)
+                    before = project.read_bytes(), config.read_bytes()
+                    self.assertFalse(unity_source_pinned(root))
+                    self.assertEqual(before, (project.read_bytes(), config.read_bytes()))
+            project.write_text(expected)
+            for value in [valid.replace('6000.3.25f1', '6000.3.25f10'),
+                          valid.replace('e1dba0a9aba4', '000000000000'),
+                          '{"unityEditor":"wrong","unityEditor":"6000.3.25f1","unityEditorRevision":"e1dba0a9aba4"}',
+                          valid[:-1] + ',"extra":NaN}', '{}', '[]', 'null', '{broken']:
+                with self.subTest(config=value):
+                    config.write_text(value)
+                    before = project.read_bytes(), config.read_bytes()
+                    self.assertFalse(unity_source_pinned(root))
+                    self.assertEqual(before, (project.read_bytes(), config.read_bytes()))
+            config.unlink()
+            self.assertFalse(unity_source_pinned(root))
+            self.assertIn(TOOLCHAIN_CONFIG, SOURCE_INPUTS)
 
     def test_pipeline_runtime_settings_reject_enablement_and_ambiguous_input_without_writes(self):
         from verify_release_candidate import pipeline_runtime_disabled
