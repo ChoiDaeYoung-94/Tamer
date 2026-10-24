@@ -330,6 +330,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
+#if TAMER_DELETION_GAMEPLAY
+        RevivalDeletionGameplayHarness.Boot();
+        return;
+#else
         if (Application.isEditor || Application.identifier != RevivalGameplayIsolation.RuntimeApplicationId)
             throw new InvalidOperationException("Gameplay harness requires its separate Android application.");
 #if TAMER_AGE_CHOICE
@@ -341,6 +345,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         var root = new GameObject("Offline gameplay verification");
         DontDestroyOnLoad(root);
         root.AddComponent<RevivalGameplayHarness>();
+#endif
     }
 #endif
 

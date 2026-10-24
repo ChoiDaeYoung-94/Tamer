@@ -285,7 +285,7 @@ public class RevivalGameplayIsolationTests
         XNamespace android = "http://schemas.android.com/apk/res/android";
         XNamespace tools = "http://schemas.android.com/tools";
         var permissions = document.Root.Elements("uses-permission").ToArray();
-        Assert.That(permissions.Length, Is.EqualTo(4));
+        Assert.That(permissions.Length, Is.EqualTo(7));
         Assert.That(permissions.All(p => (string)p.Attribute(tools + "node") == "remove"), Is.True);
         Assert.That(document.Root.Element("application").Element("activity").Attribute(android + "name").Value, Is.EqualTo("kept"));
         Assert.That(document.Root.Element("application").Element("provider").Attribute(tools + "node").Value, Is.EqualTo("remove"));

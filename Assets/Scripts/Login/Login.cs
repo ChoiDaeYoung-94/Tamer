@@ -120,12 +120,22 @@ namespace AD
 
         private void Start()
         {
-#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
+#if (TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS) && !TAMER_DELETION_GAMEPLAY
             RevivalGameplayIsolation.BlockLogin();
             return;
 #endif
             _dataOwner = AD.Managers.DataM;
             _cts = new CancellationTokenSource();
+#if TAMER_DELETION_GAMEPLAY
+            if (RevivalDeletionGameplayHarness.HoldInitialLogin(() =>
+            {
+                CaptureLoginSession();
+                _operations.TryBeginLogin();
+                _operations.TryEnterScene();
+                return () => OnLoggedIn(RevivalDeletionGameplayHarness.AccountA, false, "offline-late-fixture",
+                    RevivalDeletionGameplayHarness.Identity(RevivalDeletionGameplayHarness.AccountA));
+            })) return;
+#endif
             if (DeletionReceiptBootstrap.TryOpen(transform, _loadingText != null ? _loadingText.font : null, () =>
             {
                 _receiptRecoverySignIn = true;
@@ -144,6 +154,9 @@ namespace AD
             if (PlayerPrefs.GetInt(AD.DataManager.DeletionLoginPauseKey, 0) != 0)
             {
                 ShowRetry("Deletion request accepted. Sign in explicitly to continue.");
+#if TAMER_DELETION_GAMEPLAY
+                RevivalDeletionGameplayHarness.ObserveOriginalPause(_retry != null && _retry.activeSelf);
+#endif
                 return;
             }
             StartLogin();
@@ -181,10 +194,12 @@ namespace AD
             if (_accountDeleted) return;
             if (AD.Managers.DataM == null || AD.Managers.DataM.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
             if (AD.Managers.DataM != null && AD.Managers.DataM.DeletionInProgress) return;
-#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
+#if (TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS) && !TAMER_DELETION_GAMEPLAY
             return;
 #endif
+#if !TAMER_DELETION_GAMEPLAY
             ActivateNativeGoogle();
+#endif
             if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginLogin())
             {
                 LogStep("이미 로그인 진행 중 -> 중복 요청 무시");
@@ -214,6 +229,9 @@ namespace AD
                 return;
 
             LogStep("사용자 재시도 요청");
+#if TAMER_DELETION_GAMEPLAY
+            RevivalDeletionGameplayHarness.ObserveExplicitRetry();
+#endif
             StartLogin();
         }
 
@@ -225,15 +243,22 @@ namespace AD
 
             try
             {
+#if !TAMER_DELETION_GAMEPLAY
                 if (!await WaitForNetworkAsync(token))
                 {
                     ShowRetry("Please check your network connection.");
                     return;
                 }
+#endif
 
                 bool loggedIn;
                 _diagnosticPhase = "Authentication";
-#if UNITY_EDITOR
+#if TAMER_DELETION_GAMEPLAY
+                var syntheticAccount = RevivalDeletionGameplayHarness.AuthenticateExplicitly();
+                OnLoggedIn(syntheticAccount, true, "offline-deletion-fixture",
+                    RevivalDeletionGameplayHarness.Identity(syntheticAccount));
+                loggedIn = LoginCurrent() && AD.Managers.DataM.PlayFabId == syntheticAccount;
+#elif UNITY_EDITOR
                 loggedIn = false;
                 _loginFailureMessage = "Use the isolated test harness in the Editor.";
 #elif UNITY_ANDROID
@@ -260,7 +285,12 @@ namespace AD
 
                 _diagnosticPhase = "Profile";
                 LogStep("Login phase: Profile");
+#if TAMER_DELETION_GAMEPLAY
+                // Known fixture profile; keep original read/scene gates without an SDK profile request.
+                await GoNextAsync(token);
+#else
                 await ResolveProfileAsync(token);
+#endif
             }
             catch (OperationCanceledException)
             {

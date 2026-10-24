@@ -16,8 +16,11 @@ namespace AD
         public const string InventoryRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.inventoryrestore";
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
         public const string ShopPurchaseApplicationId = "com.AeDeong.MonsterTamer.revival.shoppurchase";
+        public const string DeletionGameplayApplicationId = "com.AeDeong.MonsterTamer.revival.deletiongameplayv3";
         public static string RuntimeApplicationId =>
-#if TAMER_SHOP_HARNESS
+#if TAMER_DELETION_GAMEPLAY
+            DeletionGameplayApplicationId;
+#elif TAMER_SHOP_HARNESS
             ShopPurchaseApplicationId;
 #elif TAMER_INVENTORY_RESTORE
             InventoryRestoreApplicationId;
@@ -92,7 +95,8 @@ namespace AD
             if (editor || !development || type != UnityEngine.LogType.Error ||
                 (applicationId != ApplicationId && applicationId != PlayerRestoreApplicationId &&
                  applicationId != SessionApplicationId && applicationId != InventoryRestoreApplicationId &&
-                 applicationId != AgeChoiceApplicationId && applicationId != ShopPurchaseApplicationId)) return false;
+                 applicationId != AgeChoiceApplicationId && applicationId != ShopPurchaseApplicationId &&
+                 applicationId != DeletionGameplayApplicationId)) return false;
             // These exact engine diagnostics occur because the offline development APK has
             // no INTERNET permission. Other socket errors and all exceptions still fail.
             return message == "Socket: Failed to set blocking mode" ||
@@ -101,7 +105,9 @@ namespace AD
 
         public static string CreateSavePath(string persistentRoot)
         {
-#if TAMER_SHOP_HARNESS
+#if TAMER_DELETION_GAMEPLAY
+            string directory = RevivalDeletionGameplayHarness.RequireSaveDirectory(persistentRoot);
+#elif TAMER_SHOP_HARNESS
             ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
                 UnityEngine.PlayerPrefs.HasKey, ShopPurchaseApplicationId);
             if (!UnityEngine.Debug.isDebugBuild) throw new InvalidOperationException("Debug shop fixture required.");
@@ -130,6 +136,9 @@ namespace AD
         private static ServerManager _gameplayServer;
         public static ServerManager CreateServer(DataManager owner)
         {
+#if TAMER_DELETION_GAMEPLAY
+            return RevivalDeletionGameplayHarness.CreateServer(owner);
+#else
 #if TAMER_AGE_CHOICE
             ValidateAgeChoice(UnityEngine.Application.identifier, UnityEngine.Application.isEditor, UnityEngine.PlayerPrefs.HasKey);
 #endif
@@ -138,6 +147,7 @@ namespace AD
 #endif
             _gameplayServer = CreateTestServer(owner, () => AccountId);
             return _gameplayServer;
+#endif
         }
 
 #if TAMER_GAMEPLAY_HARNESS
