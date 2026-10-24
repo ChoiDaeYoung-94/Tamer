@@ -161,6 +161,26 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
     {
         Require(_ready && !_firstProcess && retryVisible && !_authenticated && _reads == 0 && _writes == 0 &&
             string.IsNullOrEmpty(Managers.DataM.PlayFabId) && !Managers.DataM.IsServerDataReady);
+        const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic;
+        var login = FindFirstObjectByType<AD.Login>();
+        Require(login != null);
+        var panel = (GameObject)typeof(AD.Login).GetField("_retry", fields).GetValue(login);
+        var body = (TMPro.TMP_Text)typeof(AD.Login).GetField("_retryText", fields).GetValue(login);
+        var loading = (GameObject)typeof(AD.Login).GetField("_loading", fields).GetValue(login);
+        var button = panel.GetComponentInChildren<UnityEngine.UI.Button>(true);
+        const string message = "Deletion request accepted. Sign in explicitly to continue.";
+        Require(body != null && body.text == message && body.transform.parent == panel.transform &&
+            body.name == "TMP_Contents" && panel.transform.Find("RetryMessage") == null &&
+            loading != null && !loading.activeSelf && button != null &&
+            !body.transform.IsChildOf(button.transform) &&
+            button.GetComponentsInChildren<TMPro.TMP_Text>(true).Single().text == "Retry" &&
+            panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Count(label => label.text == message) == 1 &&
+            !panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Any(label => label.text.Contains("Please check your connection")));
+        Canvas.ForceUpdateCanvases();
+        body.ForceMeshUpdate();
+        Require(!body.isTextOverflowing && Mathf.Approximately(body.fontSize, 30));
+        Mark("LOGIN_RETRY_MESSAGE_PASS bodyCount=1 caption=Retry loadingHidden=true obsoleteNetworkText=absent fontSize=30 overflow=false programmaticObservation=true");
         _paused = true;
         Mark("ORIGINAL_LOGIN_PAUSE retryVisible=true automaticAuth=0 reads=0 writes=0 pid=" + Pid);
     }
@@ -431,6 +451,15 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
                 Require(!_firstProcess && _paused && !_retry && !_authenticated);
                 button = OriginalButton("RetryConnection");
                 break;
+            case "shop":
+                Require(!_firstProcess && _mainObserved && _authenticated && _ready && _errors == 0);
+                var playerCollider = Player.Instance.GetComponent<Collider>();
+                Require(playerCollider != null && playerCollider.CompareTag("Player") && ShopMan.Instance != null);
+                File.Move(input, Path.Combine(_driverDirectory, "shop.used"));
+                Mark("PROGRAMMATIC_SHOP_TRIGGER originalHandler=true touchCoverage=false purchase=false");
+                ShopMan.Instance.SendMessage("OnTriggerEnter", playerCollider, SendMessageOptions.RequireReceiver);
+                ShopMan.Instance.OpenShop(0);
+                return;
             default: throw new InvalidOperationException("Unknown fixture-only driver command.");
         }
         Require(button != null && button.gameObject.activeInHierarchy && button.IsInteractable());
@@ -458,16 +487,19 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
                 !(bool)typeof(Item).GetField("_isEquipped", fields).GetValue(item));
             var icon = (GameObject)typeof(Item).GetField("_lockIcon", fields).GetValue(item);
             var text = (TMPro.TMP_Text)typeof(Item).GetField("_itemInfoText", fields).GetValue(item);
+            string itemName = (string)typeof(Item).GetField("_itemName", fields).GetValue(item);
+            string price = (string)typeof(Item).GetField("_itemPrice", fields).GetValue(item);
             Require(icon != null && icon.activeInHierarchy && text != null &&
-                !string.IsNullOrWhiteSpace(text.text) && !text.text.Contains("Equipped"));
-            names.Add((string)typeof(Item).GetField("_itemName", fields).GetValue(item));
+                text.gameObject.activeInHierarchy && !string.IsNullOrWhiteSpace(price) &&
+                text.text == itemName + "\nPrice - " + price + "G");
+            names.Add(itemName);
         }
         string observation = string.Join(",", names.OrderBy(name => name, StringComparer.Ordinal));
         if (observation == _lastShopUi) return;
         _lastShopUi = observation;
         RequirePreserved();
         Require(_ready && _errors == 0);
-        Mark("C_SHOP_VISIBLE items=" + items.Length + " allLocked=true allUnequipped=true foreignB=preserved legacy=preserved");
+        Mark("C_SHOP_VISIBLE items=" + items.Length + " allLocked=true allUnequipped=true priceLabelsMatched=true foreignB=preserved legacy=preserved programmaticOpen=true");
     }
 
     private static string LegacyHash() => Hash(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(
