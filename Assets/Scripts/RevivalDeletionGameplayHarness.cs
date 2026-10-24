@@ -819,8 +819,15 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             fitsScreen(statusScreen) && fitsScreen(buttonScreen) && fitsScreen(ageScreen);
         var privacyHit = PrivacyRaycastTop(_privacyUiButton, buttonScreen);
         var ageHit = PrivacyRaycastTop(_privacyUiAge, ageScreen);
-        Mark("PRIVACY_PRODUCT_UI_STATE " + JsonConvert.SerializeObject(new
+        RequireInvariant(fits, "privacy-full-text-and-buttons-fit");
+        RequireInvariant(!_privacyUiButton.IsInteractable() || privacyHit == "original-button", "privacy-original-button-raycast");
+        RequireInvariant(!_privacyUiAge.IsInteractable() || ageHit == "original-button", "privacy-age-button-raycast");
+        int sequence = stage == "FormFailed" ? 1 : stage == "CheckingAfterOriginalButtonEvent" ? 2 :
+            stage == "StaleFirstCallbackIgnored" ? 3 : stage == "OptionsClosed" ? 4 : 0;
+        RequireInvariant(sequence != 0, "privacy-snapshot-stage-allowlisted");
+        var snapshot = new
         {
+            schema = 1, sequence,
             stage, pid = Pid, syntheticAdapter = true, realUmpSdkRetested = false,
             originalMain = true, originalAccountPrivacyView = true, nativeTouchEvidence = "external-log-and-screen",
             factoryCalls = _privacyUiFactoryCalls, updates = _privacyUiClient.Updates, shows = _privacyUiClient.Shows,
@@ -843,10 +850,17 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             foreignBSha256 = HashFile(Inventory(AccountB)), legacySha256 = LegacyHash(),
             adapterNativeSdkCalls = 0, adapterNetworkCalls = 0,
             networkPermissionEvidence = "verify-final-apk", realSdkFactoryUsed = false, deletionLifecycleRetested = false
-        }));
-        RequireInvariant(fits, "privacy-full-text-and-buttons-fit");
-        RequireInvariant(!_privacyUiButton.IsInteractable() || privacyHit == "original-button", "privacy-original-button-raycast");
-        RequireInvariant(!_privacyUiAge.IsInteractable() || ageHit == "original-button", "privacy-age-button-raycast");
+        };
+        // Android's Unity log payload can truncate at 1,024 bytes. Keep the full
+        // observation in this one-process fixture; publish only its short index.
+        string name = "privacy-ui-state-" + sequence + ".json";
+        string path = Path.Combine(_driverDirectory, name);
+        WriteNew(path, snapshot);
+        byte[] expected = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot));
+        byte[] actual = File.ReadAllBytes(path);
+        RequireInvariant(actual.SequenceEqual(expected), "privacy-snapshot-readback");
+        Mark("PRIVACY_PRODUCT_UI_FILE schema=1 sequence=" + sequence + " stage=" + stage +
+            " pid=" + Pid + " file=" + name + " bytes=" + actual.Length + " sha256=" + Hash(actual));
     }
 #endif
 

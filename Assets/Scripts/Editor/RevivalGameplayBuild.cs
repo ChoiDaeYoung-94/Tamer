@@ -13,7 +13,7 @@ public static class RevivalGameplayBuild
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
     private const string AdsManifest = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
-    private const string PrivacyProductUiOutput = "Build/revival/Tamer-privacyproductui-v1.apk";
+    private const string PrivacyProductUiOutput = "Build/revival/Tamer-privacyproductui-v2.apk";
 
     public static string OfflineManifest(string original)
     {
