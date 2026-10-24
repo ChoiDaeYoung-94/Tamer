@@ -1,3 +1,6 @@
+#if TAMER_PRIVACY_COLD_HARNESS && !TAMER_PRIVACY_MANAGER_HARNESS
+#error Cold privacy harness requires the native privacy manager harness.
+#endif
 namespace AD.Advertising
 {
     public enum AdAgeTreatment { Unspecified, Child, Teen }
@@ -48,6 +51,7 @@ namespace AD.Advertising
         private const bool From16To17ConsentReviewed = false;
         private const bool AdultConsentReviewed = false;
 
+        public const string NativePrivacyColdHarnessPackage = "com.AeDeong.MonsterTamer.revival.privacycold";
         public const string NativePrivacyHarnessPackage = "com.AeDeong.MonsterTamer.revival.privacymanager";
 #if TAMER_PRIVACY_MANAGER_HARNESS
         public static bool NativePrivacyHarnessReviewsDisabled => !PrivacySdkEnvironmentReviewed &&
@@ -57,7 +61,12 @@ namespace AD.Advertising
         public static bool NativePrivacyHarnessContextAllowed(bool editor, bool android, bool development,
             bool batch, string package, string scene, bool hasManagers) =>
             !editor && android && development && !batch && !hasManagers &&
-            package == NativePrivacyHarnessPackage && scene == "Assets/Tests/Scenes/RevivalAdHarness.unity";
+#if TAMER_PRIVACY_COLD_HARNESS
+            package == NativePrivacyColdHarnessPackage &&
+#else
+            package == NativePrivacyHarnessPackage &&
+#endif
+            scene == "Assets/Tests/Scenes/RevivalAdHarness.unity";
 #endif
 
         public static bool IsReviewed(AgeChoice choice)

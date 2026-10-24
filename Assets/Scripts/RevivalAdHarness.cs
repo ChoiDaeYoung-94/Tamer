@@ -1,3 +1,6 @@
+#if TAMER_PRIVACY_COLD_HARNESS && !TAMER_PRIVACY_MANAGER_HARNESS
+#error Cold privacy harness requires the native privacy manager harness.
+#endif
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS || TAMER_PRIVACY_UI_HARNESS
 #if TAMER_UMP_PUBLISHER_HARNESS && !TAMER_UMP_ONLY_HARNESS
 #error Publisher UMP harness requires the UMP-only path.
@@ -122,6 +125,207 @@ public sealed class RevivalAdHarness : MonoBehaviour
     private static double Now => (double)System.Diagnostics.Stopwatch.GetTimestamp() /
         System.Diagnostics.Stopwatch.Frequency;
 
+#if TAMER_PRIVACY_COLD_HARNESS
+    // File transport invokes explicit synthetic fixture APIs, never native UI input.
+    private const string ColdFixtureKey = "Tamer.Harness.PrivacyCold.FixtureId";
+    private static readonly string ColdProcessToken = Guid.NewGuid().ToString("N");
+    private static bool _coldDriverClaimed;
+    private string _coldDirectory, _coldPhase = "boot", _coldRun = "", _coldFailure = "", _coldState;
+    private int _coldStatus, _coldPid, _coldCommand, _coldSnapshot, _coldUpdate, _coldUpdateCallback, _coldShow, _coldShowCallback;
+    private bool _coldFreshUpdate, _coldTerminal, _coldRegistration;
+    private string _coldFreshStatus = "unread";
+
+    private sealed class ColdFixtureFailure : Exception
+    {
+        public readonly string Name;
+        public ColdFixtureFailure(string name) { Name = name; }
+    }
+
+    [Serializable] private sealed class ColdCommand
+    {
+        public string processToken, runId, action, testDeviceHash;
+        public int pid, sequence;
+    }
+
+    private void StartPrivacyColdFixture()
+    {
+        if (_coldDriverClaimed) { FailPrivacyCold("driver_recreated"); return; }
+        _coldDriverClaimed = true;
+        using (var process = new AndroidJavaClass("android.os.Process"))
+            _coldPid = process.CallStatic<int>("myPid");
+        _coldDirectory = System.IO.Path.Combine(Application.persistentDataPath, "privacy-cold-fixture");
+        System.IO.Directory.CreateDirectory(_coldDirectory);
+        if (Ads == null || !Ads.ConfigureNativePrivacyColdFixture())
+        { FailPrivacyCold("boot_context_or_purchase_input"); return; }
+        Ads.NativePrivacyColdSdkEvent += ObservePrivacyColdSdk;
+        Ads.HarnessEvent += ObservePrivacyColdManagedAds;
+        Record("privacy_cold_boot token=" + ColdProcessToken + " pid=" + _coldPid +
+            " synthetic_fixture_only=true automatic_sdk_request=false");
+        ObservePrivacyColdState();
+    }
+
+    private void ObservePrivacyColdManagedAds(string name, double timestamp) =>
+        FailPrivacyCold("unexpected_managed_ads_" + name);
+
+    private void ObservePrivacyColdSdk(string value, double receivedAt)
+    {
+        // Delivered on the owner thread; SDK receive time is distinct from dispatch time.
+        Record("privacy_cold_sdk received=" + receivedAt.ToString("F6", CultureInfo.InvariantCulture) + " " + value);
+        if (value.StartsWith("update_call ", StringComparison.Ordinal))
+        {
+            if (++_coldUpdate > 1) FailPrivacyCold("multiple_update");
+            if (!_coldRegistration && (Ads.AgeSelection.Value != AgeChoice.Adult || !Ads.HasNoAds))
+                FailPrivacyCold("update_fixture_mismatch");
+        }
+        else if (value.StartsWith("update_callback ", StringComparison.Ordinal))
+        {
+            if (++_coldUpdateCallback > 1) FailPrivacyCold("duplicate_update_callback");
+            _coldFreshUpdate = value.StartsWith("update_callback ok=True ", StringComparison.Ordinal);
+        }
+        else if (value.StartsWith("status_read ", StringComparison.Ordinal))
+        {
+            ++_coldStatus;
+            if (!_coldFreshUpdate || _coldUpdate != 1 || _coldRegistration) FailPrivacyCold("status_without_fresh_update");
+            _coldFreshStatus = value.Contains("value=Required ") ? "Required"
+                : value.Contains("value=NotRequired ") ? "NotRequired" : "Unknown";
+        }
+        else if (value.StartsWith("show_call ", StringComparison.Ordinal))
+        {
+            if (++_coldShow > 1 || !_coldFreshUpdate || _coldFreshStatus != "Required" || _coldRegistration)
+                FailPrivacyCold("show_without_fresh_required");
+        }
+        else if (value.StartsWith("show_callback ", StringComparison.Ordinal))
+        {
+            if (++_coldShowCallback > 1 || _coldShow != 1) FailPrivacyCold("unexpected_show_callback");
+        }
+        else if (value.StartsWith("unexpected_gather", StringComparison.Ordinal)) FailPrivacyCold("unexpected_gather");
+    }
+
+    private void FailPrivacyCold(string name)
+    {
+        if (_coldFailure.Length != 0) return;
+        _coldFailure = name;
+        _coldPhase = "failed"; // Seals developer commands; never closes an active native form.
+        if (Ads != null) Ads.SealNativePrivacyColdFixture();
+        Record("privacy_cold_failed reason=" + name);
+    }
+
+    private void PollPrivacyColdFixture()
+    {
+        if (_coldDirectory == null) return;
+        if (Ads == null || !Ads.NativePrivacyColdContextAllowed || Ads.CanRequestAds)
+            FailPrivacyCold("context_or_ad_state_changed");
+        if (_coldFailure.Length == 0 && _coldPhase == "refreshPending" && !Ads.IsConsentBusy &&
+            Ads.PrivacySettingsResult != AdPrivacyResult.Checking)
+        {
+            _coldTerminal = true;
+            _coldPhase = Ads.PrivacySettingsResult == AdPrivacyResult.AgeRequired ? "ageBlocked" : "refreshTerminal";
+        }
+        if (_coldPhase == "registrationPending" && !_registrationInFlight)
+            _coldPhase = "registrationTerminal"; // Callback/timeout details stay in SDK evidence.
+        string ready = System.IO.Path.Combine(_coldDirectory, "command-" + ColdProcessToken + ".ready");
+        if (_coldFailure.Length == 0 && System.IO.File.Exists(ready))
+        {
+            string processing = ready + ".processing";
+            try
+            {
+                // Host writes .tmp then renames to .ready; claim is another atomic rename.
+                System.IO.File.Move(ready, processing);
+                if (new System.IO.FileInfo(processing).Length > 4096) throw new ColdFixtureFailure("command_size");
+                var command = JsonUtility.FromJson<ColdCommand>(System.IO.File.ReadAllText(processing));
+                System.IO.File.Delete(processing); // Do not retain a supplied SDK hash on disk.
+                if (command == null || command.processToken != ColdProcessToken || command.pid != _coldPid ||
+                    command.sequence != _coldCommand + 1 ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(command.runId ?? "", "\\A[A-Za-z0-9_-]{1,64}\\z") ||
+                    (_coldRun.Length != 0 && command.runId != _coldRun))
+                    throw new ColdFixtureFailure("command_identity_or_sequence");
+                _coldRun = command.runId;
+                _coldCommand = command.sequence; // Consume before invoking the fixture API.
+                ExecutePrivacyColdFixture(command);
+                command.testDeviceHash = null;
+            }
+            catch (ColdFixtureFailure error) { FailPrivacyCold(error.Name); }
+            catch (Exception error) { FailPrivacyCold("command_" + error.GetType().Name); }
+            finally { if (System.IO.File.Exists(processing)) System.IO.File.Delete(processing); }
+        }
+        ObservePrivacyColdState();
+    }
+
+    private void ExecutePrivacyColdFixture(ColdCommand command)
+    {
+        if (_coldFailure.Length != 0 || Ads == null || !Ads.NativePrivacyColdContextAllowed)
+            throw new ColdFixtureFailure("fixture_context");
+        if (command.action == "prepareAdultNoAds")
+        {
+            if (_coldPhase != "boot" || GoogleAdMobManager.NativePrivacyHarnessAttempted ||
+                PlayerPrefs.HasKey(ColdFixtureKey) || PlayerPrefs.HasKey(GoogleAdMobManager.AgeChoicePreferenceKey))
+                throw new ColdFixtureFailure("prepare_requires_unseeded_package");
+            if (!Ads.AgeSelection.Select(AgeChoice.Adult)) throw new ColdFixtureFailure("adult_save");
+            PlayerPrefs.SetString(GoogleAdMobManager.NativePrivacyColdPurchaseKey, "ProductNoAds");
+            PlayerPrefs.SetString(ColdFixtureKey, command.runId);
+            PlayerPrefs.Save();
+            if (!Ads.ConfigureNativePrivacyColdFixture() || !Ads.HasNoAds) throw new ColdFixtureFailure("purchase_fixture");
+            _coldPhase = "fixturePrepared"; // SDK request requires a fresh process, enforced below.
+        }
+        else if (command.action == "requestSavedPrivacy")
+        {
+            if (_coldPhase != "boot" || PlayerPrefs.GetString(ColdFixtureKey, "") != command.runId ||
+                !Ads.HasNoAds || _registrationAttempted)
+                throw new ColdFixtureFailure("request_requires_cold_saved_fixture");
+            _coldPhase = "refreshPending";
+            if (!Ads.RequestPrivacySettingsForNativeHarness(command.testDeviceHash))
+                throw new ColdFixtureFailure("request_prerequisite_or_hash");
+        }
+        else if (command.action == "saveDeclinedAfterTerminal")
+        {
+            if (_coldPhase != "refreshTerminal" || !_coldTerminal || Ads.IsConsentBusy ||
+                (_coldShow != 0 && _coldShowCallback != 1))
+                throw new ColdFixtureFailure("decline_requires_native_terminal");
+            if (!Ads.AgeSelection.Select(AgeChoice.Declined)) throw new ColdFixtureFailure("declined_save");
+            _coldPhase = "declinedSaved";
+        }
+        else if (command.action == "registrationOnly")
+        {
+            if (_coldPhase != "boot" || GoogleAdMobManager.NativePrivacyHarnessAttempted)
+                throw new ColdFixtureFailure("registration_requires_unused_process");
+            _coldRegistration = true;
+            StartUmpRegistrationOnly();
+            if (!_registrationAttempted) throw new ColdFixtureFailure("registration_prerequisite");
+            _coldPhase = "registrationPending"; // No other commands allowed in this process.
+        }
+        else throw new ColdFixtureFailure("unknown_fixture_action");
+        Record("privacy_cold_command sequence=" + _coldCommand + " action=" + command.action + " phase=" + _coldPhase);
+    }
+
+    private void ObservePrivacyColdState()
+    {
+        if (_coldDirectory == null) return;
+        string state = "token=" + ColdProcessToken + " pid=" + _coldPid + " run=" + _coldRun +
+            " fixture=" + PlayerPrefs.GetString(ColdFixtureKey, "") + " phase=" + _coldPhase + " failure=" + _coldFailure +
+            " command=" + _coldCommand + " age=" + (Ads == null ? "absent" : Ads.AgeSelection.Value.ToString()) +
+            " editing=" + (Ads != null && Ads.AgeSelection.IsEditing) +
+            " syntheticNoAds=" + (Ads != null && Ads.HasNoAds) +
+            " ageEncoded=" + (Ads == null ? "" : LocalAgeChoice.Encode(Ads.AgeSelection.Value)) +
+            " result=" + (Ads == null ? "absent" : Ads.PrivacySettingsResult.ToString()) +
+            " busy=" + (Ads != null && Ads.IsConsentBusy) + " required=" + (Ads != null && Ads.PrivacyOptionsRequired) +
+            " noManagedAdState=" + (Ads != null && Ads.NativePrivacyHarnessNoAdsState) +
+            " managersAbsent=" + (Managers.Instance == null) + " update=" + _coldUpdate +
+            " updateCallback=" + _coldUpdateCallback + " freshStatus=" + _coldFreshStatus +
+            " statusReads=" + _coldStatus + " show=" + _coldShow + " showCallback=" + _coldShowCallback;
+        if (state == _coldState) return;
+        _coldState = state;
+        Record("privacy_cold_state " + state);
+        // Immutable snapshots use atomic rename; no delete/overwrite of another process's evidence.
+        string path = System.IO.Path.Combine(_coldDirectory, "state-" + ColdProcessToken + "-" + (++_coldSnapshot) + ".txt");
+        try
+        {
+            System.IO.File.WriteAllText(path + ".tmp", state);
+            System.IO.File.Move(path + ".tmp", path);
+        }
+        catch (Exception error) { FailPrivacyCold("evidence_write_" + error.GetType().Name); }
+    }
+#endif
+
     private void Start()
     {
         if (Managers.Instance != null) throw new InvalidOperationException("Harness must not contain Managers.");
@@ -132,7 +336,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
         if (UmpOnly)
         {
 #if TAMER_UMP_PUBLISHER_HARNESS
-#if TAMER_PRIVACY_MANAGER_HARNESS
+#if TAMER_PRIVACY_COLD_HARNESS
+            const string publisherHarnessPackage = AgeTreatmentPolicy.NativePrivacyColdHarnessPackage;
+#elif TAMER_PRIVACY_MANAGER_HARNESS
             const string publisherHarnessPackage = AgeTreatmentPolicy.NativePrivacyHarnessPackage;
 #else
             const string publisherHarnessPackage = "com.AeDeong.MonsterTamer.revival.umppublisher";
@@ -144,6 +350,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
                 throw new InvalidOperationException("Isolated disabled publisher UMP context required.");
             _publisherContextAllowed = true;
             Record("ump_only_boot no_ad_manager_init publisher_app_identity");
+#if TAMER_PRIVACY_COLD_HARNESS
+            StartPrivacyColdFixture();
+#endif
 #else
             Record("ump_only_boot no_ad_manager_init sample_app_identity");
 #endif
@@ -213,6 +422,9 @@ public sealed class RevivalAdHarness : MonoBehaviour
     {
         if (UmpOnly)
         {
+#if TAMER_PRIVACY_COLD_HARNESS
+            PollPrivacyColdFixture();
+#endif
 #if TAMER_UMP_PUBLISHER_HARNESS
             if (_registrationInFlight && Now - _registrationStartedAt >= 30)
             {
@@ -257,6 +469,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
 
     private void OnGUI()
     {
+#if !TAMER_PRIVACY_COLD_HARNESS
         // Keep the same log controls throughout each Layout/input/Repaint cycle.
         if (Event.current.type == EventType.Layout) _layoutEvents = _events.ToArray();
         var previousMatrix = GUI.matrix;
@@ -319,6 +532,7 @@ public sealed class RevivalAdHarness : MonoBehaviour
         GUILayout.EndScrollView();
         GUILayout.EndArea();
         GUI.matrix = previousMatrix;
+#endif
     }
 
     private void DrawUmpOnly()
@@ -437,9 +651,17 @@ public sealed class RevivalAdHarness : MonoBehaviour
     {
         if (!UmpOnly || !_publisherContextAllowed || _registrationAttempted || _ump != null ||
             Managers.Instance != null || Application.isEditor || Application.platform != RuntimePlatform.Android ||
-            !Debug.isDebugBuild || Application.identifier != "com.AeDeong.MonsterTamer.revival.umppublisher" ||
+            !Debug.isDebugBuild ||
+#if TAMER_PRIVACY_COLD_HARNESS
+            Application.identifier != AgeTreatmentPolicy.NativePrivacyColdHarnessPackage ||
+#else
+            Application.identifier != "com.AeDeong.MonsterTamer.revival.umppublisher" ||
+#endif
             SceneManager.GetActiveScene().path != "Assets/Tests/Scenes/RevivalAdHarness.unity" ||
             AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed) return;
+#if TAMER_PRIVACY_COLD_HARNESS
+        if (Ads == null || !Ads.ReserveNativePrivacyColdRegistration()) return;
+#endif
         // Process-lifetime latch survives owner recreation. Neither timeout nor callback permits retry.
         _registrationAttempted = true;
         _registrationInFlight = true;
@@ -447,7 +669,13 @@ public sealed class RevivalAdHarness : MonoBehaviour
         Record("ump_registration_start tfua=true forced_debug_settings=false forms=false ads_disabled=true");
         try
         {
-            new GoogleUmpConsentClient().Update(true, succeeded => _umpCallbacks.Enqueue(() =>
+#if TAMER_PRIVACY_COLD_HARNESS
+            var registrationClient = new GoogleUmpConsentClient((value, receivedAt) =>
+                _umpCallbacks.Enqueue(() => ObservePrivacyColdSdk(value, receivedAt)));
+#else
+            var registrationClient = new GoogleUmpConsentClient();
+#endif
+            registrationClient.Update(true, succeeded => _umpCallbacks.Enqueue(() =>
             {
                 if (this == null || !_registrationInFlight) return;
                 _registrationInFlight = false;
@@ -493,6 +721,13 @@ public sealed class RevivalAdHarness : MonoBehaviour
         _registrationInFlight = false;
 #endif
         DisposeUmp();
+#if TAMER_PRIVACY_COLD_HARNESS
+        if (Ads != null)
+        {
+            Ads.NativePrivacyColdSdkEvent -= ObservePrivacyColdSdk;
+            Ads.HarnessEvent -= ObservePrivacyColdManagedAds;
+        }
+#endif
         if (Ads != null) Ads.HarnessEvent -= OnAdEvent;
         if (_tone != null) Destroy(_tone);
     }
