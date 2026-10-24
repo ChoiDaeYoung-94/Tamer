@@ -1,4 +1,6 @@
 import unittest
+from contextlib import contextmanager
+import hashlib
 import tempfile
 import json
 import os
@@ -6,12 +8,43 @@ import sys
 import zipfile
 from unittest.mock import patch
 from pathlib import Path
-from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, candidate_checks, SHA256, main, PIPELINE_RUNTIME_CONFIG
+from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, candidate_checks, main, PIPELINE_RUNTIME_CONFIG
 from test_verify_native_alignment import elf_fixture
 
 
 class ReleaseCandidateTests(unittest.TestCase):
     manifest='''<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.AeDeong.MonsterTamer" android:versionCode="27"><uses-sdk android:minSdkVersion="25" android:targetSdkVersion="36"/><application/></manifest>'''
+
+    def assert_fixture_paths(self, root, *paths):
+        root = root.resolve()
+        for path in paths:
+            resolved = path.resolve()
+            self.assertNotEqual(root, resolved, 'Do not mutate the fixture root itself')
+            self.assertTrue(resolved.is_relative_to(root),
+                            'Synthetic mutation must stay within its temporary fixture root')
+
+    @contextmanager
+    def synthetic_tools(self, root):
+        # Real temporary files exercise Windows handles; no SDK or source launcher
+        # is executed. Patch only the known jar pin to these actual fixture bytes.
+        bundletool = root / 'bundletool/mock.jar'
+        java = root / 'jdk/bin/java.exe'
+        source = root / 'tools/revival/VerifyAabSignature.java'
+        self.assert_fixture_paths(root, bundletool, java, source)
+        for path, raw in ((bundletool, b'synthetic bundletool'),
+                          (java, b'synthetic Java executable'),
+                          (source, b'// synthetic signature source')):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+        with patch('verify_release_candidate.ROOT', root), \
+                patch('verify_release_candidate.SHA256', hashlib.sha256(bundletool.read_bytes()).hexdigest()):
+            yield bundletool, java, source
+
+    @staticmethod
+    def synthetic_aab(path, segments=None):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(path, 'w') as archive:
+            archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture(segments or [dict(memsz=4096)]))
 
     def test_reviewed_candidate_manifest(self):
         self.assertEqual(validate_manifest(self.manifest,27,26)['versionCode'],27)
@@ -180,6 +213,7 @@ class ReleaseCandidateTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'little-endian'):
                         inspect_bundle_libraries(artifact)
 
+    @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
     def test_candidate_accepts_absent_relro_but_keeps_present_end_and_load_blockers(self):
         cases = [([dict(memsz=4096)], True, False),
                  ([dict(memsz=4096), dict(kind=0x6474E552, memsz=4096)], True, True),
@@ -192,10 +226,10 @@ class ReleaseCandidateTests(unittest.TestCase):
                 with self.subTest(segments=segments):
                     with zipfile.ZipFile(artifact,'w') as archive:
                         archive.writestr('base/lib/arm64-v8a/test.so',elf_fixture(segments))
-                    with patch('verify_release_candidate.digest',return_value=SHA256), \
+                    with self.synthetic_tools(Path(folder).resolve()) as (bundletool, java, _), \
                          patch('verify_release_candidate.subprocess.check_output',
                                side_effect=['',self.manifest,'{}']):
-                        result=candidate_checks(artifact,27,26,'0'*64,Path('mock.jar'),Path('mock.java'))
+                        result=candidate_checks(artifact,27,26,'0'*64,bundletool,java)
                     self.assertEqual(passed,result['artifactChecksPassed'])
                     self.assertEqual(present,result['libraries'][0]['relroPresent'])
                     self.assertFalse(result['releaseReady'])
@@ -209,6 +243,7 @@ class ReleaseCandidateTests(unittest.TestCase):
                     self.assertEqual(passed if present else True,
                                      result['libraries'][0]['relroLayoutPassed'])
 
+    @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
     def test_candidate_rejects_nested_load_inside_whole_relro(self):
         with tempfile.TemporaryDirectory() as folder:
             artifact = Path(folder) / 'synthetic.aab'
@@ -216,15 +251,125 @@ class ReleaseCandidateTests(unittest.TestCase):
                 archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture([
                     dict(memsz=4096), dict(offset=512, vaddr=512, memsz=512),
                     dict(kind=0x6474E552, memsz=4096)]))
-            with patch('verify_release_candidate.digest', return_value=SHA256), \
+            with self.synthetic_tools(Path(folder).resolve()) as (bundletool, java, _), \
                     patch('verify_release_candidate.subprocess.check_output',
                           side_effect=['', self.manifest, '{}']):
                 result = candidate_checks(artifact, 27, 26, '0'*64,
-                                          Path('mock.jar'), Path('mock.java'))
+                                          bundletool, java)
             self.assertTrue(result['libraries'][0]['loadPassed'])
             self.assertFalse(result['libraries'][0]['relroLayoutPassed'])
             self.assertFalse(result['artifactChecksPassed'])
             self.assertFalse(result['releaseReady'])
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
+    def test_candidate_aab_write_rename_replace_are_denied_through_native_inspection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            artifact = root / 'candidate/synthetic.aab'
+            self.synthetic_aab(artifact)
+            replacement = root / 'replacement.aab'
+            replacement.write_bytes(b'synthetic replacement; preserve')
+            before, other = artifact.read_bytes(), replacement.read_bytes()
+            stages = []
+
+            def blocked_changes(stage):
+                stages.append(stage)
+                self.assert_fixture_paths(root, artifact, replacement, root / 'renamed.aab',
+                                          artifact.parent, root / 'renamed-candidate')
+                with self.assertRaises(OSError):
+                    artifact.write_bytes(b'changed')
+                with self.assertRaises(OSError):
+                    artifact.rename(root / 'renamed.aab')
+                with self.assertRaises(OSError):
+                    os.replace(replacement, artifact)
+                with self.assertRaises(OSError):
+                    artifact.parent.rename(root / 'renamed-candidate')
+                self.assertEqual(before, artifact.read_bytes())
+                self.assertEqual(other, replacement.read_bytes())
+
+            outputs = iter(['', self.manifest, '{}'])
+            def command(*args, **kwargs):
+                blocked_changes('command')
+                return next(outputs)
+            def native(stream):
+                self.assertFalse(isinstance(stream, (str, Path)))
+                result = inspect_bundle_libraries(stream)
+                blocked_changes('after-native')
+                return result
+
+            with self.synthetic_tools(root) as (bundletool, java, _), \
+                    patch('verify_release_candidate.subprocess.check_output', side_effect=command), \
+                    patch('verify_release_candidate.inspect_bundle_libraries', side_effect=native):
+                result = candidate_checks(artifact, 27, 26, '0'*64, bundletool, java)
+            self.assertEqual(['command'] * 3 + ['after-native'], stages)
+            self.assertTrue(result['artifactChecksPassed'])
+            self.assertEqual(hashlib.sha256(before).hexdigest(), result['artifactSha256'])
+            self.assertFalse(result['releaseReady'])
+            self.assertEqual(before, artifact.read_bytes())
+            self.assertEqual(other, replacement.read_bytes())
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
+    def test_candidate_tool_write_delete_replace_and_parent_rename_are_denied(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            artifact = root / 'candidate/synthetic.aab'
+            self.synthetic_aab(artifact)
+            replacement = root / 'replacement-tool'
+            replacement.write_bytes(b'synthetic replacement; preserve')
+            with self.synthetic_tools(root) as tools:
+                before = {path: path.read_bytes() for path in (artifact, *tools, replacement)}
+                outputs = iter(['', self.manifest, '{}'])
+                def command(*args, **kwargs):
+                    for path in tools:
+                        with self.subTest(tool=path.name):
+                            self.assert_fixture_paths(root, path, replacement, path.with_name('renamed-tool'),
+                                                      path.parent, path.parent.with_name('renamed-tool-parent'))
+                            with self.assertRaises(OSError):
+                                path.write_bytes(b'changed')
+                            with self.assertRaises(OSError):
+                                path.unlink()
+                            with self.assertRaises(OSError):
+                                path.rename(path.with_name('renamed-tool'))
+                            with self.assertRaises(OSError):
+                                os.replace(replacement, path)
+                            with self.assertRaises(OSError):
+                                path.parent.rename(path.parent.with_name('renamed-tool-parent'))
+                    return next(outputs)
+                with patch('verify_release_candidate.subprocess.check_output', side_effect=command):
+                    result = candidate_checks(artifact, 27, 26, '0'*64, *tools[:2])
+                self.assertTrue(result['artifactChecksPassed'])
+                self.assertEqual(before, {path: path.read_bytes() for path in before})
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
+    def test_candidate_lock_or_command_failure_preserves_inputs_and_creates_no_report(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            artifact = root / 'candidate/synthetic.aab'
+            self.synthetic_aab(artifact)
+            report = root / 'new-report.json'
+            with self.synthetic_tools(root) as (bundletool, java, source):
+                self.assert_fixture_paths(root, artifact, bundletool, java, source, report)
+                before = {path: path.read_bytes() for path in (artifact, bundletool, java, source)}
+                args = ['verify_release_candidate', '--output', str(report), 'aab', '--aab', str(artifact),
+                        '--version-code', '27', '--published-max-code', '26',
+                        '--upload-cert-sha256', '0'*64, '--bundletool', str(bundletool), '--java', str(java)]
+                with artifact.open('r+b'), patch.object(sys, 'argv', args), \
+                        patch('verify_release_candidate.subprocess.check_output') as command:
+                    with self.assertRaises(OSError):
+                        main()
+                    command.assert_not_called()
+                self.assertFalse(report.exists())
+                with patch.object(sys, 'argv', args), \
+                        patch('verify_release_candidate.subprocess.check_output',
+                              side_effect=OSError('synthetic command failure')):
+                    with self.assertRaises(OSError):
+                        main()
+                self.assertFalse(report.exists())
+                # Both failure paths release their handles; original bytes remain
+                # readable through a newly acquired write-capable handle.
+                for path, raw in before.items():
+                    with path.open('r+b') as stream:
+                        self.assertEqual(raw, stream.read())
 
 
 if __name__=='__main__': unittest.main()

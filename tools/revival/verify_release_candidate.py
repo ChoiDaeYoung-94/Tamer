@@ -1,7 +1,9 @@
 """Read-only source/AAB preflight. Does not build, sign, upload, or approve a release."""
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
+import os
 import re
 import subprocess
 import zipfile
@@ -9,6 +11,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 from install_bundletool import DEST, SHA256
 from verify_native_alignment import inspect_elf
+from windows_owned_files import LockedFile, locked_directories
 
 ROOT = Path(__file__).resolve().parents[2]
 ANDROID = '{http://schemas.android.com/apk/res/android}'
@@ -86,9 +89,18 @@ def inspect_bundle_libraries(aab):
     return libraries
 
 
-def digest(path):
-    with Path(path).open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+def locked_digest(held):
+    held.stream.seek(0)
+    return hashlib.file_digest(held.stream, 'sha256').hexdigest()
+
+
+def verify_locked_input(path, held, expected_sha256=None):
+    current = os.fstat(held.stream.fileno())
+    named = path.stat()
+    if ((current.st_dev, current.st_ino) != held.identity
+            or (named.st_dev, named.st_ino) != held.identity
+            or (expected_sha256 is not None and locked_digest(held) != expected_sha256)):
+        raise ValueError('Candidate input identity or content changed during inspection')
 
 
 def source_checks(root):
@@ -137,24 +149,44 @@ def validate_manifest(xml, version_code, published_max):
 
 
 def candidate_checks(aab, version_code, published_max, certificate, bundletool, java):
+    """Bind path-based tool reads to held Windows file objects for this inspection.
+
+    Only bundletool has a known digest pin. Holding Java and the signature source
+    prevents their replacement during inspection; it does not authenticate a full
+    JDK, its dependencies, or provide an ACL boundary against administrators.
+    """
     if not re.fullmatch(r'[0-9a-fA-F]{64}', certificate):
         raise ValueError('Expected certificate SHA-256, not a keystore or password')
-    if digest(bundletool) != SHA256:
-        raise ValueError('Pinned bundletool digest mismatch')
-    def run(args):
-        return subprocess.check_output([str(x) for x in args], text=True, encoding='utf-8', stderr=subprocess.PIPE, timeout=180)
-    run([java,'-jar',bundletool,'validate','--bundle='+str(aab)])
-    manifest = run([java,'-jar',bundletool,'dump','manifest','--bundle='+str(aab),'--module=base'])
-    metadata = validate_manifest(manifest,version_code,published_max)
-    signature=json.loads(run([java,ROOT/'tools/revival/VerifyAabSignature.java',aab,'--release-cert-sha256',certificate]))
-    libraries=inspect_bundle_libraries(aab)
-    return dict(schema=2,mode='aab',artifactSha256=digest(aab),manifest=metadata,signature=signature,
-                libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries),
-                artifactCheckScope='AAB bundle validation, base manifest, payload signature, ARM64 ELF LOAD and conservative RELRO layout; raw end-modulo remains diagnostic',
-                deliveredApkZipAlignmentVerified=False, arm64NativeRuntimeVerified=False,
-                productionBinary16KBVerified=False,
-                releaseReady=False,unverified=UNVERIFIED,
-                note='Supplied certificate/version claims still require Console confirmation. Static RELRO failure is not proof of runtime crash.')
+    # Preserve path components for the directory locks' reparse checks instead of
+    # resolving a junction/symlink before the locks can reject it.
+    aab, bundletool, java, signature_source = [Path(os.path.abspath(path)) for path in
+        (aab, bundletool, java, ROOT/'tools/revival/VerifyAabSignature.java')]
+    paths = (aab, bundletool, java, signature_source)
+    with locked_directories([path.parent for path in paths]), ExitStack() as stack:
+        held = {path: stack.enter_context(LockedFile(path, deletable=False)) for path in paths}
+        for path, handle in held.items():
+            verify_locked_input(path, handle)
+        hashes = {path: locked_digest(handle) for path, handle in held.items()}
+        if hashes[bundletool] != SHA256:
+            raise ValueError('Pinned bundletool digest mismatch')
+
+        def run(args):
+            return subprocess.check_output([str(x) for x in args], text=True, encoding='utf-8', stderr=subprocess.PIPE, timeout=180)
+        run([java,'-jar',bundletool,'validate','--bundle='+str(aab)])
+        manifest = run([java,'-jar',bundletool,'dump','manifest','--bundle='+str(aab),'--module=base'])
+        metadata = validate_manifest(manifest,version_code,published_max)
+        signature=json.loads(run([java,signature_source,aab,'--release-cert-sha256',certificate]))
+        held[aab].stream.seek(0)
+        libraries=inspect_bundle_libraries(held[aab].stream)
+        for path, handle in held.items():
+            verify_locked_input(path, handle, hashes[path])
+        return dict(schema=2,mode='aab',artifactSha256=hashes[aab],manifest=metadata,signature=signature,
+                    libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries),
+                    artifactCheckScope='AAB bundle validation, base manifest, payload signature, ARM64 ELF LOAD and conservative RELRO layout; raw end-modulo remains diagnostic',
+                    deliveredApkZipAlignmentVerified=False, arm64NativeRuntimeVerified=False,
+                    productionBinary16KBVerified=False,
+                    releaseReady=False,unverified=UNVERIFIED,
+                    note='Supplied certificate/version claims still require Console confirmation. Static RELRO failure is not proof of runtime crash.')
 
 
 def main():
