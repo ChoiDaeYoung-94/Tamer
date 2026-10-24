@@ -1,3 +1,6 @@
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS && (!TAMER_REVIVAL_SMOKE || !TAMER_GAMEPLAY_HARNESS || !TAMER_DELETION_GAMEPLAY)
+#error Privacy product UI requires all three isolated gameplay symbols.
+#endif
 #if UNITY_EDITOR || TAMER_DELETION_GAMEPLAY
 using System;
 using System.Collections;
@@ -88,11 +91,19 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
     public static void Boot()
     {
         Require(!Application.isEditor && Debug.isDebugBuild &&
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+            Application.identifier == RevivalGameplayIsolation.PrivacyProductUiApplicationId &&
+#else
             Application.identifier == RevivalGameplayIsolation.DeletionGameplayApplicationId &&
+#endif
             string.IsNullOrEmpty(PlayFabSettings.staticPlayer.ClientSessionTicket));
         PlayFabSettings.TitleId = "OFFLINE";
         _directory = Path.Combine(Application.persistentDataPath, "RevivalDeletionGameplayV1");
         _firstProcess = !Directory.Exists(_directory);
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+        // This one-process UI fixture never consumes or resets a prepared/aborted run.
+        Require(_firstProcess && Application.platform == RuntimePlatform.Android && !Application.isBatchMode);
+#endif
         if (_firstProcess)
         {
             Require(!File.Exists(Path.Combine(Application.persistentDataPath, "PlayerData.json")) &&
@@ -242,6 +253,10 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
 
     private static DeletionFlow CreateFlow()
     {
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+        // Opening the original panel is allowed; this variant cannot preview/submit deletion.
+        return new DeletionFlow(new UnavailableDeletionGateway(), () => null);
+#else
         var owner = Managers.DataM;
         Require(_ready && _firstProcess && _instance._mainObserved && owner != null && owner.PlayFabId == AccountA);
         var session = owner.DeletionSession();
@@ -300,6 +315,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         }, owner.FinishCancelledDeletion,
             new FileDeletionRecoveryStore(Path.Combine(_directory, "DeletionJournal.json")),
             DeletionRecovery.Hash("offline-deletion-gameplay-v1", session.TitleId, session.AccountId, session.EntityId));
+#endif
     }
 
     private void Awake() => Application.logMessageReceived += OnLog;
@@ -354,6 +370,9 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         if (!_ready) return;
         try
         {
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+            DrivePrivacyProductUiCommand();
+#else
             DriveFixtureButton();
             var view = FindFirstObjectByType<DeletionView>();
             if (view != null && view != _observedView)
@@ -379,6 +398,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
                 Mark("PHASE1_ACCEPTED_UI_PASS originalExit=true cleanup=verified errors=0; use Exit game, then start a new process");
             }
             if (!_firstProcess && _mainObserved) ObserveVisibleShop();
+#endif
             if (_mainObserved || UnitySceneManager.GetActiveScene().name != "Main" ||
                 Managers.SceneM.IsTransitioning || Player.Instance == null || ShopMan.Instance == null || PlayerUICanvas.Instance == null) return;
             Require(_errors == 0 && !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable);
@@ -418,6 +438,11 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
     // The separate app has only local fixtures and no Internet permission.
     private void DriveFixtureButton()
     {
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+        // No legacy v4 command, including settings/privacy/request/confirm/exit/retry/shop,
+        // may invoke a product listener in this native-input-only UI variant.
+        throw new InvalidOperationException("Legacy driver is unavailable in privacy product UI.");
+#else
         string input = Path.Combine(_driverDirectory, "command.txt");
         if (!File.Exists(input)) return;
         Require(_ready && _errors == 0 && File.ReadAllBytes(input).Length <= 32);
@@ -466,7 +491,378 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         File.Move(input, Path.Combine(_driverDirectory, command + ".used"));
         Mark("PROGRAMMATIC_UGUI command=" + command + " fixtureOnly=true touchCoverage=false");
         button.onClick.Invoke();
+#endif
     }
+
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+    private enum PrivacyUiStage { Idle, Updating, Failing, Failed, Reopening, Busy, StalePending, Stale, Settling, Settled }
+    private PrivacyUiStage _privacyUiStage;
+    private PreparingPrivacyProductUiClient _privacyUiClient;
+    private GoogleAdMobManager _privacyUiAds;
+    private DataManager _privacyUiOwner;
+    private DeletionView _privacyUiView;
+    private UnityEngine.UI.Button _privacyUiAge, _privacyUiButton;
+    private TMPro.TMP_Text _privacyUiStatus;
+    private int _privacyUiFactoryCalls, _privacyUiClicks, _privacyUiAgeClicks, _privacyUiFrames, _privacyUiBusyFrame;
+    private const string PrivacyFormFailedText = "개인정보 창을 열지 못했습니다. 준비 중이거나 연결에 문제가 있을 수 있습니다. 잠시 후 같은 버튼을 다시 눌러 주세요.";
+    private const string PrivacyCheckingText = "개인정보 설정을 확인하고 있습니다.";
+    private const string PrivacyClosedText = "개인정보 선택 창을 닫았습니다. 선택 내용을 변경하려면 다시 확인해 주세요.";
+
+    // The only adapter owned by this variant. These callbacks are synthetic, never UMP callbacks.
+    private sealed class PreparingPrivacyProductUiClient : IAdConsentClient, IAdPrivacyStatusClient
+    {
+        public int Updates, Shows, Gathers, UpdateDeliveries, FirstCloseDeliveries, SecondCloseDeliveries;
+        public Action<bool> Updated;
+        public readonly List<Action<bool>> Closed = new List<Action<bool>>();
+        public bool CanRequestAds => true; // The real privacy-only gate must still block ads.
+        public bool PrivacyOptionsRequired => true;
+        public AdPrivacyRequirement PrivacyRequirement => AdPrivacyRequirement.Required;
+        public void Update(bool underAge, Action<bool> completed)
+        {
+            RequireInvariant(!underAge && ++Updates == 1 && Updated == null && completed != null, "privacy-update-once");
+            Updated = completed;
+        }
+        public void Gather(Action<bool> completed)
+        {
+            Gathers++;
+            throw new FixtureInvariantException("privacy-gather-forbidden");
+        }
+        public void ShowPrivacyOptions(Action<bool> completed)
+        {
+            RequireInvariant(++Shows <= 2 && completed != null, "privacy-show-limit");
+            Closed.Add(completed);
+        }
+    }
+
+    private void RequirePrivacyProductUiContext()
+    {
+        RequireInvariant(_ready && _errors == 0 && _firstProcess && _mainObserved && !_cleanupVerified &&
+            !_acceptedObserved && _submissions == 0 && _state != null && _state.Phase == "prepared" &&
+            _state.InitialPid == Pid && !Application.isEditor && !Application.isBatchMode && Debug.isDebugBuild &&
+            Application.platform == RuntimePlatform.Android &&
+            Application.identifier == RevivalGameplayIsolation.PrivacyProductUiApplicationId &&
+            UnitySceneManager.GetActiveScene().name == "Main" && !Managers.SceneM.IsTransitioning,
+            "privacy-first-main-exact-package");
+        var ads = Managers.GoogleAdMobM;
+        var owner = Managers.DataM;
+        RequireInvariant(ads != null && owner != null && owner.PlayFabId == AccountA && owner.IsServerDataReady &&
+            !owner.DeletionInProgress && !ads.HasNoAds && !ads.CanRequestAds &&
+            ads.AgeSelection.Value == AgeChoice.Declined && !ads.AgeSelection.HasAge && !ads.AgeSelection.IsEditing &&
+            PlayerPrefs.GetString(GoogleAdMobManager.AgeChoicePreferenceKey, "") == LocalAgeChoice.Encode(AgeChoice.Declined) &&
+            owner.LocalPlayerData != null && owner.LocalPlayerData.TryGetValue("GooglePlay", out string purchase) &&
+            purchase == "" && Managers.IAPM.Status == IAPStatus.Unavailable,
+            "privacy-saved-declined-noads-false");
+        RequireInvariant(!PrivacyManagerField<bool>(ads, "_initialized") && !PrivacyManagerField<bool>(ads, "_initializing") &&
+            !PrivacyManagerField<bool>(ads, "_loading") && PrivacyManagerField<object>(ads, "_consent") == null &&
+            PrivacyManagerField<object>(ads, "_rewardedAd") == null && PrivacyManagerField<object>(ads, "_showingAd") == null &&
+            PrivacyManagerField<object>(ads, "_session") == null && PrivacyManagerField<object>(ads, "_closingSession") == null,
+            "privacy-no-managed-ad-owner");
+        RequirePreserved();
+        if (_privacyUiClient != null)
+        {
+            RequireInvariant(ReferenceEquals(ads, _privacyUiAds) && ReferenceEquals(owner, _privacyUiOwner) &&
+                _privacyUiFactoryCalls == 1 && _privacyUiClient.Updates == 1 && _privacyUiClient.Gathers == 0 &&
+                _privacyUiClient.UpdateDeliveries == 1 && _privacyUiClient.Shows >= 0 && _privacyUiClient.Shows <= 2 &&
+                _privacyUiClicks <= 1 && _privacyUiAgeClicks == 0, "privacy-one-fake-owner");
+            var privacyOwner = PrivacyManagerField<AdConsentGate>(ads, "_privacyConsent");
+            RequireInvariant(privacyOwner != null && privacyOwner.IsPrivacyRefreshOwner && privacyOwner.IsPrivacyOnly &&
+                (_privacyUiStage == PrivacyUiStage.Updating || ads.PrivacyOptionsRequired), "privacy-retained-required-owner");
+        }
+    }
+
+    private static T PrivacyManagerField<T>(GoogleAdMobManager ads, string name)
+    {
+        var field = typeof(GoogleAdMobManager).GetField(name,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        RequireInvariant(field != null, "privacy-manager-field-present");
+        return (T)field.GetValue(ads);
+    }
+
+    private void BindOriginalPrivacyProductUi()
+    {
+        _privacyUiView = FindObjectsByType<DeletionView>(FindObjectsSortMode.None).Single(view =>
+            view.name == "AccountPrivacy" && view.gameObject.activeInHierarchy &&
+            view.GetComponent<AgePrivacyOptionsEntry>() != null && view.GetComponent<DeletionPresenter>() != null);
+        _privacyUiAge = _privacyUiView.GetComponentsInChildren<UnityEngine.UI.Button>(true).Single(button => button.name == "AgeChoice");
+        _privacyUiButton = _privacyUiView.GetComponentsInChildren<UnityEngine.UI.Button>(true).Single(button => button.name == "AdPrivacyOptions");
+        _privacyUiStatus = _privacyUiView.GetComponentsInChildren<TMPro.TMP_Text>(true).Single(text => text.name == "AdPrivacyStatus");
+        RequireInvariant(_privacyUiView.isActiveAndEnabled && !_privacyUiView.ExitOnClose &&
+            _privacyUiView.GetComponent<AgePrivacyOptionsEntry>().isActiveAndEnabled &&
+            _privacyUiAge.gameObject.activeInHierarchy && _privacyUiAge.IsInteractable() &&
+            _privacyUiButton.gameObject.activeInHierarchy && _privacyUiButton.IsInteractable() &&
+            _privacyUiStatus.gameObject.activeInHierarchy, "privacy-original-panel-open");
+        // Observation only: the driver never invokes onClick, CheckPrivacy or RequestPrivacySettings.
+        _privacyUiButton.onClick.AddListener(ObserveOriginalPrivacyProductUiClick);
+        _privacyUiAge.onClick.AddListener(() => { _privacyUiAgeClicks++; });
+    }
+
+    private void ObserveOriginalPrivacyProductUiClick()
+    {
+        _privacyUiClicks++;
+        RequireInvariant(_privacyUiStage == PrivacyUiStage.Failed && _privacyUiClicks == 1 &&
+            _privacyUiClient.Updates == 1 && _privacyUiClient.Shows == 2,
+            "privacy-original-listener-reopens-owner");
+        _privacyUiStage = PrivacyUiStage.Reopening;
+        _privacyUiFrames = 0;
+    }
+
+    private void DrivePrivacyProductUiCommand()
+    {
+        string input = Path.Combine(_driverDirectory, "command.txt");
+        if (!File.Exists(input)) return;
+        RequirePrivacyProductUiContext();
+        RequireInvariant(new FileInfo(input).Length <= 32, "privacy-command-small");
+        string command = File.ReadAllText(input).Trim();
+        switch (command)
+        {
+            case "privacy-prime":
+                RequireInvariant(_privacyUiStage == PrivacyUiStage.Idle && _privacyUiClient == null, "privacy-prime-once");
+                BindOriginalPrivacyProductUi();
+                _privacyUiAds = Managers.GoogleAdMobM;
+                _privacyUiOwner = Managers.DataM;
+                RequireInvariant(PrivacyManagerField<object>(_privacyUiAds, "_privacyConsent") == null,
+                    "privacy-unprimed-owner");
+                RequireInvariant(AgeTreatmentPolicy.TryCreatePlan(AgeChoice.Adult, out var plan), "privacy-adapter-plan");
+                // Constant method name and explicit parameter types keep IL2CPP reflection analyzable.
+                var begin = typeof(GoogleAdMobManager).GetMethod("BeginPrivacyRefresh",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    null, new[] { typeof(AgeTreatmentPlan), typeof(Func<IAdConsentClient>), typeof(Action<string>) }, null);
+                RequireInvariant(begin != null, "privacy-private-refresh-method-present");
+                File.Move(input, Path.Combine(_driverDirectory, command + ".used"));
+                _privacyUiClient = new PreparingPrivacyProductUiClient();
+                Func<IAdConsentClient> factory = () => { _privacyUiFactoryCalls++; return _privacyUiClient; };
+                _privacyUiStage = PrivacyUiStage.Updating;
+                _privacyUiFrames = 0;
+                try { begin.Invoke(_privacyUiAds, new object[] { plan, factory, null }); }
+                catch (System.Reflection.TargetInvocationException error)
+                {
+                    Mark("PRIVACY_PRODUCT_UI_REFLECTION_FAILURE innerType=" +
+                        (error.InnerException == null ? "none" : error.InnerException.GetType().Name));
+                    throw;
+                }
+                RequireInvariant(_privacyUiFactoryCalls == 1 && _privacyUiClient.Updates == 1 &&
+                    _privacyUiClient.Updated != null, "privacy-fake-update-created");
+                _privacyUiClient.UpdateDeliveries++;
+                _privacyUiClient.Updated(true);
+                break;
+            case "privacy-stale":
+                RequireInvariant(_privacyUiStage == PrivacyUiStage.Busy && Time.frameCount - _privacyUiBusyFrame >= 3 &&
+                    _privacyUiClicks == 1 && _privacyUiClient.Shows == 2 && _privacyUiClient.Closed.Count == 2 &&
+                    _privacyUiClient.FirstCloseDeliveries == 1 && _privacyUiClient.SecondCloseDeliveries == 0,
+                    "privacy-stale-after-native-reentry");
+                RequirePrivacyProductUiBusy();
+                File.Move(input, Path.Combine(_driverDirectory, command + ".used"));
+                _privacyUiStage = PrivacyUiStage.StalePending;
+                _privacyUiFrames = 0;
+                _privacyUiClient.FirstCloseDeliveries++;
+                _privacyUiClient.Closed[0](true);
+                break;
+            case "privacy-settle":
+                RequireInvariant(_privacyUiStage == PrivacyUiStage.Stale && _privacyUiClicks == 1 &&
+                    _privacyUiClient.Shows == 2 && _privacyUiClient.FirstCloseDeliveries == 2 &&
+                    _privacyUiClient.SecondCloseDeliveries == 0, "privacy-settle-after-stale");
+                RequirePrivacyProductUiBusy();
+                File.Move(input, Path.Combine(_driverDirectory, command + ".used"));
+                _privacyUiStage = PrivacyUiStage.Settling;
+                _privacyUiFrames = 0;
+                _privacyUiClient.SecondCloseDeliveries++;
+                _privacyUiClient.Closed[1](true);
+                break;
+            default:
+                throw new FixtureInvariantException("privacy-command-not-allowlisted");
+        }
+        Mark("PRIVACY_PRODUCT_UI_COMMAND command=" + command + " syntheticAdapter=true productButtonInvocations=0 nativeTouchEvidence=external");
+    }
+
+    private void LateUpdate()
+    {
+        if (!_ready || _privacyUiStage == PrivacyUiStage.Idle) return;
+        try
+        {
+            RequirePrivacyProductUiContext();
+            RequireInvariant(_privacyUiView != null && _privacyUiView.gameObject.activeInHierarchy &&
+                _privacyUiView.GetComponent<AgePrivacyOptionsEntry>().isActiveAndEnabled,
+                "privacy-original-panel-remains-open");
+            _privacyUiFrames++;
+            switch (_privacyUiStage)
+            {
+                case PrivacyUiStage.Updating:
+                    RequireInvariant(_privacyUiClient.Shows <= 1, "privacy-no-extra-first-show");
+                    if (_privacyUiClient.Shows == 1)
+                    {
+                        RequireInvariant(_privacyUiClient.Closed.Count == 1 && _privacyUiClient.FirstCloseDeliveries == 0,
+                            "privacy-first-show-callback-present");
+                        _privacyUiStage = PrivacyUiStage.Failing;
+                        _privacyUiFrames = 0;
+                        _privacyUiClient.FirstCloseDeliveries++;
+                        _privacyUiClient.Closed[0](false);
+                    }
+                    else RequireInvariant(_privacyUiFrames <= 30, "privacy-update-dispatch-timeout");
+                    break;
+                case PrivacyUiStage.Failing:
+                    if (_privacyUiAds.PrivacySettingsResult != AdPrivacyResult.FormFailed)
+                    { RequireInvariant(_privacyUiFrames <= 30, "privacy-first-failure-dispatch-timeout"); break; }
+                    // All product Update methods have run before this LateUpdate; allow layout to settle.
+                    if (!PrivacyProductUiMatches(PrivacyFormFailedText, false, true))
+                    { RequireInvariant(_privacyUiFrames <= 30, "privacy-formfailed-ui-timeout"); break; }
+                    RequireInvariant(_privacyUiClient.Shows == 1 && _privacyUiClicks == 0, "privacy-formfailed-no-auto-retry");
+                    _privacyUiStage = PrivacyUiStage.Failed;
+                    LogPrivacyProductUiSnapshot("FormFailed");
+                    break;
+                case PrivacyUiStage.Failed:
+                    RequireInvariant(_privacyUiAds.PrivacySettingsResult == AdPrivacyResult.FormFailed &&
+                        PrivacyProductUiMatches(PrivacyFormFailedText, false, true) && _privacyUiClient.Shows == 1 &&
+                        _privacyUiClicks == 0, "privacy-no-frame-driven-retry");
+                    break;
+                case PrivacyUiStage.Reopening:
+                    if (!PrivacyProductUiMatches(PrivacyCheckingText, true, false))
+                    { RequireInvariant(_privacyUiFrames <= 30, "privacy-reentry-ui-timeout"); break; }
+                    RequireInvariant(_privacyUiAds.PrivacySettingsResult == AdPrivacyResult.Checking &&
+                        _privacyUiClient.Shows == 2 && _privacyUiClicks == 1, "privacy-original-reentry-counts");
+                    _privacyUiStage = PrivacyUiStage.Busy;
+                    _privacyUiBusyFrame = Time.frameCount;
+                    LogPrivacyProductUiSnapshot("CheckingAfterOriginalButtonEvent");
+                    break;
+                case PrivacyUiStage.Busy:
+                case PrivacyUiStage.Stale:
+                    RequirePrivacyProductUiBusy();
+                    break;
+                case PrivacyUiStage.StalePending:
+                    RequirePrivacyProductUiBusy();
+                    // Waiting two completed frames proves the stale callback passed the real manager queue.
+                    if (_privacyUiFrames < 2) break;
+                    _privacyUiStage = PrivacyUiStage.Stale;
+                    LogPrivacyProductUiSnapshot("StaleFirstCallbackIgnored");
+                    break;
+                case PrivacyUiStage.Settling:
+                    if (_privacyUiAds.PrivacySettingsResult != AdPrivacyResult.OptionsClosed ||
+                        !PrivacyProductUiMatches(PrivacyClosedText, false, true))
+                    { RequireInvariant(_privacyUiFrames <= 30, "privacy-settle-ui-timeout"); break; }
+                    RequireInvariant(_privacyUiClient.Shows == 2 && _privacyUiClicks == 1 &&
+                        _privacyUiClient.FirstCloseDeliveries == 2 && _privacyUiClient.SecondCloseDeliveries == 1,
+                        "privacy-final-callback-counts");
+                    _privacyUiStage = PrivacyUiStage.Settled;
+                    LogPrivacyProductUiSnapshot("OptionsClosed");
+                    break;
+                case PrivacyUiStage.Settled:
+                    RequireInvariant(_privacyUiAds.PrivacySettingsResult == AdPrivacyResult.OptionsClosed &&
+                        PrivacyProductUiMatches(PrivacyClosedText, false, true) && _privacyUiClient.Shows == 2 &&
+                        _privacyUiClicks == 1, "privacy-terminal-ui-stable");
+                    break;
+            }
+        }
+        catch (Exception error)
+        {
+            Mark("PRIVACY_PRODUCT_UI_OBSERVE_FAILURE " + JsonConvert.SerializeObject(new
+            {
+                stage = _privacyUiStage.ToString(), exceptionType = error.GetType().Name,
+                result = _privacyUiAds == null ? "no-manager" : _privacyUiAds.PrivacySettingsResult.ToString(),
+                busy = _privacyUiAds != null && _privacyUiAds.IsConsentBusy,
+                updates = _privacyUiClient == null ? 0 : _privacyUiClient.Updates,
+                shows = _privacyUiClient == null ? 0 : _privacyUiClient.Shows,
+                originalPrivacyClickEvents = _privacyUiClicks,
+                statusText = _privacyUiStatus == null ? "no-status" : _privacyUiStatus.text,
+                syntheticAdapter = true, realUmpSdkRetested = false
+            }));
+            Fail("privacy-product-ui-observe", error);
+        }
+    }
+
+    private bool PrivacyProductUiMatches(string text, bool busy, bool interactable) =>
+        _privacyUiAds.IsConsentBusy == busy && _privacyUiStatus.gameObject.activeInHierarchy &&
+        _privacyUiStatus.text == text && _privacyUiAge.gameObject.activeInHierarchy &&
+        _privacyUiAge.IsInteractable() == interactable && _privacyUiButton.gameObject.activeInHierarchy &&
+        _privacyUiButton.IsInteractable() == interactable;
+
+    private void RequirePrivacyProductUiBusy() => RequireInvariant(
+        _privacyUiAds.PrivacySettingsResult == AdPrivacyResult.Checking &&
+        PrivacyProductUiMatches(PrivacyCheckingText, true, false) && _privacyUiClient.Shows == 2 &&
+        _privacyUiClicks == 1 && _privacyUiClient.SecondCloseDeliveries == 0, "privacy-second-owner-still-busy");
+
+    private static Rect PrivacyScreenRect(RectTransform rect)
+    {
+        var canvas = rect.GetComponentInParent<Canvas>();
+        RequireInvariant(canvas != null, "privacy-product-canvas-present");
+        var camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+        RequireInvariant(canvas.renderMode == RenderMode.ScreenSpaceOverlay || camera != null, "privacy-product-canvas-camera-present");
+        var corners = new Vector3[4];
+        rect.GetWorldCorners(corners);
+        var points = corners.Select(point => RectTransformUtility.WorldToScreenPoint(camera, point)).ToArray();
+        return Rect.MinMaxRect(points.Min(point => point.x), points.Min(point => point.y),
+            points.Max(point => point.x), points.Max(point => point.y));
+    }
+
+    private static string PrivacyRaycastTop(UnityEngine.UI.Button button, Rect screen)
+    {
+        var events = UnityEngine.EventSystems.EventSystem.current;
+        RequireInvariant(events != null, "privacy-eventsystem-present");
+        var pointer = new UnityEngine.EventSystems.PointerEventData(events) { position = screen.center };
+        var hits = new List<UnityEngine.EventSystems.RaycastResult>();
+        events.RaycastAll(pointer, hits);
+        var top = hits.Count == 0 ? null : hits[0].gameObject;
+        bool targetsButton = top != null && (top == button.gameObject || top.transform.IsChildOf(button.transform));
+        return targetsButton ? "original-button" : top == null ? "none" : "other-product-object";
+    }
+
+    private void LogPrivacyProductUiSnapshot(string stage)
+    {
+        Canvas.ForceUpdateCanvases();
+        _privacyUiStatus.ForceMeshUpdate();
+        var textRect = _privacyUiStatus.rectTransform.rect;
+        var preferred = _privacyUiStatus.GetPreferredValues(_privacyUiStatus.text, textRect.width, float.PositiveInfinity);
+        var statusScreen = PrivacyScreenRect(_privacyUiStatus.rectTransform);
+        var buttonScreen = PrivacyScreenRect((RectTransform)_privacyUiButton.transform);
+        var ageScreen = PrivacyScreenRect((RectTransform)_privacyUiAge.transform);
+        bool fitsScreen(Rect value) => value.width > 0 && value.height > 0 && value.xMin >= -.5f &&
+            value.yMin >= -.5f && value.xMax <= Screen.width + .5f && value.yMax <= Screen.height + .5f;
+        bool fits = !_privacyUiStatus.isTextOverflowing && preferred.y <= textRect.height + .5f &&
+            fitsScreen(statusScreen) && fitsScreen(buttonScreen) && fitsScreen(ageScreen);
+        var privacyHit = PrivacyRaycastTop(_privacyUiButton, buttonScreen);
+        var ageHit = PrivacyRaycastTop(_privacyUiAge, ageScreen);
+        RequireInvariant(fits, "privacy-full-text-and-buttons-fit");
+        RequireInvariant(!_privacyUiButton.IsInteractable() || privacyHit == "original-button", "privacy-original-button-raycast");
+        RequireInvariant(!_privacyUiAge.IsInteractable() || ageHit == "original-button", "privacy-age-button-raycast");
+        int sequence = stage == "FormFailed" ? 1 : stage == "CheckingAfterOriginalButtonEvent" ? 2 :
+            stage == "StaleFirstCallbackIgnored" ? 3 : stage == "OptionsClosed" ? 4 : 0;
+        RequireInvariant(sequence != 0, "privacy-snapshot-stage-allowlisted");
+        var snapshot = new
+        {
+            schema = 1, sequence,
+            stage, pid = Pid, syntheticAdapter = true, realUmpSdkRetested = false,
+            originalMain = true, originalAccountPrivacyView = true, nativeTouchEvidence = "external-log-and-screen",
+            factoryCalls = _privacyUiFactoryCalls, updates = _privacyUiClient.Updates, shows = _privacyUiClient.Shows,
+            gathers = _privacyUiClient.Gathers, updateDeliveries = _privacyUiClient.UpdateDeliveries,
+            firstCloseDeliveries = _privacyUiClient.FirstCloseDeliveries, secondCloseDeliveries = _privacyUiClient.SecondCloseDeliveries,
+            originalPrivacyClickEvents = _privacyUiClicks, ageClickEvents = _privacyUiAgeClicks,
+            managerBusy = _privacyUiAds.IsConsentBusy, result = _privacyUiAds.PrivacySettingsResult.ToString(),
+            statusText = _privacyUiStatus.text, overflow = _privacyUiStatus.isTextOverflowing, fullTextAndButtonsFit = fits,
+            preferredWidth = preferred.x, preferredHeight = preferred.y, textRectWidth = textRect.width, textRectHeight = textRect.height,
+            screenWidth = Screen.width, screenHeight = Screen.height,
+            statusScreenRect = new[] { statusScreen.xMin, statusScreen.yMin, statusScreen.xMax, statusScreen.yMax },
+            privacyButtonScreenRect = new[] { buttonScreen.xMin, buttonScreen.yMin, buttonScreen.xMax, buttonScreen.yMax },
+            ageButtonScreenRect = new[] { ageScreen.xMin, ageScreen.yMin, ageScreen.xMax, ageScreen.yMax },
+            privacyActive = _privacyUiButton.gameObject.activeInHierarchy, privacyInteractable = _privacyUiButton.IsInteractable(),
+            ageActive = _privacyUiAge.gameObject.activeInHierarchy, ageInteractable = _privacyUiAge.IsInteractable(),
+            privacyRaycastTop = privacyHit, ageRaycastTop = ageHit,
+            savedDeclinedUnchanged = true, viewOwnerNoAds = _privacyUiAds.HasNoAds, googlePlayEmpty = true,
+            initialized = false, initializing = false, loading = false, rewarded = "null", showing = "null", consent = "null",
+            canRequestAds = _privacyUiAds.CanRequestAds, iap = Managers.IAPM.Status.ToString(), submissions = _submissions, errors = _errors,
+            foreignBSha256 = HashFile(Inventory(AccountB)), legacySha256 = LegacyHash(),
+            adapterNativeSdkCalls = 0, adapterNetworkCalls = 0,
+            networkPermissionEvidence = "verify-final-apk", realSdkFactoryUsed = false, deletionLifecycleRetested = false
+        };
+        // Android's Unity log payload can truncate at 1,024 bytes. Keep the full
+        // observation in this one-process fixture; publish only its short index.
+        string name = "privacy-ui-state-" + sequence + ".json";
+        string path = Path.Combine(_driverDirectory, name);
+        WriteNew(path, snapshot);
+        byte[] expected = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot));
+        byte[] actual = File.ReadAllBytes(path);
+        RequireInvariant(actual.SequenceEqual(expected), "privacy-snapshot-readback");
+        Mark("PRIVACY_PRODUCT_UI_FILE schema=1 sequence=" + sequence + " stage=" + stage +
+            " pid=" + Pid + " file=" + name + " bytes=" + actual.Length + " sha256=" + Hash(actual));
+    }
+#endif
 
     private static UnityEngine.UI.Button OriginalButton(string method) =>
         FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Single(button =>

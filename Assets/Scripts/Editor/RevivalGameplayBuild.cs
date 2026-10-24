@@ -13,6 +13,7 @@ public static class RevivalGameplayBuild
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
     private const string AdsManifest = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
+    private const string PrivacyProductUiOutput = "Build/revival/Tamer-privacyproductui-v2.apk";
 
     public static string OfflineManifest(string original)
     {
@@ -47,6 +48,7 @@ public static class RevivalGameplayBuild
 
     public static void BuildSessionAndroid() => Build(false, session: true);
     public static void BuildDeletionGameplayAndroid() => Build(false, deletionGameplay: true);
+    public static void BuildPrivacyProductUiAndroid() => Build(false, deletionGameplay: true, privacyProductUi: true);
     public static void BuildInventoryRestoreAndroid() => Build(false, inventoryRestore: true);
     public static void BuildShopPurchaseAndroid() => Build(false, shopPurchase: true);
     public static void BuildShopInventoryCutAndroid() => Build(false, shopPurchase: true, shopAfterInventory: true);
@@ -91,6 +93,7 @@ public static class RevivalGameplayBuild
                 identity != RevivalGameplayIsolation.InventoryRestoreApplicationId &&
                 identity != RevivalGameplayIsolation.ShopPurchaseApplicationId &&
                 identity != RevivalGameplayIsolation.DeletionGameplayApplicationId &&
+                identity != RevivalGameplayIsolation.PrivacyProductUiApplicationId &&
                 identity != RevivalDeletionTrialHarness.ApplicationId &&
                 identity != RevivalDeletionTrialHarness.OnlineApplicationId) return;
             string destination = Path.Combine(path, "src/main/res/xml/tamer_playerrestore_rules.xml");
@@ -99,7 +102,7 @@ public static class RevivalGameplayBuild
         }
     }
 
-    private static void Build(bool photo, bool playerRestore = false, bool ageChoice = false, bool session = false, bool inventoryRestore = false, bool shopPurchase = false, bool shopAfterInventory = false, bool shopUi = false, bool characterUi = false, bool deletionGameplay = false)
+    private static void Build(bool photo, bool playerRestore = false, bool ageChoice = false, bool session = false, bool inventoryRestore = false, bool shopPurchase = false, bool shopAfterInventory = false, bool shopUi = false, bool characterUi = false, bool deletionGameplay = false, bool privacyProductUi = false)
     {
         int code = 1;
         var files = new[] { Manifest, AdsSettings, AdsManifest };
@@ -116,6 +119,15 @@ public static class RevivalGameplayBuild
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 throw new BuildFailedException("Launch with Android build target.");
             string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android);
+            if (defines.Split(';').Contains("TAMER_PRIVACY_PRODUCT_UI_HARNESS"))
+                throw new BuildFailedException("Privacy product UI symbol must not be global.");
+            if (privacyProductUi && defines.Split(';').Any(symbol => symbol.Trim().StartsWith("TAMER_", StringComparison.Ordinal)))
+                throw new BuildFailedException("Privacy product UI requires no global Tamer harness symbols.");
+            if (privacyProductUi && (!deletionGameplay || photo || playerRestore || ageChoice || session ||
+                inventoryRestore || shopPurchase || shopAfterInventory || shopUi || characterUi))
+                throw new BuildFailedException("Privacy product UI requires its dedicated offline variant.");
+            if (privacyProductUi && (File.Exists(PrivacyProductUiOutput) || Directory.Exists(PrivacyProductUiOutput)))
+                throw new BuildFailedException("Privacy product UI output exists; preserve evidence.");
             if (defines.Split(';').Contains("TAMER_DELETION_GAMEPLAY"))
                 throw new BuildFailedException("Deletion gameplay symbol must not be global.");
             if (defines.Split(';').Any(d => d == "TAMER_TEST_ADS" || d == "TAMER_GAMEPLAY_HARNESS" || d == "TAMER_GAMEPLAY_PHOTO" || d == "TAMER_PLAYER_RESTORE" || d == "TAMER_AGE_CHOICE" || d == "TAMER_SESSION_HARNESS" || d == "TAMER_INVENTORY_RESTORE" || d == "TAMER_SHOP_HARNESS" || d == "TAMER_SHOP_AFTER_INVENTORY" || d == "TAMER_SHOP_UI" || d == "TAMER_CHARACTER_UI"))
@@ -132,7 +144,7 @@ public static class RevivalGameplayBuild
             settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
             settings.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, deletionGameplay ? RevivalGameplayIsolation.DeletionGameplayApplicationId : shopPurchase ? RevivalGameplayIsolation.ShopPurchaseApplicationId : inventoryRestore ? RevivalGameplayIsolation.InventoryRestoreApplicationId : session ? RevivalGameplayIsolation.SessionApplicationId : ageChoice ? RevivalGameplayIsolation.AgeChoiceApplicationId : playerRestore ? RevivalGameplayIsolation.PlayerRestoreApplicationId : RevivalGameplayIsolation.ApplicationId);
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, privacyProductUi ? RevivalGameplayIsolation.PrivacyProductUiApplicationId : deletionGameplay ? RevivalGameplayIsolation.DeletionGameplayApplicationId : shopPurchase ? RevivalGameplayIsolation.ShopPurchaseApplicationId : inventoryRestore ? RevivalGameplayIsolation.InventoryRestoreApplicationId : session ? RevivalGameplayIsolation.SessionApplicationId : ageChoice ? RevivalGameplayIsolation.AgeChoiceApplicationId : playerRestore ? RevivalGameplayIsolation.PlayerRestoreApplicationId : RevivalGameplayIsolation.ApplicationId);
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
@@ -150,6 +162,12 @@ public static class RevivalGameplayBuild
             {
                 options.locationPathName = "Build/revival/Tamer-deletiongameplay-v4.apk";
                 options.extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_DELETION_GAMEPLAY" };
+            }
+            if (privacyProductUi)
+            {
+                options.locationPathName = PrivacyProductUiOutput;
+                options.extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS",
+                    "TAMER_DELETION_GAMEPLAY", "TAMER_PRIVACY_PRODUCT_UI_HARNESS" };
             }
             var report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Gameplay build failed.");

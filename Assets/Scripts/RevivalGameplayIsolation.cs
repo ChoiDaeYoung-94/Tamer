@@ -17,8 +17,11 @@ namespace AD
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
         public const string ShopPurchaseApplicationId = "com.AeDeong.MonsterTamer.revival.shoppurchase";
         public const string DeletionGameplayApplicationId = "com.AeDeong.MonsterTamer.revival.deletiongameplayv4";
+        public const string PrivacyProductUiApplicationId = "com.AeDeong.MonsterTamer.revival.privacyproductui29";
         public static string RuntimeApplicationId =>
-#if TAMER_DELETION_GAMEPLAY
+#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+            PrivacyProductUiApplicationId;
+#elif TAMER_DELETION_GAMEPLAY
             DeletionGameplayApplicationId;
 #elif TAMER_SHOP_HARNESS
             ShopPurchaseApplicationId;
@@ -96,7 +99,7 @@ namespace AD
                 (applicationId != ApplicationId && applicationId != PlayerRestoreApplicationId &&
                  applicationId != SessionApplicationId && applicationId != InventoryRestoreApplicationId &&
                  applicationId != AgeChoiceApplicationId && applicationId != ShopPurchaseApplicationId &&
-                 applicationId != DeletionGameplayApplicationId)) return false;
+                 applicationId != DeletionGameplayApplicationId && applicationId != PrivacyProductUiApplicationId)) return false;
             // These exact engine diagnostics occur because the offline development APK has
             // no INTERNET permission. Other socket errors and all exceptions still fail.
             return message == "Socket: Failed to set blocking mode" ||

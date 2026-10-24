@@ -1,5 +1,11 @@
 # main 통합 이후 출시 준비 — 2026-10-23
 
+## 2026-10-24 최신 보충 — 원래 개인정보 화면의 Android 터치
+
+원래 Main → Settings → Account & privacy를 실제 Android 터치로 열고 오류 문구 전체·명시 재진입·처리 중 중복 터치와 이전 callback 무시·종료 후 버튼 복구를 확인했습니다. [새 APK·같은 PID의 완전한 관측·한계](privacy-product-ui-20261024.ko.md). 이 UI 시험의 응답은 가짜 adapter이며 [앞선 실제 UMP 단독 관측](privacy-cold-explicit-retry-20261024.ko.md)과 합쳐 운영 통합 PASS로 표현하지 않습니다. #419는 실제 운영 흐름 결합 범위를 남겨 OPEN으로 유지합니다.
+
+출시 도구의 [AAB 입력 고정](release-candidate-input-lock-20261024.ko.md)(PR427)과 [Unity 버전·리비전 정확 대조](release-source-version-pin-20261024.ko.md)(PR428)도 반영했습니다. 다음은 Chrome 보류에 따른 현재 운영 자료·신고/서명/번호 확인, 최종 운영 AAB, 실제 제공물/필요 기기 검증입니다. 시험 자원 정리와 마지막 저장소 이름 변경은 그 뒤입니다. 현재 최종 운영 AAB는 없고 운영 승인 false/null·releaseReady=false는 유지합니다. 아래 대기 문구는 당시 이력입니다.
+
 ## 2026-10-24 최신 보충 — native cold 재진입 확인
 
 전용 privacycold 후보27/source9e3f315의 첫 실제 로딩 오류→실제 load_complete→명시 재진입→native 폼/Do not consent→실제 callback2 성공과 후속 저장/새 프로세스 AgeRequired·SDK0을 확인했습니다. [정확한 APK·세 PID·픽셀·호출수·한계](privacy-cold-explicit-retry-20261024.ko.md). 아래의 standalone 실제 폼 표시/선택 미완료는 이전 후보의 이력입니다.
