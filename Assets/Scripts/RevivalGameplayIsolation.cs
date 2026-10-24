@@ -16,7 +16,7 @@ namespace AD
         public const string InventoryRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.inventoryrestore";
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
         public const string ShopPurchaseApplicationId = "com.AeDeong.MonsterTamer.revival.shoppurchase";
-        public const string DeletionGameplayApplicationId = "com.AeDeong.MonsterTamer.revival.deletiongameplayv2";
+        public const string DeletionGameplayApplicationId = "com.AeDeong.MonsterTamer.revival.deletiongameplayv3";
         public static string RuntimeApplicationId =>
 #if TAMER_DELETION_GAMEPLAY
             DeletionGameplayApplicationId;

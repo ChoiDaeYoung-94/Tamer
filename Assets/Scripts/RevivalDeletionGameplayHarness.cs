@@ -74,6 +74,17 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         if (!condition) throw new InvalidOperationException("Deletion gameplay fixture mismatch; preserve evidence.");
     }
 
+    private sealed class FixtureInvariantException : InvalidOperationException
+    {
+        public readonly string Invariant;
+        public FixtureInvariantException(string invariant) { Invariant = invariant; }
+    }
+
+    private static void RequireInvariant(bool condition, string invariant)
+    {
+        if (!condition) throw new FixtureInvariantException(invariant);
+    }
+
     public static void Boot()
     {
         Require(!Application.isEditor && Debug.isDebugBuild &&
@@ -229,6 +240,10 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         return new DeletionFlow(gateway, owner.DeletionSession, captured =>
         {
             Require(_oldLogin != null && _oldWrite == null && _submissions == 0 && owner.IsServerDataReady);
+            // Main's normal scene transition has already refreshed data. Count only
+            // reads after the held write/submission, not legitimate prior scene reads.
+            _firstProcessReads = _reads;
+            Mark("PRE_SUBMISSION_COUNTERS reads=" + _reads + " writes=" + _writes);
             _holdWrite = true;
             // The real ServerManager owns this late write completion and queued read.
             Managers.ServerM.SetData(new Dictionary<string, string> { ["Gold"] = "999" },
@@ -242,16 +257,21 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             int generation = owner.AccountGeneration;
             owner.FinishAcceptedDeletion(captured);
             _oldWrite(); _oldLogin();
-            Require(!_oldWriteApplied && _staleLoginRejected && owner.AccountGeneration > generation &&
-                !captured.Matches(owner.DeletionSession()) && !owner.IsServerDataReady &&
-                !owner.DeletionInProgress && string.IsNullOrEmpty(owner.PlayFabId) && owner.PlayFabPlayerData == null &&
-                string.IsNullOrEmpty(PlayFabSettings.staticPlayer.PlayFabId) &&
-                string.IsNullOrEmpty(PlayFabSettings.staticPlayer.ClientSessionTicket) &&
-                PlayerPrefs.GetInt(DataManager.DeletionLoginPauseKey, 0) == 1 &&
-                !owner.TryUpdateLocalData("Gold", "123") && !File.Exists(Progress) &&
-                !File.Exists(Inventory(AccountA)) && !File.Exists(OwnedBackup) && !File.Exists(OwnedArchive) &&
-                _reads == _firstProcessReads && !Managers.ServerM.IsInProgress &&
-                Player.Instance != null && !Player.Instance.IsCurrentCombatSession());
+            Mark("POST_CLEANUP_COUNTERS readsBefore=" + _firstProcessReads + " readsAfter=" + _reads);
+            RequireInvariant(!_oldWriteApplied, "old-write-callback-blocked");
+            RequireInvariant(_staleLoginRejected, "old-login-callback-rejected");
+            RequireInvariant(owner.AccountGeneration > generation, "account-generation-invalidated");
+            RequireInvariant(!captured.Matches(owner.DeletionSession()), "captured-session-invalidated");
+            RequireInvariant(!owner.IsServerDataReady && !owner.DeletionInProgress, "server-not-ready-no-pending-submission");
+            RequireInvariant(string.IsNullOrEmpty(owner.PlayFabId) && owner.PlayFabPlayerData == null, "data-credentials-cleared");
+            RequireInvariant(string.IsNullOrEmpty(PlayFabSettings.staticPlayer.PlayFabId) &&
+                string.IsNullOrEmpty(PlayFabSettings.staticPlayer.ClientSessionTicket), "sdk-credentials-cleared");
+            RequireInvariant(PlayerPrefs.GetInt(DataManager.DeletionLoginPauseKey, 0) == 1, "explicit-login-pause-saved");
+            RequireInvariant(!owner.TryUpdateLocalData("Gold", "123"), "local-write-blocked");
+            RequireInvariant(!File.Exists(Progress) && !File.Exists(Inventory(AccountA)), "owned-progress-inventory-removed");
+            RequireInvariant(!File.Exists(OwnedBackup) && !File.Exists(OwnedArchive), "owned-backup-archive-removed");
+            RequireInvariant(_reads == _firstProcessReads && !Managers.ServerM.IsInProgress, "post-submission-read-undispatched");
+            RequireInvariant(Player.Instance != null && !Player.Instance.IsCurrentCombatSession(), "player-session-invalidated");
             RequirePreserved();
             _cleanupVerified = true;
             Mark("CLEANUP_VERIFIED ownedP=false ownedI=false ownedBackup=false ownedArchive=false foreignB=preserved legacy=preserved oldWrite=blocked queuedRead=undispatched oldLogin=stale-rejected playerSession=false");
@@ -304,7 +324,6 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             _state.ForeignInventoryHash = HashFile(Inventory(AccountB));
             Replace(Marker, _state);
             _oldLogin = _captureInitialLogin();
-            _firstProcessReads = _reads;
             Managers.SceneM.NextScene(GameConstants.Scene.Main);
         }
         catch (Exception error) { Fail("prepare", error); }
@@ -481,7 +500,9 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
     private static void Fail(string stage, Exception error)
     {
         _ready = false;
-        Debug.LogError("DELETION_GAMEPLAY_FAIL stage=" + stage + " type=" + error.GetType().Name + " evidence=preserved");
+            var invariant = error as FixtureInvariantException;
+            Debug.LogError("DELETION_GAMEPLAY_FAIL stage=" + stage + " type=" + error.GetType().Name +
+                (invariant == null ? "" : " invariant=" + invariant.Invariant) + " evidence=preserved");
     }
     private static void Mark(string message) => Debug.Log("DELETION_GAMEPLAY " + message);
 }
