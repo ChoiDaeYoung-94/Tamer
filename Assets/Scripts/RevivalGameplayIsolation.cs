@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
+#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,7 +19,9 @@ namespace AD
         public const string DeletionGameplayApplicationId = "com.AeDeong.MonsterTamer.revival.deletiongameplayv4";
         public const string PrivacyProductUiApplicationId = "com.AeDeong.MonsterTamer.revival.privacyproductui29";
         public static string RuntimeApplicationId =>
-#if TAMER_PRIVACY_PRODUCT_UI_HARNESS
+#if TAMER_PRIVACY_PRODUCT_UMP_HARNESS
+            AD.Advertising.AgeTreatmentPolicy.NativePrivacyColdHarnessPackage;
+#elif TAMER_PRIVACY_PRODUCT_UI_HARNESS
             PrivacyProductUiApplicationId;
 #elif TAMER_DELETION_GAMEPLAY
             DeletionGameplayApplicationId;
@@ -108,7 +110,9 @@ namespace AD
 
         public static string CreateSavePath(string persistentRoot)
         {
-#if TAMER_DELETION_GAMEPLAY
+#if TAMER_PRIVACY_PRODUCT_UMP_HARNESS
+            string directory = RevivalPrivacyProductUmpHarness.RequireSaveDirectory(persistentRoot);
+#elif TAMER_DELETION_GAMEPLAY
             string directory = RevivalDeletionGameplayHarness.RequireSaveDirectory(persistentRoot);
 #elif TAMER_SHOP_HARNESS
             ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
@@ -139,7 +143,9 @@ namespace AD
         private static ServerManager _gameplayServer;
         public static ServerManager CreateServer(DataManager owner)
         {
-#if TAMER_DELETION_GAMEPLAY
+#if TAMER_PRIVACY_PRODUCT_UMP_HARNESS
+            return RevivalPrivacyProductUmpHarness.CreateServer(owner);
+#elif TAMER_DELETION_GAMEPLAY
             return RevivalDeletionGameplayHarness.CreateServer(owner);
 #else
 #if TAMER_AGE_CHOICE
