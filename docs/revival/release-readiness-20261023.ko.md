@@ -1,5 +1,11 @@
 # main 통합 이후 출시 준비 — 2026-10-23
 
+## 2026-10-24 최신 보충 — native cold 재진입 확인
+
+전용 privacycold 후보27/source9e3f315의 첫 실제 로딩 오류→실제 load_complete→명시 재진입→native 폼/Do not consent→실제 callback2 성공과 후속 저장/새 프로세스 AgeRequired·SDK0을 확인했습니다. [정확한 APK·세 PID·픽셀·호출수·한계](privacy-cold-explicit-retry-20261024.ko.md). 아래의 standalone 실제 폼 표시/선택 미완료는 이전 후보의 이력입니다.
+
+남은 #419 범위는 일반 MainPanel의 Android 표시·활성·터치와 운영 흐름 통합입니다. Console/Drive와 운영 입력 확인은 Chrome 보류를 유지하고, 최종 운영 AAB·실기기/스토어·시험 자원 정리·마지막 저장소 이름 변경도 대기로 남깁니다. 이번 시험 결과로 운영 승인 false/null이나 releaseReady=false를 변경하지 않았습니다.
+
 ## 2026-10-24 12:27 최신 보충
 
 새 작업본의 Unity6000.3.25f1 최초 임포트·Editor900/900과 동일main cf3a519 개발 APK 빌드/정적 검사, 원본59개 복구·전체 에셋/GUID/소스 검사를 완료했습니다. [정확한 근거와 한계](cold-baseline-20261024.ko.md). 이 결과로 운영 서명 AAB나 native SDK/실제16KB 검증이 완료된 것은 아닙니다.
