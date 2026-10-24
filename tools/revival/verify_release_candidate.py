@@ -16,6 +16,9 @@ from windows_owned_files import LockedFile, locked_directories
 ROOT = Path(__file__).resolve().parents[2]
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 APP_ID = 'com.AeDeong.MonsterTamer'
+UNITY_VERSION = '6000.3.25f1'
+UNITY_REVISION = 'e1dba0a9aba4'
+TOOLCHAIN_CONFIG = 'tools/revival/toolchain.json'
 UNVERIFIED = ['Play Console active upload certificate and highest published version code',
               'Production account continuity, changed-progress writes, purchase restore and receipt authority',
               'Privacy/deletion endpoint, retention decisions and published declarations',
@@ -27,7 +30,32 @@ PIPELINE_GENERATED_RESOURCES = ['Assets/Settings/Pipeline/Resources/RuntimePipel
                                 'Assets/Settings/Pipeline/Resources/RuntimePipelineBuildInfo.asset']
 SOURCE_INPUTS = ['ProjectSettings/ProjectSettings.asset', 'ProjectSettings/ProjectVersion.txt',
                  'ProjectSettings/EditorBuildSettings.asset', 'Assets/Resources/IAPProductCatalog.json',
-                 PIPELINE_RUNTIME_CONFIG, *PIPELINE_GENERATED_RESOURCES]
+                 TOOLCHAIN_CONFIG, PIPELINE_RUNTIME_CONFIG, *PIPELINE_GENERATED_RESOURCES]
+
+
+def unity_source_pinned(root):
+    """Check exact project version/revision and the reviewed toolchain metadata."""
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate toolchain setting')
+            result[key] = value
+        return result
+    def reject_constant(_):
+        raise ValueError('Non-JSON toolchain setting')
+    try:
+        project = (root / 'ProjectSettings/ProjectVersion.txt').read_text(encoding='utf-8-sig')
+        versions = re.findall(r'^m_EditorVersion:[ \t]*([^\r\n]*)$', project, re.M)
+        revisions = re.findall(r'^m_EditorVersionWithRevision:[ \t]*([^\r\n]*)$', project, re.M)
+        config = json.loads((root / TOOLCHAIN_CONFIG).read_text(encoding='utf-8-sig'),
+                            object_pairs_hook=unique, parse_constant=reject_constant)
+        return (len(versions) == len(revisions) == 1 and versions[0].strip() == UNITY_VERSION
+                and revisions[0].strip() == f'{UNITY_VERSION} ({UNITY_REVISION})'
+                and type(config) is dict and config.get('unityEditor') == UNITY_VERSION
+                and config.get('unityEditorRevision') == UNITY_REVISION)
+    except (OSError, UnicodeError, ValueError):
+        return False
 
 
 def pipeline_runtime_disabled(root):
@@ -116,7 +144,7 @@ def source_checks(root):
     scenes = re.findall(r'^  - enabled: 1\r?\n    path: (.+)$', (root / 'ProjectSettings/EditorBuildSettings.asset').read_text(), re.M)
     defines = set((android_value('scriptingDefineSymbols') or '').split(';'))
     checks = {
-        'unityPinned': 'm_EditorVersion: 6000.3.25f1' in (root/'ProjectSettings/ProjectVersion.txt').read_text(),
+        'unityPinned': unity_source_pinned(root),
         'productionIdPreserved': android_value('applicationIdentifier') == APP_ID,
         'min25': scalar('AndroidMinSdkVersion') == '25',
         'target36': scalar('AndroidTargetSdkVersion') == '36',
