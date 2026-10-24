@@ -55,6 +55,8 @@ git diff --check
 
 `python`이 실제 Python 3.11 이상을 실행하지 않거나 Windows의 앱 실행 별칭을 가리키면, 두 스크립트에 `-PythonPath 'C:/path/to/python.exe'`로 사용할 실행 파일을 지정한다. 공백이 있는 경로도 따옴표로 묶어 전달할 수 있으며, 전체 검증은 같은 경로를 내부 기준 검증에도 전달한다. 지정하지 않으면 기존처럼 `python` 명령을 사용한다. 이 옵션은 Python을 설치하거나 시스템 PATH를 바꾸지 않는다. 예를 들어 `./tools/revival/Run-Baseline.ps1 -TestsOnly -PythonPath 'C:/path/to/python.exe'`로 지정하며, 호스트 점검 등으로 실행을 중단한 상태에서는 옵션 추가를 재개 승인으로 보지 않는다.
 
+이미 승인된 비공개 메타 migration 때문에 기본 복원 검증이 실패하는 기존 작업본은 두 스크립트에 `-AssetSource '<권한 있는 원본 경로>' -PrivateMetaApproval '<같은 checkout/source에 승인된 비공개 ledger 경로>'`를 명시한다. 전체 검증은 이 입력을 기준 검증으로 그대로 전달한다. 승인 문서만 전달하고 원본 경로를 생략하면 Editor 시작 전에 실패하며, 옵션을 생략한 기본 해시 검증은 유지한다. 스크립트가 승인 문서를 생성하거나 root/source 바인딩·해시·GUID 검사를 생략하지 않는다. 새 worktree에 옛 ledger를 복사하거나 checkout 값만 바꿔 재사용하지 않는다. 실제 승인 근거가 없으면 충돌을 보존하고 중단한다.
+
 전체 스크립트 성공은 추가 RELRO 검사 통과를 뜻하지 않는다. 1단계 통합 APK의 `--strict-relro`는 5개 끝 주소 조건 실패로 종료 코드 1이며, 실제 16KB 기기 및 AAB로 생성한 split의 설치·실행 검증도 남아 있다. 판정 범위는 [네이티브 검사 문서](revival/native-alignment.ko.md)를 따른다.
 
 `Run-Baseline.ps1`은 테스트와 APK 빌드 전에 `ProjectSettings/ProjectSettings.asset`을 비공개 `Logs/revival/settings-snapshots`에 보관한다. Unity가 시작할 때 서명 alias를 비우는 변경까지 포함해, 해당 Editor 종료 후 원래 바이트로 복원하고 해시를 확인한다. 테스트나 빌드가 실패해도 같은 복원 경로를 사용한다. Editor가 아직 실행 중이거나 사본 해시가 달라지면 파일을 덮어쓰지 않고 사본을 남긴다. 오류에 표시된 사본을 보존하고 해당 checkout의 Editor 상태를 확인한 뒤 복구한다. 기존 미커밋 설정을 Git HEAD로 덮어쓰지 않는다.

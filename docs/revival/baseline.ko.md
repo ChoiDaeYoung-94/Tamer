@@ -51,6 +51,9 @@ python tools/revival/audit_guids.py
 패키지에 포함된 `unity-pipeline` skill도 프로젝트 로컬에 복사된다. CLI 바이너리는 해시가 같으면 다시 받지 않는다.
 
 기본 Editor 설치 경로가 다르면 `-EditorPath '<Unity.exe 절대 경로>'`를 전달한다.
+기존 작업본의 명시적으로 승인된 비공개 메타 migration은 `-AssetSource '<권한 있는 원본 경로>' -PrivateMetaApproval '<현재 checkout/source에 승인된 ledger 경로>'`로 기준/전체 SDK 검증에 전달할 수 있다. 기본 검증을 완화하거나 새 승인을 생성하지 않으며, 원본 없는 승인 입력과 다른 worktree의 ledger는 허용하지 않는다. 새 작업본의 최초 원본 복원과 Editor 임포트 후의 migration 승인은 별도 단계다.
+
+2026-10-24 옵션 보완의 최소 검증은 `python -m unittest -v test_baseline_asset_inputs test_private_meta_approval`11/11 PASS다. 실제 PowerShell 기준/전체 runner에 가상 verifier를 전달해 공백·특수문자 경로의 그대로 전달, 기본 엄격 검사 유지, source 없는 승인 입력의 실행 전 거부, 거부 시 설정/Logs 미변경을 확인했다. 이 검사 자체는 Editor·실제 에셋 복원·새 cold 빌드를 실행하지 않는다.
 Android 검사 도구가 별도 위치면 `verify_apk.py --android-player '<AndroidPlayer 경로>'`로 확인한다.
 같은 checkout의 Editor를 닫고 실행한다. 다른 프로젝트 Editor를 종료하지 않는다.
 빌드 기본 명령은 다음과 같다.

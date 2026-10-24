@@ -3,9 +3,17 @@ param(
     [string]$EditorPath = 'C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe',
     [switch]$TestsOnly,
     [ValidateNotNullOrEmpty()]
-    [string]$PythonPath = 'python'
+    [string]$PythonPath = 'python',
+    [ValidateNotNullOrEmpty()]
+    [string]$AssetSource,
+    [ValidateNotNullOrEmpty()]
+    [string]$PrivateMetaApproval
 )
 $ErrorActionPreference = 'Stop'
+if ($PSBoundParameters.ContainsKey('PrivateMetaApproval') -and
+    !$PSBoundParameters.ContainsKey('AssetSource')) {
+    throw 'PrivateMetaApproval requires AssetSource; the existing checkout/source approval must be validated.'
+}
 . "$PSScriptRoot\ProjectSettingsSnapshot.ps1"
 $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path
 foreach ($marker in @('Build/AOSSettingAPK.txt', 'Build/AOSSettingAAB.txt', 'Build/checkedBuilding.txt')) {
@@ -18,7 +26,10 @@ if ($running) { throw 'Close this project Editor before batch validation.' }
 Push-Location $ProjectPath
 $settingsSnapshot = $null
 try {
-    & $PythonPath tools/revival/restore_assets.py --verify
+    $verifyArgs = @('tools/revival/restore_assets.py', '--verify')
+    if ($PSBoundParameters.ContainsKey('AssetSource')) { $verifyArgs += @('--source', $AssetSource) }
+    if ($PSBoundParameters.ContainsKey('PrivateMetaApproval')) { $verifyArgs += @('--private-meta-approval', $PrivateMetaApproval) }
+    & $PythonPath @verifyArgs
     if ($LASTEXITCODE -ne 0) { throw 'Asset verification failed.' }
     $logDir = Join-Path $ProjectPath 'Logs\revival'
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
