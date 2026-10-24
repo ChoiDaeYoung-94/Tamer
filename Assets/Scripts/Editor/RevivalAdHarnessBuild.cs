@@ -135,7 +135,7 @@ public static class RevivalAdHarnessBuild
         return document.ToString();
     }
 
-    private sealed class PrivacyUiAnalyticsScope : IDisposable
+    internal sealed class PrivacyUiAnalyticsScope : IDisposable
     {
         private readonly SerializedObject settings;
         private readonly string[] names = { "UnityAnalyticsSettings.m_Enabled", "UnityAnalyticsSettings.m_InitializeOnStartup" };
@@ -208,7 +208,7 @@ public static class RevivalAdHarnessBuild
         return document.ToString();
     }
 
-    private sealed class IsolatedManifestScope : IDisposable
+    internal sealed class IsolatedManifestScope : IDisposable
     {
         private const string PathName = "Assets/Plugins/Android/AndroidManifest.xml";
         private FileStream manifest, meta;
@@ -308,7 +308,7 @@ public static class RevivalAdHarnessBuild
         public void Dispose() { try { Restore(); } finally { Close(); } }
     }
 
-    private static string ReadPrivatePublisherAppId()
+    internal static string ReadPrivatePublisherAppId()
     {
         if (Environment.GetEnvironmentVariable("TAMER_UMP_PUBLISHER_BUILD_OPT_IN") != "1")
             throw new BuildFailedException("Publisher UMP build requires explicit private opt-in.");

@@ -1,5 +1,11 @@
 # main 통합 이후 출시 준비 — 2026-10-23
 
+## 2026-10-24 최신 보충 — 실제 SDK와 원래 버튼의 warm 결합
+
+원래 Main/Settings/Account & privacy의 실제 버튼 → 실제 UMP 폼 → Do not consent → 원래 화면 복구를 같은 PID에서 확인했습니다. Update1/Show2/callback2이며 첫 code3는 실패로 보존합니다. [새 후보·픽셀·설정 복구와 데이터 대조](privacy-product-real-ump-20261024.ko.md). 개발용 합성 Adult 준비와 합성 No Ads fixture의 시험이며 일반 운영 최초 cold 진입과 실제 영수증 검증은 아닙니다. #419는 이 운영 경계를 남겨 OPEN으로 유지합니다.
+
+현재 최종 운영 AAB는 없습니다. Chrome 보류로 현재 운영 입력/신고·서명·번호 확인은 대기하며, 운영 승인 false/null·releaseReady=false는 유지합니다. 이후 최종 후보·실제 제공물/필요 기기 검증·시험 자원 정리·저장소 소문자 이름 변경 순서입니다. 아래 SDK/버튼 결합 대기는 해당 시점의 과거 기록입니다.
+
 ## 2026-10-24 최신 보충 — 원래 개인정보 화면의 Android 터치
 
 원래 Main → Settings → Account & privacy를 실제 Android 터치로 열고 오류 문구 전체·명시 재진입·처리 중 중복 터치와 이전 callback 무시·종료 후 버튼 복구를 확인했습니다. [새 APK·같은 PID의 완전한 관측·한계](privacy-product-ui-20261024.ko.md). 이 UI 시험의 응답은 가짜 adapter이며 [앞선 실제 UMP 단독 관측](privacy-cold-explicit-retry-20261024.ko.md)과 합쳐 운영 통합 PASS로 표현하지 않습니다. #419는 실제 운영 흐름 결합 범위를 남겨 OPEN으로 유지합니다.

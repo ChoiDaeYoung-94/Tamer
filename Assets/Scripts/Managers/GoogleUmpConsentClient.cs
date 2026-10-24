@@ -27,7 +27,7 @@ namespace AD
                 TestDeviceHashedIds = new System.Collections.Generic.List<string> { testDeviceHash } };
         }
 #endif
-#if TAMER_PRIVACY_COLD_HARNESS
+#if TAMER_PRIVACY_COLD_HARNESS || TAMER_PRIVACY_PRODUCT_UMP_HARNESS
         private readonly Action<string, double> _observer;
         private static long _observationSequence;
         internal GoogleUmpConsentClient(Action<string, double> observer) { _observer = observer; }
@@ -45,7 +45,7 @@ namespace AD
         public bool CanRequestAds => ConsentInformation.CanRequestAds();
         public bool PrivacyOptionsRequired => ConsentInformation.PrivacyOptionsRequirementStatus ==
             PrivacyOptionsRequirementStatus.Required;
-#if TAMER_PRIVACY_COLD_HARNESS
+#if TAMER_PRIVACY_COLD_HARNESS || TAMER_PRIVACY_PRODUCT_UMP_HARNESS
         public AdPrivacyRequirement PrivacyRequirement
         {
             get
@@ -76,7 +76,7 @@ namespace AD
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
             if (_debugSettings != null) parameters.ConsentDebugSettings = _debugSettings;
 #endif
-#if TAMER_PRIVACY_COLD_HARNESS
+#if TAMER_PRIVACY_COLD_HARNESS || TAMER_PRIVACY_PRODUCT_UMP_HARNESS
             Observe("update_call tfua=" + underAgeOfConsent);
             try
             {
@@ -92,7 +92,7 @@ namespace AD
 #endif
         }
 
-#if TAMER_PRIVACY_COLD_HARNESS
+#if TAMER_PRIVACY_COLD_HARNESS || TAMER_PRIVACY_PRODUCT_UMP_HARNESS
         public void Gather(Action<bool> completed)
         {
             Observe("unexpected_gather");

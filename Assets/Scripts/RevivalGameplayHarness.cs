@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
+#if UNITY_EDITOR || TAMER_GAMEPLAY_HARNESS
 using System;
 using System.Collections;
 using System.IO;
@@ -330,7 +330,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Boot()
     {
-#if TAMER_DELETION_GAMEPLAY
+#if TAMER_PRIVACY_PRODUCT_UMP_HARNESS
+        RevivalPrivacyProductUmpHarness.Boot();
+        return;
+#elif TAMER_DELETION_GAMEPLAY
         RevivalDeletionGameplayHarness.Boot();
         return;
 #else
