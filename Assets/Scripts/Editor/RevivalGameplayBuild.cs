@@ -148,7 +148,7 @@ public static class RevivalGameplayBuild
             };
             if (deletionGameplay)
             {
-                options.locationPathName = "Build/revival/Tamer-deletiongameplay.apk";
+                options.locationPathName = "Build/revival/Tamer-deletiongameplay-v4.apk";
                 options.extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_DELETION_GAMEPLAY" };
             }
             var report = BuildPipeline.BuildPlayer(options);
