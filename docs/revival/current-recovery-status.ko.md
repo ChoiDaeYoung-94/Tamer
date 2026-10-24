@@ -1,5 +1,11 @@
 # 최신 복구 상태와 남은 순서 — 2026-10-24
 
+## 2026-10-24 추가 — UMP cold·합성 No Ads 관측
+
+- source `c9ce575`의 별도 시험 앱에서 SDK 등록 → 합성 Adult/No Ads 저장 → 새 프로세스의 Update 성공·fresh Required → 실제 FormFailed/code3 → 콜백 종료 뒤 합성 Declined 저장 → 새 프로세스의 AgeRequired/Update0·Show0을 관측했습니다. [정확한 파일·호출 순서·오류와 한계](privacy-cold-20261024.ko.md).
+- 관련 Editor178/178·Python6/6·Android 빌드·설치 해시 일치와 원본57개 복원을 확인했습니다. 실제 폼 표시/선택과 실제 구매권한 결합은 미검증이며 운영 광고/지역/개인정보 승인은 유지했습니다.
+- 다음 우선순위는 Retry 중복 안내 수정, 기존 제공판별 신고/최신 문서 정합화, 현재 외부 자료·서명·번호·최종 운영 후보입니다. 폼 최초 로딩의 SDK 오류와 명시적 재진입은 실제 성공 화면을 구분해 후속 추적합니다.
+
 ## 2026-10-24 — 삭제 접수 후 종료·명시 재로그인 격리 관측
 
 - source `21e02ab`의 별도 debug APK에서 원래 설정/삭제 이벤트→접수/로컬 정리→원래 Exit→새 PID의 Login pause→명시 Retry→별도 C 가상 계정의 빈 inventory·장비·상점 보유 상태를 확인했습니다. 실제 인증·서버 삭제·Store·운영 후보 전체 결과는 아닙니다. [정확한 APK·단계별 결과와 한계](deletion-gameplay-lifecycle-20261024.ko.md).
