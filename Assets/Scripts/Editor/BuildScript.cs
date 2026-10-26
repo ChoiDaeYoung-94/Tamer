@@ -85,6 +85,8 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 
         if (ReadPreparation() != null)
             throw new BuildFailedException("이미 준비 중인 빌드 요청이 있습니다.");
+        // 표시 파일과 defines를 쓰기 전에 현재 예상 출력 충돌을 거절한다.
+        ReadAosOutputPlan(isAAB);
         var preparation = LegacyBuildPreparation.Capture(form, CHECK_BUILD,
             PlayerSettings.GetScriptingDefineSymbolsForGroup(BuildTargetGroup.Android),
             string.Join(";", isAAB ? DEFINESYMBOLS_AAB : DEFINESYMBOLS_APK),
@@ -114,17 +116,17 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
         // 메뉴 선택과 실제 빌드 사이에 환경 변수나 키 파일이 바뀌었을 수 있다.
         UploadSigningInput uploadSigning = isAAB ? ValidateReleaseUploadSigning() : null;
 
+        // reload/날짜 경계 이후 실행 시점의 버전을 다시 계산하고, 설정 쓰기 전에 검사한다.
+        var outputPlan = ReadAosOutputPlan(isAAB);
         EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
 
         EditorUserBuildSettings.buildAppBundle = isAAB;
         if (isAAB)
             EditorUserBuildSettings.androidBuildSystem = AndroidBuildSystem.Gradle;
 
-        // Github action에서 apk, aab를 모두 빌드 할 경우 apk와 aab의 version을 맞추기 위함
-        if (File.Exists(BUILDINFO_FINISHVERSIONSETTING))
-            _str_buildInfo = GetVersion();
-        else
-            _str_buildInfo = SetVersion(isAAB: isAAB);
+        // 검사한 경로와 같은 계획을 적용한다. 여기서 시간을 다시 읽지 않는다.
+        // finish 표시가 있으면 기존처럼 버전을 재사용한다.
+        _str_buildInfo = outputPlan.ApplyVersion();
 
         PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, IDENTIFIER);
         PlayerSettings.bundleVersion = $"{VERSION}{_str_buildInfo[0]}";
@@ -153,8 +155,7 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
 
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
 
-        string extension = isAAB == true ? ".aab" : ".apk";
-        buildPlayerOptions.locationPathName = AOS_BUILD_PATH + "/" + $"{VERSION}{_str_buildInfo[0]}.{_str_buildInfo[1]}" + extension;
+        buildPlayerOptions.locationPathName = outputPlan.OutputPath;
 
 
         if (isAAB)
@@ -186,7 +187,10 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
                 PlayerSettings.Android.keystorePass = uploadSigning.KeystorePassword;
                 PlayerSettings.Android.keyaliasPass = uploadSigning.AliasPassword;
                 using (RevivalBuild.AndroidRelroLinkScope())
+                {
+                    outputPlan.RequireOutputAbsent();
                     report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+                }
             }
             finally
             {
@@ -199,7 +203,10 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
         }
         else
             using (RevivalBuild.AndroidRelroLinkScope())
+            {
+                outputPlan.RequireOutputAbsent();
                 report = BuildPipeline.BuildPlayer(buildPlayerOptions);
+            }
         BuildSummary summary = report.summary;
 
         if (summary.result == BuildResult.Succeeded)
@@ -377,44 +384,11 @@ public class BuildScript : MonoBehaviour, IPostprocessBuildWithReport
     /// </summary>
     /// <param name="form"></param>
     /// <returns></returns>
-    static string[] SetVersion(bool isAAB)
+    private static LegacyBuildOutputPlan ReadAosOutputPlan(bool isAAB)
     {
-        if (!File.Exists(BUILDINFO_PATH))
-            Debug.LogError("빌드 버전 정보가 존재하지 않습니다.");
-
-        string[] buildInfo = File.ReadAllText(BUILDINFO_PATH).Split(',');
-        if (buildInfo.Length != 3)
-            Debug.LogError("빌드 버전 정보의 형식이 잘못되었습니다.\n" +
-                                "weekNumber,buildNumber,bundleVersionCode");
-
-        TimeSpan timeSpan = DateTime.Now - Convert.ToDateTime(DAY_CALCULATEVERSION);
-        int weekNumber = timeSpan.Days / 7;
-
-        int buildNumber = 0;
-        if (Convert.ToInt32(buildInfo[0]) == weekNumber)
-            buildNumber = Convert.ToInt32(buildInfo[1]) + 1;
-
-        int bundleVersionCode = Convert.ToInt32(buildInfo[2]);
-        if (isAAB)
-            ++bundleVersionCode;
-
-        File.WriteAllText(path: BUILDINFO_PATH, contents: string.Format("{0},{1},{2}", weekNumber, buildNumber, bundleVersionCode));
-        buildInfo = File.ReadAllText(BUILDINFO_PATH).Split(',');
-
-        if (isAAB)
-        {
-            StreamWriter file = File.CreateText(BUILDINFO_FINISHVERSIONSETTING);
-            file.Close();
-        }
-
-        return buildInfo;
+        return LegacyBuildOutputPlan.Capture(BUILDINFO_PATH, BUILDINFO_FINISHVERSIONSETTING,
+            AOS_BUILD_PATH, VERSION, isAAB, DateTime.Now, Convert.ToDateTime(DAY_CALCULATEVERSION));
     }
-
-    /// <summary>
-    /// version 자동화 관련
-    /// </summary>
-    /// <returns></returns>
-    static string[] GetVersion() => File.ReadAllText(BUILDINFO_PATH).Split(',');
 
     /// <summary>
     /// https://docs.unity3d.com/ScriptReference/EditorBuildSettingsScene.html
