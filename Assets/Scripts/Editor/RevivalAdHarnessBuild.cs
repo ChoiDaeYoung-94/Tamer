@@ -54,6 +54,7 @@ public static class RevivalAdHarnessBuild
     }
 
     public static void BuildSample() => Build(true);
+    public static void BuildSampleIsolated() => Build(true, isolatePgs: true);
     public static void BuildReleaseControl() => Build(false);
     // Sample identity only. This cannot validate this publisher's configured messages.
     public static void BuildUmpSample() => Build(true, true);
@@ -335,6 +336,14 @@ public static class RevivalAdHarnessBuild
         return config.androidAppId;
     }
 
+    // Existing publisher UMP contexts retain their separate opt-in/identity checks in Build.
+    // The only additional context is the exact development sample, without UMP/privacy variants.
+    internal static bool PgsIsolationContextAllowed(bool development, bool umpOnly, bool publisher, bool privacyAge,
+        bool nativePrivacyManager, bool privacyCold, bool privacyColdRetry, string applicationId, string appId) =>
+        development && ((umpOnly && publisher && privacyAge) ||
+            (!umpOnly && !publisher && !privacyAge && !nativePrivacyManager && !privacyCold && !privacyColdRetry &&
+                applicationId == "com.AeDeong.MonsterTamer.revival.ads" && appId == SampleAppId));
+
     private static void Build(bool development, bool umpOnly = false, bool publisher = false, bool privacyAge = false,
         bool isolatePgs = false, bool nativePrivacyManager = false, bool privacyCold = false, bool privacyColdRetry = false)
     {
@@ -372,7 +381,7 @@ public static class RevivalAdHarnessBuild
                 AD.Advertising.AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed))
                 throw new BuildFailedException("Native privacy manager requires separate explicit isolated build opt-in.");
             if (isolatePgs && File.Exists("Build/revival/Tamer-ads-" + variant + ".apk"))
-                throw new BuildFailedException("Existing isolated UMP artifact must be preserved.");
+                throw new BuildFailedException("Existing isolated ad harness artifact must be preserved.");
             RevivalBuild.ValidateBaseline();
             int retryVersionCode = oldVersionCode;
             if (privacyColdRetry)
@@ -428,9 +437,11 @@ public static class RevivalAdHarnessBuild
             Directory.CreateDirectory("Build/revival");
             if (isolatePgs)
             {
-                if (!development || !umpOnly || !publisher || !privacyAge ||
+                if (!PgsIsolationContextAllowed(development, umpOnly, publisher, privacyAge,
+                    nativePrivacyManager, privacyCold, privacyColdRetry, applicationId,
+                    settings.FindProperty("adMobAndroidAppId").stringValue) ||
                     PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != applicationId)
-                    throw new BuildFailedException("Play Games isolation requires the explicit UMP privacy debug variant.");
+                    throw new BuildFailedException("Play Games isolation requires the exact sample or explicit UMP privacy debug context.");
                 isolatedManifest = nativePrivacyManager
                     ? new IsolatedManifestScope(NativePrivacyManagerManifest)
                     : new IsolatedManifestScope();
