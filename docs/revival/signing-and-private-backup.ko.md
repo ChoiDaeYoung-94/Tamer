@@ -241,7 +241,10 @@ alias의 **공개 DER만** 읽어 지문을 비교하며 개인키를 내보내�
 증명하지 않는다. 기존 `Build/AOS/APK` 개발 메뉴와 격리 `Revival*` 빌드 경로,
 추적된 기존 `src/AeDeong.keystore`는 이 변경에서 유지한다.
 
-검증 기준은 `3f155f9a0cd391886d6355cd2759a117cf737818`에서 분기한
+2026-10-26 출력 보호 보완은 Unity `6000.3.25f1`에서 신규 출력 시험8개·기존 서명 시험4개를 통과했습니다.
+소스·실행 범위·설정 원복·원자 잠금 및 늦은 실패의 한계는 [별도 검증 기록](legacy-build-output-guard-20261026.ko.md)을 따릅니다.
+
+기존 서명 입력 검증의 과거 기준은 `3f155f9a0cd391886d6355cd2759a117cf737818`에서 분기한
 `codex/upload-key-config-94` 작업본이다. Unity `6000.0.81f1`, Android Editor 대상,
 Unity CLI `1.0.0-beta.8`에서 복원 에셋 4,561개를 검증한 뒤
 `RevivalUploadSigningTests` 4개를 통과했다. 첫 실행은 신규 테스트의 Editor assembly 참조 오류로
