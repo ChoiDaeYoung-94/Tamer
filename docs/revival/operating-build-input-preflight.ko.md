@@ -75,6 +75,10 @@ PGS 규칙은 기존 `private_ads_producer.py`의 PlayFab TitleId 제한과 `Pri
 
 ## 검증과 다음 단계
 
+2026-10-26 구현의 관련 합성 시험은 **34개 통과·실패0·skip0**입니다. 독립 리뷰에서 발견한 PGS 특수 줄바꿈 해석과 Windows 경로 별칭 문제를 수정했으며, 같은 호스트의 실제8.3 별칭으로 `Assets` 출력 거절과 `Logs` 출력 허용을 확인했습니다. 초기23개 결과와 수정 후34개 결과를 합산하지 않습니다.
+
+실제 입력 읽기 검사는 source `289d8ba1889aff153b86355ea259dd60afe68c48`에서 **1회, 예상 거절 exit1**입니다. 빈 PlayFab Title과 legacy 다음 code1/명시 관측 최대26의 충돌을 함께 검출했고 PGS 값 일치는 통과했습니다. 이는 도구가 미준비 입력을 찾아낸 결과이며 운영 빌드 준비 완료가 아닙니다. 입력 파일은 변경하지 않았고 실제 키·암호·Editor·빌드·계정 API를 실행하지 않았습니다. 원문·해시/identity 보고서는 비공개로 보존합니다. 이후 문서 보충을 이 검사나 제품 시험의 재실행으로 표현하지 않습니다.
+
 ```powershell
 python -m unittest discover -s tools/revival -p test_operating_build_inputs.py -v
 ```
