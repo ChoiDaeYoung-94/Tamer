@@ -15,6 +15,7 @@ public sealed class RevivalSdkValidation : IPreprocessBuildWithReport
         var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(SettingsPath));
         settings.FindProperty("overrideDefaultGmaAndroidSdk").boolValue = true;
         settings.FindProperty("selectedGmaAndroidSdk").intValue = 0;
+        settings.FindProperty("enableExternalDependencyManager").boolValue = false;
         settings.ApplyModifiedPropertiesWithoutUndo();
         AssetDatabase.SaveAssets();
         Validate();
@@ -26,9 +27,11 @@ public sealed class RevivalSdkValidation : IPreprocessBuildWithReport
         var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(SettingsPath));
         if (!settings.FindProperty("overrideDefaultGmaAndroidSdk").boolValue || settings.FindProperty("selectedGmaAndroidSdk").intValue != 0)
             throw new BuildFailedException("This SDK baseline requires explicitly pinned GMA Standard (Families-certified Android artifact). Run RevivalSdkValidation.Configure.");
+        if (settings.FindProperty("enableExternalDependencyManager").boolValue)
+            throw new BuildFailedException("This SDK baseline retains the existing Google EDM. Disable Unity EDM automatic installation.");
         string dependencies = File.ReadAllText("Assets/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml");
-        if (!dependencies.Contains("com.google.android.gms:play-services-ads:25.4.0") || dependencies.Contains("ads-mobile-sdk:"))
-            throw new BuildFailedException("Expected GMA Standard play-services-ads:25.4.0 dependency.");
+        if (!dependencies.Contains("com.google.android.gms:play-services-ads:25.5.0") || dependencies.Contains("ads-mobile-sdk:"))
+            throw new BuildFailedException("Expected GMA Standard play-services-ads:25.5.0 dependency.");
     }
 
     public void OnPreprocessBuild(BuildReport report)

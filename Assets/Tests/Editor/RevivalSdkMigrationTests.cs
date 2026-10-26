@@ -23,6 +23,21 @@ public class RevivalSdkMigrationTests
     }
 
     [Test]
+    public void Revival_GmaRetainsExistingEdmWithoutAutomaticUnityEdmInstallation()
+    {
+        var type = FindType("GoogleMobileAds.Editor.GoogleMobileAdsSettings");
+        var loaded = type.GetMethod("LoadInstance", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
+        var settings = new SerializedObject((UnityEngine.Object)loaded);
+        var optIn = settings.FindProperty("enableExternalDependencyManager");
+        Assert.That(optIn, Is.Not.Null);
+        Assert.That(optIn.boolValue, Is.False);
+        Assert.That((bool)type.GetProperty("EnableExternalDependencyManager").GetValue(loaded), Is.False);
+        Assert.That(UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages()
+            .Any(package => package.name == "com.unity.external-dependency-manager"), Is.False,
+            "이번 SDK 갱신은 기존 Google EDM 핀을 유지해야 합니다.");
+    }
+
+    [Test]
     public void Revival_GmaNextGenSelectionFailsBuildPreflight()
     {
         var asset = AssetDatabase.LoadMainAssetAtPath("Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset");
