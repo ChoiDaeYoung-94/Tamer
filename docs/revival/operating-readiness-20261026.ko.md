@@ -57,6 +57,8 @@ Google은 common 목록을 갱신하며 제공업체에 여러 동의 framework 
 - 일반 메뉴, disabled preparation AAB, approved adult release, privacy-only APK는 서로 다른 entry/서명·source 검토 계약을 갖습니다. 외부 키와 승인 metadata가 모든 entry에 그대로 호환된다고 가정하지 않습니다. 최종 entry를 고정한 뒤 보호 입력·source/config/resource·서명·버전을 묶습니다.
 - 기존 Drive 사본의 존재·내부 정합 이력과 현재 키의 실사용은 구분합니다. 현재 원본과 archive 각 역할을 연결하는 기존 metadata proof는 허용 위치에서 찾지 못했으며 과거 false 상태를 성공으로 바꾸지 않았습니다. 추가 백업/복호화가 필요하다고 아직 확정하지 않았습니다.
 
+키 사전검사와 실제 빌드는 아직 연결되지 않았습니다. 현재 로컬 입력 도구는 기존 JKS의 개인키로 난수 challenge를 확인한 뒤 암호를 지우며, 검토된 producer의 plan/source/signing receipt에 그 결과를 귀속하거나 실행 전용 child env로 암호를 전달하지 않습니다. 공개 인증서 일치·입력 metadata 준비·challenge 성공을 실제 AAB 서명 성공으로 계산하지 않습니다. 같은 암호를 두 번 입력하지 않도록 이 연결과 취소/자손 수명·실패 복구의 최소 검증을 먼저 준비한 뒤 실제 입력창을 엽니다. 원본 JKS 계약과 일반 메뉴의 외부 키 계약도 구분합니다.
+
 현재는 **업로드할 새 운영 AAB가 없습니다.** 다음 순서는 정확 후보/운영 입력 준비→사용자의 필요한 비밀 입력→같은 source의 실제 AAB·서명/manifest/version/native/원복 검사→사용자 수동 업로드→Play 제공물·필요 기능/정책 확인입니다. 필요한 원격 상태만 빌드 직전 새로 대조하고 성공한 기기 시험·구매 복원을 기록 목적으로 반복하지 않습니다. [전체 잔여 계획](remaining-recovery-work.ko.md)과 실제16KB/5초 추가조사/CI·App Center의 명시 보류 범위를 유지합니다.
 
 ## 이후 준비한 입력 검사와 개발 진단
