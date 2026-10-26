@@ -148,8 +148,8 @@ public class RevivalPoolTests
 
     private static void ExpectPoolError(string message)
     {
-        // Match DebugLogger's case-sensitive Conditional("Debug") symbol.
-#if Debug
+        // DebugLogger와 동일하게 Editor 또는 개발 빌드에서 오류 출력을 예상합니다.
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         LogAssert.Expect(LogType.Error,
             "<color=red>LogError</color> - PoolManager\n<color=cyan>" + message + "</color>");
 #endif

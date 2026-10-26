@@ -1160,7 +1160,7 @@ namespace AD
 
         /// <summary>
         /// release 빌드에서도 adb logcat으로 확인할 수 있는 로그.
-        /// AD.DebugLogger는 Conditional("Debug")라 release 빌드에서 제거되므로 별도로 사용한다.
+        /// AD.DebugLogger 호출은 Editor/Development 빌드에만 남으므로 release 진단은 별도로 사용한다.
         /// </summary>
         private static void LogStep(string message) => Debug.Log($"{LogTag} {message}");
 
