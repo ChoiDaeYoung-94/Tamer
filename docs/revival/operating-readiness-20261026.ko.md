@@ -42,6 +42,8 @@ Google은 common 목록을 갱신하며 제공업체에 여러 동의 framework 
 | 현재 전송 설정 | 비밀 제외 allowlist에서 PlayFab custom URL override·logger 없음, 기기정보/집중시간 수집 비활성화 flag는 꺼져 있음 | SDK 기본 HTTPS와 공급자 안내는 근거이지만 최종 artifact/config를 고정하기 전 전체 암호화·필수선택·공유/잔존을 일괄 확정하지 않음 |
 | Photon | 후보 정상 게임의 연결 호출·클라이언트 사용 근거 미발견, PlayFab SDK의 범용 API 선언과 구분 | 브라우저에 Photon이 열려 있다는 이유만으로 후보의 수집·미암호화 제공자로 추가하지 않음 |
 
+후속 읽기에서 운영 타이틀의 집중 시간·장치 정보 보고와 전체 IP 저장·새 데이터 수집 기능 자동 실행이 ON임을 확인했습니다. 이는 현재 source의 disable flag=false와 연결되는 설정 근거이며 실제 최종 player의 payload/로그인 응답은 아닙니다. [유형별 후보 신고표와 남은 조건](data-safety-candidate-20261026.ko.md)을 따릅니다. 설정 저장·계정 시험은 하지 않았습니다.
+
 운영24의 실제 보관 AAB는 Unity6000.0.62f1/GMA Android23.2/UMP2.2/Billing8/IAP5.0.1입니다. 새 source의 Unity6000.3.25f1·IAP5.4.3·Authentication3.7.4·PlayFab SDK2.242.260805·PGS2.2.1/Games22 및 새 광고 SDK와 구분합니다. SDK 존재, 처리 조건, 실제 전송과 현재 제공판을 각각 연결해야 합니다. [Google 신고 정의](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en), [GMA 처리 안내](https://developers.google.com/admob/android/privacy/play-data-disclosure), [Unity IAP5.4+ 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)를 기준으로 기술 초안을 정리했으며 기존 export를 그대로 새 신고로 제출하지 않습니다.
 
 기존 [README 개인정보처리방침](../../README.md#개인정보처리방침)과 [앱 밖 삭제 문의](../account-deletion.ko.md)는 유지합니다. 기존 문의 메일로 운영자가14일 이내 처리하며 별도 삭제 서버·불필요 자체 보관을 추가하지 않습니다. 접수 수락·운영자 처리 목표·공급자의 전체 소거 완료는 별개입니다.
@@ -56,3 +58,9 @@ Google은 common 목록을 갱신하며 제공업체에 여러 동의 framework 
 - 기존 Drive 사본의 존재·내부 정합 이력과 현재 키의 실사용은 구분합니다. 현재 원본과 archive 각 역할을 연결하는 기존 metadata proof는 허용 위치에서 찾지 못했으며 과거 false 상태를 성공으로 바꾸지 않았습니다. 추가 백업/복호화가 필요하다고 아직 확정하지 않았습니다.
 
 현재는 **업로드할 새 운영 AAB가 없습니다.** 다음 순서는 정확 후보/운영 입력 준비→사용자의 필요한 비밀 입력→같은 source의 실제 AAB·서명/manifest/version/native/원복 검사→사용자 수동 업로드→Play 제공물·필요 기능/정책 확인입니다. 필요한 원격 상태만 빌드 직전 새로 대조하고 성공한 기기 시험·구매 복원을 기록 목적으로 반복하지 않습니다. [전체 잔여 계획](remaining-recovery-work.ko.md)과 실제16KB/5초 추가조사/CI·App Center의 명시 보류 범위를 유지합니다.
+
+## 이후 준비한 입력 검사와 개발 진단
+
+[별도 read-only 입력 검사](operating-build-input-preflight.ko.md)는 실제 빈 Title과 legacy 다음code1을 함께 검출하고 PGS 일치를 확인했습니다. 예상 거절을 준비 완료로 바꾸지 않습니다. [공통 개발 로그 조건](development-logging-20261026.ko.md)도 Editor/Development 심볼로 고쳐 C#6조건·관련 Unity7개를 확인했으며 새 운영 player 결과로 확대하지 않습니다.
+
+계정 인가의 후속 읽기는 [최신 권한 범위](access-security.ko.md)에 반영했습니다. 초기403·재인증 대기를 현재 모든 계정 목록의 부재로 해석하지 않습니다. 실제 키 사용·새 운영AAB·광고 승인/동의·제공물/스토어 검증은 계속 별도입니다.
