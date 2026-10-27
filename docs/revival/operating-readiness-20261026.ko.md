@@ -2,6 +2,14 @@
 
 이 문서는 실제 운영 화면의 읽기 관측과 source `9ce27677e2b32e259ea6e07310ce0c9337640784`의 정적 대조입니다. **새 운영 서명 AAB는 아직 없으며, 출시·신고·정책 통과나 운영 기능 실행 완료를 뜻하지 않습니다.** checkout은 `D:/codex/worktrees/tamer-working/Tamer`입니다. SDK 자체의 실행 범위는 [별도 검증](gma-116-20261026.ko.md)을 따릅니다.
 
+## 2026-10-27 후속 준비
+
+아래 표와 빈 Title/legacy code1 설명은10월26일의 관측 이력입니다. 이후 비공개 로컬 Title을 준비하고 approved entry가 소비하는 ProjectSettings/개발 기준을27로 정합했습니다. [개발27의 실제 빌드·기본 정적검사·59파일 복구](baseline-version27-20261027.ko.md)와 [단일 입력/실행 없는 metadata 준비기](single-input-signing-20261027.ko.md)는 준비됐으며 새 운영 AAB는 여전히 없습니다. Console 최대26은 새 조회로 바꾸지 않습니다.
+
+기존 inventory/country/adult·메시지 근거는 비공개 인덱스에서 정확한 원본 SHA로 연결했습니다. 현재 게시 메시지의 유효 파트너 집합과 지역·성인·활성화의 실제 검토/source binding은 미완료입니다. Other 유지 결정을 다시 묻거나 UI198/public199의 수치 일치를 새로운 승인 조건으로 만들지 않습니다. 운영 전환은 기존 근거의 의미와 적용 범위를 검토한 뒤 exact source/plan으로 이어갑니다.
+
+현재 브라우저 제어 연결 미인식으로 필요한 후속 화면 읽기는 대기 중이며 설정·확장/앱 재시작으로 우회하지 않았습니다. [최신 현황](current-recovery-status.ko.md)과 아래 날짜별 관측을 구분합니다.
+
 ## 운영 Console
 
 | 대상 | 실제 관측 | 해석·후속 |

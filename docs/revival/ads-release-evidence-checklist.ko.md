@@ -54,6 +54,14 @@ false/null과 production prelaunch 거절을 유지한다. 실제 승인 직전�
 원본 기록/해시·source 변경·단일 실행 범위와 남은 한계를 함께 제시하며, 확정된 제품 선택을
 다시 묻지 않는다.
 
+## 2026-10-27 근거 연결 후속
+
+기존 운영 원본10파일의 경로·관측 범위·SHA와 현재 공개 source8파일을 비실행 인덱스에서 연결했습니다. 이것은 다섯 개의 새 승인 문서나 실행 config가 아닙니다. inventory/country/adult의 이미 확보한 부분은 기존 원본을 재사용하고, 현재 게시 메시지와 유효 업체 집합의 식별 연결이 실제로 부족한 부분만 읽습니다. 수치198/199의 일치 자체를 새 승인·실험 조건으로 만들지 않습니다.
+
+`countryCodes`는 정렬된 대문자 두 글자 문법을 검사하며 runtime에서 위치·계정 국가와 비교하지 않습니다. 공식 Play의 명시 CLDR 코드와 별도 rest-of-world는 다른 표현입니다. 기존 국가 원본에 Other 선택·묶음 범위를 그대로 보존하고 명시 코드 목록과의 관계를 설명합니다. 새 schema·국가 축소/확대·ZZ 치환은 필요하지 않습니다.
+
+로컬 Title·PGS·명시 버전27 입력 및 개발 APK/복구의 준비는 완료 근거이고 운영 source 승인·실키/AAB는 별도입니다. 과거 privacy-only code3는 Gather를 제외한 Show의 preload 경쟁이며 일반 Update→Gather의 무조건 승인 불가 근거로 확대하지 않습니다. 다음 원래 필요한 실제 후보에서 [추가 상태 계측](ump-cold-diagnosis-20261027.ko.md)을 사용하며 같은 성공 시험을 반복하지 않습니다. 실제 검토·불변 resource/binding·단일 plan이 갖춰지기 전 source false/null은 유지합니다.
+
 ## 개인정보 전용 새 owner의 승인 연결 준비
 
 `PrivatePrivacyReleaseContract`는 `RequestPrivacySettings`의 새 owner 경로에만 추가된다.
