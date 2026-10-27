@@ -162,6 +162,19 @@ def runtime_files():
     return {str(p) for p in paths}
 
 
+def immutable_pin_paths(root, plan, value):
+    """Exact persistent read scope shared by metadata preparation and the gate."""
+    immutable = {str(root / p) for p in plan['before']
+                 if not p.startswith(('Assets/', 'ProjectSettings/', 'Packages/'))}
+    return immutable | {str(Path(value['plan'])), str(Path(value['sourceReview'])),
+        str(Path(plan['config'])), str(root / 'src/AeDeong.keystore'), str(Path(value['certificate'])),
+        value['python'], value['git'], value['powershell'], value['java'],
+        str(Path(value['classDirectory']) / 'OperatingKeyPreflight.class'),
+        *(str(HELPERS / p) for p in SOURCES),
+        *(str(Path(__file__).parent / p) for p in OWN_SOURCES),
+        *plan['installedTools']['files'], *value['runtimeFiles']}
+
+
 def check(value, attempt, *, claim=False):
     if (sys.flags.isolated != 1 or sys.flags.no_site != 1 or sys.flags.dont_write_bytecode != 1 or
             Path(sys.executable) != Path(value['python']) or sys.pycache_prefix is None or
@@ -205,14 +218,7 @@ def check(value, attempt, *, claim=False):
         producer.pin_installed_tools(stack, plan['installedTools'])
     # Assets/ProjectSettings/Packages are deliberately not persistent locks:
     # producer stages and restores them. It repeats inventory checks itself.
-    immutable = {str(root / p) for p in plan['before']
-                 if not p.startswith(('Assets/', 'ProjectSettings/', 'Packages/'))}
-    required = immutable | {str(plan_path), str(source), str(config), str(key), str(cert),
-        value['python'], value['git'], value['powershell'], value['java'],
-        str(Path(value['classDirectory']) / 'OperatingKeyPreflight.class'),
-        *(str(HELPERS / p) for p in SOURCES),
-        *(str(Path(__file__).parent / p) for p in OWN_SOURCES),
-        *plan['installedTools']['files'], *value['runtimeFiles']}
+    required = immutable_pin_paths(root, plan, value)
     supplied = {p['path']: p for p in value['pins']}
     if len(supplied) != len(value['pins']) or set(supplied) != required:
         raise ValueError('Exact immutable pin scope required')

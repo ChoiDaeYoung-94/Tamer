@@ -79,8 +79,9 @@ Job 종료는 파일 원복이 아닙니다. producer journal/actual delta/snaps
 
 ## 총괄이 준비할 비공개 metadata
 
-이 폴더에는 실사용 binding 생성기가 없습니다. 총괄은 코드 반영 후 **그 actual
-build HEAD**로 새 plan/source-review를 만들고 독립 근거를 확정해야 합니다.
+`prepare_binding.py`는 기존 유효한 승인 plan/source-review와 명시된 독립 검토 사실을
+받아 binding/source manifest 두 파일만 준비합니다. 총괄은 코드 반영 후 **그 actual
+build HEAD**로 새 plan/source-review를 만들고 기존 독립 근거의 정확한 대상을 확인해야 합니다.
 예전 helper의 15필드 binding이나 과거 PASS를 새 binding으로 재사용하지 않습니다.
 
 `LauncherBinding`/`producer_bridge.binding()`이 동일한 schema 1 필드를 요구합니다.
@@ -108,9 +109,73 @@ pwsh -NoProfile -STA -File <검토된 Invoke-SigningLauncher.ps1> `
   -AllowReviewedBuild
 ```
 
+## 실행 없는 metadata 준비
+
+아래 인수는 모두 검토된 기존 자료를 가리킵니다. placeholder로 실행하지 않습니다.
+선택한 standalone Python을 직접 호출하며 PATH에서 다른 도구를 찾지 않습니다.
+
+```powershell
+& <reviewed-python> -I -S -B -X pycache_prefix=<existing-plan> `
+  <checkout>/tools/revival/signing_launcher/prepare_binding.py `
+  --checkout <canonical-absolute-checkout> --expected-head <actual-build-head> `
+  --expected-branch <exact-owned-branch> `
+  --plan <existing-plan> --plan-sha256 <reviewed-sha256> `
+  --source-review <existing-source-review> --source-review-sha256 <reviewed-sha256> `
+  --certificate <current-upload-der> --certificate-sha256 <reviewed-sha256> `
+  --alias <existing-reviewed-alias> `
+  --current-upload-certificate-reviewed `
+  --current-upload-certificate-evidence <existing-evidence> `
+  --current-upload-certificate-evidence-sha256 <reviewed-sha256> `
+  --existing-key-ownership-reviewed `
+  --existing-key-ownership-evidence <existing-evidence> `
+  --existing-key-ownership-evidence-sha256 <reviewed-sha256> `
+  --git <reviewed-git-exe> --powershell <reviewed-pwsh-exe> `
+  --java <reviewed-java-exe> --class-directory <existing-reviewed-worker-folder> `
+  --deadline-utc <explicit-UTC-Z-deadline> --minimum-start-budget-seconds 600 `
+  --producer-timeout-seconds <explicit-1-to-86400> `
+  --output-directory <existing-owner-SYSTEM-private-folder>
+```
+
+두 `*-reviewed`의 기본값은 false입니다. 각각 이번 cert SHA·plan 원본 key SHA·alias에
+귀속한 **기존 독립 검토의 명시 입력**이며 근거 존재나 hash 일치로 true를 추론하지
+않습니다. 두 역할의 근거가 기존 한 파일일 수 있습니다. 새 승인 schema나 별도
+승인 문서를 만들지 않으며 근거의 의미·독립성·대상 귀속은 총괄의 기존 검토 경계입니다.
+근거 경로/SHA와 대상 cert/key SHA·alias는 기존 비공개 원장에 연결합니다.
+
+준비기는 reviewed plan/source/helper source를 동일 읽기 handle로 잠근 뒤 source-only
+loader와 기존 `load_plan`, `require_source_review`, `preflight_approved`,
+`require_unchanged`, `pin_installed_tools`를 재사용합니다. 승인 source/resource의
+false/null은 key/inventory/runtime 전수 hash에 앞서 거절합니다. `check(claim=False)`도
+기존 attempt를 요구하므로 호출하지 않습니다. `immutable_pin_paths()`만 bridge gate와
+공유하며 claim/attempt/signing receipt/producer/Java/GUI/Editor/빌드를 실행하지 않습니다.
+
+runtime은 같은 standalone Python의 기존 exact 집합이며 startup `._pth`/`pyvenv.cfg`
+후보는 모두 부재여야 합니다. 모든 pin은 canonical local regular file로 한정하고
+reparse ancestor·hardlink·대소문자 alias와 읽는 도중 metadata drift를 거절합니다.
+새 수집기는 같은 읽기 handle에서 7×8hex identity, Owner|Group|Access SDDL과 SHA를
+구합니다. 계획된 Assets/ProjectSettings/Packages 쓰기 대상은 기존 gate대로 장기 pin에서
+제외하고 producer 전체 inventory 검사를 유지합니다.
+
+기존 비공개 폴더에 `launcher-binding.private.json`, `launcher-sources.private.json`을
+각각 CREATE_NEW로 생성하고 flush/fsync·정확 SHA·비공개 ACL을 확인합니다. 두 파일의
+공개는 원자 transaction이 아닙니다. 두 번째 파일 생성·최종 drift·deadline 검사 실패로
+일부 또는 두 출력이 남아도 준비 완료가 아니며 그대로 보존합니다. overwrite·rename·삭제·
+자동 재시도·폴더/ACL/환경/전역 설정 변경은 하지 않습니다.
+
+성공은 `metadataPrepared=true`와 두 정확한 출력 SHA입니다. `actualBuildExecuted`,
+`binaryVerified`, `distributable`은 항상 false이며 암호 입력 또는 운영 AAB의 선행조건을
+모두 해결했다는 뜻이 아닙니다. `--config`, `--mode`, `--python`, 암호·claim/run·debug
+gate 우회 옵션과 옛 15필드 binding 변환은 제공하지 않습니다. launcher는 실제 실행 시
+현재 모든 gate를 다시 검사합니다.
+
 ## 합성 검증
 
 모든 출력 디렉터리는 checkout 밖의 총괄 지정 private evidence 영역을 사용합니다.
+`test_prepare_binding.py`는 작은 합성 승인/거절 fixture와 순수 수집 경계에서 metadata
+계약·출력 충돌/부분 실패·deadline·runtime/pin/경로/환경 쓰기 금지를 검사합니다.
+`test_metadata_native.py`/`Test-Metadata.ps1`은 합성 regular file 한 개에서 기존 공개
+`LauncherFiles`만 컴파일해 identity/SDDL/SHA의 동등성과 공유 쓰기/hardlink 거절을
+검사하며 full launcher/GUI/Job/Java를 실행하지 않습니다.
 `tests/Test-Native.ps1`은 새 source compile/AST와 synthetic child 세대 수명·Job 생성
 거부·stdin/env·진단 비노출을 검사합니다. `-Delta`는 failure/startup/prompt 경계만
 검사합니다. `tests/test_bridge.py`는 framing·source-only loader·실패 시 receipt/producer0·
