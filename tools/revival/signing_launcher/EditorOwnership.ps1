@@ -1,7 +1,7 @@
 param([string]$Checkout)
 $ErrorActionPreference='Stop'
 function Get-LauncherEditorState {
-    param([Parameter(Mandatory=$true)][object[]]$Processes,[Parameter(Mandatory=$true)][string]$Wanted)
+    param([Parameter(Mandatory=$true)][AllowEmptyCollection()][object[]]$Processes,[Parameter(Mandatory=$true)][string]$Wanted)
     $root=[IO.Path]::GetFullPath($Wanted).TrimEnd('\','/')
     $owned=0;$other=0;$cli=0
     foreach($entry in $Processes){
