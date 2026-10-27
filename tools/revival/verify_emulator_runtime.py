@@ -91,7 +91,7 @@ def main():
                 raise ValueError('No APK entries')
             for path in paths:
                 badging = run([build_tools / 'aapt2.exe', 'dump', 'badging', path])
-                if badging.returncode or f"name='{APP_ID}'" not in badging.stdout or "versionCode='26'" not in badging.stdout:
+                if badging.returncode or f"name='{APP_ID}'" not in badging.stdout or "versionCode='27'" not in badging.stdout:
                     raise ValueError('Unexpected APK identity')
                 signed = run([player / 'OpenJDK/bin/java.exe', '-jar', build_tools / 'lib/apksigner.jar', 'verify', '--print-certs', path])
                 if signed.returncode or 'CN=Android Debug' not in signed.stdout:

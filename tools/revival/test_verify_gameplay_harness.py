@@ -9,7 +9,7 @@ from verify_gameplay_harness import verify
 class GameplayVariantVerificationTests(unittest.TestCase):
     def check_variant(self, requested, debuggable, manifest='', rules=''):
         package = requested if requested in ('playerrestore', 'agechoice', 'sessionguard') else 'gameplay'
-        badging = f"package: name='com.AeDeong.MonsterTamer.revival.{package}' versionCode='26' versionName='1.0.5'\n" \
+        badging = f"package: name='com.AeDeong.MonsterTamer.revival.{package}' versionCode='27' versionName='1.0.5'\n" \
             "sdkVersion:'25'\ntargetSdkVersion:'36'\nnative-code: 'arm64-v8a'\n"
         if debuggable:
             badging += 'application-debuggable\n'

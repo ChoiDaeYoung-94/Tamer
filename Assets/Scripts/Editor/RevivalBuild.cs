@@ -82,8 +82,8 @@ public static class RevivalBuild
         if (Application.unityVersion != "6000.3.25f1") throw new BuildFailedException("Expected Unity 6000.3.25f1.");
         foreach (var file in new[] { "Build/AOSSettingAPK.txt", "Build/AOSSettingAAB.txt", "Build/checkedBuilding.txt" })
             if (File.Exists(file)) throw new BuildFailedException("Legacy build marker exists: " + file);
-        if (PlayerSettings.bundleVersion != "1.0.5" || PlayerSettings.Android.bundleVersionCode != 26)
-            throw new BuildFailedException("Expected unchanged version 1.0.5/code26.");
+        if (PlayerSettings.bundleVersion != "1.0.5" || PlayerSettings.Android.bundleVersionCode != 27)
+            throw new BuildFailedException("Expected unchanged version 1.0.5/code27.");
         if ((int)PlayerSettings.Android.minSdkVersion != 25 || (int)PlayerSettings.Android.targetSdkVersion != 36
             || PlayerSettings.Android.targetArchitectures != AndroidArchitecture.ARM64)
             throw new BuildFailedException("Expected min25/target36/ARM64.");

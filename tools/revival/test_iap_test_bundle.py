@@ -18,7 +18,7 @@ from test_verify_native_alignment import elf_fixture
 from verify_iap_test_bundle import validate_manifest
 
 class IapBundleManifestTests(unittest.TestCase):
-    xml = """<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="26" package="com.AeDeong.MonsterTamer.iaptest"><uses-sdk android:minSdkVersion="25" android:targetSdkVersion="36"/><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="com.android.vending.BILLING"/><application android:debuggable="false"/></manifest>"""
+    xml = """<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="27" package="com.AeDeong.MonsterTamer.iaptest"><uses-sdk android:minSdkVersion="25" android:targetSdkVersion="36"/><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="com.android.vending.BILLING"/><application android:debuggable="false"/></manifest>"""
     def test_isolated_release_manifest_is_accepted(self):
         self.assertIn("com.android.vending.BILLING", validate_manifest(self.xml))
     def test_operational_package_is_rejected(self):
@@ -120,8 +120,8 @@ class IapRecoveryInputTests(unittest.TestCase):
                 bundle.signing_certificate(str(self.folder))
 
     def test_explicit_version_matches_manifest_and_rejects_invalid_values(self):
-        xml = IapBundleManifestTests.xml.replace('versionCode="26"', 'versionCode="27"')
-        self.assertIn('com.android.vending.BILLING', validate_manifest(xml, 27))
+        xml = IapBundleManifestTests.xml.replace('versionCode="27"', 'versionCode="26"')
+        self.assertIn('com.android.vending.BILLING', validate_manifest(xml, 26))
         with self.assertRaises(ValueError):
             validate_manifest(xml, 28)
         for value in ('', '0', '-1', '27.0', ' 27', '2100000001'):

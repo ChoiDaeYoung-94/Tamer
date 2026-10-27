@@ -47,7 +47,7 @@ def signing_certificate(directory):
             raise ValueError("Signing input hash does not match the marker")
     return inputs["test-upload.der"]
 
-def validate_manifest(xml, expected_version_code=26):
+def validate_manifest(xml, expected_version_code=27):
     root = ET.fromstring(xml)
     app, sdk = root.find("application"), root.find("uses-sdk")
     if root.get("package") != "com.AeDeong.MonsterTamer.iaptest" or app is None or sdk is None:
@@ -68,7 +68,7 @@ def validate_manifest(xml, expected_version_code=26):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--signing-directory", help="Existing absolute signing folder; never copied or changed")
-    parser.add_argument("--expected-version-code", type=version_code, default=26)
+    parser.add_argument("--expected-version-code", type=version_code, default=27)
     args = parser.parse_args(argv)
     cert = signing_certificate(args.signing_directory)
     if digest(DEST) != SHA256:

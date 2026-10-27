@@ -16,7 +16,7 @@ def verify(apk, android, variant='development'):
     manifest = subprocess.check_output([aapt, 'dump', 'xmltree', '--file', 'AndroidManifest.xml', str(apk)], text=True, encoding='utf-8')
     signing = subprocess.check_output([str(android / 'OpenJDK/bin/java.exe'), '-jar', str(build_tools / 'lib/apksigner.jar'), 'verify', '--print-certs', str(apk)], text=True, encoding='utf-8')
     identity = 'com.AeDeong.MonsterTamer.revival.' + (variant if variant in ('playerrestore', 'agechoice', 'receipt', 'sessionguard', 'inventoryrestore') else 'gameplay')
-    for expected in [f"name='{identity}'", "versionCode='26'", "versionName='1.0.5'", "targetSdkVersion:'36'"]:
+    for expected in [f"name='{identity}'", "versionCode='27'", "versionName='1.0.5'", "targetSdkVersion:'36'"]:
         if expected not in badging:
             raise ValueError('Gameplay APK metadata mismatch: ' + expected)
     if ('application-debuggable' in badging) != (variant != 'photo'):
@@ -44,7 +44,7 @@ def verify(apk, android, variant='development'):
     with apk.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     return dict(variant=variant, applicationId=identity, bytes=apk.stat().st_size, sha256=digest,
-                minSdk=25, targetSdk=36, versionCode=26, version='1.0.5', abi=['arm64-v8a'],
+                minSdk=25, targetSdk=36, versionCode=27, version='1.0.5', abi=['arm64-v8a'],
                 debuggable=variant != 'photo', debugSignatureVerified=True, internetPermission=False,
                 billingPermission=False, adIdPermission=False, mobileAdsInitProvider=False)
 

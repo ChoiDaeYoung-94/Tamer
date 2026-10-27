@@ -15,7 +15,7 @@ def aapt(*args):
 
 badging = aapt('dump', 'badging', str(apk))
 manifest = aapt('dump', 'xmltree', str(apk), '--file', 'AndroidManifest.xml')
-for expected in ["name='com.AeDeong.MonsterTamer.revival.gamesave'", "versionCode='26'",
+for expected in ["name='com.AeDeong.MonsterTamer.revival.gamesave'", "versionCode='27'",
                  "versionName='1.0.5'", "targetSdkVersion:'36'", 'application-debuggable']:
     if expected not in badging:
         raise ValueError('Unexpected probe metadata: ' + expected)
@@ -35,7 +35,7 @@ if 'CN=Android Debug' not in signing:
 with apk.open('rb') as stream:
     digest = hashlib.file_digest(stream, 'sha256').hexdigest()
 result = {'apk': 'Build/revival/Tamer-gamesave-offline.apk', 'sha256': digest, 'bytes': apk.stat().st_size,
-          'applicationId': 'com.AeDeong.MonsterTamer.revival.gamesave', 'versionCode': 26,
+          'applicationId': 'com.AeDeong.MonsterTamer.revival.gamesave', 'versionCode': 27,
           'minSdk': 25, 'targetSdk': 36, 'abi': ['arm64-v8a'], 'debuggable': True,
           'debugSignatureVerified': True, 'billingPermission': False, 'adIdPermission': False,
           'adsInitProvider': False, 'internet': False, 'deviceExecutionVerified': False}
