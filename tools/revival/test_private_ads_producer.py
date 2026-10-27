@@ -204,6 +204,7 @@ class ProducerTests(unittest.TestCase):
                 'preprocessed': True, 'postprocessed': True, 'buildSceneValueMatched': True,
                 'compiledEditorGatesDisabled': True, 'productionContractVerified': False,
                 'binaryVerified': False, 'distributable': False, 'configuredAndroidDefines': '',
+                'mode': 'disabled_candidate', 'approvedBuildContractMatched': False,
                 'prospectivePlayerDefinePlanSha256': 'b' * 64,
                 'artifactSha256': base.digest((run / 'disabled-preparation.aab').read_bytes())}
             producer.write_new(run / 'hook-receipt.json', producer.encoded(receipt))

@@ -109,6 +109,8 @@ entry별로 검토한 공개 소스의 UTF-8 BOM과 CRLF·CR·LF 차이를 제�
 
 approved AAB의 실제 출력 경로는 producer가 검토된 비공개 plan의 run 디렉터리와 `artifact_name(mode)`로 정한 뒤 실행 인자·환경에 전달하는 계약입니다. 이 도구는 그 plan을 읽지 않으므로 경로를 알지 못합니다. `plannedOutputPathKnown=false`·`plannedAabOutputAbsent=null`로 표시하고, `checks`에 출력 부재 통과를 만들지 않습니다. `Build/AOS/<version>.aab` 등 임의 경로를 대신 검사하지 않습니다. 정확한 producer plan·출력 충돌·승인 binding은 별도 검사로 남습니다. 공통 PlayFab/PGS 정적 검사 통과도 producer 내부 실행 검사나 실제 계정 연결을 보장하지 않습니다.
 
+2026-10-27 producer의 로그인 설정 검증을 `approved_adult_release`에도 연결했습니다. 두 승인 mode는 검토한 plan의 정확한 PlayFab 설정 스냅샷에서 단일 비인용 16진 TitleId와 파일 해시를 가져오며, 누락·변경·중복·모호한 키·continuation을 marker·Assets stage·CLI 호출 전에 거절합니다. 타이틀 값을 새로 지정하지 않습니다. C#은 실제 player build 전에 설정 해시, import한 에셋과 단일 Resources 에셋, 런타임 static TitleId의 일치를 확인하고, 기존 PGS `UpdateGameInfo()`·저장·동기 import·Resources 일치 검사도 실행합니다. `disabled_candidate`, 승인/광고·지역·성인 gate, 버전 미증가와 외부 출력 계약은 유지했습니다. 이 연결은 실제 Unity import·로그인·운영 AAB 검증 완료를 뜻하지 않습니다. approved 소스 pin 두 개는 이 버전·출력 계약을 대조한 뒤 갱신했습니다.
+
 ## 검증과 다음 단계
 
 2026-10-27 최종 공통 구조 검사 리팩터링 상태의 관련 전체 suite를 한 번 실행해 **71개 통과·실패0·오류0·skip0**입니다. 기존/공통 입력 모듈37개·entry 모듈28개·Windows handle6개입니다. BOM/줄바꿈별 source pin, 버전·게시 최대·scalar/중복/누락/범위, entry 선택과 legacy 옵션 오용, BuildInfo 미접근, producer 출력 미추정, 실제 Windows handle 쓰기·이름 변경 차단, hardlink·junction, 민감 필드 비출력과 합성 입력 불변을 확인했습니다. 공통 회귀에는 각 PGS 필드와 TitleId의 continuation·모호한 키, 정상 peer/layout/EOF, 공개 PlayFab 템플릿에 합성 TitleId를 넣은 형태와 합성 PGS Unity header가 포함됩니다. 실제 로컬 설정을 읽은 템플릿 검증이나 Unity import 결과는 아닙니다.

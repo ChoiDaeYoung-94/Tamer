@@ -322,10 +322,27 @@ def reviewed_playfab_binding(root, plan):
     raw = base.safe_path(root, entry['backup']).read_bytes()
     if base.digest(raw) != entry['sha256']:
         raise ValueError('Private PlayFab settings snapshot changed')
-    titles = re.findall(r'^  TitleId: ([0-9A-Fa-f]+)\r?$', raw.decode('utf-8-sig'), re.M)
-    if len(titles) != 1 or len(re.findall(r'^  TitleId:', raw.decode('utf-8-sig'), re.M)) != 1:
+    try:
+        text = raw.decode('utf-8-sig').replace('\r\n', '\n').replace('\r', '\n')
+    except UnicodeError:
+        raise ValueError('Private PlayFab title missing or invalid') from None
+    # Keep the audit's narrow single-line Unity mapping rules without importing
+    # another helper into the producer's reviewed execution dependency scope.
+    # Ambiguous peer keys could conceal a duplicate; never decode other values.
+    if re.search(r'^  (?:[?&*!]|["\'][^\n]*:)', text, re.M):
         raise ValueError('Private PlayFab title missing or invalid')
-    return titles[0], entry['sha256']
+    occurrences = re.findall(r'^[ \t]*TitleId[ \t]*:[^\n]*$', text, re.M)
+    titles = list(re.finditer(r'^  TitleId: ([0-9A-Fa-f]+)$', text, re.M))
+    if len(titles) != 1 or len(occurrences) != 1:
+        raise ValueError('Private PlayFab title missing or invalid')
+    title = titles[0]
+    for following in text[title.end():].split('\n'):
+        if not following.strip(' \t') or following.lstrip(' \t').startswith('#'):
+            continue
+        if not re.match(r'^  [A-Za-z_][A-Za-z0-9_]*:(?:[ \t]|$)', following):
+            raise ValueError('Private PlayFab title missing or invalid')
+        break
+    return title.group(1), entry['sha256']
 
 
 def build_once(root, config, head, version, plan_path, reviewed_sha, source_review, signing,
@@ -344,7 +361,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
     if base.git(root, 'branch', '--show-current') != plan['branch']:
         raise ValueError('Branch changed')
     require_unchanged(root, plan)
-    playfab = reviewed_playfab_binding(root, plan) if plan['mode'] == 'privacy_only_adult' else None
+    playfab = reviewed_playfab_binding(root, plan) if plan['mode'] in ('approved_adult_release', 'privacy_only_adult') else None
     bindings = {}
     for path in (Path(plan_path), Path(source_review), Path(signing)):
         path = base.safe_path(root, path.relative_to(root))

@@ -20,21 +20,44 @@ class PrivacyPlayFabSettingsChecks(unittest.TestCase):
             root = Path(directory)
             backup = root / 'before.snapshot'
             for raw, accepted in [(b'  TitleId: ABCDE\n', True),
+                                  (b'\xef\xbb\xbfMonoBehaviour:\r\n  TitleId: aBcDe\r\n  Other: value\r\n', True),
+                                  (b'  TitleId: ABCDE\r  Other: value\r', True),
+                                  (b'  TitleId: ABCDE\n\n  # comment\n  Other: |\n    opaque value\n', True),
                                   (b'  TitleId: \n', False),
                                   (b'  TitleId: ABCDE \n', False),
-                                  (b'  TitleId: ABCDE\n  TitleId: ABCDE\n', False)]:
+                                  (b'  TitleId: ABCDE\n  TitleId: ABCDE\n', False),
+                                  (b'  TitleId: ABCDE\n  TitleId : ABCDE\n', False),
+                                  (b'  TitleId: ABCDE\n    TitleId: ABCDE\n', False),
+                                  (b'  TitleId:ABCDE\n', False),
+                                  (b'  TitleId: "ABCDE"\n', False),
+                                  (b"  TitleId: 'ABCDE'\n", False),
+                                  (b'  TitleId: not-hex\n', False),
+                                  (b'  TitleId: ABCDE\n    continuation\n', False),
+                                  (b'  TitleId: ABCDE\n  continuation\n', False),
+                                  (b'  TitleId: ABCDE\n\n  # comment\n    continuation\n', False),
+                                  (b'  TitleId: ABCDE\n  "TitleId": ABCDE\n', False),
+                                  (b'  TitleId: ABCDE\n  "Title\\u0049d": ABCDE\n', False),
+                                  (b"  TitleId: ABCDE\n  'TitleId': ABCDE\n", False),
+                                  (b'  TitleId: ABCDE\n  ? TitleId\n  : ABCDE\n', False),
+                                  (b'  TitleId: ABCDE\n  &key TitleId: ABCDE\n', False),
+                                  (b'  TitleId: ABCDE\n  *key: ABCDE\n', False),
+                                  (b'  TitleId: ABCDE\n  !!str TitleId: ABCDE\n', False),
+                                  (b'\xff', False)]:
                 backup.write_bytes(raw)
                 digest = hashlib.sha256(raw).hexdigest()
                 plan = {'before': {producer.PLAYFAB_SETTINGS: {
                     'backup': 'before.snapshot', 'sha256': digest}}}
                 if accepted:
-                    self.assertEqual(producer.reviewed_playfab_binding(root, plan), ('ABCDE', digest))
+                    expected = 'aBcDe' if b'aBcDe' in raw else 'ABCDE'
+                    self.assertEqual(producer.reviewed_playfab_binding(root, plan), (expected, digest))
                     backup.write_bytes(b'  TitleId: FEDCB\n')
                     with self.assertRaises(ValueError):
                         producer.reviewed_playfab_binding(root, plan)
                 else:
                     with self.assertRaises(ValueError):
                         producer.reviewed_playfab_binding(root, plan)
+            with self.assertRaises(ValueError):
+                producer.reviewed_playfab_binding(root, {'before': {}})
 
     @unittest.skipUnless(sys.platform == 'win32', 'Pinned Windows compiler required')
     def test_actual_guard_rejects_missing_changed_or_mismatched_settings(self):
@@ -82,7 +105,7 @@ class Probe {
 METHOD
  public static int Main() {
   string digest = Hash(File.ReadAllBytes("SETTINGS_PATH"));
-  for (int c = 0; c < 10; c++) {
+  for (int c = 0; c < 12; c++) {
    Imported = false; Asset = new PlayFabSharedSettings(); ResourceAssets = new[] { Asset };
    PlayFab.PlayFabSettings.TitleId = "ABCDE";
    string expected = "ABCDE", expectedHash = digest;
@@ -95,12 +118,14 @@ METHOD
    if (c == 7) PlayFab.PlayFabSettings.TitleId = "FEDCB";
    if (c == 8) expectedHash = new string('0', 64);
    if (c == 9) expected = " ";
+   if (c == 10) { expected = "not-hex"; Asset.TitleId = expected; PlayFab.PlayFabSettings.TitleId = expected; }
+   if (c == 11) { expected = " ABCDE "; Asset.TitleId = expected; PlayFab.PlayFabSettings.TitleId = expected; }
    bool mayBuild = false;
    try { ValidatePlayFabSettings(expected, expectedHash); mayBuild = true; }
    catch (InvalidOperationException) { }
    if (mayBuild != (c == 0)) return 1;
   }
-  Console.WriteLine(10); return 0;
+  Console.WriteLine(12); return 0;
  }
 }'''.replace('METHOD', method).replace('SETTINGS_PATH', producer.PLAYFAB_SETTINGS)
         file = output / 'probe.cs'
@@ -116,8 +141,8 @@ METHOD
         executed = subprocess.run([str(exe)], capture_output=True, cwd=output)
         (output / 'execute.log').write_bytes(executed.stdout + executed.stderr)
         self.assertEqual(executed.returncode, 0)
-        self.assertEqual(executed.stdout.decode().strip(), '10')
-        (output / 'result.json').write_text(json.dumps({'casesPassed': 10,
+        self.assertEqual(executed.stdout.decode().strip(), '12')
+        (output / 'result.json').write_text(json.dumps({'casesPassed': 12,
             'meaning': 'Actual C# method with synthetic settings and inert import/resource probes; no Unity build, SDK, API or device verification.'}))
 
 

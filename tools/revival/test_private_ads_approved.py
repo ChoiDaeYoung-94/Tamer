@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import uuid
 from unittest.mock import patch
 import private_ads_approved as approved
 import private_ads_producer as producer
@@ -303,13 +304,34 @@ class PrivacyProducerTests(unittest.TestCase):
     def test_build_template_compiles_without_editor_launch(self):
         import subprocess
         from private_ads_evidence import create_private_directory
-        output = ROOT / 'Logs/revival/privacy-only-build-route-pure-1007'; create_private_directory(output)
+        output = ROOT / ('Logs/revival/privacy-only-build-route-pure-1007-' + uuid.uuid4().hex)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        create_private_directory(output)
         editor = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data')
         api = editor / 'UnityReferenceAssemblies/unity-4.8-api'; managed = editor / 'Managed'
         sources = ['Assets/Scripts/Advertising/PrivatePrivacyReleaseContract.cs', 'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs',
                    'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs', 'Assets/Scripts/Advertising/AdRequestPolicy.cs', 'Assets/Scripts/Advertising/LocalAgeChoice.cs']
         sources += ['tools/revival/private_ads_build/' + name for name in base.TEMPLATES]
-        stub = output / 'compile-stubs.cs'; stub.write_text('namespace AD { public class GoogleAdMobManager : UnityEngine.MonoBehaviour {} } public static class RevivalBuild { public static System.IDisposable AndroidRelroLinkScope() { return null; } }')
+        # This is compilation only. Service types expose the shapes used by the
+        # template; the actual guard methods have separate inert execution probes.
+        stub = output / 'compile-stubs.cs'; stub.write_text('''
+namespace AD { public class GoogleAdMobManager : UnityEngine.MonoBehaviour {} }
+public static class RevivalBuild { public static System.IDisposable AndroidRelroLinkScope() { return null; } }
+public class PlayFabSharedSettings : UnityEngine.ScriptableObject { public string TitleId; }
+namespace PlayFab { public static class PlayFabSettings { public static string TitleId; } }
+namespace GooglePlayGames {
+ public class PlayGamesSettings : UnityEngine.ScriptableObject { public string AppId, WebClientId; }
+}
+namespace GooglePlayGames.Editor {
+ public class GPGSProjectSettings {
+  public static GPGSProjectSettings Instance;
+  public string Get(string key, string fallback) { return fallback; }
+ }
+ public static class GPGSUtil {
+  public const string APPIDKEY = "synthetic-app", WEBCLIENTIDKEY = "synthetic-client";
+  public static void UpdateGameInfo() { }
+ }
+}''')
         refs = [api / name for name in ('mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Xml.dll')]
         refs += list(managed.glob('Unity*.dll')) + list((managed / 'UnityEngine').glob('*.dll'))
         refs += [ROOT / 'Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.dll', api / 'Facades/netstandard.dll']
