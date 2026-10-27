@@ -42,6 +42,16 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 ## 실제 실행 전 남은 조건
 
-최종 운영 자료·지역/연령·광고 파트너/신고와 승인 source/resource, 알려진 PlayFab 연결·선택 entry의 버전 입력·PGS, 현재 upload 인증서 역할, 새 actual build HEAD와 exact plan/source 검토를 고정해야 합니다. 해당 metadata를 만드는 실사용 생성기는 이 변경에 포함하지 않습니다.
+최종 운영 자료·지역/연령·광고 파트너/신고와 승인 source/resource, 현재 upload 인증서 역할, 새 actual build HEAD와 exact plan/source 검토를 고정해야 합니다. 10월27일 비공개 로컬 Title과 선택 approved entry의 명시 버전27을 준비했고 [개발 빌드](baseline-version27-20261027.ko.md)를 확인했지만, 운영 승인·actual plan·실키 사용의 통과 근거는 아닙니다.
+
+## 후속: 실행 없는 metadata 준비
+
+`prepare_binding.py`는 검토가 끝난 기존 plan/source-review·현재 cert·키 소유권의 독립 근거를 받아 기존25필드 binding과6-source manifest를 조립합니다. 준비기 자체의 source와 exact helper·runtime·파일 식별/ACL/SHA를 확인하며 두 검토 bool은 기본 false입니다. 근거 파일 존재만으로 승인을 만들거나 옛15필드 binding을 변환하지 않습니다. [인수와 경계](../../tools/revival/signing_launcher/README.ko.md)의 placeholder로 실행하지 않습니다.
+
+기존 private 폴더에 두 고정 파일을 CREATE_NEW로 저장합니다. 일부 생성 뒤 실패해도 덮어쓰기·삭제·자동 재시도를 하지 않고 근거를 보존합니다. 승인 source/resource의 false/null은 실제 key/runtime 전수 수집 전에 거절합니다. claim/attempt/signing receipt·암호창·Java challenge·producer·Unity·빌드와 환경/ACL/전역 설정 쓰기는 실행하지 않습니다. bridge 변경은 기존 exact immutable pin 집합 계산의 순수 함수 추출뿐입니다.
+
+검토된6파일을 현재 통합 checkout에 적용한 뒤 준비기40개와 기존 bridge6개의 합성 검증을 각각1회 통과했습니다. source-only/실행 금지·환경 쓰기 trap을 유지했고 실제 운영 자료는 사용하지 않았습니다. 별도 사본에서 native 파일 helper의 identity/SDDL/SHA 동등성1회를 확인한 근거도 보존하며 현재 전체 launcher 재실행으로 계산하지 않습니다. 독립 검토에서 Windows slash 경로의 lock 조회 P2를 수정했고 최종6파일에서 추가 확정 미해결 P1/P2는 없습니다.
+
+성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이번 코드 통합에서 **실제 metadata 생성·키 입력·운영 AAB는 미실행**입니다. 실제 owner+SYSTEM ACL 수용·현실 inventory 전체 수집과 source/운영 승인 등 선행조건은 exact actual build HEAD에서 확인해야 합니다.
 
 이후 필요한 직접 입력은 준비된 로컬 창에서 받습니다. 실제 AAB를 만들면 같은 artifact의 서명·manifest/version·resource/native와 원본 복구를 검사하고, 사용자 수동 업로드 후 같은 Play 제공물·필요 기능/정책을 확인합니다. **현재 업로드할 새 운영 AAB는 없습니다.** [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
