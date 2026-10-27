@@ -15,7 +15,7 @@
 | 개인정보 UI·실제 UMP | 가짜 SDK의 중복 입력/이전 callback 차단과 별도 실제 SDK+원래 버튼 warm 재진입/native Do not consent/원래 화면 복구 확인. [실제 캡처·한계](privacy-product-real-ump-20261024.ko.md) | 일반 운영 최초 cold 버튼·운영 연령/지역·실제 구매권한 결합. 운영 승인 false/null 유지 |
 | 개발 APK 전달 | sourcec6b4ba1 파일의 LD 설치물·씬 왕복·자료 보존과10월26일 [사용자 휴대폰 Main/Game/ROUNDTRIP_OK 사진](phone-gameplay-observation-20261026.ko.md) 확인 완료 | 휴대폰 설치해시·기기/ABI·전체 로그는 독립 계측하지 않음. LD E73/W7·E91/W7과 사진 카운터0을 구분하며 운영 AAB 검증은 별도 |
 | 광고 SDK 갱신 | GMA Unity11.6/Standard Android25.5·UMP4 유지. source71fee의58/58, source5978의격리8/8와 같은 APK의 LD 실제 init/load/show/보상1·종료1/BGM 복귀. [정확한 범위](gma-116-20261026.ko.md) | 추가 strict RELRO end-modulo3건 미충족·별도 bounded layout 통과. 운영 publisher/스토어·실제ARM64 16KB는 별도 |
-| 운영 빌드 입력 | [읽기 전용 사전검사](operating-build-input-preflight.ko.md)·합성34개, 실제source289d8ba에서 빈 Title/다음code1 검출·PGS 일치 | 실제 검사exit1은 준비 안 된 입력의 예상 차단. 설정 수정·서명·빌드 완료가 아님 |
+| 운영 빌드 입력·개발27 | entry별 입력 검사와 두 approved 경로의 로그인 snapshot/imported Title/PGS guard 통합. 비공개 로컬 Title 준비, 현행 기준27·source12218e9 개발 APK 실제 빌드/기본 정적 검사·보호59개 복구 완료. [근거](baseline-version27-20261027.ko.md) | 추가 strict RELRO 끝 정렬2개 실패·이전 동일 binary. 최신 Console 최대값·운영 source 승인·실제 키/운영 AAB·실제16KB는 별도 |
 | 개발 진단 로그 | [컴파일 조건 수정](development-logging-20261026.ko.md)·C#6조건·source6db37d5의 Unity Pool7/7, 보호59개 복원 | 일반 release 호출 생략 유지. 새 Android player·과거 로그인 장애 전체 원인 해결로 확대하지 않음 |
 | 개인정보 신고 준비 | [후보 기술표](data-safety-candidate-20261026.ko.md), 운영 PlayFab 장치/집중시간/IP 저장ON 읽기 | 최종 제공판 합집합·공유/보관/암호화·Console/공개 안내 대조와 실제 후보 연결은 별도 |
 | 권한·CI | 저장소 소유자1·main 보호/Actions 비활성,10/26 연결 도구의 소유자 앱 전체 저장소 선택/Tamer 포함과 계정 인가 목록 읽기 후속. [범위](access-security.ko.md) | 설치 개별 권한·미사용 인가의 필요성 후속은 비공개 인계. 새 권한·회수·CI 실행 없음 |
@@ -24,7 +24,7 @@
 
 ## 운영 자료·실제 입력 공백의 최신 대조
 
-운영 Console 전체 트랙·최대code26·24제공/26미승인·인증서 역할을 읽기 확인했습니다. AdMob 유럽/미국 메시지가 Monster Tamer 이름에 연결돼 게시 중임을 확인했고, 선택·preview·전체 catalog의 파트너 수를 분리했습니다. 빈 PlayFab TitleId와 legacy BuildInfo의 code0은 최종 AAB를 만들기 전에 비공개 실행 입력으로 준비해야 하는 실제 공백입니다. PGS 설정은 비공백·일치하며, 현재 새 운영 AAB는 없습니다. [현재값·데이터 처리·서명/빌드 경로와 한계](operating-readiness-20261026.ko.md)를 기준으로 후속합니다.
+운영 Console 전체 트랙·최대code26·24제공/26미승인·인증서 역할을 읽기 확인했습니다. AdMob 유럽/미국 메시지가 Monster Tamer 이름에 연결돼 게시 중임을 확인했고, 선택·preview·전체 catalog의 파트너 수를 분리했습니다. 10월27일 로컬 비공개 Title을 준비하고, ProjectSettings를 소비하는 approved entry의 명시 후보와 개발 기준을27로 정합했습니다. legacy BuildInfo0은 별도 경로로 보존합니다. 읽기 전용 입력 검사와 개발27 빌드는 통과했지만 운영 source/resource 승인과 actual plan·키 사용은 아직이며, 현재 새 운영 AAB는 없습니다. [현재값·데이터 처리·서명/빌드 경로와 한계](operating-readiness-20261026.ko.md)를 기준으로 후속합니다.
 
 ## 다음 작업과 우선순위
 

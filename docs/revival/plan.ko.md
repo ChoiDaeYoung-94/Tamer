@@ -1,6 +1,6 @@
 # Tamer 복구 계획과 단계별 상태
 
-최초 조사: 2026-09-10. 초기 상태 갱신: 2026-09-11. 현재 기준 대조: 2026-10-08.
+최초 조사: 2026-09-10. 초기 상태 갱신: 2026-09-11. 현재 기준 대조: 2026-10-27.
 초기 기준: `c47c90217d45e8c6538c57a0924fa852abfbd736`.
 실행 명령은 [개발 안내](../development.ko.md), 최신 남은 조건은 [실행 목록](recovery-execution-backlog.ko.md)과 [출시 준비 표](release-preflight.ko.md)를 따른다. [통합 요약](completion-summary.ko.md)과 [통합 데이터](integration-validation.json), [기준 기록](baseline.ko.md)과 [초기 검증 데이터](validation.json)의 개별 결과는 해당 소스·산출물의 이력이다.
 
@@ -14,13 +14,13 @@
 
 ## 현재 실행 기준과 과거 검증 기록
 
-원격 main `8924c62aa4aa6a66b99a484fcc6f6e319b36c016`의 설정을 읽어 대조했다. 현재 구현 작업본은 `C:/Users/pc_17/.codex/worktrees/ad-production-completion/Tamer`이며 소유자의 별도 원본과 구분한다. 아래는 설정 기준 확인이며 해당 작업본의 새 실행·전체 검증 결과가 아니다.
+현재 구현 작업본은 `D:/codex/worktrees/tamer-working/Tamer`이며 소유자의 별도 원본과 구분한다. source `12218e9101670b7c171b403d71f947ea6a91a34b`에서 현행 개발 기준27의 실제 APK 생성·기본 정적 검사와59파일 복구를 완료했다. [정확한 도구·APK·추가 strict 실패·미검증](baseline-version27-20261027.ko.md)을 따르며 과거 전체 시험을 최신 커밋 결과로 확대하지 않는다.
 
 | 항목 | 현재 기준 | 근거 |
 | --- | --- | --- |
 | Unity | 6000.3.25f1 / e1dba0a9aba4 | ProjectVersion.txt, toolchain.json, [LTS 전환 기록](lts-transition-validation.ko.md)의 소스 `fc5a0a6` 및 main 반영 |
 | Android | min25 / target36 / ARM64 | ProjectSettings.asset, toolchain.json |
-| 앱 버전 | 1.0.5 / code26 | 저장된 설정 기준이며 후속 시험·출시 후보의 코드 확정은 별도 |
+| 앱 버전 | 1.0.5 / code27 | 개발 기준·명시 준비 후보. 실제 운영 후보 직전 최신 Console 최대값 확인은 별도 |
 | Unity CLI / Pipeline | 1.0.0-beta.8 / 0.6.0-exp.1 | toolchain.json, Packages/packages-lock.json |
 
 아래 표는 2026-09-11 초기 통합과 후속 당시 검증의 기록이다. 현재 Unity·Android 기준이나 최신 main 전체 통과로 읽지 않는다. LTS 이후 strict RELRO 끝 정렬 4개 실패, 실제 ARM64 native 16KB·최종 서명 AAB/전달 split·스토어 검증 미완료는 [출시 준비 표](release-preflight.ko.md)를 따른다. 기기 로그인 성공이나 전체 복구 완료를 주장하지 않는다.
