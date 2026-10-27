@@ -8,6 +8,8 @@ function Record-Case([string]$name,[object[]]$records,[bool]$reject){
     if($failed -ne $reject){throw 'Synthetic Editor ownership expectation failed'}
     return @{case=$name;passed=$true;rejected=$failed}
 }
+$rows+=Record-Case 'known-empty-process-list-allowed' @() $false
+$rows+=Record-Case 'null-process-list-blocked' $null $true
 $rows+=Record-Case 'beta8-and-beta14-known-CLI' @(
     @{description='unity';version='1.0.0-beta.8';command=''},@{description='unity';version='1.0.0-beta.14';command=''}) $false
 $rows+=Record-Case 'version-alone-cannot-exclude-unknown' @(@{description='other';version='1.0.0-beta.14';command=''}) $true
