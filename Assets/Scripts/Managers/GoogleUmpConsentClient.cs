@@ -53,7 +53,12 @@ namespace AD
                 try
                 {
                     var status = ConsentInformation.PrivacyOptionsRequirementStatus;
-                    Observe("status_read value=" + status);
+                    // Optional diagnostic only: privacy requirement is not consent/form readiness.
+                    // A failed auxiliary read must not change the original privacy result.
+                    string consentStatus;
+                    try { consentStatus = ConsentInformation.ConsentStatus.ToString(); }
+                    catch (Exception) { consentStatus = "ReadFailed"; }
+                    Observe("status_read value=" + status + " consent_status=" + consentStatus);
                     return status == PrivacyOptionsRequirementStatus.Required ? AdPrivacyRequirement.Required
                         : status == PrivacyOptionsRequirementStatus.NotRequired ? AdPrivacyRequirement.NotRequired
                         : AdPrivacyRequirement.Unknown;

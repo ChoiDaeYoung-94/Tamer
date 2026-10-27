@@ -13,6 +13,7 @@
 | 로그인·삭제 접수 | 원래 안내문 중복 수정, 합성 접수→원래 종료→다음 프로세스 Login 자동인증 보류→명시 C 계정의 빈 상태/상점 표시 확인. [정확한 범위](deletion-shop-login-20261024.ko.md) | 실제 운영 인증·제공판 확인. 접수 수락을 공급자 전체 삭제 완료로 표현하지 않음 |
 | 구매·No Ads | 시험32의 기존 영수증 Verified와 재인증/재시작 No Ads 유지 근거 보존. 상품과 기존 권한 유지 | 새 운영 후보·계정 삭제 후 복원 등 별도 범위. 검증을 위해 같은 구매 복원을 반복하지 않음 |
 | 개인정보 UI·실제 UMP | 가짜 SDK의 중복 입력/이전 callback 차단과 별도 실제 SDK+원래 버튼 warm 재진입/native Do not consent/원래 화면 복구 확인. [실제 캡처·한계](privacy-product-real-ump-20261024.ko.md) | 일반 운영 최초 cold 버튼·운영 연령/지역·실제 구매권한 결합. 운영 승인 false/null 유지 |
+| UMP 첫 오류 진단 | SDK privacy preload와 일반 Update→Gather의 차이 확인, 다음 필요한 후보용 선택적 ConsentStatus 계측·최소 inert/API 참조 컴파일. [범위](ump-cold-diagnosis-20261027.ko.md) | 과거 상태는 미기록이며 오류 해결·새 실제 SDK/Android 시험 통과로 계산하지 않음 |
 | 개발 APK 전달 | sourcec6b4ba1 파일의 LD 설치물·씬 왕복·자료 보존과10월26일 [사용자 휴대폰 Main/Game/ROUNDTRIP_OK 사진](phone-gameplay-observation-20261026.ko.md) 확인 완료 | 휴대폰 설치해시·기기/ABI·전체 로그는 독립 계측하지 않음. LD E73/W7·E91/W7과 사진 카운터0을 구분하며 운영 AAB 검증은 별도 |
 | 광고 SDK 갱신 | GMA Unity11.6/Standard Android25.5·UMP4 유지. source71fee의58/58, source5978의격리8/8와 같은 APK의 LD 실제 init/load/show/보상1·종료1/BGM 복귀. [정확한 범위](gma-116-20261026.ko.md) | 추가 strict RELRO end-modulo3건 미충족·별도 bounded layout 통과. 운영 publisher/스토어·실제ARM64 16KB는 별도 |
 | 운영 빌드 입력·개발27 | entry별 입력 검사와 두 approved 경로의 로그인 snapshot/imported Title/PGS guard 통합. 비공개 로컬 Title 준비, 현행 기준27·source12218e9 개발 APK 실제 빌드/기본 정적 검사·보호59개 복구 완료. [근거](baseline-version27-20261027.ko.md) | 추가 strict RELRO 끝 정렬2개 실패·이전 동일 binary. 최신 Console 최대값·운영 source 승인·실제 키/운영 AAB·실제16KB는 별도 |
