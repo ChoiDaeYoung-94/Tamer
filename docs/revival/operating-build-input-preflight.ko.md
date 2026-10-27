@@ -1,8 +1,8 @@
 # 운영 빌드 입력 사전 검사
 
-`tools/revival/audit_operating_build_inputs.py`는 기존 대화형 `Build/AOS/AAB` 메뉴를 실행하기 전에 PlayFab·Google Play Games 설정과 다음 legacy 버전 계획을 읽기 전용으로 검사하는 보조 도구입니다. `verify_release_candidate.py`의 `source`·`aab` 계약을 바꾸지 않습니다. 성공해도 `releaseReady`는 항상 `false`이며, 운영 빌드 실행이나 입력 수정 권한을 부여하지 않습니다.
+`tools/revival/audit_operating_build_inputs.py`는 선택한 AAB 빌드 entry의 PlayFab·Google Play Games 설정과 버전을 읽기 전용으로 검사하는 보조 도구입니다. 기본 `legacy_aab`는 기존 대화형 `Build/AOS/AAB` 메뉴의 다음 버전을 계산하고, 명시적으로 선택한 `approved_adult_release`는 `PrivateProductionAdsBuild.BuildApprovedAdultRelease`가 사용할 현재 ProjectSettings 버전을 검사합니다. `verify_release_candidate.py`의 `source`·`aab` 계약을 바꾸지 않습니다. 성공해도 `releaseReady`는 항상 `false`이며, 운영 빌드 실행이나 입력 수정 권한을 부여하지 않습니다.
 
-빈 PlayFab TitleId 템플릿, `BuildInfo`의 code 0으로부터 계산되는 다음 code 1, 현재 `ProjectSettings`의 code를 다음 legacy code로 오인하는 문제를 실행 전에 드러내는 것이 목적입니다. 부족한 입력을 복원하거나 seed를 작성하지 않습니다.
+빈 PlayFab TitleId 템플릿과 게시 최대 code 충돌을 실행 전에 드러내고, entry마다 다른 버전 입력을 혼동하지 않는 것이 목적입니다. `BuildInfo` code 0에서 계산되는 legacy 다음 code 1과 approved entry가 그대로 사용하는 ProjectSettings code는 별개입니다. 부족한 입력을 복원하거나 seed를 작성하지 않습니다.
 
 ## 호출과 결과
 
@@ -19,7 +19,9 @@ python tools/revival/audit_operating_build_inputs.py `
   --output 'D:/private-evidence/operating-inputs-unique.private.json'
 ```
 
-필수 인자는 `--project-path`, `--expected-playfab-title`, `--published-max-code`, `--output`입니다. 같은 옵션을 중복 지정하면 거절합니다. `--source-head`는 선택 사항으로, 호출자가 기록한 40자리 소문자 SHA를 보고서에 남깁니다. 도구는 Git·Console·계정 API를 호출하지 않으며 이 주장을 독립 검증한 것으로 표시하지 않습니다.
+필수 인자는 `--project-path`, `--expected-playfab-title`, `--published-max-code`, `--output`입니다. 위 호출은 기존 호환 기본값인 `--entry legacy_aab`와 같습니다. 승인된 성인용 producer 입력을 검사하려면 같은 호출에 `--entry approved_adult_release`를 명시합니다. `privacy_only_adult` 등 다른 entry는 지원하지 않습니다. `--allow-finish-reuse`는 legacy 전용이며 approved entry와 함께 지정하면 입력을 열기 전에 거절합니다.
+
+같은 옵션을 중복 지정하면 거절합니다. `--source-head`는 선택 사항으로, 호출자가 기록한 40자리 소문자 SHA를 보고서에 남깁니다. 도구는 Git·Console·계정 API를 호출하지 않으며 이 주장을 독립 검증한 것으로 표시하지 않습니다.
 
 종료 code는 다음과 같습니다.
 
@@ -29,11 +31,13 @@ python tools/revival/audit_operating_build_inputs.py `
 | 1 | 입력 스냅샷을 읽고 새 보고서를 만들었으나 의미 검사가 실패했습니다. `checks`·`issues`를 확인합니다. |
 | 2 | CLI 인자 또는 경로·잠금·I/O 보호 조건이 실패했습니다. argparse의 인자 오류도 2입니다. 유효한 새 보고서가 없을 수 있으며 기존 자료를 보존합니다. |
 
-표준 출력에는 통과 여부, `releaseReady=false`, 고정된 문제 code만 나옵니다. 비공개 보고서에는 입력의 논리적 상대 경로·identity·SHA-256, 고정한 실행 시각, 버전 계획과 검사 결과가 들어갑니다. 보고서와 그 해시·identity를 공개 이슈·PR·커밋에 복사하지 않습니다. I/O 예외의 원문 경로는 표준 출력에 덤프하지 않습니다. 보고서 쓰기 자체가 중단되면 불완전한 새 파일이 남을 수 있으므로 이를 성공 근거로 사용하지 않습니다.
+표준 출력에는 통과 여부, `releaseReady=false`, 고정된 문제 code만 나옵니다. 비공개 보고서 schema 2에는 선택한 `entry`·`buildEntryPoint`, 입력의 논리적 상대 경로·identity·SHA-256, 고정한 실행 시각, 버전 계획과 검사 결과가 들어갑니다. legacy는 `legacyAabPlan`만, approved는 `approvedAdultReleasePlan`만 계산하며 다른 계획은 `null`입니다. `projectSettingsVersionCodeUsed`는 approved 계획을 정상 추출했을 때만 `true`이고, legacy 및 계획 추출 실패에서는 `false`입니다. 게시 최대와 같아 의미 검사가 실패해도 정상 추출한 approved 계획의 이 값은 `true`입니다.
+
+보고서와 그 해시·identity를 공개 이슈·PR·커밋에 복사하지 않습니다. I/O 예외의 원문 경로는 표준 출력에 덤프하지 않습니다. 보고서 쓰기 자체가 중단되면 불완전한 새 파일이 남을 수 있으므로 이를 성공 근거로 사용하지 않습니다.
 
 ## 읽는 범위와 보호
 
-다음 일곱 경로만 입력으로 엽니다. 완료 표시만 없을 수 있으며 나머지 입력이 없으면 거절합니다.
+선택한 entry의 입력만 엽니다. legacy는 다음 네 경로와 공통 세 경로를 합친 일곱 경로를 사용합니다. legacy 완료 표시만 없을 수 있으며 나머지 선택 입력이 없으면 거절합니다.
 
 | 입력 | 검사 범위 |
 | --- | --- |
@@ -41,21 +45,38 @@ python tools/revival/audit_operating_build_inputs.py `
 | `Assets/Scripts/Editor/LegacyBuildOutputPlan.cs` | 검토한 소스 pin으로 다음 버전 계산 의미 고정 |
 | `BuildInfo/buildinfo.txt` | `week,build,code` 세 비음수 int32 숫자, 다음 AAB code |
 | `BuildInfo/finishversionsetting.txt` | 일반 파일 존재 여부와 비공개 스냅샷. 내용은 버전 의미로 해석하지 않음 |
+
+approved는 다음 세 경로와 공통 세 경로를 합친 여섯 경로를 사용합니다. `BuildInfo`·완료 표시와 legacy 두 소스는 열거나 해시하지 않으며 완료 표시의 존재 여부도 조회하지 않습니다.
+
+| approved 입력 | 검사 범위 |
+| --- | --- |
+| `tools/revival/private_ads_build/PrivateProductionAdsBuild.cs` | 검토한 소스 pin으로 승인 entry, 버전 미증가와 외부 출력 계약 고정 |
+| `tools/revival/private_ads_producer.py` | 검토한 소스 pin으로 mode→entry 및 plan run·출력 전달 계약 고정 |
+| `ProjectSettings/ProjectSettings.asset` | 단일 `PlayerSettings` 루트의 `bundleVersion`·`AndroidBundleVersionCode`만 추출 |
+
+두 entry의 공통 입력은 다음과 같습니다.
+
+| 공통 입력 | 검사 범위 |
+| --- | --- |
 | `Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset` | 단일 `TitleId`의 16진 표기와 전달한 예상값의 정확한 일치만 검사 |
 | `ProjectSettings/GooglePlayGameSettings.txt` | 단일 비공백 `proj.AppId`·`and.ClientId`, 단일 `android.SetupDone=true` |
 | `Assets/GooglePlayGames/Resources/PlayGamesSettings.asset` | 단일 비공백 `mAppId`·`mWebClientId`와 기존 Settings 값의 정확한 일치 |
 
-PlayFab 설정 파일을 읽을 때 같은 파일의 다른 직렬화 필드가 bytes에 포함될 수 있습니다. 필드 추출·해석은 `TitleId`만 허용하며 credential·토큰을 추출하거나 보고하지 않습니다. 이 파일 전체의 해시와 identity는 비공개 보고서 안에서만 다룹니다. 원본 keystore·DER·비밀번호 입력과 `ProjectSettings/ProjectSettings.asset`은 열거나 해시하지 않습니다.
+PlayFab 설정 파일을 읽을 때 같은 파일의 다른 직렬화 필드가 bytes에 포함될 수 있습니다. 필드 추출·해석은 `TitleId`만 허용하며 credential·토큰을 추출하거나 보고하지 않습니다. approved에서 읽는 ProjectSettings에도 다른 직렬화 필드가 bytes에 포함될 수 있으나 버전 두 필드만 추출하며 키 경로·alias 등 다른 값은 보고하지 않습니다. 파일 전체의 해시와 identity는 비공개 보고서 안에서만 다룹니다. 원본 keystore·DER·비밀번호 입력·승인/config 파일은 열거나 해시하지 않습니다. legacy는 ProjectSettings도 열거나 해시하지 않습니다.
 
 PGS 규칙은 기존 `private_ads_producer.py`의 PlayFab TitleId 제한과 `PrivateProductionAdsBuild.cs`/`test_private_privacy_gpgs_settings.py`의 설정 일치 조건을 참고한 좁은 정적 검사입니다. legacy text는 strict UTF-8(선두 BOM 허용)만 읽고, 실제 플러그인의 `StreamReader.ReadLine()`과 같은 CRLF·CR·LF 경계만 줄로 처리합니다. 줄·키·값 주변에서는 ASCII 공백과 탭만 제거하고 필드 키를 정확히 비교합니다. 첫 빈 줄에서 읽기를 끝내므로 그 뒤의 필드는 적용하지 않습니다. 비ASCII 공백과 허용한 탭·CR·LF 이외의 C0/C1 제어문자, U+2028/U+2029는 분리·키 보정 전에 입력 오류로 거절합니다. 이는 플러그인의 모든 인코딩·Unicode Trim 입력을 허용하는 파서가 아니라 좁은 허용 부분집합입니다. URL 디코딩 결과의 제어문자도 거절합니다. app/client ID 자체의 원문은 보고하지 않습니다. Unity import나 `Resources.Load` 대상 동일성, 실제 Google OAuth·PlayFab 서버 연결은 입증하지 않습니다. 다른 중복 Resources 에셋을 전체 검색하지 않습니다.
 
-입력 부모 경로는 `windows_owned_files`의 Windows handle 잠금으로 junction·symlink를 거절하고, 입력은 쓰기·삭제 공유 없이 읽습니다. 파일별 identity·SHA-256을 잠금 중 다시 확인하며 hardlink와 입력 간 identity 중복도 거절합니다. 보고서와 입력의 경로 충돌, 기존 보고서, 기존 계획 AAB 출력과 비정상 상위 경로를 거절합니다. 보고서 경로는 전달받은 원래 root·출력 부모와 그 상위 경로에서 junction·symlink를 먼저 거절한 뒤, 기존 디렉터리의 `os.path.realpath(strict=True)` 결과로 root 포함 관계와 `Logs` 제한을 대조합니다. 정규 경로를 먼저 만들어 reparse 검사를 건너뛰지 않습니다. 보고서는 exclusive create로 만들어 검사 직후 생긴 다른 보고서를 덮어쓰지 않습니다. 출력 부모 디렉터리를 생성하지 않습니다.
+PlayFab TitleId·PGS asset 문자열·approved 버전 필드는 공통 `single_line_mapping` 구조 검사를 사용합니다. 대상은 두 칸 들여쓰기의 단일 일반 키여야 하며, YAML mapping 콜론 뒤에 ASCII 공백 또는 탭이 하나 이상 있어야 합니다. TitleId는 기존의 정확한 한 칸 공백·비인용 16진 표기 규칙도 유지합니다. `mAppId:123`·`bundleVersion:1.0.5`처럼 구분 공백이 없는 표기를 정상 필드로 보정하지 않습니다.
+
+선택한 scalar 뒤의 빈 줄·주석을 건너뛴 다음 실내용이 정상 동급 일반 mapping 또는 EOF인지 확인합니다. 더 깊거나 동급인 plain continuation, 빈 줄·주석 뒤 continuation과 인용된 multiline scalar를 첫 줄만 읽어 축약하지 않습니다. 같은 peer 수준의 인용·escaped 인용·complex·tag·anchor·alias 키는 이름을 추측하지 않고 거절합니다. 대상 밖에서는 키·layout 형태만 확인하며 다른 필드의 값은 추출·디코딩하지 않습니다. 깊은 비대상 literal 내용도 값으로 해석하지 않습니다. 전체 YAML이나 Unity import·Resources 동일성을 검증하는 기능은 아닙니다.
+
+입력 부모 경로는 `windows_owned_files`의 Windows handle 잠금으로 junction·symlink를 거절하고, 입력은 쓰기·삭제 공유 없이 읽습니다. 파일별 identity·SHA-256을 잠금 중 다시 확인하며 hardlink와 입력 간 identity 중복도 거절합니다. 보고서와 알려진 두 entry 입력의 경로 충돌, 기존 보고서와 비정상 상위 경로를 거절합니다. 계획 AAB 출력 충돌 검사는 경로를 계산할 수 있는 legacy에서만 수행합니다. 보고서 경로는 전달받은 원래 root·출력 부모와 그 상위 경로에서 junction·symlink를 먼저 거절한 뒤, 기존 디렉터리의 `os.path.realpath(strict=True)` 결과로 root 포함 관계와 `Logs` 제한을 대조합니다. 정규 경로를 먼저 만들어 reparse 검사를 건너뛰지 않습니다. 보고서는 exclusive create로 만들어 검사 직후 생긴 다른 보고서를 덮어쓰지 않습니다. 출력 부모 디렉터리를 생성하지 않습니다.
 
 디렉터리 잠금은 새 자식 파일 생성을 차단하지 않습니다. 없던 완료 표시가 스냅샷 중 생기면 재확인에서 거절하지만, 부재 상태를 원자적으로 예약하지는 않습니다. 계획 AAB 경로 역시 이 시점의 충돌 검사이며 이후 빌드의 출력 예약이 아닙니다. 입력 잠금은 짧은 스냅샷이 끝나면 해제하고, 보고서 작성 시 root와 출력 부모를 다시 잠근 상태에서 원래 경로와 정규 경로 관계를 재검사합니다. 디렉터리 전체 원자성, 관리자·raw volume 접근에 대한 보안 경계, 후속 Unity 실행 안전성을 보장하지 않습니다.
 
 ## legacy AAB 버전 계산
 
-검토한 C# 소스의 UTF-8 BOM과 CRLF/LF 차이를 제외한 SHA-256을 고정했습니다. 소스가 달라지면 계산을 거절합니다. 후속 코드 변경 시 기존 pin만 새 해시로 바꾸지 말고 실제 계산·완료 표시·출력 계약을 함께 검토해야 합니다.
+entry별로 검토한 공개 소스의 UTF-8 BOM과 CRLF·CR·LF 차이를 제외한 SHA-256을 고정했습니다. 선택한 entry의 소스가 달라지면 계획 추출·계산을 거절합니다. 후속 코드 변경 시 기존 pin만 새 해시로 바꾸지 말고 실제 버전 입력·계산·완료 표시·출력 계약을 함께 검토해야 합니다. 이 pin은 전체 빌드 체인이나 임의의 다른 Unity callback을 검증하는 기능이 아닙니다.
 
 현재 정의는 `VERSION="1.0."`, `DAY_CALCULATEVERSION="01/21/2023 00:00:00"`입니다. 기준은 로컬 시각의 2023-01-21 00:00:00입니다. 도구는 시작 시 로컬 시각을 **한 번** 고정해 보고서와 모든 계산에 사용합니다. C# `DateTime.Now`와 같이 로컬 달력 시각의 경과 정수 일수를 7로 나눈 주차를 사용합니다. 기준 시각 이전은 거절합니다. 실제 Unity의 culture에 따른 날짜 문자열 파싱이나 import 성공까지 시험하지는 않습니다.
 
@@ -73,7 +94,28 @@ PGS 규칙은 기존 `private_ads_producer.py`의 PlayFab TitleId 제한과 `Pri
 
 실제 메뉴도 준비와 실행 사이 reload·주차 경계를 고려해 실행 직전에 새 계획을 만듭니다. 이 사전 보고서의 고정 시각은 후속 메뉴 시각을 고정하지 않습니다. 날짜·주차 경계, 입력 또는 게시 최대가 바뀌면 총괄이 새 입력 스냅샷을 확인해야 합니다. 같은 조건의 성공 시험을 기록 목적으로 반복하지 않습니다.
 
+## 승인된 성인용 AAB의 현재 버전
+
+공개 producer의 `approved_adult_release`는 `BuildApprovedAdultRelease`에서 `BuildMode(true)`를 실행합니다. 검토한 이 경로는 legacy 버전 계산기나 `ApplyVersion()`을 호출하지 않으며 `PlayerSettings.bundleVersion`·`PlayerSettings.Android.bundleVersionCode`를 늘리지 않습니다. 따라서 이 도구는 ProjectSettings의 `bundleVersion`을 실제 versionName으로, `AndroidBundleVersionCode`를 후보 code로 그대로 기록합니다. 주차·파일명을 버전으로부터 만들지 않습니다. ProjectSettings의 직렬화 값을 읽은 결과이며 실제 Unity import 이후나 후속 실행 시점의 PlayerSettings 관측은 별도입니다.
+
+좁은 Unity YAML 부분집합만 허용합니다. 버전 두 필드는 단일 `PlayerSettings:` 아래 두 칸 들여쓰기의 일반 키여야 합니다. 공통 구조 검사와 별도로 ProjectSettings 루트 범위를 확인하며 중복·누락·다른 루트·잘못된 들여쓰기를 거절합니다. versionName은 비공백 일반 문자열 또는 단일/이중 인용 문자열을 허용하고 인용된 문자열의 내용을 보존합니다. 다중 행·collection·alias·태그·모호한 비인용 null/bool·제어문자·양끝 비ASCII 공백은 거절합니다. code는 인용하지 않은 표준 10진 정수만 허용하며 선행 0·부호·소수·지수·주석을 거절합니다. Android 범위는 1~2,100,000,000이며 후보는 관측한 게시 최대보다 **엄격하게 커야** 합니다. 일반 YAML 전체를 해석하거나 Unity import 성공을 보장하는 파서는 아닙니다.
+
+| 합성 입력과 조건 | 판정 |
+| --- | --- |
+| ProjectSettings code 26, 게시 최대 26 | 현재 code 26이므로 실패합니다. 27로 증가시키지 않습니다. |
+| ProjectSettings code 27, 게시 최대 26 | 버전 조건은 통과합니다. 다른 공통 검사도 통과해야 입력 검사 통과입니다. |
+| ProjectSettings code 27, 게시 최대 27 | 같으므로 실패합니다. |
+| BuildInfo code 0 또는 완료 표시 존재/부재 | approved entry의 버전·성공 조건에 사용하지 않습니다. |
+
+approved AAB의 실제 출력 경로는 producer가 검토된 비공개 plan의 run 디렉터리와 `artifact_name(mode)`로 정한 뒤 실행 인자·환경에 전달하는 계약입니다. 이 도구는 그 plan을 읽지 않으므로 경로를 알지 못합니다. `plannedOutputPathKnown=false`·`plannedAabOutputAbsent=null`로 표시하고, `checks`에 출력 부재 통과를 만들지 않습니다. `Build/AOS/<version>.aab` 등 임의 경로를 대신 검사하지 않습니다. 정확한 producer plan·출력 충돌·승인 binding은 별도 검사로 남습니다. 공통 PlayFab/PGS 정적 검사 통과도 producer 내부 실행 검사나 실제 계정 연결을 보장하지 않습니다.
+
 ## 검증과 다음 단계
+
+2026-10-27 최종 공통 구조 검사 리팩터링 상태의 관련 전체 suite를 한 번 실행해 **71개 통과·실패0·오류0·skip0**입니다. 기존/공통 입력 모듈37개·entry 모듈28개·Windows handle6개입니다. BOM/줄바꿈별 source pin, 버전·게시 최대·scalar/중복/누락/범위, entry 선택과 legacy 옵션 오용, BuildInfo 미접근, producer 출력 미추정, 실제 Windows handle 쓰기·이름 변경 차단, hardlink·junction, 민감 필드 비출력과 합성 입력 불변을 확인했습니다. 공통 회귀에는 각 PGS 필드와 TitleId의 continuation·모호한 키, 정상 peer/layout/EOF, 공개 PlayFab 템플릿에 합성 TitleId를 넣은 형태와 합성 PGS Unity header가 포함됩니다. 실제 로컬 설정을 읽은 템플릿 검증이나 Unity import 결과는 아닙니다.
+
+독립 리뷰의 최초 P2 원인은 approved 버전 필드의 **콜론 뒤 구분 공백 누락 허용**과 **multiline scalar의 첫 줄 축약** 두 건입니다. 처음에는 버전 구조와 공통 PGS 구분 공백을 보완했으나 같은 첫 줄 축약 원인이 PGS/TitleId에 남아 있어, 최종적으로 세 reader의 공통 구조 검사로 확장했습니다. peer 수준의 인용·escaped/complex/tag/anchor/alias 키의 모호성도 함께 거절합니다. 전체 YAML 지원으로 확장한 작업은 아닙니다.
+
+과거 중간 이력은 최초 suite65개, Unicode 경계 공백 보강 영향1개, 첫 리뷰 보완 영향15개, 공통 PGS 구분 공백 보강 영향9개가 각각 통과한 결과입니다. 최종 공통 리팩터링은 영향 범위가 세 reader에 걸쳐 관련 전체 suite71개의 1회 검증을 수행했습니다. 중간1/15/9를 반복하거나 이력의 시험 수를 합산하지 않습니다. 실제 approved 입력 보고서나 Unity/빌드 실행은 이 구현 검증에 포함하지 않습니다.
 
 2026-10-26 구현의 관련 합성 시험은 **34개 통과·실패0·skip0**입니다. 독립 리뷰에서 발견한 PGS 특수 줄바꿈 해석과 Windows 경로 별칭 문제를 수정했으며, 같은 호스트의 실제8.3 별칭으로 `Assets` 출력 거절과 `Logs` 출력 허용을 확인했습니다. 초기23개 결과와 수정 후34개 결과를 합산하지 않습니다.
 
@@ -81,8 +123,10 @@ PGS 규칙은 기존 `private_ads_producer.py`의 PlayFab TitleId 제한과 `Pri
 
 ```powershell
 python -m unittest discover -s tools/revival -p test_operating_build_inputs.py -v
+python -m unittest discover -s tools/revival -p test_entry_operating_build_inputs.py -v
+python -m unittest discover -s tools/revival -p test_windows_owned_files.py -v
 ```
 
-시험은 임시 디렉터리의 가짜 설정과 공개 C# 복사본만 사용합니다. code 0/26, 주차 경계, 완료 표시 재사용, 잘못된 ID·PGS 불일치·중복·missing, overflow, 출력 충돌·late race, 입력 보존·짧은 잠금, hardlink·junction·가능한 symlink 거절과 비공개 출력 제한을 검증합니다. 추가 회귀는 CRLF·CR·LF/첫 빈 줄/제어문자/키·인코딩, 경로 정규화 실패와 별칭 제한의 논리 mock, 정규화 전 junction 거절, 최종 root 잠금 재검사와 root 동일 출력의 고정 CLI 오류를 확인합니다. 실제 WinAPI `GetShortPathNameW`로 얻은 8.3 별칭 검사는 논리 mock과 별도이며, OS가 서로 다른 짧은 이름을 제공하지 않으면 그 시험만 skip합니다. 볼륨의 8.3 정책은 바꾸지 않습니다. 기존 symlink fixture는 생성 권한이 없을 때 그 분기를 실행하지 않으므로 전체 skip0만으로 실제 symlink 시험 실행을 주장하지 않습니다. 실제 키·설정·계정·Editor·ADB·빌드·스토어를 호출하지 않습니다.
+시험은 임시 디렉터리의 가짜 설정과 공개 빌드 소스 복사본만 사용합니다. code 0/26, 주차 경계, 완료 표시 재사용, 잘못된 ID·PGS 불일치·중복·missing, overflow, 출력 충돌·late race, 입력 보존·짧은 잠금, hardlink·junction·가능한 symlink 거절과 비공개 출력 제한을 검증합니다. 추가 회귀는 CRLF·CR·LF/첫 빈 줄/제어문자/키·인코딩, 경로 정규화 실패와 별칭 제한의 논리 mock, 정규화 전 junction 거절, 최종 root 잠금 재검사와 root 동일 출력의 고정 CLI 오류를 확인합니다. 실제 WinAPI `GetShortPathNameW`로 얻은 8.3 별칭 검사는 논리 mock과 별도이며, OS가 서로 다른 짧은 이름을 제공하지 않으면 그 시험만 skip합니다. 볼륨의 8.3 정책은 바꾸지 않습니다. 기존 symlink fixture는 생성 권한이 없을 때 그 분기를 실행하지 않으므로 전체 skip0만으로 실제 symlink 시험 실행을 주장하지 않습니다. 실제 키·설정·계정·Editor·ADB·빌드·스토어를 호출하지 않습니다.
 
 입력 검사 이후에도 기존 `verify_release_candidate.py source`, 승인/입력 binding, 실제 운영 서명 AAB 및 `aab` 검사, upload 인증서·게시 최대의 Console 대조, 운영 계정·저장·No Ads·구매 복원, 실제 ARM64/16KB 기기·스토어 전달 검증은 별도입니다. 이 문서는 최초 복구 계획 전체의 완료 보고가 아닙니다. 전체 잔여 작업은 [최신 전체 잔여 목록](remaining-recovery-work.ko.md)을 유지합니다.
