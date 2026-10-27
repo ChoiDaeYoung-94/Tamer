@@ -17,7 +17,7 @@ def verify(apk, android, application_id='com.AeDeong.MonsterTamer.deletiontrial'
     manifest = aapt('xmltree', '--file', 'AndroidManifest.xml')
     signing = subprocess.check_output([str(android/'OpenJDK/bin/java.exe'), '-jar', str(build/'lib/apksigner.jar'),
         'verify', '--print-certs', str(apk)], text=True, encoding='utf-8')
-    for required in ("name='" + application_id + "'", "versionCode='26'", "versionName='1.0.5'",
+    for required in ("name='" + application_id + "'", "versionCode='27'", "versionName='1.0.5'",
                      "targetSdkVersion:'36'", 'application-debuggable', "native-code: 'arm64-v8a'"):
         if required not in badging: raise ValueError('Isolated deletion trial metadata mismatch')
     if not re.search(r"(?:minS|s)dkVersion:'25'", badging) or 'CN=Android Debug' not in signing:

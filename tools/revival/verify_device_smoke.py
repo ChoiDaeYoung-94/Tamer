@@ -106,7 +106,7 @@ def main():
             signers = set()
             for path in paths:
                 badging = run([build_tools / 'aapt2.exe', 'dump', 'badging', path])
-                if badging.returncode or f"name='{APP_ID}'" not in badging.stdout or "versionCode='26'" not in badging.stdout:
+                if badging.returncode or f"name='{APP_ID}'" not in badging.stdout or "versionCode='27'" not in badging.stdout:
                     raise ValueError('Artifact package identity mismatch')
                 signature = run([player / 'OpenJDK/bin/java.exe', '-jar', build_tools / 'lib/apksigner.jar', 'verify', '--print-certs', path])
                 match = re.search(r'Signer #1 certificate SHA-256 digest:\s*([0-9a-f]+)', signature.stdout)

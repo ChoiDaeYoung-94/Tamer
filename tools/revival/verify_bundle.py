@@ -30,7 +30,7 @@ def validate_manifest(xml):
     manifest = ET.fromstring(xml)
     sdk = manifest.find('uses-sdk')
     app = manifest.find('application')
-    if (manifest.get('package') != APP_ID or manifest.get(ANDROID + 'versionCode') != '26'
+    if (manifest.get('package') != APP_ID or manifest.get(ANDROID + 'versionCode') != '27'
             or manifest.get(ANDROID + 'versionName') != '1.0.5'
             or sdk is None or sdk.get(ANDROID + 'minSdkVersion') != '25'
             or sdk.get(ANDROID + 'targetSdkVersion') != '36'

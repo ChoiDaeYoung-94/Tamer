@@ -26,7 +26,7 @@ class PublisherUmpVerificationTests(unittest.TestCase):
 
     def receipt(self, variant, manifest):
         package = 'umppublisher' if variant == 'ump-publisher' else 'ads'
-        badging = (f"package: name='com.AeDeong.MonsterTamer.revival.{package}' versionCode='26' versionName='1.0.5'\n"
+        badging = (f"package: name='com.AeDeong.MonsterTamer.revival.{package}' versionCode='27' versionName='1.0.5'\n"
                    "sdkVersion:'25'\ntargetSdkVersion:'36'\nnative-code: 'arm64-v8a'\napplication-debuggable")
         with patch.object(verifier.subprocess, 'check_output', side_effect=[badging, manifest, 'CN=Android Debug']):
             return verifier.verify(self.apk, self.root, variant)
