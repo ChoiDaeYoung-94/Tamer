@@ -195,7 +195,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             preprocessed = postprocessed = false;
             failureStage = "D07";
             CheckSnapshot();
-            if (privacy)
+            if (approved || privacy)
             {
                 failureStage = "D13";
                 ValidatePlayFabSettings(Required("TAMER_PRIVATE_ADS_PLAYFAB_TITLE"),
@@ -246,7 +246,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         const string path = "Assets/ThirdParty/PlayFabSDK/Shared/Public/Resources/PlayFabSharedSettings.asset";
         // Local service settings stay private. Reject missing or inconsistent
         // settings before building a player that cannot start its login request.
-        if (string.IsNullOrWhiteSpace(expectedTitle) || expectedTitle != expectedTitle.Trim() ||
+        if (string.IsNullOrWhiteSpace(expectedTitle) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(expectedTitle, @"\A[0-9A-Fa-f]+\z") ||
             Hash(File.ReadAllBytes(path)) != expectedSettingsHash) throw Rejected();
         AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
         var asset = AssetDatabase.LoadAssetAtPath<PlayFabSharedSettings>(path);
