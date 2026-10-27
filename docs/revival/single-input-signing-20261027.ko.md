@@ -52,6 +52,8 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 검토된6파일을 현재 통합 checkout에 적용한 뒤 준비기40개와 기존 bridge6개의 합성 검증을 각각1회 통과했습니다. source-only/실행 금지·환경 쓰기 trap을 유지했고 실제 운영 자료는 사용하지 않았습니다. 별도 사본에서 native 파일 helper의 identity/SDDL/SHA 동등성1회를 확인한 근거도 보존하며 현재 전체 launcher 재실행으로 계산하지 않습니다. 독립 검토에서 Windows slash 경로의 lock 조회 P2를 수정했고 최종6파일에서 추가 확정 미해결 P1/P2는 없습니다.
 
-성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이번 코드 통합에서 **실제 metadata 생성·키 입력·운영 AAB는 미실행**입니다. 실제 owner+SYSTEM ACL 수용·현실 inventory 전체 수집과 source/운영 승인 등 선행조건은 exact actual build HEAD에서 확인해야 합니다.
+후속으로 실제 Windows의 새 합성 폴더에서 owner+SYSTEM ACL의 path/handle 긍정 수용, 실제 Collector bootstrap/save/pin·identity/SDDL/SHA·CREATE_NEW 충돌 시 원본 보존과 정상/예외 핸들 정리를1회26항목으로 확인했습니다. 전체 승인 gate·실제 plan/키/runtime inventory는 실행하지 않았고 합성 출력은 launcher binding으로 거부됩니다. 기존40+6 시험이나 실제 metadata 전체 성공에 합산하지 않습니다.
+
+성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이번 코드 통합에서 **실제 metadata 생성·키 입력·운영 AAB는 미실행**입니다. 현실 inventory 전체 수집과 source/운영 승인 등 선행조건은 exact actual build HEAD에서 확인해야 합니다.
 
 이후 필요한 직접 입력은 준비된 로컬 창에서 받습니다. 실제 AAB를 만들면 같은 artifact의 서명·manifest/version·resource/native와 원본 복구를 검사하고, 사용자 수동 업로드 후 같은 Play 제공물·필요 기능/정책을 확인합니다. **현재 업로드할 새 운영 AAB는 없습니다.** [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
