@@ -1,0 +1,8 @@
+Use case: ads-marketing
+Asset type: one wide landscape hero illustration for the GitHub README of the existing Android game Monster Tamer, approximately 2:1 composition.
+Primary request: a polished low-poly 3D fantasy adventure promotional illustration, deliberately an illustration rather than a screenshot. The existing game features monster capture, monster companions, a village, and field battles.
+Scene/backdrop: sunlit stylized grassy forest clearing with angular trees, rocks, a small rustic village in the distance. Warm, adventurous and approachable.
+Subject: two small chibi adventurers and a large purple dragon companion with a green belly and curved dark horns. One adventurer has spiky blond hair, a blue scarf and a brown tunic; the other has magenta hair and a purple mage outfit. Broad simple faceted forms, charming faces, readable silhouettes, no photorealism. Keep the composition clean rather than crowded.
+Composition/framing: wide cover artwork. Characters on the lower foreground, dragon behind them, clear sky and comfortable breathing room around the centered title.
+Text (verbatim): "MONSTER TAMER". Render the title once, clearly spelled, in bold simple fantasy display lettering with high contrast.
+Constraints: no gameplay UI, no phone frame, no store logos or badges, no ratings, no release date, no sale claims, no extra slogans, no watermark. Do not depict this as captured gameplay or an announced new game feature. Single finished illustration.
