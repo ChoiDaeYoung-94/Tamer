@@ -191,6 +191,9 @@ class SettingsTests(unittest.TestCase):
                  (PGS.replace(b'123456789', b'%FF'), ASSET),
                  (PGS.replace(b'and.ClientId', b'\nand.ClientId'), ASSET),
                  (PGS, ASSET.replace(b'mAppId:', b'mOther:')),
+                 (PGS, ASSET.replace(b'mAppId: ', b'mAppId:')),
+                 (PGS, ASSET.replace(b'mWebClientId: ', b'mWebClientId:')),
+                 (PGS, ASSET.replace(b'mAppId: 123456789', b'mAppId:"123456789"')),
                  (PGS, ASSET + b'  mAppId: 123456789\n'),
                  (PGS, ASSET + b'  mWebClientId: other-client\n'),
                  (PGS, ASSET.replace(b'123456789', b' ')),
@@ -201,6 +204,93 @@ class SettingsTests(unittest.TestCase):
                     self.assertFalse(audit.pgs_matches(settings, asset))
                 except audit.PreflightError:
                     pass
+
+
+class SingleLineSettingsTests(unittest.TestCase):
+    title = b'MonoBehaviour:\n  TitleId: ABC123\n  DeveloperSecretKey: SYNTHETIC_ONLY\n'
+
+    def scalar_cases(self):
+        return [('title', self.title, b'TitleId', b'ABC123'),
+                ('pgs', ASSET, b'mAppId', b'123456789'),
+                ('pgs', ASSET, b'mWebClientId', b'synthetic-client.apps.example.invalid')]
+
+    def matches(self, kind, raw):
+        return (audit.playfab_title_matches(raw, TITLE) if kind == 'title'
+                else audit.pgs_matches(PGS, raw))
+
+    def assert_rejected(self, kind, raw):
+        try:
+            self.assertFalse(self.matches(kind, raw))
+        except audit.PreflightError:
+            pass
+
+    def test_each_selected_scalar_rejects_multiline_continuations(self):
+        for kind, raw, name, value in self.scalar_cases():
+            for spelling in (value, b'"' + value + b'"', b"'" + value + b"'"):
+                selected = b'  ' + name + b': ' + spelling
+                base = raw.replace(b'  ' + name + b': ' + value, selected)
+                for continuation in (b'    beta', b'  beta', b'\tbeta', b'    beta: value',
+                                     b'  beta:continued', b'\n    beta', b'  # comment\n\n    beta',
+                                     b'    # comment\n  beta'):
+                    with self.subTest(kind=kind, name=name, spelling=spelling, continuation=continuation):
+                        self.assert_rejected(kind, base.replace(selected + b'\n',
+                                                               selected + b'\n' + continuation + b'\n'))
+            # YAML quoted scalars can span lines too; never decode just line one.
+            for quote in (b'"', b"'"):
+                multiline = quote + value + b'\n    beta' + quote
+                with self.subTest(kind=kind, name=name, multiline_quote=quote):
+                    self.assert_rejected(kind, raw.replace(name + b': ' + value, name + b': ' + multiline))
+
+    def test_each_selected_scalar_rejects_ambiguous_and_misindented_keys(self):
+        for kind, raw, name, value in self.scalar_cases():
+            escaped = name[:-1] + ('\\u%04x' % name[-1]).encode()
+            for duplicate in (b"  '" + name + b"': " + value,
+                              b'  "' + name + b'": ' + value,
+                              b'  "' + escaped + b'": ' + value,
+                              b'  ? ' + name + b'\n  : ' + value,
+                              b'  &selected ' + name + b': ' + value,
+                              b'  !!str ' + name + b': ' + value,
+                              b'  *selected: ' + value):
+                with self.subTest(kind=kind, name=name, duplicate=duplicate):
+                    self.assert_rejected(kind, raw + duplicate + b'\n')
+            canonical = b'  ' + name + b': ' + value
+            for malformed in (b'    ' + name + b': ' + value, b'\t' + name + b': ' + value,
+                              b'  ' + name + b' : ' + value, b'  ' + name + b':' + value):
+                with self.subTest(kind=kind, name=name, malformed=malformed):
+                    self.assert_rejected(kind, raw.replace(canonical, malformed))
+
+    def test_public_template_peer_layout_and_unrelated_values_are_compatible(self):
+        # Public template only. This never opens the local PlayFab/PGS assets.
+        template = (ROOT / 'tools/revival/templates/PlayFabSharedSettings.asset.txt').read_bytes()
+        template = template.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+        self.assertFalse(audit.playfab_title_matches(template, TITLE))
+        synthetic_title = template.replace(b'  TitleId:\n', b'  TitleId: ABC123\n')
+        self.assertTrue(audit.playfab_title_matches(synthetic_title, TITLE))
+        synthetic_pgs = (template.split(b'MonoBehaviour:\n', 1)[0] + b'MonoBehaviour:\n'
+                         b'  m_ObjectHideFlags: 0\n'
+                         b'  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000000, type: 3}\n'
+                         b'  m_Name: PlayGamesSettings\n  m_EditorClassIdentifier:\n'
+                         + ASSET.split(b'MonoBehaviour:\n', 1)[1] + b'  mNearbyServiceId:\n')
+        cases = [('title', synthetic_title, b'TitleId', b'ABC123'),
+                 ('pgs', synthetic_pgs, b'mAppId', b'123456789'),
+                 ('pgs', synthetic_pgs, b'mWebClientId', b'synthetic-client.apps.example.invalid')]
+        for kind, raw, name, value in cases:
+            selected = b'  ' + name + b': ' + value + b'\n'
+            for layout in (b'\n', b' \t\n', b'  # comment\n', b'    # comment\n\n',
+                           b'# root comment\n  # peer comment\n\n'):
+                with self.subTest(kind=kind, name=name, layout=layout):
+                    self.assertTrue(self.matches(kind, raw.replace(selected, selected + layout)))
+            at_eof = raw.replace(selected, b'') + selected.rstrip(b'\n')
+            self.assertTrue(self.matches(kind, at_eof))
+            for newline in (b'\n', b'\r\n', b'\r'):
+                with self.subTest(kind=kind, name=name, newline=newline):
+                    self.assertTrue(self.matches(kind, raw.replace(b'\n', newline)))
+            # A non-target value is not parsed, even when it has nested literal
+            # text that resembles quoted/complex keys or a private credential.
+            uninterpreted = (raw + b'  unrelated: !SyntheticSecret |\n'
+                             b'    "SYNTHETIC_PRIVATE_LITERAL": not-a-field\n'
+                             b'    ? SYNTHETIC_PRIVATE_LITERAL\n')
+            self.assertTrue(self.matches(kind, uninterpreted))
 
 
 class ReportCanonicalPathTests(unittest.TestCase):
@@ -295,6 +385,9 @@ class GuardedSnapshotTests(unittest.TestCase):
         with patch.object(audit, 'LockedFile', side_effect=observed):
             result = self.run_audit(source_head='a' * 40)
         self.assertTrue(result['inputChecksPassed'])
+        self.assertEqual(result['entry'], audit.LEGACY_ENTRY)
+        self.assertEqual(result['buildEntryPoint'], 'Build/AOS/AAB')
+        self.assertIsNone(result['approvedAdultReleasePlan'])
         self.assertFalse(result['releaseReady'])
         self.assertFalse(result['projectSettingsVersionCodeUsed'])
         self.assertFalse(result['sourceHeadIndependentlyVerified'])
