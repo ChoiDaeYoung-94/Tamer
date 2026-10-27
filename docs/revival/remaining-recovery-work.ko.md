@@ -1,6 +1,6 @@
 # 전체 복구 계획에서 남은 작업
 
-2026-10-26 기준입니다. **복구 코드 통합·Unity6.3 LTS 전환·범위별 개발 검증은 진행됐지만, 최종 운영 출시와 마감은 남아 있습니다.** PR 병합을 실제 운영 기능·정책·심사 완료로 계산하지 않습니다. 최신 상태는 [복구 현황](current-recovery-status.ko.md), 사용자 화면 조작은 [수동 안내](manual-delivery-and-console-20261024.ko.md)를 따릅니다.
+2026-10-27 기준입니다. **복구 코드 통합·Unity6.3 LTS 전환·범위별 개발 검증은 진행됐지만, 최종 운영 출시와 마감은 남아 있습니다.** PR 병합을 실제 운영 기능·정책·심사 완료로 계산하지 않습니다. 최신 상태는 [복구 현황](current-recovery-status.ko.md), 사용자 화면 조작은 [수동 안내](manual-delivery-and-console-20261024.ko.md)를 따릅니다.
 
 ## 진행 순서와 완료 조건
 
@@ -13,7 +13,7 @@
 | 5 | 최종 후보의 로그인·계정/저장 연속성 | 계정 소유권 격리·소유 미확인 원본 보존·재시도 UI·저장 큐/중단 복구의 코드/범위별 시험 | 실제 최종 후보의 기존 로그인·명시 새 계정/재로그인·서버 진행도·로컬 소유권 경계를 필요한 최소 범위로 연결. 기존 계정/진행을 지워 조건을 만들지 않음 |
 | 6 | 실제 삭제 접수와 이후 동작 | 합성 접수→소유 로컬 정리→Exit→새 프로세스 자동 인증 보류→명시 다른 계정/빈 상태·상점 확인 | 권한 있는 시험 대상의 실제 접수 경로·제공 화면/회신 운영 확인과 최종 후보 연결. 운영자가 기존 메일로2주 이내 처리. 접수 수락과 공급자 전체 삭제 완료를 구분하며 별도 서버는 추가하지 않음 |
 | 7 | 최종 후보의 구매·영구 No Ads | 시험32 기존 영수증 Verified, 저장·재인증/강제중지 후 소유 일치·권한 유지 | 최종 제공판의 상품·기존 권한·검증/복원 경로와 삭제/다른 계정 경계를 연결. 필요 없는 신규 결제·동일 복원 반복·환불/소비/권한 회수로 시험하지 않음 |
-| 8 | 운영 서명 AAB 생성·검사 | [새 입력 사전검사](operating-build-input-preflight.ko.md)가 실제 빈 Title/legacy다음code1을 예상 차단·PGS 일치 확인, source/Unity핀·보호/검사·현재upload공개cert·private copy·보안입력 합성/검토 근거 | 먼저 키 challenge 사전검사와 producer의 exact plan/source/signing receipt·실행 전용 암호 전달 연결을 구현·검증. 선택 entry와 운영 Title/정확 버전/승인 source-resource/현재uploadcert/실제 키 사용을 고정해 새 AAB 생성. payload서명·manifest·ELF/LOAD/배치와 원본 복구 확인. 현재 새 운영 AAB는 없음. 메타 준비·code27 조건부 계획을 빌드 완료로 바꾸지 않음 |
+| 8 | 운영 서명 AAB 생성·검사 | [새 입력 사전검사](operating-build-input-preflight.ko.md)가 실제 빈 Title/legacy다음code1을 예상 차단·PGS 일치 확인, source/Unity핀·보호/검사·현재upload공개cert·private copy·[단일 입력 연결](single-input-signing-20261027.ko.md)의 새 합성/독립 검토 | 연결 구현과 합성 검증은 준비됐으며, 이제 실제 승인 자료와 새 actual build HEAD의 exact plan/source/runtime·인증서 근거를 고정. 선택 entry와 운영 Title/정확 버전/승인 source-resource/현재uploadcert/실제 키 사용을 고정해 새 AAB 생성. payload서명·manifest·ELF/LOAD/배치와 원본 복구 확인. 현재 새 운영 AAB는 없음. 메타 준비·code27 조건부 계획을 빌드 완료로 바꾸지 않음 |
 | 9 | Play 제공물·필요 실기기/스토어 확인 | 과거 시험 AAB/Play APK 대조, 개발 APK별 네이티브 정적 검사 | 준비된 AAB를 사용자 수동 업로드한 뒤 같은 제공물의 앱서명·APK/split·ZIP/native·필요 기능/정책·트랙/심사/설치 결과 연결. 거부 시 구체 사유를 처리. 앱에서 성공했다는 이유만으로 심사 통과 처리하지 않음 |
 | 10 | 계정 전체 GitHub 권한 후속 | 10/26 저장소 소유자1·초대/배포키/hook/runner0·main 보호/Actions disabled, 연결 도구의 소유자 앱 전체 저장소 선택/Tamer 포함과 OAuth·사용자 인가/PAT 목록 읽기 | 설치 앱의 개별 저장소 permission·미사용 인가의 필요성/회수 여부 후속. 계정 원시 감사 자료는 비공개 보존, 소유자 승인 앱과 외부인 push/merge 구분. 추가 감사를 출시의 새 필수 차단으로 만들지 않음 |
 | 11 | 최종 문서·README·복구 결산 | 게임 이미지·기존 영상·Play 링크·정책/삭제 링크·현재/과거 분리 문서 | 최종 출시판에 맞춘 소개·다운로드/설치 링크·핵심 변경/검증·알려진 제한·복구/운영 방법·필요 백업 위치를 간결하게 정리. 아직 공개하지 않은 최신 버전을 배포 완료라고 쓰지 않음 |
