@@ -28,7 +28,7 @@ PGS/PlayFab 로그인은 각각 별도 경계입니다. 연령 구간 질문은 
 - 통합 담당자의 **2026-09-30 운영 앱 Console 관측 이력**: 당시 Data Safety는 2024-09-30의 수집 NO·전송 암호화되지 않음·Families YES, 전체 제공은 versionCode 24 / 1.0.3, 최대 26은 미승인이었다. 대상 연령 9~12·13~15·16~17·18+ 변경은 검토 전송 준비 상태였다. 이는 최신 운영 Console 조회 결과가 아니다. 새 9+ 방향을 현재 심사·제공 완료로 쓰지 않는다.
 - 이전 문서의 별도 내부 시험 앱 v27·빌드 실패로 미배포였던 진단 v28은 과거 기록이다. 이후 시험 앱 상태는 [복구 상태 문서](current-recovery-status.ko.md)의 기준일과 구분한다. 시험 앱의 상태로 운영 제공 트랙·최종 신고 대상 버전을 대체하지 않으며, 운영 Console 현재값은 새 관측으로 확정한다.
 - 정책 URL은 [기존 GitHub 루트](https://github.com/ChoiDaeYoung-94/Tamer)와 [개인정보처리방침 앵커](https://github.com/ChoiDaeYoung-94/Tamer#개인정보처리방침)를 유지한다. 외부 [삭제 안내](../account-deletion.ko.md)는 있으나 Console의 삭제 URL 등록 여부는 현재 분기 화면에서 확인하지 못했다. 미등록으로 단정하지 않는다.
-- 소스 선언은 Unity IAP 5.4.3, Authentication 3.7.4, GMA Unity 11.5.0 / Android 25.4.0, UMP 4.0.0이다. 최종 출시 AAB의 해석된 의존성과 운영 24의 SDK 구성은 별도 증거가 필요하다. 합성 서명 AAB·시험 앱·새 소스를 운영 24의 메타데이터로 사용하지 않는다.
+- 당시 소스 선언은 Unity IAP 5.4.3, Authentication 3.7.4, GMA Unity 11.5.0 / Android 25.4.0, UMP 4.0.0이다. 이후10/26의 GMA11.6/Android25.5 갱신은 [별도 근거](gma-116-20261026.ko.md)를 따른다. 최종 출시 AAB의 해석된 의존성과 운영 24의 SDK 구성은 별도 증거가 필요하다. 합성 서명 AAB·시험 앱·새 소스를 운영 24의 메타데이터로 사용하지 않는다.
 
 ## 2026-10-18 후보 대조 — 내부 검토용
 
@@ -76,7 +76,7 @@ PGS/PlayFab 로그인은 각각 별도 경계입니다. 연령 구간 질문은 
 | 새 수집 기능 자동 실행 | 향후 기능도 자동 활성화할 수 있는 설정이 유지된다. 아직 사용하지 않는 미래 기능을 현재 수집 항목으로 나열하지 않되 SDK·설정 변경 때 실제 수집과 신고를 다시 대조한다 |
 
 - 후보 Unity IAP 5.4.3에는 [5.4 이상 Data Safety 표](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)와 [개인정보 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)가 적용된다. 기본 플레이어·설치·세션 식별자, 기기·국가 정보와 공식 신고표의 구매·진단·성능 처리를 근거로 사용한다. 선택 식별자·이메일은 실제 연동별 확인이 필요하다. SDK 전송 암호화 YES·공유 NO 및 대략적 위치·이메일의 일시 처리 안내를 전체 앱으로 확대하지 않는다. 미사용 Webshop/추가 결제 공급자를 복사하지 않으며 IAPManager의 Connect 전 광고·분석 Unspecified→Denied 기본값이 기본 처리를 모두 중단한다는 주장은 하지 않는다.
-- [AdMob Android 공식 자료](https://developers.google.com/admob/android/privacy/play-data-disclosure)는 IP·상호작용·진단·식별자의 자동 수집 및 공유와 TLS를 안내한다. **2026-09-30 및 10월 1일 열람 페이지는 25.5.0 기준**이므로 선언 25.4.0의 동일 버전 상세 표로 확정할 수 없다. 현재 앱의 운영 광고 gate OFF는 관리 코드의 요청 제한이며 SDK의 모든 native 전송 0을 입증하지 않는다. 운영 24에 소급하지 않는다.
+- [AdMob Android 공식 자료](https://developers.google.com/admob/android/privacy/play-data-disclosure)는 IP·상호작용·진단·식별자의 자동 수집 및 공유와 TLS를 안내한다. **2026-09-30 및 10월 1일 열람 페이지는 25.5.0 기준**이므로 당시 선언25.4.0의 동일 버전 상세 표로 확정할 수 없다. 10/26 이후 후보 선언25.5.0과 실제 제공물은 별도 대조한다. 후보의 운영 광고 gate OFF는 관리 코드의 요청 제한이며 SDK의 모든 native 전송0을 입증하지 않는다. 운영24에 소급하지 않는다.
 - [PGS 공식 자료](https://developer.android.com/games/pgs/data-collection?hl=en)는 게임 계정 신원과 분석·진단의 자동 수집, 기능별 추가 수집과 HTTPS를 안내한다. 업적·친구·Saved Games 등의 예시를 사용 확인 없이 추가하지 않는다. 일반 core Play services의 수집 없음 안내를 PGS나 AdMob 전체에 적용하지 않는다.
 
 ## 공유·보호·삭제 답안
