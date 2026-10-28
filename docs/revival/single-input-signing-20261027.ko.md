@@ -48,6 +48,8 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 기존 producer의 `installed_tool_inventory`로 명시된 Unity 설치의 필수7파일·144,905,976 bytes에 대해서도 잠근 읽기 핸들의 파일 ID와 SHA-256을 관측했습니다. 앞뒤 경로 metadata는 같았고 원본·설정 쓰기나 SDK 실행은 없습니다. 이는 Android 도구 전체나 공식 배포 checksum의 검증이 아니며, 실제 plan과 실행 시점의 pin 검증은 별도로 필요합니다.
 
+10월28일18:29 actual build HEAD `fb13fa4`에서 기존 producer의 비실행 prepare_plan으로 보호7,062파일/복구 snapshot7,060개·private payload9개와 설치도구7파일을 연결했습니다. 원키·CLI는 ID/hash만 포함하고 복제하지 않았으며 actual Assets/journal/claim·암호 UI·SDK 실행은 없습니다. 독립 읽기 검토와 기존 시험/순수 컴파일의 입력 동일성을156개 소스에 연결한 exact6필드 source-review도 준비해 기존 require_source_review 검사가 수용했습니다. 새 시험을 실행하거나 운영 승인/키 소유권·현재 cert·실제 metadata/native pin·AAB 성공으로 올리지 않습니다. producerPrepared/binaryVerified/distributable=false이고 code27은 현재 Console 미확인·미예약입니다.
+
 최종 운영 자료·지역/연령·광고 파트너/신고와 승인 source/resource, 현재 upload 인증서 역할, 새 actual build HEAD와 exact plan/source 검토를 고정해야 합니다. 10월27일 비공개 로컬 Title과 선택 approved entry의 명시 버전27을 준비했고 [개발 빌드](baseline-version27-20261027.ko.md)를 확인했지만, 운영 승인·actual plan·실키 사용의 통과 근거는 아닙니다.
 
 ## 후속: 실행 없는 metadata 준비
