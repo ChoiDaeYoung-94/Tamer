@@ -17,9 +17,9 @@ namespace AD.Advertising
     public static class PrivateAdsReleaseContract
     {
         private const string ResourceName = "RevivalPrivateAdsRelease";
-        // No release has been authorized. A future reviewed source change must bind
-        // exact approved bytes and their documentary references; no setter/override.
-        private static readonly Binding ApprovedRelease = null;
+        // Reviewed adult-only candidate scope and exact private documentary references.
+        // A matching private resource is still required; no setter or runtime override.
+        private static readonly Binding ApprovedRelease = new Binding("3801f44a6d203f08f4b92ee1c7b7d15963a2e111d03de3974bba6a44db92a058", "7a896eb761ce2af8841d1c31fc1f142455148b49", "349a554f22f0730ebee9e35f898e8b468c1e2a5c3e3159d3fe2af7452ec27e09", "ccb2bb4602681596bd40933498136ceefc05fa6d11cb00455cecafe0e6cae13f", "5486cdc3fd8b13f2e993ff4283bbae953d0c173f32cb3a346799ae8b9544041b", "28c15d544501081d5fbcb418aea82a066a5edea0cb9138fc3d7a26784a10da19", "b4111e760f4745ceb4669e1bd2085cc3eafb19563108a8acf18a7023a6a48d65");
         private static bool loaded;
         private static Contract cached;
         private static bool manifestRead;

@@ -5,8 +5,8 @@ namespace AD.Advertising
     /// </summary>
     public static class AdRequestPolicy
     {
-        // Re-enabling production requires a reviewed change after Families verification.
-        public const bool ProductionAdsEnabled = false;
+        // Reviewed adult-only candidate; immutable binding, UMP and entitlement gates still apply.
+        public const bool ProductionAdsEnabled = true;
 
         public static bool CanRequestTestAds(
             bool isEditor,

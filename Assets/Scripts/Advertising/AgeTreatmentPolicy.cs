@@ -20,8 +20,8 @@ namespace AD.Advertising
     public static class AgeTreatmentPolicy
     {
         // A source-reviewed release contract, never a PlayerPrefs/locale/debug override.
-        // Supported regions, age treatment and published messages remain unreviewed.
-        public static bool RegionalConsentReviewed => false;
+        // The reviewed candidate scope is bound separately; final regional delivery remains to be verified.
+        public static bool RegionalConsentReviewed => true;
         // Privacy-only SDK calls require a separate reviewed environment.
         public static bool PrivacySdkEnvironmentReviewed => false;
 
@@ -49,7 +49,7 @@ namespace AD.Advertising
         private const bool Under13ConsentReviewed = false;
         private const bool From13To15ConsentReviewed = false;
         private const bool From16To17ConsentReviewed = false;
-        private const bool AdultConsentReviewed = false;
+        private const bool AdultConsentReviewed = true;
 
         public const string NativePrivacyColdHarnessPackage = "com.AeDeong.MonsterTamer.revival.privacycold";
         public const string NativePrivacyHarnessPackage = "com.AeDeong.MonsterTamer.revival.privacymanager";
@@ -82,14 +82,14 @@ namespace AD.Advertising
             }
         }
 
-        // An age-only candidate, not permission to advertise. The saved Play target
-        // includes ages 9+ (adult added, review submission pending); all release
-        // and regional gates remain closed, including the separate adult review.
+        // The saved Play target includes ages 9+ (adult added, submission pending).
+        // Fullscreen eligibility still needs the immutable adult-only release binding
+        // and runtime consent checks; this age rule alone cannot authorize an ad.
         // The SDK controls the native X; no five-second close guarantee exists here.
         public static bool AllowsFullscreenRewarded(AgeChoice choice) =>
             choice == AgeChoice.Adult;
 
-        // Proposed protections only. A plan is neither regional approval nor consent.
+        // A treatment plan alone is neither a release binding nor user consent.
         public static bool TryCreatePlan(AgeChoice choice, out AgeTreatmentPlan plan)
         {
             switch (choice)

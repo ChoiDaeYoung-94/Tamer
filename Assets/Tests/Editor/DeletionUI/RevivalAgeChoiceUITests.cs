@@ -92,7 +92,13 @@ public class RevivalAgeChoiceUITests
             Assert.That(Result(ads), Is.EqualTo("OptionsClosed"));
             Assert.That(privacy.interactable && age.interactable, Is.True);
             Assert.That(Status(label), Does.Contain("닫았습니다"));
-            Assert.That(ads.GetType().GetProperty("CanRequestAds").GetValue(ads), Is.False);
+            // Adult policy eligibility is separate from a privacy-only owner.
+            // This retained owner must not grant advertising consent or init ads.
+            var privacyOwner = (AD.Advertising.AdConsentGate)ads.GetType()
+                .GetField("_privacyConsent", Flags).GetValue(ads);
+            Assert.That(privacyOwner, Is.Not.Null);
+            Assert.That(privacyOwner.IsPrivacyOnly, Is.True);
+            Assert.That(privacyOwner.CanRequestAds, Is.False);
             Assert.That(client.Updates, Is.EqualTo(1));
             foreach (var field in new[] { "_initialized", "_initializing", "_loading" })
                 Assert.That(ads.GetType().GetField(field, Flags).GetValue(ads), Is.False, field);

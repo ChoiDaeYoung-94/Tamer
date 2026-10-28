@@ -24,6 +24,18 @@ internal static class PrivateAdsPrivacyRestartChecks
     }
     private static void Require(bool condition) { if (!condition) throw new Exception("Invariant failed"); }
     private static AdConsentGate Gate(Client client, bool tfua = false) => new AdConsentGate(client, tfua, a => a());
+    private static void RequireAdultSourceWithoutPrivacyApproval()
+    {
+        Require(AdRequestPolicy.ProductionAdsEnabled && AgeTreatmentPolicy.RegionalConsentReviewed &&
+            !AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed);
+        foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice)))
+        {
+            bool reviewed = AgeTreatmentPolicy.IsReviewed(age);
+            Require(reviewed == (age == AgeChoice.Adult));
+            Require(!AgeTreatmentPolicy.TryCreatePrivacyPlan(age, false,
+                AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed, reviewed, out var plan) && plan == null);
+        }
+    }
     private static int checks;
     private static void Check(string name, Action test)
     {
@@ -64,6 +76,7 @@ internal static class PrivateAdsPrivacyRestartChecks
 #if TAMER_PRIVACY_MANAGER_HARNESS
         if (args.Length == 1 && args[0] == "--native-context-only")
         {
+            RequireAdultSourceWithoutPrivacyApproval();
             string package = AgeTreatmentPolicy.NativePrivacyHarnessPackage;
             const string scene = "Assets/Tests/Scenes/RevivalAdHarness.unity";
             Require(AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, false, package, scene, false));
@@ -75,14 +88,16 @@ internal static class PrivateAdsPrivacyRestartChecks
             foreach (var other in new[] { null, "", "com.AeDeong.MonsterTamer", package + " ", package.ToUpperInvariant() })
                 Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, false, other, scene, false));
             Require(!AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(false, true, true, false, package, "Assets/Tests/Scenes/RevivalSmoke.unity", false));
-            Require(AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled);
+            // A valid isolated context cannot satisfy this harness's all-reviews-disabled prerequisite.
+            Require(!AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled);
             Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, true, "com.AeDeong.MonsterTamer"));
-            Console.WriteLine("PASS native_privacy_context_boundaries_reviews_false_release_context_blocked");
+            Console.WriteLine("PASS native_privacy_context_boundaries_adult_source_rejected");
             return 0;
         }
 #endif
         if (args.Length == 1 && args[0] == "--context-only")
         {
+            RequireAdultSourceWithoutPrivacyApproval();
             const string package = "com.AeDeong.MonsterTamer";
             Require(AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, true, package));
             Require(!AgeTreatmentPolicy.IsPrivacySdkContext(true, false, false, false, true, package));
@@ -92,16 +107,14 @@ internal static class PrivateAdsPrivacyRestartChecks
             Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, false, package));
             foreach (var other in new[] { null, "", package + ".revival.privacyui", package.ToLowerInvariant(), package + " " })
                 Require(!AgeTreatmentPolicy.IsPrivacySdkContext(false, false, false, false, true, other));
-            Require(!AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed && !AgeTreatmentPolicy.RegionalConsentReviewed);
-            foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice))) Require(!AgeTreatmentPolicy.IsReviewed(age));
-            Console.WriteLine("PASS privacy_context_boundaries_and_reviews_remain_false");
+            Console.WriteLine("PASS privacy_context_boundaries_adult_review_does_not_approve_privacy");
             return 0;
         }
-        Check("production_false_and_no_age_never_start_discovery", () =>
+        Check("source_adult_review_cannot_start_unapproved_privacy_discovery", () =>
         {
+            RequireAdultSourceWithoutPrivacyApproval();
             foreach (AgeChoice age in Enum.GetValues(typeof(AgeChoice)))
             {
-                Require(!AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed && !AgeTreatmentPolicy.IsReviewed(age));
                 Require(!AgeTreatmentPolicy.TryCreatePrivacyPlan(age, false, false, true, out _));
                 Require(!AgeTreatmentPolicy.TryCreatePrivacyPlan(age, false, true, false, out _));
                 Require(!AgeTreatmentPolicy.TryCreatePrivacyPlan(age, true, true, true, out _));

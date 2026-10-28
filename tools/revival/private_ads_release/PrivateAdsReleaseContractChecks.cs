@@ -13,8 +13,11 @@ namespace UnityEngine
     public enum RuntimePlatform { Android, WindowsEditor }
     public static class Application
     {
-        public static bool isEditor = false, isBatchMode = false;
+        // Parser tests use synthetic bytes; public consumer probes are batch-blocked
+        // even though the compiled source carries the reviewed adult binding.
+        public static bool isEditor = false, isBatchMode = true;
         public static RuntimePlatform platform = RuntimePlatform.Android;
+        public static string identifier = "com.synthetic.contract";
     }
     public static class Debug { public static bool isDebugBuild = false; }
     public sealed class TextAsset { public byte[] bytes; }
@@ -23,6 +26,16 @@ namespace UnityEngine
         public static int Reads;
         public static T[] LoadAll<T>(string name) { Reads++; throw new Exception("Stub resource must not load"); }
     }
+    public class AndroidJavaObject : IDisposable
+    {
+        public static int Objects;
+        public AndroidJavaObject(string name) { Objects++; throw new Exception("Stub JNI must not load"); }
+        public T Call<T>(string name, params object[] args) { throw new Exception(); }
+        public T Get<T>(string name) { throw new Exception(); }
+        public void Dispose() { }
+    }
+    public class AndroidJavaClass : AndroidJavaObject
+    { public AndroidJavaClass(string name) : base(name) { } public T GetStatic<T>(string name) { throw new Exception(); } }
 }
 
 internal static class PrivateAdsReleaseContractChecks
@@ -97,14 +110,24 @@ internal static class PrivateAdsReleaseContractChecks
             !PrivateAdsReleaseContract.RuntimeEligible(false, true, false, true, AgeChoice.Adult) &&
             !PrivateAdsReleaseContract.RuntimeEligible(false, false, true, true, AgeChoice.Adult) &&
             !PrivateAdsReleaseContract.RuntimeEligible(false, false, false, false, AgeChoice.Adult));
-        Check("current_public_path_false_without_resource_read", () =>
+        Check("approved_source_is_adult_only", () => AdRequestPolicy.ProductionAdsEnabled &&
+            AgeTreatmentPolicy.RegionalConsentReviewed && !AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
+            Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>().All(age =>
+                AgeTreatmentPolicy.IsReviewed(age) == (age == AgeChoice.Adult)) &&
+            !AgeTreatmentPolicy.IsReviewed((AgeChoice)99));
+        Check("batch_context_closed_without_resource_or_jni_read", () =>
+            !PrivateAdsReleaseContract.CanInspectProductionContext(AgeChoice.Adult) &&
+            !PrivateAdsReleaseContract.AllowsCurrentAndroidRelease("synthetic", AgeChoice.Adult) &&
             !PrivateAdsReleaseContract.AllowsAdultRelease("com.synthetic.contract", "synthetic", "synthetic", AgeChoice.Adult) &&
-            UnityEngine.Resources.Reads == 0 && !AdRequestPolicy.ProductionAdsEnabled);
-        Check("compiled_binding_null_and_readonly", () => {
+            UnityEngine.Resources.Reads == 0 && UnityEngine.AndroidJavaObject.Objects == 0);
+        Check("compiled_binding_readonly_rejects_unbound_fixture", () => {
             var field = typeof(PrivateAdsReleaseContract).GetField("ApprovedRelease", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-            return field != null && field.IsInitOnly && field.GetValue(null) == null; });
+            return field != null && field.IsInitOnly && field.GetValue(null) is PrivateAdsReleaseContract.Binding binding &&
+                !PrivateAdsReleaseContract.TryRead(original, binding, out _); });
         Console.WriteLine(JsonConvert.SerializeObject(new { checks = results, failed = results.Count(p => !p.Value),
-            actualUnityBuilds = 0, sdkCalls = 0, privateApprovalRecordsModified = 0, binaryVerified = false }));
+            fixtureContext = "synthetic_parser_and_batch_blocked_approved_source", jniObjects = UnityEngine.AndroidJavaObject.Objects,
+            resourceReads = UnityEngine.Resources.Reads, actualUnityBuilds = 0, sdkCalls = 0,
+            privateApprovalRecordsModified = 0, binaryVerified = false }));
         return results.All(p => p.Value) ? 0 : 1;
     }
 }

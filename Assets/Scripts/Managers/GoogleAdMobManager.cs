@@ -408,7 +408,7 @@ namespace AD
             if (_subscribed || _destroyed) return;
             SubscribeToSceneChanges();
             // Each app-owned manager starts with a fresh gate, never saved consent.
-            // Regional review currently blocks this before any SDK operation.
+            // Age, context and release review must allow consent before any SDK operation.
             // Consent completion alone never initializes Mobile Ads or loads an ad.
             BeginConsent(false);
         }
@@ -477,7 +477,7 @@ namespace AD
             discarded?.Invoke();
         }
 
-        /// <summary>Explicit requests only. The reviewed release environment remains disabled.</summary>
+        /// <summary>Explicit requests only; release binding, UMP and entitlement gates still apply.</summary>
         public void LoadRewardedAd()
         {
             if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy) return;
