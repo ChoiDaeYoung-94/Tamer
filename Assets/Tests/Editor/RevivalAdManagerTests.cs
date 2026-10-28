@@ -31,6 +31,9 @@ public class RevivalAdManagerTests
         var root = new GameObject("Revival isolated ad manager");
         SceneManager.MoveGameObjectToScene(root, testScene);
         manager = root.AddComponent(managerType);
+        // Never read or modify the Editor user's saved age. Unknown also blocks
+        // Init before UMP in an interactive Editor after adult source approval.
+        InstallAgeChoice(AgeChoice.Unknown);
     }
 
     [TearDown]
@@ -106,11 +109,10 @@ public class RevivalAdManagerTests
     [TestCase(AgeChoice.Under13)]
     [TestCase(AgeChoice.From13To15)]
     [TestCase(AgeChoice.From16To17)]
-    [TestCase(AgeChoice.Adult)]
-    public void Revival_UnreviewedRegionBlocksEveryManagerEntryBeforeSdkWork(AgeChoice age)
+    public void Revival_UnreviewedAgeBlocksEveryManagerEntryBeforeSdkWork(AgeChoice age)
     {
-        managerType.GetField("_ageSelection", InstanceMembers).SetValue(manager,
-            new LocalAgeChoice(() => LocalAgeChoice.Encode(age), _ => Assert.Fail("No persistence needed.")));
+        InstallAgeChoice(age);
+        Assert.That(AgeTreatmentPolicy.IsReviewed(age), Is.False);
         Invoke("Init");
         Invoke("LoadRewardedAd");
         Invoke("ShowPrivacyOptions");
@@ -179,8 +181,7 @@ public class RevivalAdManagerTests
     [TestCase("1|18plus")]
     public void Revival_RequiredPrivacyRemainsAccessibleWhenAdsBlockedAndInvalidatesLateReward(string age)
     {
-        managerType.GetField("_ageSelection", InstanceMembers).SetValue(manager,
-            new LocalAgeChoice(() => age, _ => { }));
+        InstallAgeChoice(LocalAgeChoice.Decode(age));
         var client = new PrivacyClient();
         var gate = new AdConsentGate(client, false, action => action());
         gate.Request(_ => { });
@@ -550,6 +551,7 @@ public class RevivalAdManagerTests
     [Test]
     public void Revival_InitSubscribesWithoutInitializingOrLoadingAds()
     {
+        Assert.That(Property<LocalAgeChoice>("AgeSelection").Value, Is.EqualTo(AgeChoice.Unknown));
         Invoke("Init");
         Invoke("Init");
 
@@ -567,6 +569,9 @@ public class RevivalAdManagerTests
         if (!Application.isBatchMode)
             Assert.Ignore("The public batch-mode request guard is verified only in a batch Editor.");
 
+        InstallAgeChoice(AgeChoice.Adult);
+        Assert.That(AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult), Is.True);
+        Invoke("Init");
         Assert.That(Property<bool>("CanRequestAds"), Is.False);
         var rewards = 0;
         var completions = 0;
@@ -691,6 +696,20 @@ public class RevivalAdManagerTests
             managerType.GetMethod("OnDestroy", InstanceMembers));
         try { destroy(); }
         finally { UnityEngine.Object.DestroyImmediate(nativeObject); }
+    }
+
+    private void InstallAgeChoice(AgeChoice age)
+    {
+        var invalidate = (Action)Delegate.CreateDelegate(typeof(Action), manager,
+            managerType.GetMethod("InvalidateAgeContext", InstanceMembers));
+        var previous = Get<LocalAgeChoice>("_ageSelection");
+        if (previous != null) previous.Changed -= invalidate;
+        var choice = new LocalAgeChoice(() => LocalAgeChoice.Encode(age),
+            _ => Assert.Fail("Manager fixtures must not persist age."));
+        // Field injection bypasses the lazy getter, so preserve its production
+        // invalidation subscription for the age-change/late-reward regression.
+        choice.Changed += invalidate;
+        managerType.GetField("_ageSelection", InstanceMembers).SetValue(manager, choice);
     }
 
     private void AssertCleared()

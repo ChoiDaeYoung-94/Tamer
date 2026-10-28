@@ -4,12 +4,21 @@ using NUnit.Framework;
 public class RevivalAdRequestPolicyTests
 {
     [Test]
-    public void Revival_ProductionAdvertisingRemainsDisabled()
+    public void Revival_ProductionAdvertisingRequiresOrdinaryAndroidReleaseContext()
     {
-        Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.False);
+        Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.True);
+        // These are pure simulated environments, never permission for this Editor.
         for (int flags = 0; flags < 32; flags++)
+        {
+#if TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS || TAMER_AD_TEST_HARNESS
+            bool expected = false;
+#else
+            bool expected = flags == 8; // Android only; all four exclusion flags clear.
+#endif
             Assert.That(AdRequestPolicy.CanRequestProductionAds((flags & 1) != 0,
-                (flags & 2) != 0, (flags & 4) != 0, (flags & 8) != 0, (flags & 16) != 0), Is.False);
+                (flags & 2) != 0, (flags & 4) != 0, (flags & 8) != 0, (flags & 16) != 0),
+                Is.EqualTo(expected), "Environment flags: " + flags);
+        }
     }
 
     [TestCase(null)]

@@ -26,7 +26,8 @@ def run_checks(output):
     refs = EDITOR / 'UnityReferenceAssemblies/unity-4.8-api'
     newtonsoft = ROOT / 'Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.dll'
     executable = output / 'contract-checks.exe'
-    sources = [SOURCE, CHECKS, 'Assets/Scripts/Advertising/AdRequestPolicy.cs', 'Assets/Scripts/Advertising/LocalAgeChoice.cs']
+    sources = [SOURCE, CHECKS, 'Assets/Scripts/Advertising/AdRequestPolicy.cs',
+               'Assets/Scripts/Advertising/LocalAgeChoice.cs', 'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs']
     lines = ['-nologo', '-langversion:9.0', '-target:exe', '-define:UNITY_ANDROID', '-out:"' + str(executable) + '"']
     lines += ['-r:"' + str(refs / name) + '"' for name in ('mscorlib.dll', 'System.dll', 'System.Core.dll')]
     lines += ['-r:"' + str(newtonsoft) + '"']
@@ -36,7 +37,7 @@ def run_checks(output):
     rsp.write_text('\n'.join(lines))
     manifest = {'sourceHead': subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD']).decode().strip(),
         'sourceSha256': {p: digest(ROOT / p) for p in sources}, 'responseSha256': digest(rsp),
-        'fixture': 'synthetic true approvals in memory only; Unity API stubs',
+        'fixture': 'tracked adult-approved source; synthetic parser bytes; batch-blocked JNI/resource counter stubs',
         'unityBuilds': 0, 'sdkCalls': 0, 'realApprovalRecordsModified': 0}
     (output / 'manifest.private.json').write_text(json.dumps(manifest, indent=2))
     command = [str(EDITOR / 'netcorerun/netcorerun.exe'), str(EDITOR / 'DotNetSdkRoslyn/csc.dll'), '@' + str(rsp)]

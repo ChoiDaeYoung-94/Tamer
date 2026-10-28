@@ -66,11 +66,37 @@ public class RevivalAgeChoiceTests
     }
 
     [Test]
-    public void Revival_AgeChoiceIsNotRegionalConsentOrProductionPermission()
+    public void Revival_ReviewedReleaseIsAdultOnlyAndPrivacyEnvironmentRemainsClosed()
     {
         foreach (AgeChoice choice in Enum.GetValues(typeof(AgeChoice)))
-            Assert.That(AgeTreatmentPolicy.IsReviewed(choice), Is.False);
-        Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.False);
+            Assert.That(AgeTreatmentPolicy.IsReviewed(choice), Is.EqualTo(choice == AgeChoice.Adult));
+        Assert.That(AgeTreatmentPolicy.IsReviewed((AgeChoice)999), Is.False);
+        Assert.That(AgeTreatmentPolicy.RegionalConsentReviewed, Is.True);
+        Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.True);
+        Assert.That(AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed, Is.False);
+    }
+
+    private sealed class UnstartedConsentClient : IAdConsentClient
+    {
+        public bool CanRequestAds => true; // Even a cached SDK permission is insufficient.
+        public bool PrivacyOptionsRequired => false;
+        public void Update(bool underAge, Action<bool> done) => Assert.Fail("Age alone must not update consent.");
+        public void Gather(Action<bool> done) => Assert.Fail("Age alone must not gather consent.");
+        public void ShowPrivacyOptions(Action<bool> done) => Assert.Fail("Age alone must not open a form.");
+    }
+
+    [Test]
+    public void Revival_SelfReportedAdultAndSourceApprovalDoNotGrantConsent()
+    {
+        var choice = new LocalAgeChoice(() => "1|18plus", _ => Assert.Fail("Reading must not write."));
+        Assert.That(choice.HasAge, Is.True);
+        Assert.That(AgeTreatmentPolicy.IsReviewed(choice.Value), Is.True);
+        Assert.That(AgeTreatmentPolicy.TryCreatePlan(choice.Value, out var plan), Is.True);
+        using (var gate = new AdConsentGate(new UnstartedConsentClient(), plan.UmpUnderAgeOfConsent, a => a()))
+        {
+            Assert.That(gate.CanRequestAds, Is.False);
+            Assert.That(gate.PrivacyOptionsRequired, Is.False);
+        }
     }
 
     [TestCase(AgeChoice.Unknown, false)]
@@ -79,12 +105,12 @@ public class RevivalAgeChoiceTests
     [TestCase(AgeChoice.From16To17, false)]
     [TestCase(AgeChoice.Adult, true)]
     [TestCase(AgeChoice.Declined, false)]
-    public void Revival_FullscreenRewardedAgeGuardRequiresAdultAndDoesNotOpenReleaseGate(
+    public void Revival_FullscreenRewardedAgeGuardAndReleaseReviewRemainAdultOnly(
         AgeChoice age, bool candidate)
     {
         Assert.That(AgeTreatmentPolicy.AllowsFullscreenRewarded(age), Is.EqualTo(candidate));
-        Assert.That(AgeTreatmentPolicy.IsReviewed(age), Is.False);
-        Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.False);
+        Assert.That(AgeTreatmentPolicy.IsReviewed(age), Is.EqualTo(candidate));
+        Assert.That(AdRequestPolicy.ProductionAdsEnabled, Is.True);
     }
 
     [TestCase(AgeChoice.Under13, AdAgeTreatment.Child, true)]
@@ -96,7 +122,7 @@ public class RevivalAgeChoiceTests
         Assert.That(AgeTreatmentPolicy.TryCreatePlan(age, out var plan), Is.True);
         Assert.That(plan.Advertising, Is.EqualTo(advertising));
         Assert.That(plan.UmpUnderAgeOfConsent, Is.EqualTo(tfua));
-        Assert.That(AgeTreatmentPolicy.IsReviewed(age), Is.False);
+        Assert.That(AgeTreatmentPolicy.IsReviewed(age), Is.EqualTo(age == AgeChoice.Adult));
     }
 
     [TestCase(AgeChoice.Unknown)]
