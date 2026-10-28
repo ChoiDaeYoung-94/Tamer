@@ -142,7 +142,7 @@ if ($LASTEXITCODE -ne 0) { throw 'CLI 설치 실패' }
 
 - **Microsoft PlayFab:** 게임 계정, 닉네임과 진행도 저장·조회 및 계정 삭제 처리. [Microsoft 개인정보처리방침](https://www.microsoft.com/ko-kr/privacy/privacystatement)
 - **Google Play Games·Google Play:** 게임 인증, 스토어 구매·복원 및 Google 서비스의 계정·진단 처리. [Google 개인정보처리방침](https://policies.google.com/privacy?hl=ko)
-- **Unity IAP:** 구매 처리·권한 복원과 SDK의 구매·진단 정보 처리. [Unity 개인정보처리방침](https://unity.com/legal/privacy-policy) · [Unity IAP 데이터 처리 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)
+- **Unity IAP:** 구매 처리·권한 복원과 SDK의 구매·진단 정보 처리. [Unity 개인정보처리방침](https://unity.com/legal/privacy-policy) · [기존 버전의 IAP 안내: 5.4 미만](https://docs.unity.com/en-us/iap/privacy-and-consent/legacy-google-play-data-safety) · [새 버전 준비의 IAP 안내: 5.4 이상](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)
 - **Google AdMob·User Messaging Platform(UMP):** 광고와 광고 개인정보 선택 처리. 광고 SDK는 광고·분석·부정행위 방지를 위해 식별자·IP·상호작용·진단 정보를 처리할 수 있습니다. 실제 광고 파트너와 선택 항목은 개인정보 메시지가 실제 제공되는 버전·지역에서 확인하실 수 있으며, 아래 준비 안내의 메뉴가 현재 모든 선택 창을 제공하는 것은 아닙니다. [광고 SDK 데이터 처리 안내](https://developers.google.com/admob/android/privacy/play-data-disclosure)
 
 광고 미표시, 개인화 거부 또는 No Ads 구매가 로그인·구매·모든 SDK의 정보 처리를 중단하는 것은 아닙니다. 게임 계정 삭제와 공급자의 다른 서비스 계정·데이터 삭제도 구분됩니다.

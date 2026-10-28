@@ -24,7 +24,7 @@
 
 - PlayFab의 저장·인증 전송, IAP5.4.3의 기본/구매 경로, PGS와 광고 SDK의 처리 조건을 나눕니다. 처리자 공유 예외는 수집을 지우지 않으며, 공유 NO 근거가 없는 별도 서비스·처리 활동을 임의로 NO로 입력하지 않습니다.
 - IAP5.4+의 [공식 SDK 신고표](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)는 해당 수집 행의 공유를 No로 명시합니다. 이 공개 근거를 유지하되 앱 전체·다른 SDK의 공유 No로 확대하지 않고, 이메일 등 선택 기능의 표를 실제 native 수집 결과로 바꾸지 않습니다. [역할·보관 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)는 처리 활동별 역할을 구분하므로 native Insights 기록별 역할·보관 범주를 별도로 연결합니다. 서비스 로그90일도 모든 native 데이터의 삭제 완료 기한이 아닙니다.
-- 운영 광고 source gate는 여전히 false/null입니다. GMA25.5의 공식 수집·공유 공개는 실제 광고 허용 후보에 적용할 조건부 행입니다. Google 샘플 실행이나 일반 파트너 수만으로 실제 운영 전송을 판정하지 않습니다. 현재fullscreen 후보는 성인 범위이고9+ 대상 설정 자체가 미성년 광고 승인도 아닙니다.
+- 현재 성인 후보 소스의 production·regional·adult 승인은 true이며, 미성년3개 구간은 false·별도 개인정보 전용 환경/binding은 false/null로 유지합니다. 이는 실제 운영 SDK·제공물·동의 검증 완료가 아닙니다. GMA25.5의 공식 수집·공유 공개는 실제 광고 허용 후보에 적용할 조건부 행입니다. Google 샘플 실행이나 일반 파트너 수만으로 실제 운영 전송을 판정하지 않습니다. 현재fullscreen 후보는 성인 범위이고9+ 대상 설정 자체가 미성년 광고 승인도 아닙니다.
 - 기본 PlayFab/IAP의 HTTPS 경로와 PGS·GMA의 전송 공개는 암호화 YES 방향 근거입니다. 최종 source/config·포함 SDK·manifest·실제 제공물에 같은 범위가 들어가는지 연결한 뒤 최종 답을 확정합니다. Photon의 범용 API 선언만으로 정상 Photon 연결·미암호화 전송을 추가하지 않습니다.
 - 10월28일 source `abb8552`의 정상 앱 호출을 대조했습니다. 인증·진행 저장·앱 내 삭제는 PlayFab SDK 경로이며, [삭제 factory](../../Assets/Scripts/UI/CloudScriptDeletionClient.cs) 등록 자체가 자동 접수는 아닙니다. `Assets/Scripts`에는 Photon 연결 호출을 찾지 못했고 PlayFab의 범용 인증 토큰 API 선언을 실제 Photon 연결로 세지 않습니다.
 - 같은 작업본의 로컬 runtime 설정을 비공개로 읽어 PlayFab 기본 URL 사용(HTTPS)·실시간 원격 로깅 OFF를 확인했습니다. 장치/집중 시간 수집 비활성화는 둘 다 false였습니다. URL·Title·비밀값은 공개하지 않으며 이 관측을 제공24의 설정이나 최종 player의 전체 전송 암호화·실제 수집 결과로 전용하지 않습니다.
