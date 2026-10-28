@@ -44,6 +44,8 @@ country 계약의 일치, 지역별 공개 메시지·개인정보 검토는 해
 
 ## 실제 실행을 허용할 때 필요한 근거
 
+지역 검토에는 [동적 파트너 선택의 근거와 한계](ads-release-evidence-checklist.ko.md)를 적용한다. 실제 앱·게시 메시지·배포 범위 및 Google 자동 관리 선택을 검토할 수 있으며, 파트너 전체 명단의 수동 추출만을 유일한 선행 조건으로 추가하지 않는다. 이 형식 구분은 아래 구체 승인·source binding 조건을 완화하거나 최종 업체 투명성·runtime 검증을 완료로 바꾸지 않는다.
+
 1. 사용자가 승인한 실제 inventory·배포국가·지역·성인·activation 근거를 비공개 자료로
    고정하고 서로의 정확한 해시를 검토한다. 현재 자료를 자동으로 true로 바꾸지 않는다.
 2. 해당 자료에 묶인 immutable release resource와 compiled binding을 별도 source review로
