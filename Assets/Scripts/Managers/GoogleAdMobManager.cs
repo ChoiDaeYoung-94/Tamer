@@ -33,6 +33,94 @@ namespace AD
         }
         private RewardedAd _rewardedAd;
         private RewardedAd _showingAd;
+        private AdAccountContext _requestAccount;
+        private AdAccountContext _loadedAccount;
+
+        // A receipt/request belongs to one ready account incarnation, independently
+        // of scene lifetime. Never revive it after deletion cancellation or re-login.
+        private sealed class AdAccountContext
+        {
+            private readonly Managers _owner;
+            private readonly DataManager _data;
+            private readonly string _account;
+            private readonly int _generation, _deletionEpoch;
+            private readonly bool _readyAtCapture;
+            private readonly Func<bool> _isolatedCurrent;
+
+            public AdAccountContext(Managers owner, DataManager data)
+            {
+                _owner = owner;
+                _data = data;
+                if (data == null) return;
+                _account = data.PlayFabId;
+                _generation = data.AccountGeneration;
+                _deletionEpoch = data.DeletionEpoch;
+                _readyAtCapture = data.IsServerDataReady && !data.DeletionInProgress && !data.ReceiptOnly;
+            }
+
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS || TAMER_PRIVACY_COLD_HARNESS
+            // Only exact, existing isolated harness predicates construct this path.
+            public AdAccountContext(Func<bool> isolatedCurrent) => _isolatedCurrent = isolatedCurrent;
+#endif
+
+            public bool IsCurrent => _isolatedCurrent != null
+                ? Managers.Instance == null && _isolatedCurrent()
+                : _readyAtCapture && _owner != null && _data != null &&
+                  ReferenceEquals(Managers.Instance, _owner) && ReferenceEquals(Managers.DataM, _data) &&
+                  !string.IsNullOrWhiteSpace(_account) && _data.PlayFabId == _account &&
+                  _data.AccountGeneration == _generation && _data.DeletionEpoch == _deletionEpoch &&
+                  _data.IsServerDataReady && !_data.DeletionInProgress && !_data.ReceiptOnly;
+        }
+
+        private AdAccountContext CaptureAccountContext()
+        {
+            if (Managers.Instance != null)
+            {
+                var account = new AdAccountContext(Managers.Instance, Managers.DataM);
+                return account.IsCurrent ? account : null;
+            }
+#if UNITY_EDITOR || TAMER_AD_SAMPLE_CLOSE_HARNESS
+            if (IsSampleHarness) return new AdAccountContext(() => IsSampleHarness);
+#endif
+#if TAMER_PRIVACY_COLD_HARNESS
+            // Preserve synthetic No Ads in the existing exact privacy-only package.
+            // Do not use NativePrivacyColdContextAllowed after _session is assigned:
+            // that admission property also requires no presentation to exist.
+            if (_nativePrivacyColdConfigured && NativePrivacyColdContextAllowed)
+                return new AdAccountContext(() => _nativePrivacyColdConfigured && !_destroyed &&
+                    !AdRequestPolicy.ProductionAdsEnabled && AgeTreatmentPolicy.NativePrivacyHarnessReviewsDisabled &&
+                    AgeTreatmentPolicy.NativePrivacyHarnessContextAllowed(Application.isEditor,
+                        Application.platform == RuntimePlatform.Android, Debug.isDebugBuild,
+                        Application.isBatchMode, Application.identifier, UnitySceneManager.GetActiveScene().path,
+                        Managers.Instance != null));
+#endif
+            // Ordinary production without Managers/DataM is always fail-closed.
+            return null;
+        }
+
+        private void InvalidateAccountContext()
+        {
+            ++_loadVersion;
+            _requestAccount = null;
+            _loading = _initializing = _initialized = false;
+            _session?.Invalidate(); // Never release fullscreen/audio here.
+            AdConsentGate.SuspendAndRetainPrivacy(ref _consent, ref _privacyConsent);
+            DestroyLoadedAd();
+        }
+
+        private void InvalidateStaleAccountContext()
+        {
+            if ((_requestAccount != null && !_requestAccount.IsCurrent) ||
+                (_loadedAccount != null && !_loadedAccount.IsCurrent)) InvalidateAccountContext();
+        }
+
+        private bool IsAccountOperationCurrent(int version, AdAccountContext account)
+        {
+            if (_destroyed || version != _loadVersion) return false;
+            if (account != null && ReferenceEquals(_requestAccount, account) && account.IsCurrent) return true;
+            InvalidateAccountContext();
+            return false;
+        }
         private RewardedAdSession _session;
         private RewardedAdSession _closingSession;
         private Action _resumeBgm;
@@ -383,7 +471,7 @@ namespace AD
             AdRequestPolicy.TrySelectRewardedAdUnit(IsTestAdEnvironment, IsProductionAdEnvironment,
                 Application.platform == RuntimePlatform.IPhonePlayer, _productionRewardedAdUnit, out adUnit);
 
-        public bool CanRequestAds => !HasNoAds && CanBeginConsent && CanUseRewardedFormat &&
+        public bool CanRequestAds => !HasNoAds && CaptureAccountContext() != null && CanBeginConsent && CanUseRewardedFormat &&
             TryGetRewardedAdUnit(out _);
 
         public bool HasNoAds
@@ -422,6 +510,9 @@ namespace AD
 
         private void Update()
         {
+            // Check before draining callbacks. Each operation also checks directly,
+            // so a synchronous/reentrant completion cannot outrun the next Update.
+            InvalidateStaleAccountContext();
             while (TryDequeue(out var callback))
             {
                 try
@@ -480,6 +571,7 @@ namespace AD
         /// <summary>Explicit requests only; release binding, UMP and entitlement gates still apply.</summary>
         public void LoadRewardedAd()
         {
+            InvalidateStaleAccountContext();
             if (_destroyed || !CanRequestAds || IsInProgress || _loading || _initializing || IsConsentBusy) return;
             SubscribeToSceneChanges();
             BeginConsent(true);
@@ -489,6 +581,10 @@ namespace AD
         {
             if (_destroyed || !CanBeginConsent || IsInProgress || _loading || _initializing || IsConsentBusy ||
                 !AgeTreatmentPolicy.TryCreatePlan(ConsentAge, out var plan)) return;
+            // Startup consent(false) may run before login. Only an actual ad request
+            // requires a ready account and retains its exact incarnation.
+            var account = loadAfterConsent ? CaptureAccountContext() : null;
+            if (loadAfterConsent && account == null) return;
             if (_consent != null && _consent.IsPrivacyOnly)
             {
                 // Both native owners have settled (IsConsentBusy above). Keep one
@@ -496,6 +592,7 @@ namespace AD
                 AdConsentGate.SuspendAndRetainPrivacy(ref _consent, ref _privacyConsent);
             }
             int version = ++_loadVersion;
+            _requestAccount = account;
             _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
             _initializing = true;
             if (_consent == null)
@@ -511,7 +608,14 @@ namespace AD
                         client = new GoogleUmpConsentClient(_sampleHarnessGeography, _sampleHarnessDeviceHash);
 #endif
                     _consent = new AdConsentGate(client, plan.UmpUnderAgeOfConsent,
-                        callback => Enqueue(callback), name => TraceHarness(name));
+                        callback => Enqueue(() =>
+                        {
+                            // A gate created by pre-login consent can later service
+                            // a bound load request. Inspect the current request here,
+                            // before a late Update callback could start Gather.
+                            InvalidateStaleAccountContext();
+                            callback();
+                        }), name => TraceHarness(name));
                 }
                 catch (Exception)
                 {
@@ -522,14 +626,15 @@ namespace AD
             _consent.Request(allowed =>
             {
                 if (_destroyed || version != _loadVersion) return;
+                if (loadAfterConsent && !IsAccountOperationCurrent(version, account)) return;
                 if (!allowed || !loadAfterConsent || !CanRequestAds) { _initializing = false; return; }
                 _loadDeadline = Time.realtimeSinceStartup + LoadTimeoutSeconds;
                 if (_initialized)
                 {
                     _initializing = false;
-                    LoadConfiguredAd(version);
+                    LoadConfiguredAd(version, account);
                 }
-                else InitializeConfiguredSdk(version);
+                else InitializeConfiguredSdk(version, account);
             });
         }
 
@@ -548,9 +653,10 @@ namespace AD
             return new RequestConfiguration { AgeRestrictedTreatment = treatment, MaxAdContentRating = MaxAdContentRating.G };
         }
 
-        private void InitializeConfiguredSdk(int version)
+        private void InitializeConfiguredSdk(int version, AdAccountContext account)
         {
-            if (_destroyed || version != _loadVersion || !CanRequestAds ||
+            if (!IsAccountOperationCurrent(version, account)) return;
+            if (!CanRequestAds ||
                 _consent == null || !_consent.CanRequestAds)
             { _initializing = false; return; }
             try
@@ -559,13 +665,7 @@ namespace AD
                 MobileAds.Initialize(status =>
                 {
                     TraceHarness("initialize_callback");
-                    Enqueue(() =>
-                    {
-                        if (version != _loadVersion) return;
-                        _initializing = false;
-                        _initialized = status != null;
-                        if (_initialized && _consent.CanRequestAds && CanRequestAds) LoadConfiguredAd(version);
-                    });
+                    Enqueue(() => FinishInitialization(version, account, status != null));
                 });
             }
             catch (Exception)
@@ -575,8 +675,18 @@ namespace AD
             }
         }
 
-        private void LoadConfiguredAd(int version)
+        private void FinishInitialization(int version, AdAccountContext account, bool initialized)
         {
+            if (!IsAccountOperationCurrent(version, account)) return;
+            _initializing = false;
+            _initialized = initialized;
+            if (_initialized && _consent != null && _consent.CanRequestAds && CanRequestAds)
+                LoadConfiguredAd(version, account);
+        }
+
+        private void LoadConfiguredAd(int version, AdAccountContext account)
+        {
+            if (!IsAccountOperationCurrent(version, account)) return;
             if (!CanRequestAds || _consent == null || !_consent.CanRequestAds ||
                 !TryGetRewardedAdUnit(out var adUnit))
             { _initializing = false; return; }
@@ -589,22 +699,7 @@ namespace AD
                 RewardedAd.Load(adUnit, new AdRequest(), (ad, error) =>
                 {
                     TraceHarness(error == null && ad != null ? "load_callback_ok" : "load_callback_failed");
-                    Enqueue(() =>
-                    {
-                        if (version != _loadVersion)
-                        {
-                            ad?.Destroy();
-                            return;
-                        }
-                        _loading = false;
-                        if (error != null || ad == null)
-                        {
-                            ad?.Destroy();
-                            DebugLogger.LogError("GoogleAdMobManager", "Rewarded ad unavailable; retry manually.");
-                            return;
-                        }
-                        _rewardedAd = ad;
-                    }, () => ad?.Destroy());
+                    Enqueue(() => FinishLoad(version, account, ad, error), () => ad?.Destroy());
                 });
             }
             catch (Exception)
@@ -614,20 +709,44 @@ namespace AD
             }
         }
 
+        private void FinishLoad(int version, AdAccountContext account, RewardedAd ad, LoadAdError error)
+        {
+            if (!IsAccountOperationCurrent(version, account)) { ad?.Destroy(); return; }
+            _loading = false;
+            if (!CanRequestAds || _consent == null || !_consent.CanRequestAds)
+            { ad?.Destroy(); return; }
+            if (error != null || ad == null)
+            {
+                ad?.Destroy();
+                DebugLogger.LogError("GoogleAdMobManager", "Rewarded ad unavailable; retry manually.");
+                return;
+            }
+            _rewardedAd = ad;
+            _loadedAccount = account;
+        }
+
         /// <summary>The caller supplies the reward, never the scene active at callback time.</summary>
         public bool ShowRewardedAd(MonoBehaviour owner, Action reward, Action<RewardedAdOutcome> finished)
         {
             if (_destroyed || IsInProgress || owner == null || reward == null || finished == null) return false;
+            InvalidateStaleAccountContext();
+            if (CaptureAccountContext() == null)
+            {
+                // Readiness is independent of age/UMP and the cached entitlement.
+                finished(RewardedAdOutcome.PolicyBlocked);
+                return true;
+            }
             Init();
             var session = CreateSession(owner, reward, finished);
-            _session = session;
 
             if (HasNoAds)
             {
+                _session = session;
                 session.EarnReward();
                 CompleteSession(session, RewardedAdOutcome.Cancelled);
                 return true;
             }
+            _session = session;
             if (!CanRequestAds)
             {
                 CompleteSession(session, RewardedAdOutcome.PolicyBlocked);
@@ -641,7 +760,7 @@ namespace AD
                 return true;
             }
             bool canShow;
-            try { canShow = _rewardedAd != null && _rewardedAd.CanShowAd(); }
+            try { canShow = _rewardedAd != null && _loadedAccount != null && _loadedAccount.IsCurrent && _rewardedAd.CanShowAd(); }
             catch (Exception)
             {
                 try { DestroyLoadedAd(); }
@@ -657,6 +776,7 @@ namespace AD
 
             var ad = _rewardedAd;
             _rewardedAd = null;
+            _loadedAccount = null;
             _showingAd = ad;
 #if UNITY_EDITOR || TAMER_AD_TEST_HARNESS
             ad.OnAdFullScreenContentOpened += () => TraceHarness("opened_callback");
@@ -725,8 +845,9 @@ namespace AD
         {
             int sceneHandle = UnitySceneManager.GetActiveScene().handle;
             int sceneVersion = _sceneVersion;
+            var account = CaptureAccountContext();
             return new RewardedAdSession(
-                () => !_destroyed && owner != null && _sceneVersion == sceneVersion &&
+                () => !_destroyed && account != null && account.IsCurrent && owner != null && _sceneVersion == sceneVersion &&
                     UnitySceneManager.GetActiveScene().handle == sceneHandle,
                 reward, finished);
         }
@@ -743,6 +864,7 @@ namespace AD
         {
             var ad = _rewardedAd;
             _rewardedAd = null;
+            _loadedAccount = null;
             ad?.Destroy();
         }
 
