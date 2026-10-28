@@ -37,6 +37,8 @@
 
 IAP5.0.1에는 [5.4 미만 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/legacy-overview)와 [해당 Data safety 표](https://docs.unity.com/en-us/iap/privacy-and-consent/legacy-google-play-data-safety)를 적용합니다. 개인정보 없음·상위 수집/공유 No 안내와 함께, 상세 표의 진단·기타 앱 성능은 수집 Yes/공유 No·필수·일시 처리·앱 기능으로 설명된다는 점을 보존합니다. 이를 무통신으로 축약하거나5.4+ 기본 식별자·구매/진단·90일 보관 설명을 복사하지 않습니다. 현행 GMA 공개표도23.2의 같은 버전 처리 확정 자료는 아닙니다.
 
+현재5.4.3의 [native 소스 경로 대조](iap-native-dataflow-20261028.ko.md)에서는 native Connect·별도 UGS 초기화·identity/cache·구매 Insights의 조건을 구분했습니다. pinned Core의 진단 API no-op을 별도 구매 전송까지 확대하지 않으며, 공식 SDK 표를 개별 실행의 실제 필드/수신 실적으로 바꾸지 않습니다.
+
 1. 제공 중인24번의 SDK·기능과 최종 후보의 공급자/동의/수집 범위를 합쳐 실제 해당 유형을 확정합니다.
 2. 유형별 필수/선택·목적·일시 처리·공유 역할과 전체 전송 암호화의 근거를 연결합니다. 현재 제공하는 어느 버전/지역/이용자라도 해당 유형이 필수이면 전체를 선택 수집으로 낮추지 않으며 일시 처리도 양식에 답합니다. 미배포 후보는 배포 준비 대상으로 구분하고, 수집되지 않은 것으로 확인하지 않은 유형을 NO로 메우지 않습니다. [Google의 합집합·선택 수집 정의](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en).
 3. 기존 공개 개인정보/삭제 안내와 Console 답안을 대조한 뒤 필요한 수정·게시/제출을 합니다. 삭제는 기존 문의 주소에서14일 이내 처리하는 운영 약속을 유지하며, 접수 수락을 모든 공급자의 삭제 완료로 표현하지 않습니다.
