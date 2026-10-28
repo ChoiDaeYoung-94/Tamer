@@ -44,6 +44,8 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 10월28일에는 [성인 후보 소스·불변 private 계약](adult-candidate-source-20261028.ko.md)을 PR #466으로 통합하고 관련 Editor·순수 검증을 마쳤습니다. 현재 launcher→approved producer의 mode·preflight·영수증 경로를 읽기 대조한 범위에서 true 전환에 따른 추가 차단 결함은 발견하지 못했습니다. 고정 CLI의 Windows PE 버전 `1.0.0`을 Editor로 오인하던 판별도 수정했습니다. 이는 실제 metadata·키 사용·운영 빌드 통과가 아니며, 아래 남은 조건의 당시 이력을 대체하지 않습니다.
 
+이후 실제 standalone Python `3.12.14`의 격리 플래그와 소스 선택 규칙에 따른732파일·37,294,817 bytes를 읽기 전용으로 관측하고 SHA-256을 기록했습니다. 전체 재해시·도구 교체·설정 변경·SDK 실행은 하지 않았습니다. 이 시점 관측은 현재 인증서/원키·실 plan·metadata 명령·native identity/SDDL/immutable lock·실키 challenge/producer 검증을 대신하지 않습니다. 실제 단계에서는 검토된 동일 파일과 실행 조건을 확인해야 합니다.
+
 최종 운영 자료·지역/연령·광고 파트너/신고와 승인 source/resource, 현재 upload 인증서 역할, 새 actual build HEAD와 exact plan/source 검토를 고정해야 합니다. 10월27일 비공개 로컬 Title과 선택 approved entry의 명시 버전27을 준비했고 [개발 빌드](baseline-version27-20261027.ko.md)를 확인했지만, 운영 승인·actual plan·실키 사용의 통과 근거는 아닙니다.
 
 ## 후속: 실행 없는 metadata 준비
