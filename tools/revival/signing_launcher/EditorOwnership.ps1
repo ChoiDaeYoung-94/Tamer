@@ -5,7 +5,9 @@ function Get-LauncherEditorState {
     $root=[IO.Path]::GetFullPath($Wanted).TrimEnd('\','/')
     $owned=0;$other=0;$cli=0
     foreach($entry in $Processes){
-        if($entry.description -ceq 'unity' -and $entry.version -cmatch '^1\.0\.0-beta\.\d+$'){$cli++;continue}
+        # Windows PE metadata omits the CLI prerelease suffix on some builds.
+        # Still require the CLI description; a version alone never excludes an Editor.
+        if($entry.description -ceq 'unity' -and $entry.version -cmatch '^1\.0\.0(?:-beta\.\d+)?$'){$cli++;continue}
         if($entry.description -cne 'Unity Editor' -or $entry.version -cnotmatch '^\d+\.\d+\.\d+[abfp]\d+(?:[._-][A-Za-z0-9._-]+)?$' -or
            [string]::IsNullOrWhiteSpace($entry.command)){throw 'Unknown Unity process identity'}
         $matchesFound=[regex]::Matches($entry.command,'(?i)(?:^|\s)"?-projectPath"?\s+(?:"([^"\r\n]+)"|([^\s"]+))(?=\s|$)')
