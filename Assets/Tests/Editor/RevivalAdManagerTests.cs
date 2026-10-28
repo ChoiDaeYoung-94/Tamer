@@ -10,7 +10,8 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Exercises the manager's lifecycle with fake receipts and audio callbacks only.
-/// No Managers prefab, account initialization, or real/sample ad object is created.
+/// An inactive synthetic account bridge never runs Awake or account initialization.
+/// No account API, stored data, or real/sample ad object is used.
 /// </summary>
 public class RevivalAdManagerTests
 {
@@ -19,6 +20,11 @@ public class RevivalAdManagerTests
     private Component manager;
     private Scene previousScene;
     private Scene testScene;
+    private FieldInfo singletonField;
+    private object previousSingleton;
+    private Component bridge, data;
+    private GameObject inactiveAccountRoot;
+    private bool capturedSingleton;
 
     [SetUp]
     public void SetUp()
@@ -34,15 +40,34 @@ public class RevivalAdManagerTests
         // Never read or modify the Editor user's saved age. Unknown also blocks
         // Init before UMP in an interactive Editor after adult source approval.
         InstallAgeChoice(AgeChoice.Unknown);
+        var managersType = FindType("AD.Managers");
+        singletonField = managersType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        previousSingleton = singletonField.GetValue(null);
+        capturedSingleton = true;
+        inactiveAccountRoot = new GameObject("Revival inactive synthetic account bridge");
+        inactiveAccountRoot.SetActive(false);
+        SceneManager.MoveGameObjectToScene(inactiveAccountRoot, testScene);
+        bridge = inactiveAccountRoot.AddComponent(managersType);
+        Assert.That(singletonField.GetValue(null), Is.SameAs(previousSingleton), "No Managers.Awake.");
+        data = AddReadyData();
+        managersType.GetField("_dataM", InstanceMembers).SetValue(bridge, data);
+        singletonField.SetValue(null, bridge);
     }
 
     [TearDown]
     public void TearDown()
     {
-        if (manager != null)
-            DestroyManager();
-        if (testScene.IsValid() && testScene.isLoaded)
-            EditorSceneManager.ClosePreviewScene(testScene);
+        try
+        {
+            if (manager != null) DestroyManager();
+            if (inactiveAccountRoot != null) UnityEngine.Object.DestroyImmediate(inactiveAccountRoot);
+            if (testScene.IsValid() && testScene.isLoaded) EditorSceneManager.ClosePreviewScene(testScene);
+        }
+        finally
+        {
+            if (capturedSingleton) singletonField.SetValue(null, previousSingleton);
+            capturedSingleton = false;
+        }
     }
 
     private sealed class MissingConsentUpdate : IAdConsentClient
@@ -687,6 +712,213 @@ public class RevivalAdManagerTests
         Assert.That(Property<bool>("CanRequestAds"), Is.False);
         Assert.That(Get<bool>("_initializing"), Is.False);
         Assert.That(Get<bool>("_loading"), Is.False);
+    }
+
+    private Component AddReadyData()
+    {
+        var synthetic = inactiveAccountRoot.AddComponent(FindType("AD.DataManager"));
+        SetData(synthetic, "PlayFabId", "synthetic-a");
+        synthetic.GetType().GetField("_accountGeneration", InstanceMembers).SetValue(synthetic, 1);
+        synthetic.GetType().GetField("_localOwner", InstanceMembers).SetValue(synthetic, "synthetic-a");
+        SetData(synthetic, "IsServerDataReady", true);
+        synthetic.GetType().GetField("LocalPlayerData", InstanceMembers).SetValue(synthetic,
+            new Dictionary<string, string> { { "GooglePlay", "" } });
+        return synthetic;
+    }
+
+    private static void SetData(Component target, string property, object value) =>
+        target.GetType().GetProperty(property, InstanceMembers).SetValue(target, value);
+
+    private void ChangeAccountBoundary(string boundary)
+    {
+        // In-memory projections of real DataManager transitions; never call
+        // DeletionSession(), which reads static PlayFab account/title state.
+        switch (boundary)
+        {
+            case "deleting":
+            case "cancelled":
+                SetData(data, "DeletionEpoch", 1);
+                SetData(data, "DeletionInProgress", boundary == "deleting");
+                SetData(data, "IsServerDataReady", boundary == "cancelled");
+                break;
+            case "generation":
+                data.GetType().GetField("_accountGeneration", InstanceMembers).SetValue(data, 2);
+                break;
+            case "signed-out":
+                data.GetType().GetField("_accountGeneration", InstanceMembers).SetValue(data, 2);
+                SetData(data, "PlayFabId", "");
+                SetData(data, "IsServerDataReady", false);
+                break;
+            case "account": SetData(data, "PlayFabId", "synthetic-b"); break;
+            case "unready": SetData(data, "IsServerDataReady", false); break;
+            case "receipt-only": SetData(data, "ReceiptOnly", true); break;
+            case "replacement":
+                bridge.GetType().GetField("_dataM", InstanceMembers).SetValue(bridge, AddReadyData());
+                break;
+            default: Assert.Fail("Unknown synthetic boundary."); break;
+        }
+    }
+
+    [TestCase("deleting", TestName = "Revival_DeletionEpochBlocksClosedReceiptBeforeUpdate")]
+    [TestCase("cancelled")]
+    [TestCase("generation")]
+    [TestCase("signed-out")]
+    [TestCase("account")]
+    [TestCase("unready")]
+    [TestCase("receipt-only")]
+    [TestCase("replacement")]
+    public void Revival_AccountBoundaryBlocksClosedReceiptBeforeManagerUpdate(string boundary)
+    {
+        int rewards = 0, completions = 0;
+        var receipt = (RewardedAdSession)Invoke("CreateSession", manager,
+            (Action)(() => rewards++), (Action<RewardedAdOutcome>)(_ => completions++));
+        receipt.Complete(RewardedAdOutcome.Cancelled);
+        Assert.That(completions, Is.EqualTo(1));
+        ChangeAccountBoundary(boundary);
+        // Deliberately no Update. Owner predicate must protect direct callbacks too.
+        receipt.EarnReward();
+        Assert.That(rewards, Is.Zero);
+        Assert.That(completions, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Revival_DeletionBoundaryKeepsPresentationLockAndAudioUntilActualClose()
+    {
+        int rewards = 0, completions = 0, resumes = 0;
+        var receipt = (RewardedAdSession)Invoke("CreateSession", manager,
+            (Action)(() => rewards++), (Action<RewardedAdOutcome>)(_ => completions++));
+        Install(receipt, () => resumes++);
+        managerType.GetField("_requestAccount", InstanceMembers).SetValue(manager, Invoke("CaptureAccountContext"));
+        ChangeAccountBoundary("deleting");
+        Enqueue(receipt.EarnReward);
+        Invoke("Update");
+        Assert.That(Property<bool>("IsInProgress"), Is.True);
+        Assert.That(resumes, Is.Zero);
+        Assert.That(receipt.IsCompleted, Is.False);
+        Enqueue(() => Invoke("QueueClose", receipt));
+        Invoke("Update");
+        AssertCleared();
+        Assert.That(resumes, Is.EqualTo(1));
+        Assert.That(rewards, Is.Zero);
+        Assert.That(completions, Is.Zero);
+    }
+
+    [TestCase(AgeChoice.Unknown, false)]
+    [TestCase(AgeChoice.Declined, false)]
+    [TestCase(AgeChoice.Under13, false)]
+    [TestCase(AgeChoice.From13To15, false)]
+    [TestCase(AgeChoice.From16To17, false)]
+    [TestCase(AgeChoice.Adult, false)]
+    [TestCase(AgeChoice.Adult, true)]
+    public void Revival_ReadyNoAdsKeepsImmediateRewardIndependentOfAgeAndFailedConsent(AgeChoice age, bool editing)
+    {
+        InstallAgeChoice(age);
+        if (editing) Property<LocalAgeChoice>("AgeSelection").BeginEdit();
+        data.GetType().GetField("LocalPlayerData", InstanceMembers).SetValue(data,
+            new Dictionary<string, string> { { "GooglePlay", "ProductNoAds" } });
+        // Skip startup Init's UMP entry even in an interactive adult-approved Editor.
+        managerType.GetField("_subscribed", InstanceMembers).SetValue(manager, true);
+        var client = new MissingConsentUpdate();
+        var gate = new AdConsentGate(client, false, callback => callback());
+        gate.Request(_ => { });
+        client.Reply(false);
+        managerType.GetField("_consent", InstanceMembers).SetValue(manager, gate);
+        int rewards = 0, completions = 0;
+        Invoke("ShowRewardedAd", manager, (Action)(() => rewards++),
+            (Action<RewardedAdOutcome>)(result => { completions++; Assert.That(result, Is.EqualTo(RewardedAdOutcome.Rewarded)); }));
+        Assert.That(rewards, Is.EqualTo(1));
+        Assert.That(completions, Is.EqualTo(1));
+        Assert.That(Get<bool>("_initialized"), Is.False);
+        Assert.That(Get<bool>("_loading"), Is.False);
+        Assert.That(Get<object>("_rewardedAd"), Is.Null);
+    }
+
+    [TestCase("deleting")]
+    [TestCase("signed-out")]
+    [TestCase("unready")]
+    [TestCase("receipt-only")]
+    public void Revival_StaleNoAdsCacheCannotRewardUnreadyAccount(string boundary)
+    {
+        data.GetType().GetField("LocalPlayerData", InstanceMembers).SetValue(data,
+            new Dictionary<string, string> { { "GooglePlay", "ProductNoAds" } });
+        managerType.GetField("_subscribed", InstanceMembers).SetValue(manager, true);
+        ChangeAccountBoundary(boundary);
+        int rewards = 0;
+        Invoke("ShowRewardedAd", manager, (Action)(() => rewards++),
+            (Action<RewardedAdOutcome>)(result => Assert.That(result, Is.EqualTo(RewardedAdOutcome.PolicyBlocked))));
+        Assert.That(rewards, Is.Zero);
+        Assert.That(Property<bool>("HasNoAds"), Is.True, "Readiness must not erase the entitlement.");
+        AssertNoSdkActivity();
+    }
+
+    [TestCase("cancelled")]
+    [TestCase("generation")]
+    [TestCase("replacement")]
+    public void Revival_StaleInitializationCannotSetInitializedBeforeUpdate(string boundary)
+    {
+        var account = Invoke("CaptureAccountContext");
+        managerType.GetField("_requestAccount", InstanceMembers).SetValue(manager, account);
+        managerType.GetField("_initializing", InstanceMembers).SetValue(manager, true);
+        ChangeAccountBoundary(boundary);
+        Invoke("FinishInitialization", 0, account, true);
+        Assert.That(Get<bool>("_initialized"), Is.False);
+        Assert.That(Get<bool>("_initializing"), Is.False);
+        Assert.That(Get<int>("_loadVersion"), Is.EqualTo(1));
+    }
+
+    [TestCase("cancelled")]
+    [TestCase("generation")]
+    [TestCase("replacement")]
+    public void Revival_StaleLoadCompletionCannotEnterCacheBeforeUpdate(string boundary)
+    {
+        var account = Invoke("CaptureAccountContext");
+        managerType.GetField("_requestAccount", InstanceMembers).SetValue(manager, account);
+        managerType.GetField("_loading", InstanceMembers).SetValue(manager, true);
+        ChangeAccountBoundary(boundary);
+        // No native object is made. This exercises the exact callback acceptance
+        // path; destroying a non-null native ad remains source-reviewed only.
+        Invoke("FinishLoad", 0, account, null, null);
+        Assert.That(Get<bool>("_loading"), Is.False);
+        Assert.That(Get<object>("_rewardedAd"), Is.Null);
+        Assert.That(Get<object>("_loadedAccount"), Is.Null);
+        Assert.That(Get<int>("_loadVersion"), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Revival_DeletionInvalidatesPendingConsentBeforeQueuedUpdateCanGather()
+    {
+        var account = Invoke("CaptureAccountContext");
+        managerType.GetField("_requestAccount", InstanceMembers).SetValue(manager, account);
+        var client = new MissingConsentUpdate();
+        var gate = new AdConsentGate(client, false, callback => Enqueue(callback));
+        managerType.GetField("_consent", InstanceMembers).SetValue(manager, gate);
+        managerType.GetField("_initializing", InstanceMembers).SetValue(manager, true);
+        int completions = 0;
+        gate.Request(_ => completions++);
+        ChangeAccountBoundary("deleting");
+        client.Reply(true);
+        Invoke("Update");
+        // MissingConsentUpdate.Gather would fail the test if the late Update ran.
+        Assert.That(completions, Is.Zero);
+        Assert.That(gate.IsBusy, Is.False);
+        Assert.That(Get<bool>("_initializing"), Is.False);
+        Assert.That(Get<bool>("_initialized"), Is.False);
+    }
+
+    [Test]
+    public void Revival_AccountReplacementInvalidatesOldCacheBeforeNewReadyRequest()
+    {
+        // The cache owner is sufficient to exercise invalidation without creating
+        // a native ad object. Ad.Destroy behavior belongs to the pure SDK stub test.
+        var account = Invoke("CaptureAccountContext");
+        managerType.GetField("_loadedAccount", InstanceMembers).SetValue(manager, account);
+        managerType.GetField("_initialized", InstanceMembers).SetValue(manager, true);
+        ChangeAccountBoundary("replacement");
+        Invoke("InvalidateStaleAccountContext");
+        Assert.That(Get<object>("_loadedAccount"), Is.Null);
+        Assert.That(Get<bool>("_initialized"), Is.False);
+        Assert.That(Get<int>("_loadVersion"), Is.EqualTo(1));
+        Assert.That(Invoke("CaptureAccountContext"), Is.Not.Null, "Replacement is ready but cannot reuse the cache.");
     }
 
     private void DestroyManager()
