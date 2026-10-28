@@ -65,7 +65,8 @@ internal static class PrivatePrivacyReleaseContractChecks
     public static int Main()
     {
         var original = Bytes(Fixture());
-        Check("synthetic_privacy_approval_independent_of_ad_master", () => !AdRequestPolicy.ProductionAdsEnabled &&
+        Check("synthetic_privacy_approval_independent_of_ad_master", () => AdRequestPolicy.ProductionAdsEnabled &&
+            AgeTreatmentPolicy.RegionalConsentReviewed && AgeTreatmentPolicy.IsReviewed(AgeChoice.Adult) &&
             PrivatePrivacyReleaseContract.TryRead(original, Binding(original), out var c) &&
             c.Matches("com.synthetic.contract", "ca-app-pub-1111111111111111~2222222222") &&
             !c.Matches("com.other", "ca-app-pub-1111111111111111~2222222222") && !c.Matches("com.synthetic.contract", "wrong"));
@@ -89,7 +90,11 @@ internal static class PrivatePrivacyReleaseContractChecks
             var sample = Fixture(); sample["androidAppId"] = "ca-app-pub-3940256099942544~3347511713";
             var release = Fixture(); release["mode"] = "adult_only_release"; return !Read(sample) && !Read(release); });
         Check("adult_tfua_matches_existing_age_candidate", () => AgeTreatmentPolicy.TryCreatePlan(AgeChoice.Adult, out var plan) && !plan.UmpUnderAgeOfConsent);
-        Check("all_ages_disabled_before_resource_jni", () => Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>()
+        Check("all_ages_disabled_before_resource_jni", () => !AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed &&
+            !PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial &&
+            !PrivatePrivacyReleaseContract.TryReadApprovedBuildContract(original,
+                "com.synthetic.contract", "ca-app-pub-1111111111111111~2222222222") &&
+            Enum.GetValues(typeof(AgeChoice)).Cast<AgeChoice>()
             .All(age => !PrivatePrivacyReleaseContract.AllowsCurrentAndroidPrivacy(age)) &&
             UnityEngine.Resources.Reads == 0 && UnityEngine.AndroidJavaObject.Reads == 0);
         Check("immutable_binding_null", () => {

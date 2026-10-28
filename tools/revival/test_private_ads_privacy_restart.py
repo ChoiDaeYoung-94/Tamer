@@ -19,7 +19,7 @@ def run(output, context_only=False, native_context_only=False, required_owner_re
     output.parent.mkdir(parents=True, exist_ok=True)
     create_private_directory(output)
     sources = ['Assets/Scripts/Advertising/AdConsentGate.cs', 'Assets/Scripts/Advertising/LocalAgeChoice.cs',
-               'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs',
+               'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs', 'Assets/Scripts/Advertising/AdRequestPolicy.cs',
                'tools/revival/private_ads_release/PrivateAdsPrivacyRestartChecks.cs']
     exe = output / 'privacy-restart-checks.exe'
     refs = EDITOR / 'UnityReferenceAssemblies/unity-4.8-api'

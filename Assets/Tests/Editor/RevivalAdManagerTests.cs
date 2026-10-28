@@ -179,7 +179,7 @@ public class RevivalAdManagerTests
     [TestCase("1|13to15")]
     [TestCase("1|16to17")]
     [TestCase("1|18plus")]
-    public void Revival_RequiredPrivacyRemainsAccessibleWhenAdsBlockedAndInvalidatesLateReward(string age)
+    public void Revival_RequiredPrivacyRemainsAccessibleWithoutInitializingAdsAndInvalidatesLateReward(string age)
     {
         InstallAgeChoice(LocalAgeChoice.Decode(age));
         var client = new PrivacyClient();
@@ -189,7 +189,10 @@ public class RevivalAdManagerTests
         int rewards = 0;
         var receipt = CreateOwnedSession(() => rewards++);
         receipt.Complete(RewardedAdOutcome.Cancelled);
-        Assert.That(Property<bool>("CanRequestAds"), Is.False);
+        // Policy eligibility can be true for an adult in an interactive Editor;
+        // opening Required privacy must still never initialize an ad SDK/object.
+        Assert.That(Get<bool>("_initialized"), Is.False);
+        Assert.That(Get<object>("_rewardedAd"), Is.Null);
         Assert.That(Property<bool>("PrivacyOptionsRequired"), Is.True);
         Invoke("ShowPrivacyOptions");
         receipt.EarnReward();
