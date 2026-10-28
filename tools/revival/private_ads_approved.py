@@ -128,13 +128,13 @@ def preflight_approved(root, config, head, version, *, privacy_only=False):
     # Deliberately recognize only one literal, source-reviewed immutable binding.
     # A future alternate binding implementation requires a reviewed validator edit.
     require_immutable_binding(source, pins, 'ApprovedPrivacy' if privacy_only else 'ApprovedRelease')
-    settings = (root / 'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset').read_text()
+    settings = (root / 'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset').read_text(encoding='utf-8-sig')
     if re.findall(r'^\s*adMobAndroidAppId:\s*(\S+)\s*$', settings, re.M) != [contract['androidAppId']]:
         raise ValueError('Source App ID mismatch')
     manifest = ET.fromstring((root / 'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml').read_bytes())
     android = '{http://schemas.android.com/apk/res/android}'
     apps = [n.get(android + 'value') for n in manifest.iter('meta-data') if n.get(android + 'name') == 'com.google.android.gms.ads.APPLICATION_ID']
-    project = (root / 'ProjectSettings/ProjectSettings.asset').read_text()
+    project = (root / 'ProjectSettings/ProjectSettings.asset').read_text(encoding='utf-8-sig')
     identifier_headers = re.findall(r'^  applicationIdentifier:[ \t]*$', project, re.M)
     identifiers = re.findall(r'^  applicationIdentifier:[ \t]*\r?\n((?:^    [^\r\n]*\r?\n)+)', project, re.M)
     packages = [re.findall(r'^    Android:[ \t]*(\S+)[ \t]*$', block, re.M) for block in identifiers]
