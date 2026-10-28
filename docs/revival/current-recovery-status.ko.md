@@ -8,7 +8,7 @@
 
 | 작업 | 확인한 결과 | 남은 범위 |
 | --- | --- | --- |
-| Unity·복원 | 6000.3.25f1/e1dba0a9aba4, min25/target36/ARM64. 새 Library 없는 작업본 sourcecf3a519에서 Editor900/900 및 같은 소스 개발 빌드·에셋/GUID 검사 완료. [근거](cold-baseline-20261024.ko.md) | 공용 캐시까지 지운 시험은 아님. 이후 모든 main 커밋의900검사 결과로 확대하지 않음 |
+| Unity·복원 | 6000.3.25f1/e1dba0a9aba4, min25/target36/ARM64. 새 Library 없는 작업본 sourcecf3a519에서 Editor900/900 및 같은 소스 개발 빌드·에셋/GUID 검사 완료. [근거](cold-baseline-20261024.ko.md) | 공용 캐시까지 지운 시험은 아님. 이후 모든 main 커밋의900검사 결과로 확대하지 않음. #92의 [개별 에셋 권한 증빙·비공개 아카이브 운영 후속](dependencies.ko.md)은 별도 인계 대상 |
 | 핵심 코드 | 계정 소유권·저장 큐·거래 중단 복구·씬/전투 흐름 개선을 main에 통합. 장착·상점·캐릭터·포획·Game Over의 범위별 격리 Android 결과 보존. [통합·출시 준비](release-readiness-20261023.ko.md) | 최종 운영 제공판에서 필요한 통합 확인 |
 | 로그인·삭제 접수 | 원래 안내문 중복 수정, 합성 접수→원래 종료→다음 프로세스 Login 자동인증 보류→명시 C 계정의 빈 상태/상점 표시 확인. [정확한 범위](deletion-shop-login-20261024.ko.md) | 실제 운영 인증·제공판 확인. 접수 수락을 공급자 전체 삭제 완료로 표현하지 않음 |
 | 구매·No Ads | 시험32의 기존 영수증 Verified와 재인증/재시작 No Ads 유지 근거 보존. 상품과 기존 권한 유지 | 새 운영 후보·계정 삭제 후 복원 등 별도 범위. 검증을 위해 같은 구매 복원을 반복하지 않음 |
@@ -18,7 +18,7 @@
 | 광고 SDK 갱신 | GMA Unity11.6/Standard Android25.5·UMP4 유지. source71fee의58/58, source5978의격리8/8와 같은 APK의 LD 실제 init/load/show/보상1·종료1/BGM 복귀. [정확한 범위](gma-116-20261026.ko.md) | 추가 strict RELRO end-modulo3건 미충족·별도 bounded layout 통과. 운영 publisher/스토어·실제ARM64 16KB는 별도 |
 | 운영 빌드 입력·개발27 | entry별 입력 검사와 두 approved 경로의 로그인 snapshot/imported Title/PGS guard 통합. 비공개 로컬 Title 준비, 현행 기준27·source12218e9 개발 APK 실제 빌드/기본 정적 검사·보호59개 복구 완료. [근거](baseline-version27-20261027.ko.md) | 추가 strict RELRO 끝 정렬2개 실패·이전 동일 binary. 최신 Console 최대값·운영 source 승인·실제 키/운영 AAB·실제16KB는 별도 |
 | 개발 진단 로그 | [컴파일 조건 수정](development-logging-20261026.ko.md)·C#6조건·source6db37d5의 Unity Pool7/7, 보호59개 복원 | 일반 release 호출 생략 유지. 새 Android player·과거 로그인 장애 전체 원인 해결로 확대하지 않음 |
-| 개인정보 신고 준비 | [후보 기술표](data-safety-candidate-20261026.ko.md), 보관24/후보 IAP 버전별 공식 안내·[native 초기화/Insights 조건](iap-native-dataflow-20261028.ko.md), 운영 PlayFab 장치/집중시간/IP 저장ON 읽기 | 정적 구성과 실제 수집/서버 보관을 구분. 최종 제공판 합집합·공유/보관/암호화·Console/공개 안내 대조와 실제 후보 연결은 별도 |
+| 개인정보 신고 준비 | [후보 기술표](data-safety-candidate-20261026.ko.md), 보관24/후보 IAP 버전별 공식 안내·[native 초기화/Insights 조건](iap-native-dataflow-20261028.ko.md), 운영 PlayFab 장치/집중시간/IP 저장ON 읽기. 10/28 정상 호출·로컬 기본HTTPS/원격 로그OFF 대조 | 정적 구성과 실제 수집/서버 보관을 구분. 최종 제공판 합집합·공유/보관/암호화·Console/공개 안내 대조와 실제 후보 연결은 별도 |
 | 권한·CI | 저장소 소유자1·main 보호/Actions 비활성,10/26 연결 도구의 소유자 앱 전체 저장소 선택/Tamer 포함과 계정 인가 목록 읽기 후속. [범위](access-security.ko.md) | 설치 개별 권한·미사용 인가의 필요성 후속은 비공개 인계. 새 권한·회수·CI 실행 없음 |
 | README·공개 안내 | 게임 이미지·기존 플레이 영상·Play 링크·개인정보처리방침·삭제 문의 안내 유지 | 최종 제공판에 맞춘 공개 안내/Console 신고 대조와 복구 결산 |
 | 최종 출시·정리 | AAB 입력 고정/서명·버전 검증 도구 준비, 완료 PR 브랜치 정리 | 운영 자료·서명/번호 확정→운영 AAB→사용자 수동 업로드→제공물/필요 기기·스토어 확인→시험 자원 정리→저장소 `tamer` 변경 |
