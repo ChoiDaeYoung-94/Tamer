@@ -4,6 +4,8 @@
 
 최초 계획 전체에서 남은 작업과 명시 보류 범위는 [전체 잔여 목록](remaining-recovery-work.ko.md)에 유지합니다. 아래 다음 순서는 그 목록의 우선순위 요약입니다.
 
+[PR #473](https://github.com/ChoiDaeYoung-94/Tamer/pull/473)은 같은 씬의 삭제·로그아웃 경계 뒤 늦은 광고 보상을 차단합니다. 계정/generation/삭제 epoch를 보상·광고 요청/캐시에 묶고 정상 No Ads 우선 보상을 유지합니다. 기존 소스의 실패1건 재현 뒤 source8390508+runtime delta의 비배치 Editor82건 중81통과·실패0·배치전용1skip, 소유Editor 종료/설정·폰트40원래bytes 복원을 확인했습니다. 옛 어셈블리로 실행한 중간 실패는 별도 보존하며 실제 SDK·운영 AAB 결과로 계산하지 않습니다. 앞서 생성한 fb13fa4 plan/source-review는 이 수정 전 소스여서 실행 보류·superseded하고 원문/old branch·snapshot을 보존합니다. 수정 소스의 새 actual plan/metadata·현재 Console/cert·실키·운영 AAB는 아직 없습니다.
+
 ## 현재 확인한 범위
 
 | 작업 | 확인한 결과 | 남은 범위 |

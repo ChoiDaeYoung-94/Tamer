@@ -52,6 +52,8 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 최종 운영 자료·지역/연령·광고 파트너/신고와 승인 source/resource, 현재 upload 인증서 역할, 새 actual build HEAD와 exact plan/source 검토를 고정해야 합니다. 10월27일 비공개 로컬 Title과 선택 approved entry의 명시 버전27을 준비했고 [개발 빌드](baseline-version27-20261027.ko.md)를 확인했지만, 운영 승인·actual plan·실키 사용의 통과 근거는 아닙니다.
 
+이후 PR473의 광고 계정 수명 수정으로 위 fb13fa4 plan/source-review는 실행 보류·superseded했습니다. 원래 자료를 보존하며 새 소스에서 현재 Console/cert와 연결한 exact plan/source-review를 다시 준비해야 합니다. 옛 metadata나 새 예산으로 자동 전용하지 않습니다.
+
 ## 후속: 실행 없는 metadata 준비
 
 `prepare_binding.py`는 검토가 끝난 기존 plan/source-review·현재 cert·키 소유권의 독립 근거를 받아 기존25필드 binding과6-source manifest를 조립합니다. 준비기 자체의 source와 exact helper·runtime·파일 식별/ACL/SHA를 확인하며 두 검토 bool은 기본 false입니다. 근거 파일 존재만으로 승인을 만들거나 옛15필드 binding을 변환하지 않습니다. [인수와 경계](../../tools/revival/signing_launcher/README.ko.md)의 placeholder로 실행하지 않습니다.
