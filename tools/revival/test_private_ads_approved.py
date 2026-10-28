@@ -83,6 +83,9 @@ class ApprovedModeTests(unittest.TestCase):
 
     def test_package_validation_uses_application_identifier_section(self):
         value = fixture()
+        original_read = Path.read_text
+        def legacy_locale_read(path, encoding=None, errors=None, **kwargs):
+            return original_read(path, encoding=encoding or 'cp949', errors=errors, **kwargs)
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp).resolve()
             config = root / 'synthetic.json'; config.write_text(json.dumps(value))
@@ -95,17 +98,18 @@ class ApprovedModeTests(unittest.TestCase):
                     '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application>'
                     '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="' + value['androidAppId'] + '"/></application></manifest>'}
             for name, content in contents.items():
-                path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(content)
+                path = root / name; path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('# 한글 설정\n' + content if name.endswith('.asset') else content, encoding='utf-8-sig')
             project = root / 'ProjectSettings/ProjectSettings.asset'; project.parent.mkdir()
             valid = '  applicationIdentifier:\n    Android: com.synthetic.contract\n'
             unrelated = '  icons:\n    Android: icon-value\n  settings:\n    Android: quality-value\n'
-            with patch.object(base, 'preflight'), patch.object(approved, 'require_disabled_declaration'), patch.object(approved, 'require_immutable_binding'):
-                project.write_text(unrelated + valid + '  nextSetting: 1\n')
+            with patch.object(base, 'preflight'), patch.object(approved, 'require_disabled_declaration'), patch.object(approved, 'require_immutable_binding'), patch.object(Path, 'read_text', new=legacy_locale_read):
+                project.write_text('# 한글 설정\n' + unrelated + valid + '  nextSetting: 1\n', encoding='utf-8-sig')
                 self.assertTrue(approved.preflight_approved(root, config, 'a' * 40, 'synthetic')['approvedSourceContractValid'])
                 for section in ('', valid.replace('com.synthetic.contract', 'com.synthetic.other'), valid + valid, valid + '  applicationIdentifier:\n', '  applicationIdentifier:\n' + valid,
                                 '  applicationIdentifier:\n    Standalone: com.synthetic.contract\n',
                                 valid.replace('    Android: com.synthetic.contract', '    Android: com.synthetic.contract\n    Android: com.synthetic.contract')):
-                    project.write_text(unrelated + section + '  nextSetting: 1\n')
+                    project.write_text('# 한글 설정\n' + unrelated + section + '  nextSetting: 1\n', encoding='utf-8-sig')
                     with self.assertRaises(ValueError):
                         approved.preflight_approved(root, config, 'a' * 40, 'synthetic')
 
