@@ -19,7 +19,7 @@
 | 운영 빌드 입력·개발27 | entry별 입력 검사와 두 approved 경로의 로그인 snapshot/imported Title/PGS guard 통합. 비공개 로컬 Title 준비, 현행 기준27·source12218e9 개발 APK 실제 빌드/기본 정적 검사·보호59개 복구 완료. [근거](baseline-version27-20261027.ko.md) | 추가 strict RELRO 끝 정렬2개 실패·이전 동일 binary. 최신 Console 최대값·운영 source 승인·실제 키/운영 AAB·실제16KB는 별도 |
 | 개발 진단 로그 | [컴파일 조건 수정](development-logging-20261026.ko.md)·C#6조건·source6db37d5의 Unity Pool7/7, 보호59개 복원 | 일반 release 호출 생략 유지. 새 Android player·과거 로그인 장애 전체 원인 해결로 확대하지 않음 |
 | 개인정보 신고 준비 | [후보 기술표](data-safety-candidate-20261026.ko.md), 보관24/후보 IAP 버전별 공식 안내·[native 초기화/Insights 조건](iap-native-dataflow-20261028.ko.md), 운영 PlayFab 장치/집중시간/IP 저장ON 읽기. 10/28 정상 호출·로컬 기본HTTPS/원격 로그OFF 대조 | 정적 구성과 실제 수집/서버 보관을 구분. 최종 제공판 합집합·공유/보관/암호화·Console/공개 안내 대조와 실제 후보 연결은 별도 |
-| 성인 후보 소스·검증 | [PR #466](https://github.com/ChoiDaeYoung-94/Tamer/pull/466) 통합. 비배치 Editor 113통과·실패0·배치 전용1건 건너뜀, 해당 사례 별도 배치1/1통과. 개인정보 순수4모드·소유권13사례 통과, source/launcher 경로 독립 검토. [정확한 대상과 한계](adult-candidate-source-20261028.ko.md) | 실제 plan/source/runtime·현재 인증서·키 입력·운영 AAB·최종 광고/동의/스토어 확인은 별도. 별도 개인정보 전용 승인은 false/null |
+| 성인 후보 소스·검증 | [PR #466](https://github.com/ChoiDaeYoung-94/Tamer/pull/466) 통합. 비배치 Editor 113통과·실패0·배치 전용1건 건너뜀, 해당 사례 별도 배치1/1통과. 개인정보 순수4모드·소유권13사례 통과, source/launcher 경로 독립 검토. [정확한 대상과 한계](adult-candidate-source-20261028.ko.md) | 비실행 plan/source-review는 아래 실제 준비 범위와 연결. 현재 Console/인증서·metadata/native pin·키 입력·운영 AAB·최종 광고/동의/스토어 확인은 별도. 별도 개인정보 전용 승인은 false/null |
 | 권한·CI | 10/28 API에서 소유자만 협업자1명·외부 쓰기 권한자0·대기 초대0 재확인. main 보호/Actions 비활성과 연결 도구의 소유자 앱 전체 저장소 선택 관측 보존. [범위](access-security.ko.md) | 공개 이슈/PR 작성과 merge 권한은 다름. 설치 앱 개별 권한·Sourcetree 등 미사용 인가의 필요성 후속은 비공개 인계. Fork 보존, 새 권한·회수·CI 실행 없음 |
 | README·공개 안내 | 게임 이미지·기존 플레이 영상·Play 링크·개인정보처리방침·삭제 문의 안내 유지 | 최종 제공판에 맞춘 공개 안내/Console 신고 대조와 복구 결산 |
 | 최종 출시·정리 | AAB 입력 고정/서명·버전 검증 도구 준비, 완료 PR 브랜치 정리 | 운영 자료·서명/번호 확정→운영 AAB→사용자 수동 업로드→제공물/필요 기기·스토어 확인→시험 자원 정리→저장소 `tamer` 변경 |
@@ -28,14 +28,14 @@
 
 서명 도구용 Python `3.12.14`를 `-I -S -B`로 관측하고, 소스 선택 규칙에 따른732파일·37,294,817 bytes의 읽기/SHA-256을1회 기록했습니다. 이는 실제 metadata 준비 명령·plan 기반 실행 조건·native file pin/lock·현재 인증서·실키 검증의 통과가 아닙니다. 별도 [에셋 출처 인덱스](asset-source-index-20261028.ko.md)도 추가했지만 구매/취득 버전·전체 권한은 미확인으로 유지하며 에셋·manifest·비공개 분류는 바꾸지 않았습니다.
 
-10월26일 운영 Console 전체 트랙·최대code26·24제공/26미승인·인증서 역할을 읽기 확인했습니다. AdMob 유럽/미국 메시지 게시와 선택·preview·전체 catalog의 파트너 수 관측도 당시 근거로 보존합니다. 10월27일 비공개 로컬 Title과 ProjectSettings를 소비하는 approved entry의 명시 후보27을 준비했고, 개발27 빌드를 확인했습니다. legacy BuildInfo0은 별도 경로입니다. 성인 소스·private 계약은 연결·검증했으나 실제 빌드 직전에는 변경 가능한 Console 최대번호·현재 업로드 인증서 역할을 다시 읽어야 합니다. 현재 source의27을 새로 예약되거나 수락된 번호로 표현하지 않습니다. actual plan·키 사용·최종 검증과 새 운영 AAB는 아직 없습니다. [빌드 경로와 한계](operating-readiness-20261026.ko.md)를 기준으로 후속합니다.
+10월26일 운영 Console 전체 트랙·최대code26·24제공/26미승인·인증서 역할을 읽기 확인했습니다. AdMob 유럽/미국 메시지 게시와 선택·preview·전체 catalog의 파트너 수 관측도 당시 근거로 보존합니다. 10월27일 비공개 로컬 Title과 ProjectSettings를 소비하는 approved entry의 명시 후보27을 준비했고, 개발27 빌드를 확인했습니다. legacy BuildInfo0은 별도 경로입니다. 성인 소스·private 계약은 연결·검증했으나 실제 빌드 직전에는 변경 가능한 Console 최대번호·현재 업로드 인증서 역할을 다시 읽어야 합니다. 현재 source의27을 새로 예약되거나 수락된 번호로 표현하지 않습니다. 10월28일18:29 exact build HEAD `fb13fa4`의 비실행 plan을 생성했습니다. 보호7,062파일·복구 snapshot7,060개와 private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 이후 기존 시험/순수 컴파일과 실행 관련 코드 동일성·독립 검토를156개 소스 해시에 묶은 기존6필드 source-review를 준비하고 기존 검사가 수용했습니다. SDK/Assets staging/claim/암호 UI·키 복호화/실제 metadata·native pin/운영 빌드는 실행하지 않았고 producerPrepared/binaryVerified/distributable=false입니다. code27은 Console 미확인·미예약이며 현재 인증서·실키 사용·최종 검증과 새 운영 AAB는 아직 없습니다. [빌드 경로와 한계](operating-readiness-20261026.ko.md)를 기준으로 후속합니다.
 
 기존 운영 근거10파일의 정확한 경로·SHA를 다섯 계약 역할에 연결한 비실행 인덱스를 준비했습니다. `countryCodes`는 지역 차단 기능이 아닌 배포 선언 참조이며 Other는 기존 국가 원본에 별도로 보존합니다. 새 국가 결정·schema나198/199 숫자 일치 조건을 추가하지 않습니다. 동적 Google common 선택과 게시 앱·배포/예외를 기술 검토해 성인 전용 소스·불변 private binding을 연결했습니다. 업체 전수 수동 추출만을 유일한 후보 생성 조건으로 추가하지 않습니다. 전체 유효 업체/실제 메시지 전달은 미검증이며, source 연결을 정책·runtime·스토어 완료로 확대하지 않습니다.
 
 ## 다음 작업과 우선순위
 
 1. **운영 자료를 확인합니다.** 사용자 휴대폰 왕복 사진은 접수했으므로 반복 요청하지 않습니다. 확인한 Console 버전·인증서·AdMob 게시 자료를 기준으로 파트너/지역·연령 검토와 Data Safety/공개 방침의 남은 정합을 마칩니다. 기존 제품 결정을 다시 묻거나 승인 resource를 임의 활성화하지 않습니다.
-2. **고정된 운영 후보를 만듭니다.** [단일 입력 연결 도구](single-input-signing-20261027.ko.md)의 구현·합성 검증을 준비했습니다. 실제 승인 자료와 새 plan/source 검토·키 입력은 아직 남아 있으므로 이를 고정한 뒤 위 자료와 소스·키·승인 범위를 묶어 서명 AAB를 준비하고 실제 manifest/서명/버전/네이티브 검사·복구 결과를 연결합니다. 파일이 준비되기 전에 업로드를 요청하지 않습니다.
+2. **고정된 운영 후보를 만듭니다.** [단일 입력 연결 도구](single-input-signing-20261027.ko.md)의 구현·합성 검증을 준비했습니다. 비실행 plan/source-review는 준비했고 현재 Console/인증서·실제 metadata/native pin·키 입력은 남아 있으므로 이를 고정한 뒤 위 자료와 소스·키·승인 범위를 묶어 서명 AAB를 준비하고 실제 manifest/서명/버전/네이티브 검사·복구 결과를 연결합니다. 파일이 준비되기 전에 업로드를 요청하지 않습니다.
 3. **필요한 기기와 실제 제공물을 확인합니다.** 사용자 수동 업로드 이후 같은 AAB에서 나온 APK/split·앱서명·필요 기능/정책 결과를 연결합니다. 개인 폰·비밀 입력이 필요한 시점에는 준비된 대상을 안내합니다. 실제16KB 환경은 미확인이며 LD4KB·정적 검사로 대체하지 않습니다.
 4. **출시 확인 뒤 정리합니다.** 시험 PlayFab/Play 앱·불필요 branch 등은 보존 필요성과 실제 소유권을 확인해 정리하고 최종 변경 요약·README 링크·저장소 소문자 이름 전환을 마칩니다. 지금 필요한 시험 자원을 먼저 삭제하지 않습니다.
 
