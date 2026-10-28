@@ -60,6 +60,16 @@ false/null과 production prelaunch 거절을 유지한다. 실제 승인 직전�
 
 `countryCodes`는 정렬된 대문자 두 글자 문법을 검사하며 runtime에서 위치·계정 국가와 비교하지 않습니다. 공식 Play의 명시 CLDR 코드와 별도 rest-of-world는 다른 표현입니다. 기존 국가 원본에 Other 선택·묶음 범위를 그대로 보존하고 명시 코드 목록과의 관계를 설명합니다. 새 schema·국가 축소/확대·ZZ 치환은 필요하지 않습니다.
 
+## 2026-10-28 동적 파트너 선택의 검토 범위
+
+[Google 공식 안내](https://support.google.com/admob/answer/10113004?hl=en)에 따르면 common 자동 포함 선택은 Google의 common 목록 변경에 따라 갱신됩니다. 미디에이션 광고 소스 자동 추가는 별도 옵션입니다. 따라서 자동 추가 OFF를 common 목록 고정으로 해석하지 않습니다.
+
+현재 계약에는 파트너 이름·ID 명단 필드가 없습니다. 정확한 업체 명단을 수동으로 전부 추출하는 것을 후보 생성의 유일한 선행 조건으로 추가하지 않습니다. 실제 앱 연결·게시 메시지·배포 범위·선택 방식·자동 갱신 및 알려진 예외를 기존 원본과 공식 동작에 연결해 동적 관리 방식 자체를 기술 검토할 수 있습니다. 이미 확보한 inventory·국가 근거를 재작성하거나 숫자 일치를 위해 같은 조회를 반복하지 않습니다.
+
+이 검토도 실제 유효 업체 전체를 확정한 결과는 아닙니다. 다른 제품과의 선택 결합·기존 이용자 재동의·실제 사용자 파트너 페이지와 지역별 전달은 확인 범위를 따로 기록합니다. [파트너 공개·투명성에 관한 공식 안내](https://support.google.com/admob/answer/9012903?hl=en)의 책임은 유지하며 “모든 데이터가 Google에만 전달된다”고 축소하지 않습니다.
+
+수동 전수 추출을 필수조건에서 제외해도 다섯 provenance의 실제 검토·구체 적용 승인, 18필드 resource·일곱 literal binding·source gates 및 exact plan 조건은 유지합니다. 관측·일반 작업 계속 지시·해시 형식만으로 승인을 만들지 않습니다. 최종 메시지·거절/철회·No Ads·동일 Play 제공물 검증은 실제 후보 생성 이후의 별도 완료 근거입니다.
+
 로컬 Title·PGS·명시 버전27 입력 및 개발 APK/복구의 준비는 완료 근거이고 운영 source 승인·실키/AAB는 별도입니다. 과거 privacy-only code3는 Gather를 제외한 Show의 preload 경쟁이며 일반 Update→Gather의 무조건 승인 불가 근거로 확대하지 않습니다. 다음 원래 필요한 실제 후보에서 [추가 상태 계측](ump-cold-diagnosis-20261027.ko.md)을 사용하며 같은 성공 시험을 반복하지 않습니다. 실제 검토·불변 resource/binding·단일 plan이 갖춰지기 전 source false/null은 유지합니다.
 
 ## 개인정보 전용 새 owner의 승인 연결 준비
