@@ -54,6 +54,8 @@ Google은 common 목록을 갱신하며 제공업체에 여러 동의 framework 
 
 운영24의 실제 보관 AAB는 Unity6000.0.62f1/GMA Android23.2/UMP2.2/Billing8/IAP5.0.1입니다. 새 source의 Unity6000.3.25f1·IAP5.4.3·Authentication3.7.4·PlayFab SDK2.242.260805·PGS2.2.1/Games22 및 새 광고 SDK와 구분합니다. SDK 존재, 처리 조건, 실제 전송과 현재 제공판을 각각 연결해야 합니다. [Google 신고 정의](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en), [GMA 처리 안내](https://developers.google.com/admob/android/privacy/play-data-disclosure), [Unity IAP5.4+ 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety)를 기준으로 기술 초안을 정리했으며 기존 export를 그대로 새 신고로 제출하지 않습니다.
 
+10월28일 공식 문서 대조에서는 [IAP5.4 미만 표](https://docs.unity.com/en-us/iap/privacy-and-consent/legacy-google-play-data-safety)의 개인정보/상위 No와 진단·기타 성능의 필수·일시 처리 상세 행을 함께 확인했습니다. 보관24의5.0.1에 현행5.4+의 기본 식별자·비일시 구매/진단·보관기간을 적용하지 않습니다. 기존 보관 버전 원장을 재사용한 문서 대조이며, 최신 실제 제공물의 동일성이나 payload를 새로 검증한 것은 아닙니다. [버전별 후보 적용 경계](data-safety-candidate-20261026.ko.md)를 따릅니다.
+
 기존 [README 개인정보처리방침](../../README.md#개인정보처리방침)과 [앱 밖 삭제 문의](../account-deletion.ko.md)는 유지합니다. 기존 문의 메일로 운영자가14일 이내 처리하며 별도 삭제 서버·불필요 자체 보관을 추가하지 않습니다. 접수 수락·운영자 처리 목표·공급자의 전체 소거 완료는 별개입니다.
 
 ## 서명·빌드 입력에서 발견한 실제 공백
