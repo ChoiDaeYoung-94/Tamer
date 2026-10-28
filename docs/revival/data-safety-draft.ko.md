@@ -2,6 +2,12 @@
 
 2026-09-30~10-01 당시 초안·공식 근거 대조 이력을 보존하고, 2026-10-18 후보 대조를 아래에 분리했다. 이 문서는 Console 입력 준비용이며 이 문서 작업으로 저장·제출·게시하지 않았다. 개인정보처리방침 본문 후보는 [출시 수정안](privacy-policy-release-draft.ko.md)에 있다. 당시 미완료 상태나 Console 관측을 현재 구현·운영 상태로 재사용하지 않는다.
 
+## 2026-10-28 버전별 후속 — 미제출
+
+보관24의 IAP5.0.1에는 [5.4 미만 공식 표](https://docs.unity.com/en-us/iap/privacy-and-consent/legacy-google-play-data-safety)를, 새 후보5.4.3에는5.4 이상 표를 적용한다. 개인정보/상위 수집·공유No 안내와 legacy 진단·기타 성능의 필수/일시 처리 상세 행을 함께 보존한다. 현재5.4+의 기본 식별자·비일시 처리·보관기간을 구버전에 소급하지 않는다. 보관 AAB의 버전 식별과 최신 Play 제공물·실제 통신은 구분한다. [최신 후보 기술표](data-safety-candidate-20261026.ko.md).
+
+10월1일 아래에 기록한 Unity 요청 이메일은 당시 열람 이력이다.10월28일 실제 확인한 [5.4 이상 공식 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)는 처리자 지시/독립 목적 요청을 역할별 IAP 지원 양식으로 안내한다. 이전 이메일의 현재 작동 여부를 단정하거나 게임의 기존 문의 메일·14일 처리 목표를 바꾸지 않는다.
+
 ## 2026-10-20 자동 시작 설정 변경 후 대조 — 미제출
 
 [PR #389](https://github.com/ChoiDaeYoung-94/Tamer/pull/389)가 포함된 시험 AAB30의
