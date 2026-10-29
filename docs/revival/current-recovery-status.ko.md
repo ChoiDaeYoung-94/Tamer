@@ -1,14 +1,16 @@
 # Tamer 복구 현황과 다음 순서 — 2026-10-29
 
-**핵심 복구 코드와 Unity6.3 LTS 전환은 main에 반영됐으며, 최종 운영 출시는 아직 완료하지 않았습니다.** 10월26일 사용자 휴대폰 사진과 PR466/473의 범위별 검증을 보존합니다. 10월29일 사용자 재확인 지시 뒤 정상 Chrome Browser Use 연결로 운영 Monster Tamer의 전체20번들·최대code26, production24제공/26미승인과 현재 업로드 공개 인증서를 확인했습니다. 현재 인증서는 기존 검토 공개 DER와 byte 동일합니다. 앞선 Work API 거절·Windows URL 판독 중단은 당시 이력이며 Windows 도구까지 해결됐다고 확대하지 않습니다. 개발 검증과 운영·정책·스토어 완료는 구분하고 새 운영 서명 AAB는 아직 없습니다.
+**핵심 복구 코드와 Unity6.3 LTS 전환은 main에 반영됐으며, 최종 운영 출시는 아직 완료하지 않았습니다.** 10월26일 사용자 휴대폰 사진과 PR466/473의 범위별 검증을 보존합니다. 10월29일 사용자 재확인 지시 뒤 정상 Chrome Browser Use 연결로 운영 Monster Tamer의 전체20번들·최대code26, production24제공/26미승인과 현재 업로드 공개 인증서를 확인했습니다. 현재 인증서는 기존 검토 공개 DER와 byte 동일합니다. 앞선 Work API 거절·Windows URL 판독 중단은 당시 이력이며 Windows 도구까지 해결됐다고 확대하지 않습니다. 운영 후보27 AAB 생성·기본 정적검사·작업본 복구를 마쳤으며, 기능·정책·Play 제공물·스토어 확인은 남아 있습니다.
 
 최초 계획 전체에서 남은 작업과 명시 보류 범위는 [전체 잔여 목록](remaining-recovery-work.ko.md)에 유지합니다. 아래 다음 순서는 그 목록의 우선순위 요약입니다.
 
-[PR #473](https://github.com/ChoiDaeYoung-94/Tamer/pull/473)은 같은 씬의 삭제·로그아웃 경계 뒤 늦은 광고 보상을 차단합니다. 계정/generation/삭제 epoch를 보상·광고 요청/캐시에 묶고 정상 No Ads 우선 보상을 유지합니다. 기존 소스의 실패1건 재현 뒤 source8390508+runtime delta의 비배치 Editor82건 중81통과·실패0·배치전용1skip, 소유Editor 종료/설정·폰트40원래bytes 복원을 확인했습니다. 옛 어셈블리로 실행한 중간 실패는 별도 보존하며 실제 SDK·운영 AAB 결과로 계산하지 않습니다. 앞서 생성한 fb13fa4 plan/source-review는 이 수정 전 소스여서 실행 보류·superseded하고 원문/old branch·snapshot을 보존합니다. 현재 Console/cert와 수정 소스의 새 plan/source-review·실제 metadata 준비는 아래10월29일 결과로 연결했습니다. 실키 입력·운영 AAB·최종 제공물 검증은 남아 있습니다.
+[PR #473](https://github.com/ChoiDaeYoung-94/Tamer/pull/473)은 같은 씬의 삭제·로그아웃 경계 뒤 늦은 광고 보상을 차단합니다. 계정/generation/삭제 epoch를 보상·광고 요청/캐시에 묶고 정상 No Ads 우선 보상을 유지합니다. 기존 소스의 실패1건 재현 뒤 source8390508+runtime delta의 비배치 Editor82건 중81통과·실패0·배치전용1skip, 소유Editor 종료/설정·폰트40원래bytes 복원을 확인했습니다. 옛 어셈블리로 실행한 중간 실패는 별도 보존하며 실제 SDK·운영 AAB 결과로 계산하지 않습니다. 앞서 생성한 fb13fa4 plan/source-review는 이 수정 전 소스여서 실행 보류·superseded하고 원문/old branch·snapshot을 보존합니다. 현재 Console/cert와 수정 소스의 새 plan/source-review·실제 metadata 준비는 아래10월29일 결과로 연결했습니다. 실키 입력·운영 AAB와 기본 정적검사/복구는 아래 실제 결과로 연결했고 최종 제공물 검증은 남아 있습니다.
 
 10월29일 source `3c44ab1`에서 기존 approved source 사전검사를 읽기 전용으로 수용했고, 이전 검토의 빌드 도구156파일 SHA가 그대로임을 대조했습니다. Assets·tools/revival·ProjectSettings·Packages의 추적 내용은 PR473 최종head64f2e45와 같습니다. 이는 기존 시험의 입력 연결이며 새 C#/Editor·SDK 시험 결과가 아닙니다. 수정 전 plan/source-review를 재사용하거나 새 plan·실행용 source-review·metadata를 만들지 않았습니다. 이후 확인한 현재 Console/cert 근거를 수정 소스의 새 계획에 연결하는 것이 다음 단계입니다.
 
 10월29일10:17~10:23(KST), exact 후보 HEAD `eba77a66`에서 새 비실행 plan과 기존6필드 source-review를 준비하고 실제 `prepare_binding.py`의 native Collector를 통과했습니다. plan은 보호7,062파일·복구 snapshot7,060개·private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 소스 검토는 도구156파일과 PR473 실행 내용의 동일성을 기존 검증에 연결했으며 새 시험을 실행하지 않았습니다. 실제 metadata는 runtime732파일을 포함한907개 pin의 파일 식별·ACL·SHA를 확인해 기존25필드 binding과6-source manifest를 비공개 생성했습니다. Collector가 종료하며 소유 핸들을 모두 닫았으므로 실행 시 다시 확인해야 합니다. `metadataPrepared=true`이며 암호 입력·개인키 challenge·claim/producer·Assets staging·SDK/운영 빌드는 미실행, `actualBuildExecuted/binaryVerified/distributable=false`입니다. 현재 Console 최대26과 인증서를 연결했지만 후보27은 미예약이며 새 운영 AAB는 없습니다. 옛 fb13fa4 plan/source-review는 보류·superseded로 보존하고 재사용하거나 예산을 초기화하지 않았습니다.
+
+10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 build receipt에 연결했고 binary resource 독립 추출은 남아 있습니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
 
 ## 현재 확인한 범위
 
@@ -22,17 +24,17 @@
 | UMP 첫 오류 진단 | SDK privacy preload와 일반 Update→Gather의 차이 확인, 다음 필요한 후보용 선택적 ConsentStatus 계측·최소 inert/API 참조 컴파일. [범위](ump-cold-diagnosis-20261027.ko.md) | 과거 상태는 미기록이며 오류 해결·새 실제 SDK/Android 시험 통과로 계산하지 않음 |
 | 개발 APK 전달 | sourcec6b4ba1 파일의 LD 설치물·씬 왕복·자료 보존과10월26일 [사용자 휴대폰 Main/Game/ROUNDTRIP_OK 사진](phone-gameplay-observation-20261026.ko.md) 확인 완료 | 휴대폰 설치해시·기기/ABI·전체 로그는 독립 계측하지 않음. LD E73/W7·E91/W7과 사진 카운터0을 구분하며 운영 AAB 검증은 별도 |
 | 광고 SDK 갱신 | GMA Unity11.6/Standard Android25.5·UMP4 유지. source71fee의58/58, source5978의격리8/8와 같은 APK의 LD 실제 init/load/show/보상1·종료1/BGM 복귀. [정확한 범위](gma-116-20261026.ko.md) | 추가 strict RELRO end-modulo3건 미충족·별도 bounded layout 통과. 운영 publisher/스토어·실제ARM64 16KB는 별도 |
-| 운영 빌드 입력·개발27 | entry별 입력 검사와 두 approved 경로의 로그인 snapshot/imported Title/PGS guard 통합. 비공개 로컬 Title 준비, 현행 기준27·source12218e9 개발 APK 실제 빌드/기본 정적 검사·보호59개 복구 완료. [근거](baseline-version27-20261027.ko.md) | 추가 strict RELRO 끝 정렬2개 실패·이전 동일 binary. 최신 Console 최대값·운영 source 승인·실제 키/운영 AAB·실제16KB는 별도 |
+| 운영 빌드 입력·개발27 | entry별 입력 검사와 두 approved 경로의 로그인 snapshot/imported Title/PGS guard 통합. 비공개 로컬 Title 준비, 현행 기준27·source12218e9 개발 APK 실제 빌드/기본 정적 검사·보호59개 복구 완료. [근거](baseline-version27-20261027.ko.md) | 추가 strict RELRO 끝 정렬2개 실패·이전 동일 binary. 개발27 진단과 새 운영 후보27 생성·기본 정적검사를 구분. 최종 운영·Play 제공물/실제16KB는 별도 |
 | 개발 진단 로그 | [컴파일 조건 수정](development-logging-20261026.ko.md)·C#6조건·source6db37d5의 Unity Pool7/7, 보호59개 복원 | 일반 release 호출 생략 유지. 새 Android player·과거 로그인 장애 전체 원인 해결로 확대하지 않음 |
 | 개인정보 신고 준비 | [후보 기술표](data-safety-candidate-20261026.ko.md), 보관24/후보 IAP 버전별 공식 안내·[native 초기화/Insights 조건](iap-native-dataflow-20261028.ko.md), 운영 PlayFab 장치/집중시간/IP 저장ON 읽기. 10/28 정상 호출·로컬 기본HTTPS/원격 로그OFF 대조 | 정적 구성과 실제 수집/서버 보관을 구분. 최종 제공판 합집합·공유/보관/암호화·Console/공개 안내 대조와 실제 후보 연결은 별도 |
-| 성인 후보 소스·검증 | [PR #466](https://github.com/ChoiDaeYoung-94/Tamer/pull/466) 통합. 비배치 Editor 113통과·실패0·배치 전용1건 건너뜀, 해당 사례 별도 배치1/1통과. 개인정보 순수4모드·소유권13사례 통과, source/launcher 경로 독립 검토. [정확한 대상과 한계](adult-candidate-source-20261028.ko.md) | 아래 fb13fa4의 비실행 plan/source-review는 PR473 이전 준비 이력이며 실행 보류 상태. 수정 소스 eba77a66의 새 plan/source-review·현재 Console/인증서·실제 metadata 준비 완료. 실행 시 pin 재확인·키 입력·운영 AAB·최종 광고/동의/스토어 확인은 남음. 별도 개인정보 전용 승인은 false/null |
+| 성인 후보 소스·검증 | [PR #466](https://github.com/ChoiDaeYoung-94/Tamer/pull/466) 통합. 비배치 Editor 113통과·실패0·배치 전용1건 건너뜀, 해당 사례 별도 배치1/1통과. 개인정보 순수4모드·소유권13사례 통과, source/launcher 경로 독립 검토. [정확한 대상과 한계](adult-candidate-source-20261028.ko.md) | 아래 fb13fa4의 비실행 plan/source-review는 PR473 이전 준비 이력이며 실행 보류 상태. 수정 소스 eba77a66의 plan/source-review·실제 metadata와 키 challenge·운영 후보27 AAB 생성/기본 정적검사/복구 완료. 최종 광고·동의/계정·정책·Play 제공물 검증과 binary resource 독립 추출은 남음. 별도 개인정보 전용 승인은 false/null |
 | 권한·CI | 10/28 API에서 소유자만 협업자1명·외부 쓰기 권한자0·대기 초대0 재확인. main 보호/Actions 비활성과 연결 도구의 소유자 앱 전체 저장소 선택 관측 보존. [범위](access-security.ko.md) | 공개 이슈/PR 작성과 merge 권한은 다름. 설치 앱 개별 권한·Sourcetree 등 미사용 인가의 필요성 후속은 비공개 인계. Fork 보존, 새 권한·회수·CI 실행 없음 |
 | README·공개 안내 | 게임 이미지·기존 플레이 영상·Play 링크·개인정보처리방침·삭제 문의 안내 유지 | 최종 제공판에 맞춘 공개 안내/Console 신고 대조와 복구 결산 |
-| 최종 출시·정리 | AAB 입력 고정/서명·버전 검증 도구 준비, 완료 PR 브랜치 정리 | 운영 자료·서명/번호 확정→운영 AAB→사용자 수동 업로드→제공물/필요 기기·스토어 확인→시험 자원 정리→저장소 `tamer` 변경 |
+| 최종 출시·정리 | AAB 입력 고정/서명·버전 검증 도구 준비, 완료 PR 브랜치 정리 | 후보27의 남은 계약·정책 정합→준비된 파일 수동 업로드→같은 Play 제공물/필요 기능·스토어 확인→시험 자원 정리→저장소 `tamer` 변경 |
 
 ## 운영 자료·실제 입력 공백의 최신 대조
 
-서명 도구용 Python `3.12.14`를 `-I -S -B`로 관측하고, 소스 선택 규칙에 따른732파일·37,294,817 bytes의 읽기/SHA-256을1회 기록했습니다. 이는 실제 metadata 준비 명령·plan 기반 실행 조건·native file pin/lock·현재 인증서·실키 검증의 통과가 아닙니다. 별도 [에셋 출처 인덱스](asset-source-index-20261028.ko.md)도 추가했지만 구매/취득 버전·전체 권한은 미확인으로 유지하며 에셋·manifest·비공개 분류는 바꾸지 않았습니다.
+다음은10월28일까지의 비실행 관측 이력입니다. 서명 도구용 Python `3.12.14`를 `-I -S -B`로 관측하고, 소스 선택 규칙에 따른732파일·37,294,817 bytes의 읽기/SHA-256을1회 기록했습니다. 이는 실제 metadata 준비 명령·plan 기반 실행 조건·native file pin/lock·현재 인증서·실키 검증의 통과가 아닙니다. 별도 [에셋 출처 인덱스](asset-source-index-20261028.ko.md)도 추가했지만 구매/취득 버전·전체 권한은 미확인으로 유지하며 에셋·manifest·비공개 분류는 바꾸지 않았습니다.
 
 10월26일 운영 Console 전체 트랙·최대code26·24제공/26미승인·인증서 역할을 읽기 확인했습니다. AdMob 유럽/미국 메시지 게시와 선택·preview·전체 catalog의 파트너 수 관측도 당시 근거로 보존합니다. 10월27일 비공개 로컬 Title과 ProjectSettings를 소비하는 approved entry의 명시 후보27을 준비했고, 개발27 빌드를 확인했습니다. legacy BuildInfo0은 별도 경로입니다. 성인 소스·private 계약은 연결·검증했으나 실제 빌드 직전에는 변경 가능한 Console 최대번호·현재 업로드 인증서 역할을 다시 읽어야 합니다. 현재 source의27을 새로 예약되거나 수락된 번호로 표현하지 않습니다. 10월28일18:29 exact build HEAD `fb13fa4`의 비실행 plan을 생성했습니다. 보호7,062파일·복구 snapshot7,060개와 private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 이후 기존 시험/순수 컴파일과 실행 관련 코드 동일성·독립 검토를156개 소스 해시에 묶은 기존6필드 source-review를 준비하고 기존 검사가 수용했습니다. SDK/Assets staging/claim/암호 UI·키 복호화/실제 metadata·native pin/운영 빌드는 실행하지 않았고 producerPrepared/binaryVerified/distributable=false입니다. code27은 Console 미확인·미예약이며 현재 인증서·실키 사용·최종 검증과 새 운영 AAB는 아직 없습니다. [빌드 경로와 한계](operating-readiness-20261026.ko.md)를 기준으로 후속합니다.
 
@@ -43,7 +45,7 @@ Drive에 보관한 암호화 백업2쌍을 인증된 다운로드 경로로 읽�
 ## 다음 작업과 우선순위
 
 1. **운영 자료를 확인합니다.** 사용자 휴대폰 왕복 사진은 접수했으므로 반복 요청하지 않습니다. 확인한 Console 버전·인증서·AdMob 게시 자료를 기준으로 파트너/지역·연령 검토와 Data Safety/공개 방침의 남은 정합을 마칩니다. 기존 제품 결정을 다시 묻거나 승인 resource를 임의 활성화하지 않습니다.
-2. **고정된 운영 후보를 만듭니다.** [단일 입력 연결 도구](single-input-signing-20261027.ko.md)의 구현·합성 검증은 준비됐습니다. 수정 전 fb13fa4의 plan/source-review는 보존·실행 보류입니다. 수정 소스 eba77a66의 새 exact plan/source-review와 실제 metadata를 준비했으므로 Unity 인증·라이선스와 변경 가능한 Console 상태를 확인한 뒤 필요한 로컬 비밀 입력을 연결합니다. 준비 후 닫은 pin은 실제 실행 시 다시 검사합니다. 이후 같은 소스의 서명 AAB를 만들고 실제 manifest/서명/버전/네이티브 검사·복구 결과를 확인합니다. 파일이 준비되기 전에 업로드를 요청하지 않습니다.
+2. **생성한 운영 후보를 연결합니다.** [실제 후보27](operating-candidate27-20261029.ko.md)의 기존 키 challenge·서명/manifest/native 기본 검사·원상복구를 마쳤습니다. 같은 파일을 보존하고 binary resource 독립 추출과 운영 신고/공개 안내 정합을 필요한 범위로 마친 뒤 사용자 수동 업로드·같은 Play 제공물 확인으로 이어갑니다. 완료한 빌드나 같은 키 확인을 기록 목적으로 반복하지 않습니다.
 3. **필요한 기기와 실제 제공물을 확인합니다.** 사용자 수동 업로드 이후 같은 AAB에서 나온 APK/split·앱서명·필요 기능/정책 결과를 연결합니다. 개인 폰·비밀 입력이 필요한 시점에는 준비된 대상을 안내합니다. 실제16KB 환경은 미확인이며 LD4KB·정적 검사로 대체하지 않습니다.
 4. **출시 확인 뒤 정리합니다.** 시험 PlayFab/Play 앱·불필요 branch 등은 보존 필요성과 실제 소유권을 확인해 정리하고 최종 변경 요약·README 링크·저장소 소문자 이름 전환을 마칩니다. 지금 필요한 시험 자원을 먼저 삭제하지 않습니다.
 
@@ -53,7 +55,7 @@ Drive에 보관한 암호화 백업2쌍을 인증된 다운로드 경로로 읽�
 
 삭제 문의는 기존 메일로 운영자가2주 이내 직접 처리하며 별도 삭제 서버·불필요한 자체 보관을 추가하지 않습니다. 5초 닫기 추가 조사는 사용자 결정으로 보류했고 정책 통과 근거로 계산하지 않습니다. 동일 시험2회 실패 후 재승인 규칙은 제거됐으며 원인·변경 조건·실패 이력을 남기는 현재 AGENTS를 따릅니다.
 
-**사용자 할 일:** 현재 추가 조치는 없습니다. 탭·주소표시줄 선택 완료와 재확인 지시를 접수해 총괄이 운영 Console/현재 인증서를 직접 읽었으므로 같은 선택이나 화면 두 장을 다시 요청하지 않습니다. 이후 비밀 입력·수동 업로드는 준비된 대상이 있을 때 안내합니다. 같은 휴대폰 왕복·불필요한 신규 결제·없는 AAB 업로드·기존 제품 결정의 재확인을 요청하지 않으며 공유 자원 사용은 다른 총괄과 먼저 조율합니다. 현재 작업 종료 기준은 아래10월29일21시/70%입니다.
+**사용자 할 일:** 기존 키의 로컬 직접 입력은 접수해 실제 challenge와 후보 AAB 생성을 마쳤습니다. 같은 암호·탭 선택·휴대폰 왕복 사진을 다시 요청하지 않습니다. 현재 추가 입력/신규 결제/업로드 요청은 없으며, 준비된 파일의 수동 업로드는 남은 정합 검토 후 대상과 시점을 안내합니다. 공유 실행은 다른 총괄과 조율하며 오늘21시/실제 주간70% 경계 전 안전 종료 기준을 유지합니다.
 
 ## 진행률과 이력
 
