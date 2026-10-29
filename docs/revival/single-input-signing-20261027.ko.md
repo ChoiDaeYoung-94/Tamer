@@ -48,11 +48,13 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 기존 producer의 `installed_tool_inventory`로 명시된 Unity 설치의 필수7파일·144,905,976 bytes에 대해서도 잠근 읽기 핸들의 파일 ID와 SHA-256을 관측했습니다. 앞뒤 경로 metadata는 같았고 원본·설정 쓰기나 SDK 실행은 없습니다. 이는 Android 도구 전체나 공식 배포 checksum의 검증이 아니며, 실제 plan과 실행 시점의 pin 검증은 별도로 필요합니다.
 
-10월28일18:29 actual build HEAD `fb13fa4`에서 기존 producer의 비실행 prepare_plan으로 보호7,062파일/복구 snapshot7,060개·private payload9개와 설치도구7파일을 연결했습니다. 원키·CLI는 ID/hash만 포함하고 복제하지 않았으며 actual Assets/journal/claim·암호 UI·SDK 실행은 없습니다. 독립 읽기 검토와 기존 시험/순수 컴파일의 입력 동일성을156개 소스에 연결한 exact6필드 source-review도 준비해 기존 require_source_review 검사가 수용했습니다. 새 시험을 실행하거나 운영 승인/키 소유권·현재 cert·실제 metadata/native pin·AAB 성공으로 올리지 않습니다. producerPrepared/binaryVerified/distributable=false이고 code27은 현재 Console 미확인·미예약입니다.
+다음은 **PR473 수정 전 후보의 준비 이력**입니다. 10월28일18:29 actual build HEAD `fb13fa4`에서 기존 producer의 비실행 prepare_plan으로 보호7,062파일/복구 snapshot7,060개·private payload9개와 설치도구7파일을 연결했습니다. 원키·CLI는 ID/hash만 포함하고 복제하지 않았으며 actual Assets/journal/claim·암호 UI·SDK 실행은 없습니다. 독립 읽기 검토와 기존 시험/순수 컴파일의 입력 동일성을156개 소스에 연결한 exact6필드 source-review도 준비해 당시 require_source_review 검사가 수용했습니다. 이 계획은 아래 PR473 수정으로 실행 보류됐습니다. 새 시험이나 운영 승인/키 소유권·현재 cert·실제 metadata/native pin·AAB 성공 근거가 아니며 producerPrepared/binaryVerified/distributable=false, code27은 현재 Console 미확인·미예약입니다.
 
 최종 운영 자료·지역/연령·광고 파트너/신고와 승인 source/resource, 현재 upload 인증서 역할, 새 actual build HEAD와 exact plan/source 검토를 고정해야 합니다. 10월27일 비공개 로컬 Title과 선택 approved entry의 명시 버전27을 준비했고 [개발 빌드](baseline-version27-20261027.ko.md)를 확인했지만, 운영 승인·actual plan·실키 사용의 통과 근거는 아닙니다.
 
 이후 PR473의 광고 계정 수명 수정으로 위 fb13fa4 plan/source-review는 실행 보류·superseded했습니다. 원래 자료를 보존하며 새 소스에서 현재 Console/cert와 연결한 exact plan/source-review를 다시 준비해야 합니다. 옛 metadata나 새 예산으로 자동 전용하지 않습니다.
+
+10월29일 source `3c44ab1`의 approved source 사전검사와 도구156파일 SHA 대조는 수용됐고, 실행 관련 추적 내용은 PR473 최종head와 같습니다. 새 plan/source-review·현재 cert·runtime/native pin·실키·AAB는 아직 준비하지 않았습니다. 일반 `python` 명령의3.15.1과 이전 서명 준비에서 관측한 standalone3.12.14는 다른 실행 파일이므로, 실제 준비 시 검토한 절대 runtime 경로와 실행 조건을 명시해야 합니다.
 
 ## 후속: 실행 없는 metadata 준비
 
