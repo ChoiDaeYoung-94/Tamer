@@ -1,6 +1,6 @@
 # 운영 자료와 최종 후보 입력 대조 — 2026-10-26
 
-이 문서는 실제 운영 화면의 읽기 관측과 source `9ce27677e2b32e259ea6e07310ce0c9337640784`의 정적 대조입니다. **새 운영 서명 AAB는 아직 없으며, 출시·신고·정책 통과나 운영 기능 실행 완료를 뜻하지 않습니다.** checkout은 `D:/codex/worktrees/tamer-working/Tamer`입니다. SDK 자체의 실행 범위는 [별도 검증](gma-116-20261026.ko.md)을 따릅니다.
+이 문서는 실제 운영 화면의 읽기 관측과 source `9ce27677e2b32e259ea6e07310ce0c9337640784`의 정적 대조입니다. **10월29일 새 운영 후보27 AAB 생성·기본 정적검사·복구를 마쳤지만, 출시·신고·정책 통과나 운영 기능 실행 완료를 뜻하지 않습니다.** checkout은 `D:/codex/worktrees/tamer-working/Tamer`입니다. SDK 자체의 실행 범위는 [별도 검증](gma-116-20261026.ko.md)을 따릅니다.
 
 ## 2026-10-29 현재 Console·업로드 공개 인증서 재확인
 
@@ -14,13 +14,17 @@
 
 10월29일10:17~10:23(KST), exact 후보 HEAD `eba77a66`에서 새 비실행 plan과 기존6필드 source-review를 준비하고 실제 `prepare_binding.py`의 native Collector를 통과했습니다. plan은 보호7,062파일·복구 snapshot7,060개·private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 소스 검토는 도구156파일과 PR473 실행 내용의 동일성을 기존 검증에 연결했으며 새 시험을 실행하지 않았습니다. 실제 metadata는 runtime732파일을 포함한907개 pin의 파일 식별·ACL·SHA를 확인해 기존25필드 binding과6-source manifest를 비공개 생성했습니다. Collector가 종료하며 소유 핸들을 모두 닫았으므로 실행 시 다시 확인해야 합니다. `metadataPrepared=true`이며 암호 입력·개인키 challenge·claim/producer·Assets staging·SDK/운영 빌드는 미실행, `actualBuildExecuted/binaryVerified/distributable=false`입니다. 현재 Console 최대26과 인증서를 연결했지만 후보27은 미예약이며 새 운영 AAB는 없습니다. 옛 fb13fa4 plan/source-review는 보류·superseded로 보존하고 재사용하거나 예산을 초기화하지 않았습니다.
 
+## 2026-10-29 실제 운영 후보 생성·기본 검사·복구
+
+10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 build receipt에 연결했고 binary resource 독립 추출은 남아 있습니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
+
 ## 2026-10-27 후속 준비 이력
 
-아래 표와 빈 Title/legacy code1 설명은10월26일의 관측 이력입니다. 이후 비공개 로컬 Title을 준비하고 approved entry가 소비하는 ProjectSettings/개발 기준을27로 정합했습니다. [개발27의 실제 빌드·기본 정적검사·59파일 복구](baseline-version27-20261027.ko.md)와 [단일 입력/실행 없는 metadata 준비기](single-input-signing-20261027.ko.md)는 준비됐으며 새 운영 AAB는 여전히 없습니다. Console 최대26은 새 조회로 바꾸지 않습니다.
+아래 표와 빈 Title/legacy code1 설명은10월26일의 관측 이력입니다. 이후 비공개 로컬 Title을 준비하고 approved entry가 소비하는 ProjectSettings/개발 기준을27로 정합했습니다. [개발27의 실제 빌드·기본 정적검사·59파일 복구](baseline-version27-20261027.ko.md)와 [단일 입력/실행 없는 metadata 준비기](single-input-signing-20261027.ko.md)는 준비됐으며 당시 새 운영 AAB는 없었으며10월29일 후속 결과는 위에 구분했습니다. Console 최대26은 새 조회로 바꾸지 않습니다.
 
 기존 inventory/country/adult·메시지 근거는 비공개 인덱스에서 정확한 원본 SHA로 연결했습니다. 현재 게시 메시지의 유효 파트너 집합과 지역·성인·활성화의 실제 검토/source binding은 미완료입니다. Other 유지 결정을 다시 묻거나 UI198/public199의 수치 일치를 새로운 승인 조건으로 만들지 않습니다. 운영 전환은 기존 근거의 의미와 적용 범위를 검토한 뒤 exact source/plan으로 이어갑니다.
 
-현재 브라우저 제어 연결 미인식으로 필요한 후속 화면 읽기는 대기 중이며 설정·확장/앱 재시작으로 우회하지 않았습니다. [최신 현황](current-recovery-status.ko.md)과 아래 날짜별 관측을 구분합니다.
+당시 브라우저 연결 미인식으로 화면 읽기를 대기했던 이력을 보존합니다.10월29일 정상 Browser Use로 현재값을 읽었으며, Windows URL guard 해결이나 설정·확장/앱 재시작 우회로 표현하지 않습니다. [최신 현황](current-recovery-status.ko.md)과 아래 날짜별 관측을 구분합니다.
 
 ## 운영 Console
 
@@ -70,7 +74,7 @@ Google은 common 목록을 갱신하며 제공업체에 여러 동의 framework 
 
 기존 [README 개인정보처리방침](../../README.md#개인정보처리방침)과 [앱 밖 삭제 문의](../account-deletion.ko.md)는 유지합니다. 기존 문의 메일로 운영자가14일 이내 처리하며 별도 삭제 서버·불필요 자체 보관을 추가하지 않습니다. 접수 수락·운영자 처리 목표·공급자의 전체 소거 완료는 별개입니다.
 
-## 서명·빌드 입력에서 발견한 실제 공백
+## 2026-10-26 서명·빌드 입력에서 발견한 공백 — 당시 이력
 
 - 현재 활성 upload 공개 인증서는 기존 암호화 JKS의 공개 인증서와 일치하며 app signing 역할과 구분됩니다. 외부 비공개 복사본과 로컬 입력 도구의 수명/취소·소유 자손 정리, 합성 근거·독립 재검토를 준비했습니다. **실제 JKS 암호/개인키 challenge·운영 AAB 서명은 미실행**입니다. 인증서 값이나 키/암호를 공개하지 않습니다.
 - 정상 운영 AAB 메뉴는 존재하지만 `ProjectSettings` code26을 그대로 쓰지 않습니다. 현재 legacy `BuildInfo`의 세 번째 값0을 증가시키므로 그대로 실행하면 **code1**을 계획합니다. Console 최대값을 기준으로 버전 입력·finish marker·존재하지 않는 출력 경로를 계획해야 합니다. [출력 선차단](../../Assets/Scripts/Editor/LegacyBuildOutputPlan.cs)은 보존합니다.
@@ -81,7 +85,7 @@ Google은 common 목록을 갱신하며 제공업체에 여러 동의 framework 
 
 10월27일 [단일 입력 연결](single-input-signing-20261027.ko.md)을 구현하고 합성 검증·독립 소스 검토를 접수했습니다. 같은 입력으로 실제 Java challenge와 exact plan의 signing receipt를 연결하며, 소유 producer와 필요한 빌드 자손에만 암호를 전달합니다. 실제 운영 키·암호·AAB는 아직 미실행입니다. 현재 운영 승인과 새 actual build HEAD의 plan/source/runtime·인증서 근거를 준비한 뒤 입력창을 엽니다. 이전 15필드 metadata, 공개 인증서 일치·합성 challenge를 실제 AAB 서명 성공으로 계산하지 않으며 원본 JKS 계약과 일반 메뉴 외부 키 계약을 구분합니다.
 
-현재는 **업로드할 새 운영 AAB가 없습니다.** 다음 순서는 정확 후보/운영 입력 준비→사용자의 필요한 비밀 입력→같은 source의 실제 AAB·서명/manifest/version/native/원복 검사→사용자 수동 업로드→Play 제공물·필요 기능/정책 확인입니다. 필요한 원격 상태만 빌드 직전 새로 대조하고 성공한 기기 시험·구매 복원을 기록 목적으로 반복하지 않습니다. [전체 잔여 계획](remaining-recovery-work.ko.md)과 실제16KB/5초 추가조사/CI·App Center의 명시 보류 범위를 유지합니다.
+현재는 **운영 후보27 AAB가 비공개로 준비돼 있습니다.** 직접 키 입력과 단일 빌드·기본 정적검사/정확 복구를 확인했으며, 다음은 binary resource·운영 신고/공개 안내 정합→준비 파일 수동 업로드→같은 Play 제공물·필요 기능/정책 확인입니다. [실제 후보의 한계](operating-candidate27-20261029.ko.md)와 [전체 잔여 계획](remaining-recovery-work.ko.md)을 따르며 실제16KB/5초 추가조사/CI·App Center의 명시 보류를 유지합니다.
 
 ## 이후 준비한 입력 검사와 개발 진단
 

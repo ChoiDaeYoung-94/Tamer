@@ -1,6 +1,6 @@
 # 암호 입력 한 번으로 키 확인과 빌드를 연결하는 도구
 
-2026-10-27, [#445](https://github.com/ChoiDaeYoung-94/Tamer/issues/445)의 변경입니다. **연결 코드와 합성 검증을 준비했으며, 실제 운영 암호·키 사용·서명 AAB·출시는 아직 미검증입니다.** 런타임 게임 코드·광고 승인·기존 계정/저장/No Ads·키는 변경하지 않습니다.
+2026-10-27, [#445](https://github.com/ChoiDaeYoung-94/Tamer/issues/445)의 변경입니다. **연결 코드·합성 검증에 이어10월29일 단일 직접 입력→실키 challenge→운영 후보 AAB1회·기본 정적검사·복구를 확인했습니다. 최종 Play 제공물·운영 기능·정책·출시는 아직 미검증입니다.** 런타임 게임 코드·광고 승인·기존 계정/저장/No Ads·키는 변경하지 않습니다.
 
 ## 해결한 공백과 실행 범위
 
@@ -40,7 +40,7 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 독립 읽기 검토에서 발견한 manifest 해시 확인 후 재개방, Job 배정 전 부모 종료 공백, 실패 진단 소실을 수정했습니다. 원 실패와 수정 근거를 보존했으며 독립 읽기 리뷰를 독립 실행 시험으로 표현하지 않습니다. 코드·시험별 정확한 source 해시와 로그는 비공개 실행 원장에 연결합니다.
 
-## 실제 실행 전 남은 조건
+## 날짜별 준비와 실제 실행
 
 10월28일에는 [성인 후보 소스·불변 private 계약](adult-candidate-source-20261028.ko.md)을 PR #466으로 통합하고 관련 Editor·순수 검증을 마쳤습니다. 현재 launcher→approved producer의 mode·preflight·영수증 경로를 읽기 대조한 범위에서 true 전환에 따른 추가 차단 결함은 발견하지 못했습니다. 고정 CLI의 Windows PE 버전 `1.0.0`을 Editor로 오인하던 판별도 수정했습니다. 이는 실제 metadata·키 사용·운영 빌드 통과가 아니며, 아래 남은 조건의 당시 이력을 대체하지 않습니다.
 
@@ -60,6 +60,10 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 10월29일10:17~10:23(KST), exact 후보 HEAD `eba77a66`에서 새 비실행 plan과 기존6필드 source-review를 준비하고 실제 `prepare_binding.py`의 native Collector를 통과했습니다. plan은 보호7,062파일·복구 snapshot7,060개·private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 소스 검토는 도구156파일과 PR473 실행 내용의 동일성을 기존 검증에 연결했으며 새 시험을 실행하지 않았습니다. 실제 metadata는 runtime732파일을 포함한907개 pin의 파일 식별·ACL·SHA를 확인해 기존25필드 binding과6-source manifest를 비공개 생성했습니다. Collector가 종료하며 소유 핸들을 모두 닫았으므로 실행 시 다시 확인해야 합니다. `metadataPrepared=true`이며 암호 입력·개인키 challenge·claim/producer·Assets staging·SDK/운영 빌드는 미실행, `actualBuildExecuted/binaryVerified/distributable=false`입니다. 현재 Console 최대26과 인증서를 연결했지만 후보27은 미예약이며 새 운영 AAB는 없습니다. 옛 fb13fa4 plan/source-review는 보류·superseded로 보존하고 재사용하거나 예산을 초기화하지 않았습니다.
 
+## 2026-10-29 실제 키·AAB 연결
+
+10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 build receipt에 연결했고 binary resource 독립 추출은 남아 있습니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
+
 ## 후속: 실행 없는 metadata 준비
 
 `prepare_binding.py`는 검토가 끝난 기존 plan/source-review·현재 cert·키 소유권의 독립 근거를 받아 기존25필드 binding과6-source manifest를 조립합니다. 준비기 자체의 source와 exact helper·runtime·파일 식별/ACL/SHA를 확인하며 두 검토 bool은 기본 false입니다. 근거 파일 존재만으로 승인을 만들거나 옛15필드 binding을 변환하지 않습니다. [인수와 경계](../../tools/revival/signing_launcher/README.ko.md)의 placeholder로 실행하지 않습니다.
@@ -70,6 +74,6 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 후속으로 실제 Windows의 새 합성 폴더에서 owner+SYSTEM ACL의 path/handle 긍정 수용, 실제 Collector bootstrap/save/pin·identity/SDDL/SHA·CREATE_NEW 충돌 시 원본 보존과 정상/예외 핸들 정리를1회26항목으로 확인했습니다. 전체 승인 gate·실제 plan/키/runtime inventory는 실행하지 않았고 합성 출력은 launcher binding으로 거부됩니다. 기존40+6 시험이나 실제 metadata 전체 성공에 합산하지 않습니다.
 
-성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이 코드 통합 당시에는 실제 metadata 생성·키 입력·운영 AAB를 실행하지 않았습니다. 이후10월29일의 실제 metadata 준비는 위 날짜별 결과로 구분하며 키 입력·운영 AAB는 계속 미실행입니다. 준비된 inventory도 실제 실행 시 exact 후보와 다시 대조해야 합니다.
+성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이 코드 통합 당시에는 실제 metadata 생성·키 입력·운영 AAB를 실행하지 않았습니다. 이후10월29일의 실제 metadata 준비는 위 날짜별 결과로 구분하며 키 입력·운영 AAB의10월29일 후속 성공은 위 실제 연결 결과로 구분합니다. 준비된 inventory도 실제 실행 시 exact 후보와 다시 대조해야 합니다.
 
-이후 필요한 직접 입력은 준비된 로컬 창에서 받습니다. 실제 AAB를 만들면 같은 artifact의 서명·manifest/version·resource/native와 원본 복구를 검사하고, 사용자 수동 업로드 후 같은 Play 제공물·필요 기능/정책을 확인합니다. **현재 업로드할 새 운영 AAB는 없습니다.** [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
+10월29일 필요한 로컬 직접 입력을 접수해 실키 challenge와 같은 exact source의 운영 후보27 AAB 생성·기본 서명/manifest/version/native 검사·정확 원복을 마쳤습니다. **새 운영 AAB는 비공개로 준비돼 있지만 아직 업로드·제출하지 않았습니다.** binary resource 독립 추출과 같은 Play 제공물·필요 기능/정책 검증은 별도이며, [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
