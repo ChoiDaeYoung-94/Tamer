@@ -45,6 +45,20 @@ public class RevivalFaceliftInteractionTests
     private static Collider Select(Ray ray) => (Collider)Find("Player")
         .GetMethod("WorldPromptTarget", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { ray });
 
+    [Test]
+    public void PausedUiDoesNotActivateAWorldPromptBehindIt()
+    {
+        var root = new GameObject("Revival paused prompt fixture");
+        root.transform.position = new Vector3(15000, 15000, 15000); root.layer = LayerMask.NameToLayer("UI"); root.tag = "GoGameScene";
+        float originalTime = Time.timeScale;
+        try {
+            var collider = root.AddComponent<BoxCollider>(); collider.isTrigger = true; Physics.SyncTransforms();
+            var ray = new Ray(root.transform.position - Vector3.forward * 2, Vector3.forward);
+            Time.timeScale = 1; Assert.That(Select(ray), Is.SameAs(collider));
+            Time.timeScale = 0; Assert.That(Select(ray), Is.Null);
+        } finally { Time.timeScale = originalTime; UnityEngine.Object.DestroyImmediate(root); Physics.SyncTransforms(); }
+    }
+
     [TestCase(true)]
     [TestCase(false)]
     public void DismissingResultReturnsCompletedPurchasesToListAndKeepsFailureDetails(bool completed)

@@ -206,7 +206,7 @@ public class Player : Creature
     // Visible world prompts use dedicated UI hit volumes. Movement boundaries and
     // character colliders must not intercept these UI taps from the follow camera.
     private static Collider WorldPromptTarget(Ray ray)
-        => Physics.Raycast(ray, out var hit, Mathf.Infinity, LayerMask.GetMask("UI"), QueryTriggerInteraction.Collide)
+        => Time.timeScale > 0 && Physics.Raycast(ray, out var hit, Mathf.Infinity, LayerMask.GetMask("UI"), QueryTriggerInteraction.Collide)
             ? hit.collider : null;
 
     #endregion
