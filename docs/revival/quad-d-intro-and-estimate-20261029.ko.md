@@ -1,5 +1,19 @@
 # Quad D 인트로 교체와 남은 기간 추정 — 2026-10-29
 
+## 최신 구현 체크포인트
+
+실제 작업본은 `D:/codex/worktrees/tamer-working/Tamer`, 코드 커밋은 `codex/quad-d-intro-1029@e5bc0fad6896d7b60df78d3038eb6099098699f3`입니다. Unity `6000.3.25f1` / revision `e1dba0a9aba4`, Android min25/target36/ARM64, Unity CLI `1.0.0-beta.8`을 사용했습니다.
+
+회사 패키지 `com.quadd.intro@0.1.0`을 아래 고정 Git 원본으로 연결했습니다. 첫 활성 씬을 `QuadDIntro → Login`으로 바꾸고 기존 2초 로고 splash를 해제했습니다. Tamer의 URP에서는 camera-plane 영상이 배경만 출력되는 문제를 재현해, 디코딩된 영상을 overlay Canvas로 표시하는 로컬 어댑터를 추가했습니다. 공통 패키지의 재생·음향·완료 처리 코드는 바꾸지 않았습니다.
+
+격리 Editor 재생에서 화면 로고 출력·103프레임·완료 이벤트 1회·Login 미진입을 확인했습니다. 재생 후 지연 상태 확인에서는 영상과 오디오가 정지했습니다. Editor 관련 검사 10/10, Python release-candidate 검사 19/19, 소스 사전검사 12개, GUID 감사 134개 파일/미해결0을 확인했습니다. `releaseReady=false`이며, Android 실제 영상/음향·복귀와 운영 Login 연속 진입, 새 최종 후보의 검증은 아직 남아 있습니다.
+
+Android용 별도 앱 ID와 debug signing, Login/게임 씬을 제외한 단일 시험 씬 및 인터넷·광고·결제·Play Games 자동 provider 차단 빌드 경로를 준비했습니다. 준비된 코드와 실제 빌드·설치·재생 완료는 구분합니다. 운영 키 입력·심사 전송·배포·트랙 재개는 하지 않았습니다.
+
+사용자는 이후 [아이콘·전체 UI 페이스리프트 #491](https://github.com/ChoiDaeYoung-94/Tamer/issues/491)를 추가했습니다. 아래 기간표는 **그 확장 이전의 계획 이력**이며 현재 전체 범위의 확정 일정으로 사용하지 않습니다. 최종 배포는 사용자 화면 검토 이후입니다.
+
+## 확장 이전 계획 이력
+
 사용자가 기존 인트로를 회사 Git의 Quad D 인트로로 교체하는 작업을 추가하고 현재 속도에서 필요한 기간을 요청했습니다. [추적 이슈 #489](https://github.com/ChoiDaeYoung-94/Tamer/issues/489)를 등록했습니다. 이 문서는 작업 범위/의존성과 추정이며 구현·새 빌드·실제 재생·심사/출시 완료 기록이 아닙니다.
 
 ## 확인한 원본과 교체 범위
