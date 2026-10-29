@@ -15,6 +15,8 @@ DEFAULT_PATHS = [
     'Assets/Resources/Prefabs/JoyStick/Canvas.prefab',
     'Assets/Prefabs/UI/NextSceneCanvas.prefab',
     'Assets/Scenes/SetCharacter.unity',
+    'Assets/Prefabs/Main/GameMan.prefab',
+    'Assets/Prefabs/Main/BuffingMan.prefab',
 ]
 
 def git_bytes(base, path):
@@ -32,7 +34,7 @@ def ui_objects(docs):
     def owner(body):
         match = re.search(r'^  m_GameObject: \{fileID: (-?\d+)\}', body, re.M)
         return match[1] if match else None
-    canvas_owners = {owner(body) for body in docs.values() if body.startswith('Canvas:\n')}
+    canvas_owners = {owner(body) for body in docs.values() if body.startswith(('Canvas:\n', 'TextMesh:\n'))}
     transforms = {key: (owner(body), re.search(r'^  m_Father: \{fileID: (-?\d+)\}', body, re.M))
                   for key, body in docs.items() if body.startswith(('RectTransform:\n', 'Transform:\n'))}
     selected = {key for key, (go, _) in transforms.items() if go in canvas_owners}
@@ -62,7 +64,7 @@ def verify(base, paths):
         event_count = gameplay_count = 0
         visual_objects = ui_objects(before)
         if not visual_objects:
-            raise ValueError(f'No existing Canvas in facelift source: {path}')
+            raise ValueError(f'No existing Canvas or world text in facelift source: {path}')
         new_non_ui = (after.keys() - before.keys()) - ui_objects(after)
         if new_non_ui:
             raise ValueError(f'Unexpected new non-UI objects: {path}, count {len(new_non_ui)}')

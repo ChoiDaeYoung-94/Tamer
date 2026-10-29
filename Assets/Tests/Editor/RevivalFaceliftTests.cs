@@ -27,6 +27,27 @@ public class RevivalFaceliftTests
     }
 
     private static Type Find(string name) => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(name)).First(t => t != null);
+
+    [Test]
+    public void CharacterPreviewCannotReuseTheShopOrProductionSandbox()
+    {
+        string[] defines = { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS", "TAMER_CHARACTER_UI" };
+        var isolation = Find("AD.RevivalGameplayIsolation");
+        string characterId = (string)isolation.GetField("FaceliftCharacterUiApplicationId").GetRawConstantValue();
+        string shopId = (string)isolation.GetField("FaceliftUiApplicationId").GetRawConstantValue();
+        var build = Find("RevivalFaceliftBuild");
+        bool Safe(string id, bool development, bool customKey, bool bundle, string[] symbols)
+            => (bool)build.GetMethod("IsSafeCharacterConfiguration").Invoke(null, new object[] { id, development, customKey, bundle, symbols });
+        Assert.That(Safe(characterId, true, false, false, defines), Is.True);
+        Assert.That(Safe(shopId, true, false, false, defines), Is.False);
+        Assert.That(Safe("com.AeDeong.MonsterTamer", true, false, false, defines), Is.False);
+        Assert.That(Safe(characterId, false, false, false, defines), Is.False);
+        Assert.That(Safe(characterId, true, true, false, defines), Is.False);
+        Assert.That(Safe(characterId, true, false, true, defines), Is.False);
+        Assert.That(Safe(characterId, true, false, false, defines.Take(5).ToArray()), Is.False);
+        Assert.That((bool)build.GetMethod("IsSafeConfiguration").Invoke(null,
+            new object[] { shopId, true, false, false, defines }), Is.False);
+    }
     private static void Prefab(string path, Action<GameObject> check)
     {
         var root = PrefabUtility.LoadPrefabContents(path);

@@ -11,6 +11,9 @@ using UnityEngine;
 public static class RevivalFaceliftBuild
 {
     private static string requestDirectory;
+    private static bool characterPreview;
+    private static string ApplicationId => characterPreview
+        ? RevivalGameplayIsolation.FaceliftCharacterUiApplicationId : RevivalGameplayIsolation.FaceliftUiApplicationId;
     public static readonly string[] Scenes = { "Assets/Scenes/Login.unity", "Assets/Scenes/SetCharacter.unity",
         "Assets/Scenes/Main.unity", "Assets/Scenes/Game.unity", "Assets/Scenes/NextScene.unity" };
 
@@ -19,7 +22,15 @@ public static class RevivalFaceliftBuild
            defines != null && defines.OrderBy(x => x).SequenceEqual(new[] { "TAMER_REVIVAL_SMOKE",
                "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS" }.OrderBy(x => x));
 
-    public static object RequestBuild()
+    public static bool IsSafeCharacterConfiguration(string appId, bool development, bool customKey, bool appBundle, string[] defines)
+        => appId == RevivalGameplayIsolation.FaceliftCharacterUiApplicationId && development && !customKey && !appBundle &&
+           defines != null && defines.OrderBy(x => x).SequenceEqual(new[] { "TAMER_REVIVAL_SMOKE",
+               "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS", "TAMER_CHARACTER_UI" }.OrderBy(x => x));
+
+    public static object RequestBuild() => Request(false);
+    public static object RequestCharacterBuild() => Request(true);
+
+    private static object Request(bool character)
     {
         if (requestDirectory != null || BuildPipeline.isBuildingPlayer)
             throw new BuildFailedException("A facelift build has already been requested in this Editor.");
@@ -33,12 +44,13 @@ public static class RevivalFaceliftBuild
         var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
         if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
             throw new BuildFailedException("IAP/UGS automatic initialization must remain disabled.");
+        characterPreview = character;
         requestDirectory = Path.GetFullPath(Path.Combine(".revival-local/facelift-1029/android", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(requestDirectory);
         File.WriteAllText(Path.Combine(requestDirectory, "build-status.json"), "{\"result\":\"Requested\"}");
         File.WriteAllText(".revival-local/facelift-1029/android/latest-build.txt", requestDirectory);
         EditorApplication.delayCall += Build;
-        return new { requestedOnce = true, directory = requestDirectory, applicationId = RevivalGameplayIsolation.FaceliftUiApplicationId };
+        return new { requestedOnce = true, directory = requestDirectory, applicationId = ApplicationId, characterPreview };
     }
 
     private static void Build()
@@ -52,7 +64,7 @@ public static class RevivalFaceliftBuild
         string oldAlias = PlayerSettings.Android.keyaliasName;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
-        var result = new Receipt { result = "Started", applicationId = RevivalGameplayIsolation.FaceliftUiApplicationId,
+        var result = new Receipt { result = "Started", applicationId = ApplicationId,
             unity = Application.unityVersion, scenes = Scenes };
         try
         {
@@ -61,14 +73,19 @@ public static class RevivalFaceliftBuild
                 var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(settingsPath));
                 settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
                 settings.ApplyModifiedPropertiesWithoutUndo();
-                PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, RevivalGameplayIsolation.FaceliftUiApplicationId);
+                PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, ApplicationId);
                 PlayerSettings.Android.useCustomKeystore = false;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
                 EditorUserBuildSettings.buildAppBundle = false;
                 AssetDatabase.SaveAssets();
                 string[] defines = { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS" };
-                if (!IsSafeConfiguration(PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), true,
-                        PlayerSettings.Android.useCustomKeystore, EditorUserBuildSettings.buildAppBundle, defines))
+                if (characterPreview) defines = defines.Concat(new[] { "TAMER_CHARACTER_UI" }).ToArray();
+                bool safe = characterPreview
+                    ? IsSafeCharacterConfiguration(PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), true,
+                        PlayerSettings.Android.useCustomKeystore, EditorUserBuildSettings.buildAppBundle, defines)
+                    : IsSafeConfiguration(PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), true,
+                        PlayerSettings.Android.useCustomKeystore, EditorUserBuildSettings.buildAppBundle, defines);
+                if (!safe)
                     throw new BuildFailedException("Unsafe facelift preview configuration.");
                 File.WriteAllText(Path.Combine(requestDirectory, "build-status.json"), JsonUtility.ToJson(result, true));
                 BuildReport report;
