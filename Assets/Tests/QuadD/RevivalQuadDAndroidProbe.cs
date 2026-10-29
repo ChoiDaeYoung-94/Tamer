@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Threading;
 using QuadD;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -21,7 +20,8 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
     private QuadDIntro intro;
     private string directory;
     private long highest = -1, samples;
-    private volatile float peak;
+    private float peak;
+    private readonly float[] audioWindow = new float[512];
     private int completions, pauses, resumes;
     private bool captured;
     private string captureRenderMode;
@@ -46,10 +46,18 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
     private void Update()
     {
         highest = Math.Max(highest, video.frame);
+        if (video.isPlaying) {
+            // Observe the listener without inserting a DSP filter on the shared
+            // AudioListener/AudioSource GameObject.
+            AudioListener.GetOutputData(audioWindow, 0);
+            foreach (float sample in audioWindow) peak = Math.Max(peak, Math.Abs(sample));
+            samples += audioWindow.Length;
+        }
         if (!captured && highest >= 40) {
             captured = true;
             captureRenderMode = video.renderMode.ToString();
-            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "intro-frame.png"));
+            // Android appends this relative name to Application.persistentDataPath.
+            ScreenCapture.CaptureScreenshot("quad-d-observation/intro-frame.png");
         }
         if (Time.realtimeSinceStartupAsDouble >= nextReceipt) {
             nextReceipt = Time.realtimeSinceStartupAsDouble + .5;
@@ -62,19 +70,12 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
         if (paused) pauses++; else resumes++;
         WriteReceipt();
     }
-    private void OnAudioFilterRead(float[] data, int channels)
-    {
-        float observed = peak;
-        for (int i = 0; i < data.Length; i++) observed = Math.Max(observed, Math.Abs(data[i]));
-        peak = observed;
-        Interlocked.Add(ref samples, data.Length);
-    }
     private void WriteReceipt()
     {
         if (directory == null || video == null) return;
         var value = new Receipt { appId = Application.identifier, scene = SceneManager.GetActiveScene().path,
             highestFrame = highest, completionCount = completions, screenshotRequested = captured,
-            captureRenderMode = captureRenderMode, audioSamples = Interlocked.Read(ref samples), audioPeak = peak,
+            captureRenderMode = captureRenderMode, audioSamples = samples, audioPeak = peak,
             videoPlaying = video.isPlaying, audioPlaying = GetComponent<AudioSource>().isPlaying,
             loadedScenes = SceneManager.sceneCount, loginAvailable = Application.CanStreamedLevelBeLoaded("Login"),
             pauses = pauses, resumes = resumes };
