@@ -495,6 +495,26 @@ public static class FaceliftEditor
         return new { headerSpacingFixed = true, scrollAreaResizes = true, purchaseEventsUnchanged = true };
     }
 
+    public static object ApplyDeviceSafeAreas()
+    {
+        var type = Type.GetType("AD.FaceliftSafeArea, Assembly-CSharp", true);
+        void Attach(GameObject root, string path) {
+            var rect = Require<RectTransform>(root, path);
+            var canvas = rect.parent.GetComponent<Canvas>();
+            if (canvas == null || !canvas.isRootCanvas || canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+                throw new InvalidOperationException("Safe area must be a direct child of a full-screen overlay Canvas.");
+            if (rect.GetComponent(type) == null) rect.gameObject.AddComponent(type);
+        }
+        Edit(Prefabs[1], root => Attach(root, "MainAndGameUICanvasSafeArea"));
+        var scene = EditorSceneManager.OpenScene("Assets/Scenes/SetCharacter.unity", OpenSceneMode.Additive);
+        try {
+            var canvas = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Canvas>(true)).Single().gameObject;
+            Attach(canvas, "PanelSafeArea");
+            if (!EditorSceneManager.SaveScene(scene)) throw new IOException("Character safe area was not saved.");
+        } finally { EditorSceneManager.CloseScene(scene, true); }
+        return new { existingHudAndCharacterContainersProtected = true, hierarchyAndButtonEventsUnchanged = true };
+    }
+
     public static object InspectCharacterAndIconApis()
     {
         var scene = EditorSceneManager.OpenScene("Assets/Scenes/SetCharacter.unity", OpenSceneMode.Additive);

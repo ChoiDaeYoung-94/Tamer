@@ -3051,6 +3051,7 @@ GameObject:
   m_Component:
   - component: {fileID: 109900469071059087}
   - component: {fileID: 109900469071059088}
+  - component: {fileID: 3674181022461250205}
   m_Layer: 5
   m_Name: MainAndGameUICanvasSafeArea
   m_TagString: Untagged
@@ -4490,3 +4491,15 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &3674181022461250205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 109900469071059086}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a20485eebe9345e0974b3b31e9f31d1d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::AD.FaceliftSafeArea
