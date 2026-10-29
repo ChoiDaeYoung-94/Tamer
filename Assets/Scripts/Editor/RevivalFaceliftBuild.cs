@@ -12,10 +12,13 @@ public static class RevivalFaceliftBuild
 {
     private static string requestDirectory;
     private static bool characterPreview;
-    private static string ApplicationId => characterPreview
+    private static bool introLoginPreview;
+    private static string ApplicationId => introLoginPreview ? RevivalGameplayIsolation.FaceliftIntroLoginApplicationId : characterPreview
         ? RevivalGameplayIsolation.FaceliftCharacterUiApplicationId : RevivalGameplayIsolation.FaceliftUiApplicationId;
     public static readonly string[] Scenes = { "Assets/Scenes/Login.unity", "Assets/Scenes/SetCharacter.unity",
         "Assets/Scenes/Main.unity", "Assets/Scenes/Game.unity", "Assets/Scenes/NextScene.unity" };
+    public static readonly string[] IntroLoginScenes = new[] { "Assets/QuadD/Scenes/QuadDIntro.unity" }.Concat(Scenes).ToArray();
+    private static string[] SelectedScenes => introLoginPreview ? IntroLoginScenes : Scenes;
 
     public static bool IsSafeConfiguration(string appId, bool development, bool customKey, bool appBundle, string[] defines)
         => appId == RevivalGameplayIsolation.FaceliftUiApplicationId && development && !customKey && !appBundle &&
@@ -27,10 +30,16 @@ public static class RevivalFaceliftBuild
            defines != null && defines.OrderBy(x => x).SequenceEqual(new[] { "TAMER_REVIVAL_SMOKE",
                "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS", "TAMER_CHARACTER_UI" }.OrderBy(x => x));
 
-    public static object RequestBuild() => Request(false);
-    public static object RequestCharacterBuild() => Request(true);
+    public static bool IsSafeIntroLoginConfiguration(string appId, bool development, bool customKey, bool appBundle, string[] defines)
+        => appId == RevivalGameplayIsolation.FaceliftIntroLoginApplicationId && development && !customKey && !appBundle &&
+           defines != null && defines.OrderBy(x => x).SequenceEqual(new[] { "TAMER_REVIVAL_SMOKE",
+               "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS", "TAMER_QUAD_D_LOGIN_HARNESS" }.OrderBy(x => x));
 
-    private static object Request(bool character)
+    public static object RequestBuild() => Request(false, false);
+    public static object RequestCharacterBuild() => Request(true, false);
+    public static object RequestIntroLoginBuild() => Request(false, true);
+
+    private static object Request(bool character, bool introLogin)
     {
         if (requestDirectory != null || BuildPipeline.isBuildingPlayer)
             throw new BuildFailedException("A facelift build has already been requested in this Editor.");
@@ -40,17 +49,18 @@ public static class RevivalFaceliftBuild
             throw new BuildFailedException("Android Edit Mode required.");
         if (PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android).Split(';').Any(d => d.Trim().StartsWith("TAMER_", StringComparison.Ordinal)))
             throw new BuildFailedException("Harness defines must not be global.");
-        if (Scenes.Any(path => !File.Exists(path))) throw new BuildFailedException("Original scene missing.");
+        if ((introLogin ? IntroLoginScenes : Scenes).Any(path => !File.Exists(path))) throw new BuildFailedException("Original scene missing.");
         var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
         if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
             throw new BuildFailedException("IAP/UGS automatic initialization must remain disabled.");
         characterPreview = character;
+        introLoginPreview = introLogin;
         requestDirectory = Path.GetFullPath(Path.Combine(".revival-local/facelift-1029/android", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(requestDirectory);
         File.WriteAllText(Path.Combine(requestDirectory, "build-status.json"), "{\"result\":\"Requested\"}");
         File.WriteAllText(".revival-local/facelift-1029/android/latest-build.txt", requestDirectory);
         EditorApplication.delayCall += Build;
-        return new { requestedOnce = true, directory = requestDirectory, applicationId = ApplicationId, characterPreview };
+        return new { requestedOnce = true, directory = requestDirectory, applicationId = ApplicationId, characterPreview, introLoginPreview };
     }
 
     private static void Build()
@@ -65,7 +75,7 @@ public static class RevivalFaceliftBuild
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         var result = new Receipt { result = "Started", applicationId = ApplicationId,
-            unity = Application.unityVersion, scenes = Scenes };
+            unity = Application.unityVersion, scenes = SelectedScenes };
         try
         {
             using (var manifest = new RevivalAdHarnessBuild.IsolatedManifestScope(RevivalGameplayBuild.PlayerRestoreManifest))
@@ -80,7 +90,11 @@ public static class RevivalFaceliftBuild
                 AssetDatabase.SaveAssets();
                 string[] defines = { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS" };
                 if (characterPreview) defines = defines.Concat(new[] { "TAMER_CHARACTER_UI" }).ToArray();
-                bool safe = characterPreview
+                if (introLoginPreview) defines = defines.Concat(new[] { "TAMER_QUAD_D_LOGIN_HARNESS" }).ToArray();
+                bool safe = introLoginPreview
+                    ? IsSafeIntroLoginConfiguration(PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), true,
+                        PlayerSettings.Android.useCustomKeystore, EditorUserBuildSettings.buildAppBundle, defines)
+                    : characterPreview
                     ? IsSafeCharacterConfiguration(PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), true,
                         PlayerSettings.Android.useCustomKeystore, EditorUserBuildSettings.buildAppBundle, defines)
                     : IsSafeConfiguration(PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android), true,
@@ -91,7 +105,7 @@ public static class RevivalFaceliftBuild
                 BuildReport report;
                 using (RevivalBuild.AndroidRelroLinkScope())
                     report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
-                        scenes = Scenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
+                        scenes = SelectedScenes, target = BuildTarget.Android, targetGroup = BuildTargetGroup.Android,
                         locationPathName = Path.Combine(requestDirectory, "facelift-preview.apk"),
                         options = BuildOptions.Development | BuildOptions.CompressWithLz4, extraScriptingDefines = defines
                     });

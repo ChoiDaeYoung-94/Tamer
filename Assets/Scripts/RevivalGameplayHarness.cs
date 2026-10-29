@@ -377,6 +377,13 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private IEnumerator Start()
     {
         yield return null;
+#if TAMER_QUAD_D_LOGIN_HARNESS
+        // The canonical video entry precedes Login's Managers. Wait only in this
+        // offline variant; ordinary fixtures retain their original bootstrap check.
+        float loginDeadline = Time.realtimeSinceStartup + 18;
+        while ((Managers.Instance == null || RevivalGameplayIsolation.BlockedLogins != 1) &&
+            Time.realtimeSinceStartup < loginDeadline) yield return null;
+#endif
         _originalManagers = Managers.Instance;
         if (_originalManagers == null || RevivalGameplayIsolation.BlockedLogins != 1)
         { Mark("FAIL bootstrap/login guard"); yield break; }

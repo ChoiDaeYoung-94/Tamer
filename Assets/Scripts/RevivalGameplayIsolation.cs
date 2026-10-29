@@ -17,11 +17,17 @@ namespace AD
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
         public const string FaceliftUiApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftui1029";
         public const string FaceliftCharacterUiApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftcharacter1029";
+        public const string FaceliftIntroLoginApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftintrologin1029";
 #if TAMER_FACELIFT_UI_HARNESS
 #if !TAMER_GAMEPLAY_HARNESS || !TAMER_SHOP_HARNESS || !TAMER_SHOP_UI
 #error Facelift preview requires the dedicated offline manual shop UI variant.
 #endif
+#if TAMER_QUAD_D_LOGIN_HARNESS
 #if TAMER_CHARACTER_UI
+#error Intro/login and character-selection fixtures must stay separate.
+#endif
+        public const string ShopPurchaseApplicationId = FaceliftIntroLoginApplicationId;
+#elif TAMER_CHARACTER_UI
         public const string ShopPurchaseApplicationId = FaceliftCharacterUiApplicationId;
 #else
         public const string ShopPurchaseApplicationId = FaceliftUiApplicationId;
@@ -89,7 +95,9 @@ namespace AD
         public static string SavePath { get; private set; }
         public static string ReadApplyStage { get; private set; } = "not-started";
 #if TAMER_SHOP_HARNESS
-#if TAMER_CHARACTER_UI
+#if TAMER_QUAD_D_LOGIN_HARNESS
+        internal const string ShopFixtureDirectoryName = "RevivalIntroLoginManualUi";
+#elif TAMER_CHARACTER_UI
         internal const string ShopFixtureDirectoryName = "RevivalCharacterManualUi";
 #elif TAMER_SHOP_UI
         internal const string ShopFixtureDirectoryName = "RevivalShopManualUi";
