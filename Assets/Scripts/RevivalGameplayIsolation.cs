@@ -15,7 +15,15 @@ namespace AD
         public const string SessionApplicationId = "com.AeDeong.MonsterTamer.revival.sessionguard";
         public const string InventoryRestoreApplicationId = "com.AeDeong.MonsterTamer.revival.inventoryrestore";
         public const string AgeChoiceApplicationId = "com.AeDeong.MonsterTamer.revival.agechoice";
+        public const string FaceliftUiApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftui1029";
+#if TAMER_FACELIFT_UI_HARNESS
+#if !TAMER_GAMEPLAY_HARNESS || !TAMER_SHOP_HARNESS || !TAMER_SHOP_UI
+#error Facelift preview requires the dedicated offline manual shop UI variant.
+#endif
+        public const string ShopPurchaseApplicationId = FaceliftUiApplicationId;
+#else
         public const string ShopPurchaseApplicationId = "com.AeDeong.MonsterTamer.revival.shoppurchase";
+#endif
         public const string DeletionGameplayApplicationId = "com.AeDeong.MonsterTamer.revival.deletiongameplayv4";
         public const string PrivacyProductUiApplicationId = "com.AeDeong.MonsterTamer.revival.privacyproductui29";
         public static string RuntimeApplicationId =>

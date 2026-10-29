@@ -92,6 +92,7 @@ public static class RevivalGameplayBuild
                 identity != RevivalGameplayIsolation.SessionApplicationId &&
                 identity != RevivalGameplayIsolation.InventoryRestoreApplicationId &&
                 identity != RevivalGameplayIsolation.ShopPurchaseApplicationId &&
+                identity != RevivalGameplayIsolation.FaceliftUiApplicationId &&
                 identity != RevivalGameplayIsolation.DeletionGameplayApplicationId &&
                 identity != RevivalGameplayIsolation.PrivacyProductUiApplicationId &&
                 identity != RevivalDeletionTrialHarness.ApplicationId &&

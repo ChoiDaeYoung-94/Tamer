@@ -8,6 +8,19 @@ using UnityEngine.Events;
 
 public class RevivalFaceliftTests
 {
+    [Test]
+    public void OfflinePreviewRejectsProductionIdentityAndIncompleteIsolation()
+    {
+        string[] defines = { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS" };
+        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, false, false, defines), Is.True);
+        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration("com.AeDeong.MonsterTamer", true, false, false, defines), Is.False);
+        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, true, false, defines), Is.False);
+        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, false, false, false, defines), Is.False);
+        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, false, true, defines), Is.False);
+        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, false, false, defines.Take(4).ToArray()), Is.False);
+        Assert.That(AD.RevivalGameplayIsolation.ShopPurchaseApplicationId, Is.EqualTo("com.AeDeong.MonsterTamer.revival.shoppurchase"));
+    }
+
     private static Type Find(string name) => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(name)).First(t => t != null);
     private static void Prefab(string path, Action<GameObject> check)
     {
