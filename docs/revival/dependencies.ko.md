@@ -17,6 +17,7 @@
 정확한 패키지 구매 버전과 권한은 소유자의 Asset Store 구매 기록으로 후속 보완해야 한다.
 2026-10-28의 [에셋별 출처 인덱스](asset-source-index-20261028.ko.md)는 폴더/README·일부 라이선스 표기로 좁힌 후보와 남은 확인을 구분한다. 부분 표기 확인만으로 manifest나 비공개 관리 범위를 바꾸지 않는다.
 10월29일에는 Keystore Helper의 코드2개·README와 MiniJSON1개의 로컬 bytes를 고정 공개 원문 및 기존 manifest SHA에 대조했습니다. [개별4파일 근거](asset-source-evidence-20261029.ko.md)를 연결하되 실제 원본/manifest·GUID·비공개 분류를 바꾸지 않았습니다. SafeArea는 공급자 후보만 좁혔고 취득/버전은 미확인입니다. #92의 나머지 구매 권한·비공개 아카이브 운영 후속은 유지합니다.
+별도 [LiberationSans 내부 식별](liberation-font-identity-20261029.ko.md)은 TTF/동반 OFL문서2개의 manifest 일치와 내부2.00.1/OFL1.1 표기 연결입니다. upstream byte 동일한 앞선4파일에 합쳐6개 원문 동일성 완료로 세지 않고, Avalon·EmojiOne·전체 TMP 허가는 분리합니다.
 PlayFab SDK는 고정 공식 배포물로 갱신했으며 기존 GUID와 중립 서비스 설정을 보존한다. Editor Extensions 원본은 공식 배포 태그와 전부 동일하다고 주장하지 않는다.
 
 ## 복원
