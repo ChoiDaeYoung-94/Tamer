@@ -12,13 +12,18 @@ public class RevivalFaceliftTests
     public void OfflinePreviewRejectsProductionIdentityAndIncompleteIsolation()
     {
         string[] defines = { "TAMER_REVIVAL_SMOKE", "TAMER_GAMEPLAY_HARNESS", "TAMER_SHOP_HARNESS", "TAMER_SHOP_UI", "TAMER_FACELIFT_UI_HARNESS" };
-        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, false, false, defines), Is.True);
-        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration("com.AeDeong.MonsterTamer", true, false, false, defines), Is.False);
-        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, true, false, defines), Is.False);
-        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, false, false, false, defines), Is.False);
-        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, false, true, defines), Is.False);
-        Assert.That(RevivalFaceliftBuild.IsSafeConfiguration(AD.RevivalGameplayIsolation.FaceliftUiApplicationId, true, false, false, defines.Take(4).ToArray()), Is.False);
-        Assert.That(AD.RevivalGameplayIsolation.ShopPurchaseApplicationId, Is.EqualTo("com.AeDeong.MonsterTamer.revival.shoppurchase"));
+        var isolation = Find("AD.RevivalGameplayIsolation");
+        string appId = (string)isolation.GetField("FaceliftUiApplicationId").GetRawConstantValue();
+        var method = Find("RevivalFaceliftBuild").GetMethod("IsSafeConfiguration");
+        bool Safe(string id, bool development, bool customKey, bool bundle, string[] symbols)
+            => (bool)method.Invoke(null, new object[] { id, development, customKey, bundle, symbols });
+        Assert.That(Safe(appId, true, false, false, defines), Is.True);
+        Assert.That(Safe("com.AeDeong.MonsterTamer", true, false, false, defines), Is.False);
+        Assert.That(Safe(appId, true, true, false, defines), Is.False);
+        Assert.That(Safe(appId, false, false, false, defines), Is.False);
+        Assert.That(Safe(appId, true, false, true, defines), Is.False);
+        Assert.That(Safe(appId, true, false, false, defines.Take(4).ToArray()), Is.False);
+        Assert.That(isolation.GetField("ShopPurchaseApplicationId").GetRawConstantValue(), Is.EqualTo("com.AeDeong.MonsterTamer.revival.shoppurchase"));
     }
 
     private static Type Find(string name) => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(name)).First(t => t != null);
