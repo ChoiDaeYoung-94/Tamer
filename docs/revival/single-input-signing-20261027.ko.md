@@ -56,6 +56,8 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 10월29일 source `3c44ab1`의 approved source 사전검사와 도구156파일 SHA 대조는 수용됐고, 실행 관련 추적 내용은 PR473 최종head와 같습니다. 새 plan/source-review·현재 cert·runtime/native pin·실키·AAB는 아직 준비하지 않았습니다. 일반 `python` 명령의3.15.1과 이전 서명 준비에서 관측한 standalone3.12.14는 다른 실행 파일이므로, 실제 준비 시 검토한 절대 runtime 경로와 실행 조건을 명시해야 합니다.
 
+이후 같은 날 정상 Browser Use에서 현재 Console 최대code26·production24제공/26미승인과 upload 공개 인증서를 재확인했습니다. 다운로드한 현재 DER는 기존 검토 공개 DER와 byte 동일하며 개인키 challenge의 통과가 아닙니다. source27은 미예약이고 수정 소스의 새 exact plan/source-review·실제 metadata/native pin·실키·운영 AAB는 남아 있습니다. [현재 관측과 한계](operating-readiness-20261026.ko.md)를 같은 후보 준비에 연결합니다.
+
 ## 후속: 실행 없는 metadata 준비
 
 `prepare_binding.py`는 검토가 끝난 기존 plan/source-review·현재 cert·키 소유권의 독립 근거를 받아 기존25필드 binding과6-source manifest를 조립합니다. 준비기 자체의 source와 exact helper·runtime·파일 식별/ACL/SHA를 확인하며 두 검토 bool은 기본 false입니다. 근거 파일 존재만으로 승인을 만들거나 옛15필드 binding을 변환하지 않습니다. [인수와 경계](../../tools/revival/signing_launcher/README.ko.md)의 placeholder로 실행하지 않습니다.
