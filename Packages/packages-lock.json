@@ -1,5 +1,15 @@
 {
   "dependencies": {
+    "com.quadd.intro": {
+      "version": "https://github.com/ChoiDaeYoung-94/ChoiDaeYoung-94.git?path=/unity/com.quadd.intro#55bf9e4aa48c2f95942f3c2c995f1d55414e97c0",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.modules.video": "1.0.0",
+        "com.unity.modules.audio": "1.0.0"
+      },
+      "hash": "55bf9e4aa48c2f95942f3c2c995f1d55414e97c0"
+    },
     "com.unity.2d.common": {
       "version": "12.0.4",
       "depth": 1,

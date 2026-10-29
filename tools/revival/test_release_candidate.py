@@ -99,7 +99,44 @@ class ReleaseCandidateTests(unittest.TestCase):
             settings.write_text(settings.read_text().replace('DOTWEEN','DOTWEEN;TAMER_GAMEPLAY_HARNESS'))
             self.assertFalse(source_checks(root)['checks']['noGlobalHarnessDefines'])
             scenes.write_text('  - enabled: 0\n    path: Assets/Scenes/Login.unity\n  - enabled: 1\n    path: Assets/Scenes/Main.unity\n')
-            self.assertFalse(source_checks(root)['checks']['loginFirstScene'])
+            self.assertFalse(source_checks(root)['checks']['approvedEntryFlow'])
+
+    def test_intro_entry_requires_the_pinned_package_login_destination_and_no_old_splash(self):
+        from verify_release_candidate import approved_entry_flow, QUAD_D_INTRO_SCENE, QUAD_D_INTRO_PACKAGE, QUAD_D_INTRO_COMMIT
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root/'Packages').mkdir()
+            scene = root/QUAD_D_INTRO_SCENE
+            scene.parent.mkdir(parents=True)
+            scene.write_text('  m_Script: {fileID: 11500000, guid: 1d401bfd5913e2a4fafd9c58a0c4be34, type: 3}\n  nextSceneName: Login\n'
+                             '  m_Script: {fileID: 11500000, guid: 882f2ac2f8e5245449cbcaf6ea133299, type: 3}\n')
+            original = scene.read_bytes()
+            manifest = root/'Packages/manifest.json'
+            manifest.write_text(json.dumps({'dependencies': {'com.quadd.intro': QUAD_D_INTRO_PACKAGE}}))
+            lock = root/'Packages/packages-lock.json'
+            pin = {'source':'git', 'depth':0, 'hash':QUAD_D_INTRO_COMMIT, 'version':QUAD_D_INTRO_PACKAGE}
+            lock.write_text(json.dumps({'dependencies': {'com.quadd.intro': pin}}))
+            scenes = [QUAD_D_INTRO_SCENE, 'Assets/Scenes/Login.unity', 'Assets/Scenes/Main.unity']
+            settings = '  m_ShowUnitySplashScreen: 0\n  m_SplashScreenLogos: []\n'
+            self.assertTrue(approved_entry_flow(root, scenes, settings))
+            for invalid in [scenes[1:], scenes[::-1], scenes+['Assets/Tests/Scenes/QuadD/Test.unity'], scenes+[scenes[0]]]:
+                self.assertFalse(approved_entry_flow(root, invalid, settings))
+            self.assertFalse(approved_entry_flow(root, scenes, settings.replace('Screen: 0', 'Screen: 1')))
+            self.assertFalse(approved_entry_flow(root, scenes, settings.replace('Logos: []', 'Logos: [{}]')))
+            for invalid in ['Other', '']:
+                scene.write_text(original.decode().replace('nextSceneName: Login', 'nextSceneName: '+invalid))
+                self.assertFalse(approved_entry_flow(root, scenes, settings))
+            scene.write_bytes(original)
+            scene.write_text(original.decode().replace('882f2ac2f8e5245449cbcaf6ea133299', '0'*32))
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
+            scene.write_bytes(original)
+            lock.write_text(json.dumps({'dependencies': {'com.quadd.intro': dict(pin, hash='0'*40)}}))
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
+            lock.write_text(json.dumps({'dependencies': {'com.quadd.intro': pin}}))
+            manifest.write_text(json.dumps({'dependencies': {'com.quadd.intro': QUAD_D_INTRO_PACKAGE.replace(QUAD_D_INTRO_COMMIT, 'main')}}))
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
+            manifest.write_text('{"dependencies":{"com.quadd.intro":"wrong","com.quadd.intro":'+json.dumps(QUAD_D_INTRO_PACKAGE)+'}}')
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
 
     def test_exact_unity_version_revision_and_toolchain_are_required_without_writes(self):
         from verify_release_candidate import unity_source_pinned, TOOLCHAIN_CONFIG, SOURCE_INPUTS
