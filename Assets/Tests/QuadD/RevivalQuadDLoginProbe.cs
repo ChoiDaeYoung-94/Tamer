@@ -16,8 +16,9 @@ public sealed class RevivalQuadDLoginProbe : MonoBehaviour
     private string mode;
     private int introEntries, loginEntries, completions;
     private long highestFrame = -1;
-    private bool stoppedOnCompletion;
+    private bool videoStoppedAtCallback, audioStoppedAtCallback;
     private VideoPlayer video;
+    private AudioSource audio;
     private QuadD.QuadDIntro intro;
 
 #if TAMER_QUAD_D_LOGIN_HARNESS
@@ -63,10 +64,11 @@ public sealed class RevivalQuadDLoginProbe : MonoBehaviour
         if (intro == null || intro.NextSceneName != "Login" || intro.GetComponent<QuadDIntroCanvasOutput>() == null)
             throw new InvalidOperationException("Canonical intro configuration changed.");
         video = intro.GetComponent<VideoPlayer>();
+        audio = intro.GetComponent<AudioSource>();
         intro.OnCompleted.AddListener(() => {
             completions++;
-            var audio = intro.GetComponent<AudioSource>();
-            stoppedOnCompletion = video != null && !video.isPlaying && (audio == null || !audio.isPlaying);
+            videoStoppedAtCallback = video != null && !video.isPlaying;
+            audioStoppedAtCallback = audio == null || !audio.isPlaying;
         });
         StartCoroutine(ExerciseFailure());
     }
@@ -102,13 +104,18 @@ public sealed class RevivalQuadDLoginProbe : MonoBehaviour
         float deadline = Time.realtimeSinceStartup + 22;
         while ((loginEntries == 0 || RevivalGameplayIsolation.BlockedLogins != 1 ||
             RevivalGameplayIsolation.Reads == 0) && Time.realtimeSinceStartup < deadline) yield return null;
-        bool passed = introEntries == 1 && loginEntries == 1 && completions == 1 && stoppedOnCompletion &&
+        // Native Stop/AudioSource state may settle after the completion callback.
+        // Observe the following frame and the actual destination, not callback timing.
+        yield return null;
+        bool stoppedAtDestination = (video == null || !video.isPlaying) && (audio == null || !audio.isPlaying);
+        bool passed = introEntries == 1 && loginEntries == 1 && completions == 1 && stoppedAtDestination &&
             (mode != "natural" || highestFrame > 0) && RevivalGameplayIsolation.BlockedLogins == 1 &&
             RevivalGameplayIsolation.Reads > 0 && Managers.Instance != null && Managers.DataM.IsServerDataReady &&
             !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable;
         Debug.Log((passed ? "INTRO_LOGIN_PASS" : "INTRO_LOGIN_FAIL") + " mode=" + mode +
             " intro=" + introEntries + " login=" + loginEntries + " completions=" + completions +
-            " highestFrame=" + highestFrame + " stopped=" + stoppedOnCompletion +
+            " highestFrame=" + highestFrame + " stoppedAtCallback=" + videoStoppedAtCallback + "," + audioStoppedAtCallback +
+            " stoppedAtDestination=" + stoppedAtDestination +
             " blockedLogins=" + RevivalGameplayIsolation.BlockedLogins + " memoryReads=" + RevivalGameplayIsolation.Reads);
     }
 }
