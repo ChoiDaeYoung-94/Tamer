@@ -10,10 +10,10 @@
 | `Hovl Studio-Effects` | 하위 `Magic effects pack` 표기 | 정식 상품/취득 버전·권한 |
 | `Monsters` | `Forest Bat`, `Magma Golem`, `RPGMonsterWave02PBR`, `Spider Toxin King Evolution Pack Cute series` | 단일 팩으로 합치지 않음. 각 공급자·취득 버전·권한 |
 | `RPG Tiny Hero Duo`, `RPGPP_LT_MAP` | 각각의 폴더명 확인 | 정식 상품·공급자·취득/권한 |
-| `Keystore Helper` | README의 `Android Keystore Helper`와 [megahard/KeystoreHelper](https://github.com/megahard/KeystoreHelper) 링크 | 연결된 공개 저장소의 [LICENSE](https://github.com/megahard/KeystoreHelper/blob/master/LICENSE)는 GitHub API에서 Apache-2.0으로 확인. 로컬 코드/버전과 그 저장소의 동일성은 미검증 |
+| `Keystore Helper` | README의 Android Keystore Helper/megahard 공개 저장소와 연결. 고정39309c25 원문의 코드2개·README.pdf가 로컬 복원물과 byte 동일, 공개 LICENSE Apache-2.0 | 해당3개 파일의 소스 동일성 확인. 취득 경위·전체 에셋 권한/재배포 전환과 별도, 기존 private-restore 유지. [근거](asset-source-evidence-20261029.ko.md) |
 | `TextMesh Pro` | 2016 User Guide 파일명과 아래 별도 폰트/스프라이트 표기 | 현재 TMP 전체·각 포함 에셋의 버전/권한을 한꺼번에 확정하지 않음 |
-| `MiniJSON.cs` | 파일 선두의 Calvin Rien(2013) 저작권과 MIT 허가 문구 확인 | 해당 파일의 표기만 확인. 정확 취득 버전·변경 이력은 미확인이며 기존 비공개 분류 유지. 향후 관리 전환 시 저작권/허가문 보존 필요 |
-| `SafeArea.cs` | 파일명 확인, 선두 허가 헤더는 확인하지 못함 | 원저작자·버전·권한. 공개되어 있는 유사 코드로 출처를 대체하지 않음 |
+| `MiniJSON.cs` | Calvin Rien(2013) MIT 허가 헤더 및 darktable/1411710의 고정 revision 원문과 해당 파일 byte 동일 | 해당 파일의 출처/허가 표기 연결. 다른 파일/그룹에 확대하지 않고 기존 비공개 분류 유지. [근거](asset-source-evidence-20261029.ko.md) |
+| `SafeArea.cs` | namespace Crystal와 주석의 원문 forum 링크. 공식 Store의 Crystal Pug Safe Area Helper130488을 출처 후보로 확인 | 원문 forum 접근 실패·정확 취득 버전/로컬 byte 동일성/권한 미확인. 현재 무료·표준 EULA 표시는 로컬 취득 증거가 아니며 유사 코드로 대체하지 않음 |
 | Avalon 폰트 | manifest의 두 폰트 및 meta 항목 확인 | 별도 폰트 권한 미확인 유지. 다른 폰트의 라이선스로 대체하지 않음 |
 
 TMP 하위 `LiberationSans - OFL.txt`에는 SIL Open Font License 1.1 표기가 있습니다. 해당 문서와 폰트 바이너리의 대조·완전성 검증은 하지 않았으며 전체 TMP나 Avalon의 허가로 확대하지 않습니다. `EmojiOne Attribution.txt`의 출처 표기도 개별 에셋의 라이선스 확인을 대신하지 않습니다.
