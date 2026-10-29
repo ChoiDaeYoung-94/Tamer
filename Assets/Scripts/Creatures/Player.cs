@@ -179,11 +179,11 @@ public class Player : Creature
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            Collider target = WorldActionCollider(ray);
+            Collider target = WorldPromptTarget(ray);
 #if TAMER_FACELIFT_UI_HARNESS
-            if (Physics.Raycast(ray, out var firstHit, Mathf.Infinity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
+            if (Physics.Raycast(ray, out var firstHit))
                 Debug.Log("FACELIFT_WORLD_TOUCH first=" + firstHit.collider.name + " firstTrigger=" + firstHit.collider.isTrigger +
-                    " selected=" + (target == null ? "none" : target.name));
+                    " selected=" + (target == null ? "none" : target.name) + " selectedTag=" + (target == null ? "none" : target.tag));
 #endif
             if (target != null)
             {
@@ -203,21 +203,11 @@ public class Player : Creature
         }
     }
 
-    // Proximity volumes reveal signs, but must not intercept the sign's own click collider.
-    // Preserve solid occlusion so a touch cannot activate a sign through a wall.
-    private static Collider WorldActionCollider(Ray ray)
-    {
-        var hits = Physics.RaycastAll(ray, Mathf.Infinity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
-        Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
-        foreach (var hit in hits)
-        {
-            var collider = hit.collider;
-            if (collider.isTrigger && !collider.CompareTag("GoogleAdMob") && !collider.CompareTag("GoGameScene"))
-                continue;
-            return collider;
-        }
-        return null;
-    }
+    // Visible world prompts use dedicated UI hit volumes. Movement boundaries and
+    // character colliders must not intercept these UI taps from the follow camera.
+    private static Collider WorldPromptTarget(Ray ray)
+        => Physics.Raycast(ray, out var hit, Mathf.Infinity, LayerMask.GetMask("UI"), QueryTriggerInteraction.Collide)
+            ? hit.collider : null;
 
     #endregion
 

@@ -13,45 +13,37 @@ public class RevivalFaceliftInteractionTests
 
     [TestCase("GoGameScene")]
     [TestCase("GoogleAdMob")]
-    public void ProximityTriggerCannotInterceptTheVisibleSign(string tag)
+    public void InvisibleMovementBoundaryDoesNotInterceptTheUiPrompt(string tag)
     {
-        var root = new GameObject("Revival sign click fixture");
+        var root = new GameObject("Revival world prompt fixture");
         root.transform.position = new Vector3(15000, 15000, 15000);
         try {
-            var proximity = new GameObject("NPC proximity"); proximity.transform.SetParent(root.transform, false);
-            proximity.transform.localPosition = new Vector3(0, 0, 2);
-            var radius = proximity.AddComponent<SphereCollider>(); radius.radius = 1; radius.isTrigger = true;
-            var sign = new GameObject("Original sign target"); sign.transform.SetParent(root.transform, false);
-            sign.transform.localPosition = new Vector3(0, 0, 4); sign.tag = tag;
+            int uiLayer = LayerMask.NameToLayer("UI"); Assert.That(uiLayer, Is.GreaterThanOrEqualTo(0));
+            var wall = new GameObject("Walls"); wall.transform.SetParent(root.transform, false);
+            wall.transform.localPosition = new Vector3(0, 0, 2); var boundary = wall.AddComponent<BoxCollider>();
+            var sign = new GameObject("FaceliftClickTarget"); sign.transform.SetParent(root.transform, false);
+            sign.transform.localPosition = new Vector3(0, 0, 4); sign.tag = tag; sign.layer = uiLayer;
             var target = sign.AddComponent<BoxCollider>(); target.isTrigger = true;
-            Physics.SyncTransforms();
-            var ray = new Ray(root.transform.position, Vector3.forward);
-            Assert.That(Physics.Raycast(ray, out var original, 10, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide), Is.True);
-            Assert.That(original.collider, Is.SameAs(radius), "Reproduce the unfiltered click hitting the proximity volume.");
+            Physics.SyncTransforms(); var ray = new Ray(root.transform.position, Vector3.forward);
+            Assert.That(Physics.Raycast(ray, out var original, 10), Is.True);
+            Assert.That(original.collider, Is.SameAs(boundary), "Reproduce the real device's invisible boundary hit.");
             Assert.That(Select(ray), Is.SameAs(target));
         } finally { UnityEngine.Object.DestroyImmediate(root); Physics.SyncTransforms(); }
     }
 
     [Test]
-    public void SolidOcclusionStillStopsClicksBeforeTheSign()
+    public void OrdinaryWorldCollidersDoNotBecomeUiActions()
     {
-        var root = new GameObject("Revival occluded sign fixture");
-        root.transform.position = new Vector3(15000, 15000, 15000);
+        var root = new GameObject("Revival non-UI hit fixture");
+        root.transform.position = new Vector3(15000, 15000, 15000); root.tag = "GoGameScene";
         try {
-            var sign = new GameObject("Sign"); sign.transform.SetParent(root.transform, false);
-            sign.transform.localPosition = new Vector3(0, 0, 4); sign.tag = "GoGameScene";
-            sign.AddComponent<BoxCollider>().isTrigger = true;
-            var wall = new GameObject("Solid wall"); wall.transform.SetParent(root.transform, false);
-            wall.transform.localPosition = new Vector3(0, 0, 2);
-            var collider = wall.AddComponent<BoxCollider>();
-            Physics.SyncTransforms();
-            Assert.That(Select(new Ray(root.transform.position, Vector3.forward)), Is.SameAs(collider));
-            Assert.That(Select(new Ray(root.transform.position + Vector3.right * 3, Vector3.forward)), Is.Null);
+            root.AddComponent<BoxCollider>().isTrigger = true; Physics.SyncTransforms();
+            Assert.That(Select(new Ray(root.transform.position - Vector3.forward * 2, Vector3.forward)), Is.Null);
         } finally { UnityEngine.Object.DestroyImmediate(root); Physics.SyncTransforms(); }
     }
 
     private static Collider Select(Ray ray) => (Collider)Find("Player")
-        .GetMethod("WorldActionCollider", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { ray });
+        .GetMethod("WorldPromptTarget", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { ray });
 
     [TestCase(true)]
     [TestCase(false)]

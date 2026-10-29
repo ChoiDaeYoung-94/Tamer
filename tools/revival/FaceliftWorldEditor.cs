@@ -30,6 +30,65 @@ public static class FaceliftWorldEditor
         }).ToArray();
     }
 
+    public static object AuditTownBoundary()
+    {
+        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Main.unity", OpenSceneMode.Additive);
+        try {
+            var objects = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Transform>(true)).ToArray();
+            return new { walls = objects.Where(t => t.name == "Walls").Select(t => new {
+                path = Hierarchy(t), position = t.position.ToString(), scale = t.lossyScale.ToString(),
+                colliders = t.GetComponents<Collider>().Select(c => new { type = c.GetType().Name, c.isTrigger, bounds = c.bounds.ToString() }).ToArray(),
+                renderer = t.GetComponent<Renderer>() != null, active = t.gameObject.activeInHierarchy
+            }).ToArray(), signs = objects.Where(t => t.GetComponent<TextMesh>() != null).Select(t => new {
+                path = Hierarchy(t), position = t.position.ToString(), local = t.localPosition.ToString(),
+                text = t.GetComponent<TextMesh>().text,
+                boxes = t.GetComponentsInChildren<BoxCollider>(true).Select(c => new {
+                    name = c.name, center = c.transform.TransformPoint(c.center).ToString(), scale = c.transform.lossyScale.ToString(), size = c.size.ToString(), c.isTrigger
+                }).ToArray()
+            }).ToArray() };
+        } finally { EditorSceneManager.CloseScene(scene, true); }
+    }
+
+    private static string Hierarchy(Transform t) => t.parent == null ? t.name : Hierarchy(t.parent) + "/" + t.name;
+
+    public static object AuditCameraLayers()
+    {
+        return AssetDatabase.FindAssets("Camera t:Prefab", new[] { "Assets/Resources", "Assets/Prefabs" })
+            .Select(AssetDatabase.GUIDToAssetPath).Select(path => {
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try { return new { path, cameras = root.GetComponentsInChildren<Camera>(true).Select(c => new {
+                    c.name, c.cullingMask, includesUi = (c.cullingMask & (1 << LayerMask.NameToLayer("UI"))) != 0
+                }).ToArray() }; }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }).ToArray();
+    }
+
+    public static object ApplyWorldClickTargets()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Edit Mode required.");
+        int uiLayer = LayerMask.NameToLayer("UI");
+        if (uiLayer < 0) throw new InvalidOperationException("Existing UI layer required; do not change project layers.");
+        var targets = new[] { new { path = Paths[0], target = "Game/GoGameScene" }, new { path = Paths[1], target = "Admob/GoogleAdmob" } };
+        foreach (var entry in targets) {
+            var root = PrefabUtility.LoadPrefabContents(entry.path);
+            try {
+                var parent = root.transform.Find(entry.target);
+                var original = parent == null ? null : parent.GetComponent<BoxCollider>();
+                if (original == null || !original.isTrigger) throw new InvalidOperationException("Original prompt trigger required.");
+                var child = parent.Find("FaceliftClickTarget");
+                if (child == null) {
+                    var go = new GameObject("FaceliftClickTarget");
+                    go.transform.SetParent(parent, false); go.layer = uiLayer; go.tag = parent.tag;
+                    var collider = go.AddComponent<BoxCollider>(); collider.isTrigger = true;
+                    collider.center = original.center; collider.size = original.size;
+                } else if (child.gameObject.layer != uiLayer || child.tag != parent.tag || child.GetComponent<BoxCollider>() == null)
+                    throw new InvalidOperationException("Existing click target differs; inspect before changing.");
+                PrefabUtility.SaveAsPrefabAsset(root, entry.path);
+            } finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+        return new { uiLayer, promptTargets = 2, originalRenderersAndCollidersRetained = true, projectCollisionSettingsChanged = false };
+    }
+
     private static object Text(TextMesh text) => new { text.text, text.fontSize, text.characterSize,
         text.lineSpacing, alignment = text.alignment.ToString(), anchor = text.anchor.ToString(),
         font = AssetDatabase.GetAssetPath(text.font), color = ColorUtility.ToHtmlStringRGBA(text.color),
