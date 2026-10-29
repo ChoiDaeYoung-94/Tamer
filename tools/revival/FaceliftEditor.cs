@@ -117,6 +117,12 @@ public static class FaceliftEditor
     public static object RenderLoginNickname() => RenderPrefab(Prefabs[0], "login-nickname-after", "Panel_Nickname");
     public static object RenderSettingsAfter() => RenderPrefab("Assets/Prefabs/Manager/Manager.prefab", "settings-after", "Popup_settings");
     public static object RenderShopAfter() => RenderPrefab("Assets/Prefabs/Main/ShopMan.prefab", "shop-after", "Canvas/Popup_Shop");
+    public static object RenderShortShopBefore() => RenderPrefab("Assets/Prefabs/Main/ShopMan.prefab", "shop-short-before", "Canvas/Popup_Shop", 1080, 1440);
+    public static object RenderResponsiveShop() => new[] {
+        RenderPrefab("Assets/Prefabs/Main/ShopMan.prefab", "shop-responsive-9x16", "Canvas/Popup_Shop", 1080, 1920, true),
+        RenderPrefab("Assets/Prefabs/Main/ShopMan.prefab", "shop-responsive-9x20", "Canvas/Popup_Shop", 1080, 2400, true),
+        RenderPrefab("Assets/Prefabs/Main/ShopMan.prefab", "shop-responsive-3x4", "Canvas/Popup_Shop", 1080, 1440, true)
+    };
     public static object RenderCharacterAfter() => RenderPrefab("Assets/Scenes/SetCharacter.unity", "character-ui-after", null);
     public static object RenderFinalPages()
     {
@@ -124,7 +130,7 @@ public static class FaceliftEditor
             settings = RenderSettingsAfter(), shop = RenderShopAfter(), character = RenderCharacterAfter() };
     }
 
-    private static object RenderPrefab(string path, string label, string activate)
+    private static object RenderPrefab(string path, string label, string activate, int width = 1080, int height = 1920, bool requireShopSpacing = false)
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Edit Mode required.");
         var scene = EditorSceneManager.NewPreviewScene();
@@ -159,7 +165,7 @@ public static class FaceliftEditor
             camera.transform.position = new Vector3(0, 0, -10);
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = path == Prefabs[1] ? new Color32(126, 174, 77, 255) : new Color32(27, 53, 48, 255);
-            target = new RenderTexture(1080, 1920, 24);
+            target = new RenderTexture(width, height, 24);
             camera.targetTexture = target;
             foreach (var canvas in root.GetComponentsInChildren<Canvas>(true)) {
                 canvas.renderMode = RenderMode.ScreenSpaceCamera;
@@ -170,13 +176,28 @@ public static class FaceliftEditor
             Canvas.ForceUpdateCanvases();
             camera.Render();
             RenderTexture.active = target;
-            picture = new Texture2D(1080, 1920, TextureFormat.RGB24, false);
-            picture.ReadPixels(new Rect(0, 0, 1080, 1920), 0, 0);
+            picture = new Texture2D(width, height, TextureFormat.RGB24, false);
+            picture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             picture.Apply();
             var output = Path.Combine(Root, ".revival-local", "facelift-1029", label + ".png");
             Directory.CreateDirectory(Path.GetDirectoryName(output));
             File.WriteAllBytes(output, picture.EncodeToPNG());
-            return new { image = output, visualOnly = true, gameplayOrAuthenticationRun = false,
+            object shopGeometry = null;
+            if (path == "Assets/Prefabs/Main/ShopMan.prefab" && activate == "Canvas/Popup_Shop") {
+                Rect Pixels(string child) {
+                    var corners = new Vector3[4];
+                    Require<RectTransform>(root, "Canvas/Popup_Shop/" + child).GetWorldCorners(corners);
+                    Vector2 min = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
+                    Vector2 max = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+                    return new Rect(min, max - min);
+                }
+                Rect close = Pixels("FaceliftClose"), tab = Pixels("Shop_0/Btn_Shop_2"), back = Pixels("Back");
+                bool overlap = close.Overlaps(tab);
+                bool frameInside = back.xMin >= -.1f && back.yMin >= -.1f && back.xMax <= width + .1f && back.yMax <= height + .1f;
+                if (requireShopSpacing && (overlap || !frameInside)) throw new InvalidOperationException("Shop header overlap or frame outside the viewport.");
+                shopGeometry = new { close = close.ToString(), tab = tab.ToString(), back = back.ToString(), overlap, frameInside };
+            }
+            return new { image = output, visualOnly = true, gameplayOrAuthenticationRun = false, width, height, shopGeometry,
                 canvasSizes = root.GetComponentsInChildren<Canvas>(true).Select(c => ((RectTransform)c.transform).rect.ToString()).ToArray() };
         }
         finally {
@@ -377,7 +398,7 @@ public static class FaceliftEditor
             var backdrop = Require<UnityEngine.UI.Image>(root, popup.TrimEnd('/'));
             backdrop.sprite = null; backdrop.color = new Color32(5, 18, 16, 195);
             var panel = Require<RectTransform>(root, popup + "Back");
-            Position(panel, new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(960, 1560));
+            Stretch(panel, new Vector2(.5f, 0), new Vector2(.5f, 1), Vector2.zero, new Vector2(960, -360));
             Card(panel.gameObject, Surface);
             var title = Require<TMP_Text>(root, popup + "TMP_Shop");
             TextStyle(title, 64, Gold, true); title.text = "SHOP";
@@ -386,7 +407,7 @@ public static class FaceliftEditor
             for (int group = 0; group < 3; group++) {
                 string path = popup + "Shop_" + group;
                 var area = Require<RectTransform>(root, path);
-                Stretch(area, new Vector2(.08f, .12f), new Vector2(.92f, .75f), Vector2.zero, Vector2.zero);
+                Stretch(area, new Vector2(.08f, 0), new Vector2(.92f, 1), new Vector2(0, -125), new Vector2(0, -710));
                 for (int tab = 0; tab < 3; tab++) {
                     var button = Require<UnityEngine.UI.Button>(root, path + "/Btn_Shop_" + tab);
                     StyleButton(button, group == tab ? Gold : new Color32(44, 77, 65, 255), group == tab ? Ink : Cream);
@@ -457,6 +478,21 @@ public static class FaceliftEditor
             }
         });
         return new { shopStyled = true, catalogAndPurchaseEventsUnchanged = true, hardcodedIapPriceRemoved = true };
+    }
+
+    public static object ApplyResponsiveShop()
+    {
+        Edit("Assets/Prefabs/Main/ShopMan.prefab", root => {
+            const string popup = "Canvas/Popup_Shop/";
+            // Retain the 1920-high design while keeping the header and close button
+            // apart on shorter portrait displays. Only the scrollable body shrinks.
+            Stretch(Require<RectTransform>(root, popup + "Back"), new Vector2(.5f, 0), new Vector2(.5f, 1),
+                Vector2.zero, new Vector2(960, -360));
+            for (int group = 0; group < 3; group++)
+                Stretch(Require<RectTransform>(root, popup + "Shop_" + group), new Vector2(.08f, 0), new Vector2(.92f, 1),
+                    new Vector2(0, -125), new Vector2(0, -710));
+        });
+        return new { headerSpacingFixed = true, scrollAreaResizes = true, purchaseEventsUnchanged = true };
     }
 
     public static object InspectCharacterAndIconApis()
