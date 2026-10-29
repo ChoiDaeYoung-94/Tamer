@@ -28,6 +28,12 @@
 
 compiled resource·config SHA와 직렬화 값은 prebuild/scene/postbuild receipt에 연결됐습니다. **10월29일 후속 읽기에서 최종 AAB의 named resource 바이트를 독립 추출해 exact plan의 payload와 SHA 일치를 확인했습니다.** 실제 ARM64 16KB·Play APK/split ZIP/설치·운영 광고/동의·계정/저장/구매·정책/심사는 이 기본 정적 검사의 범위 밖입니다. `binaryVerified`, `distributable`, `releaseReady`는 false로 유지합니다.
 
+## 2026-10-29 포함 SDK와 현재 신고 대조
+
+10월29일 현재 Console의 수집/공유 No와 가족 정책 약속 Yes·미리보기 수집/공유 없음을 값을 바꾸지 않고 읽었습니다. 암호화 질문은 No 분기에 표시되지 않아 No로 해석하지 않습니다. 같은 후보27 AAB metadata에서 GMA25.5/UMP4/IAP5.4.3/Billing9/Core1.18/Auth3.7.4/Games22를 확인했습니다. [10월29일 수정표](data-safety-submission-plan-20261029.ko.md)는 이 불일치와 실제 SDK·제공24의 적용 범위, PlayFab 처리자 공유 예외 근거 및 남은 유형별 답안을 연결합니다. Console 저장/제출·업로드·실제 운영 기능/심사 완료는 별도입니다.
+
+최종 AAB에서17,187bytes의 선별 metadata/properties·dependency protobuf를 읽어 완전한 Maven87·Unity66 좌표를 기록했습니다. 개별 라이브러리 metadata는 SDK 선언·버전 연결 근거이며 실행·실제 송신을 입증하지 않습니다. 이 작은 읽기에서는 기존 전체 SHA 검증 파일의 동일 identity·크기/mtime와 writer/deleter 차단을 연결했고 전체 재해시·추출을 반복하지 않았습니다. Unity app metadata6000.3.25f1와 주요 Maven properties도 좌표와 일치했습니다.
+
 ## 2026-10-29 바이너리 리소스·manifest 후속 대조
 
 같은 AAB의 resource meta GUID에 대응하는 player-data entry 한 개(1,688 bytes)를 읽었습니다. `RevivalPrivateAdsRelease` 이름과 정수 길이·정렬 프레임 뒤의 실제 payload를 독립 추출해 exact plan의 원래 resource와 바이트/SHA가 같음을 확인했습니다. 이 검사는 전체 type tree 해석이나 실행 중 `Resources.Load` 성공을 증명하지 않습니다. 기존 전체 SHA 검증 파일의 동일 identity·크기·mtime와 읽기 handle의 writer/deleter 차단을 확인했고, 뒤 manifest 검사에서 전체 AAB SHA도 전후 다시 일치했습니다. 리소스 바이트·GUID/entry·내부 설정값은 비공개 증거에 보존했습니다.

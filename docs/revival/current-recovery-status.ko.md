@@ -12,6 +12,8 @@
 
 10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 receipt에 연결한 뒤 실제 AAB의 named resource 바이트를 독립 추출해 plan과 일치를 확인했습니다. 최종 manifest의 광고 metadata/권한도 읽었으며 runtime load·실제 통신은 미검증입니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
 
+10월29일 현재 Console의 수집/공유 No와 가족 정책 약속 Yes·미리보기 수집/공유 없음을 값을 바꾸지 않고 읽었습니다. 암호화 질문은 No 분기에 표시되지 않아 No로 해석하지 않습니다. 같은 후보27 AAB metadata에서 GMA25.5/UMP4/IAP5.4.3/Billing9/Core1.18/Auth3.7.4/Games22를 확인했습니다. [10월29일 수정표](data-safety-submission-plan-20261029.ko.md)는 이 불일치와 실제 SDK·제공24의 적용 범위, PlayFab 처리자 공유 예외 근거 및 남은 유형별 답안을 연결합니다. Console 저장/제출·업로드·실제 운영 기능/심사 완료는 별도입니다.
+
 ## 현재 확인한 범위
 
 | 작업 | 확인한 결과 | 남은 범위 |
@@ -26,7 +28,7 @@
 | 광고 SDK 갱신 | GMA Unity11.6/Standard Android25.5·UMP4 유지. source71fee의58/58, source5978의격리8/8와 같은 APK의 LD 실제 init/load/show/보상1·종료1/BGM 복귀. [정확한 범위](gma-116-20261026.ko.md) | 추가 strict RELRO end-modulo3건 미충족·별도 bounded layout 통과. 운영 publisher/스토어·실제ARM64 16KB는 별도 |
 | 운영 빌드 입력·개발27 | entry별 입력 검사와 두 approved 경로의 로그인 snapshot/imported Title/PGS guard 통합. 비공개 로컬 Title 준비, 현행 기준27·source12218e9 개발 APK 실제 빌드/기본 정적 검사·보호59개 복구 완료. [근거](baseline-version27-20261027.ko.md) | 추가 strict RELRO 끝 정렬2개 실패·이전 동일 binary. 개발27 진단과 새 운영 후보27 생성·기본 정적검사를 구분. 최종 운영·Play 제공물/실제16KB는 별도 |
 | 개발 진단 로그 | [컴파일 조건 수정](development-logging-20261026.ko.md)·C#6조건·source6db37d5의 Unity Pool7/7, 보호59개 복원 | 일반 release 호출 생략 유지. 새 Android player·과거 로그인 장애 전체 원인 해결로 확대하지 않음 |
-| 개인정보 신고 준비 | [후보 기술표](data-safety-candidate-20261026.ko.md), 보관24/후보 IAP 버전별 공식 안내·[native 초기화/Insights 조건](iap-native-dataflow-20261028.ko.md), 운영 PlayFab 장치/집중시간/IP 저장ON 읽기. 10/28 정상 호출·로컬 기본HTTPS/원격 로그OFF 대조 | 정적 구성과 실제 수집/서버 보관을 구분. 최종 제공판 합집합·공유/보관/암호화·Console/공개 안내 대조와 실제 후보 연결은 별도 |
+| 개인정보 신고 준비 | [현재 Console·실제 후보 SDK 수정표](data-safety-submission-plan-20261029.ko.md), 수집/공유No·가족약속Yes 읽기와 오프디바이스 계정/진행 경로 불일치 확인. 최종 AAB SDK metadata·제공24 버전별 범위·PlayFab 처리자 공유 예외 근거 연결 | 상위 수집Yes 방향 확정. 유형별 공유/목적·필수선택·일시처리·전체 전송 보호와 공개 안내 정합·Console 저장/제출은 남음. 실제 payload/운영 기능·심사 통과로 확대하지 않음 |
 | 성인 후보 소스·검증 | [PR #466](https://github.com/ChoiDaeYoung-94/Tamer/pull/466) 통합. 비배치 Editor 113통과·실패0·배치 전용1건 건너뜀, 해당 사례 별도 배치1/1통과. 개인정보 순수4모드·소유권13사례 통과, source/launcher 경로 독립 검토. [정확한 대상과 한계](adult-candidate-source-20261028.ko.md) | 아래 fb13fa4의 비실행 plan/source-review는 PR473 이전 준비 이력이며 실행 보류 상태. 수정 소스 eba77a66의 plan/source-review·실제 metadata와 키 challenge·운영 후보27 AAB 생성/기본 정적검사/복구 완료. binary resource 독립 추출·최종 manifest 추가 대조 완료. 최종 광고·동의/계정·정책·Play 제공물 검증은 남음. 별도 개인정보 전용 승인은 false/null |
 | 권한·CI | 10/28 API에서 소유자만 협업자1명·외부 쓰기 권한자0·대기 초대0 재확인. main 보호/Actions 비활성과 연결 도구의 소유자 앱 전체 저장소 선택 관측 보존. [범위](access-security.ko.md) | 공개 이슈/PR 작성과 merge 권한은 다름. 설치 앱 개별 권한·Sourcetree 등 미사용 인가의 필요성 후속은 비공개 인계. Fork 보존, 새 권한·회수·CI 실행 없음 |
 | README·공개 안내 | 게임 이미지·기존 플레이 영상·Play 링크·개인정보처리방침·삭제 문의 안내 유지 | 최종 제공판에 맞춘 공개 안내/Console 신고 대조와 복구 결산 |
