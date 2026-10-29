@@ -33,6 +33,14 @@
 
 공식 근거: [Google Play 신고 정의](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en), [Unity IAP5.4+ 신고표](https://docs.unity.com/en-us/iap/privacy-and-consent/google-play-data-safety), [IAP 역할·선택 필드](https://docs.unity.com/en-us/iap/privacy-and-consent/overview), [목적별 consent](https://docs.unity.com/en-us/cloud/developer-data-framework/end-user-consent), [PlayFab API 기능](https://learn.microsoft.com/en-us/xbox/playfab/live-service-management/gamemanager/api-feature-settings-in-the-playfab-game-manager), [PGS 처리](https://developer.android.com/games/pgs/data-collection), [GMA25.5 처리](https://developers.google.com/admob/android/privacy/play-data-disclosure), [UMP](https://developers.google.com/admob/unity/privacy).
 
+## 2026-10-29 실제 후보와 공급자 요청 경로
+
+후보27의 광고 resource가 exact plan과 같고 최종 manifest에 GMA InitProvider·광고 ID/AdServices 권한이 포함됨을 확인했습니다. manifest의 측정 지연 metadata 없음·명시 cleartext/network-security 속성 없음은 선언 관측이며, 동의 전 실제 송신·전체 TLS·수집 없음 판정으로 쓰지 않습니다. 현재 제공24와 후보27의 합집합, 필수/선택·공유 역할·목적은 실제 기능 조건과 공식 버전 자료에 연결합니다.
+
+10월29일 다시 읽은 [IAP5.4+ 역할별 안내](https://docs.unity.com/en-us/iap/privacy-and-consent/overview)는 처리자 범위의 IAP/거래 자료 요청을 개발자가 본인 확인 후 Unity IAP 지원 양식으로 전달하도록 설명합니다. Webshop 로그인/CodaPay 및 Unity 자체 재무·감사·보안·부정행위 방지 등 독립 처리 범위는 이용자가 Unity 지원 양식을 이용하는 경로와 구분합니다. 같은 거래도 처리 목적별 역할이 다를 수 있습니다. 이 안내를 실제 메일 접수·지원 요청 발송·자료 삭제 완료나 제공24의 IAP5.0.1에 소급하지 않습니다. 기존 운영자 문의 처리14일 목표를 공급자 전체 소거 기한으로 확대하지 않습니다.
+
+연결 Gmail의 현재 계정이 운영/문의 계정과 달라 그 연결의 검색0건은 운영 메일의 통지·요청 부재 근거에서 제외했습니다. 본문/첨부 읽기·발신·계정 전환 없이 중단했으며 개인정보·계정 식별값은 이 문서에 남기지 않습니다. 현재 Console 답안·제공판 범위와 공개 안내를 직접 대조한 뒤 미확인 기술 조건만 정리합니다.
+
 ## 최종 후보에 연결할 순서
 
 ### 2026-10-28 버전별 적용 범위 보완
@@ -46,6 +54,6 @@ IAP5.0.1에는 [5.4 미만 안내](https://docs.unity.com/en-us/iap/privacy-and-
 1. 제공 중인24번의 SDK·기능과 최종 후보의 공급자/동의/수집 범위를 합쳐 실제 해당 유형을 확정합니다.
 2. 유형별 필수/선택·목적·일시 처리·공유 역할과 전체 전송 암호화의 근거를 연결합니다. 현재 제공하는 어느 버전/지역/이용자라도 해당 유형이 필수이면 전체를 선택 수집으로 낮추지 않으며 일시 처리도 양식에 답합니다. 미배포 후보는 배포 준비 대상으로 구분하고, 수집되지 않은 것으로 확인하지 않은 유형을 NO로 메우지 않습니다. [Google의 합집합·선택 수집 정의](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en).
 3. 기존 공개 개인정보/삭제 안내와 Console 답안을 대조한 뒤 필요한 수정·게시/제출을 합니다. 삭제는 기존 문의 주소에서14일 이내 처리하는 운영 약속을 유지하며, 접수 수락을 모든 공급자의 삭제 완료로 표현하지 않습니다.
-4. 정확한 최종 AAB/Play 제공물과 로그인·저장·구매/No Ads·연령/UMP 영향 검증을 연결합니다. 현재 새 운영 서명 AAB는 없습니다.
+4. 정확한 최종 AAB/Play 제공물과 로그인·저장·구매/No Ads·연령/UMP 영향 검증을 연결합니다. 10월29일 exact source `eba77a66`의 [운영 후보27 AAB](operating-candidate27-20261029.ko.md)를 생성·기본 검사/복구했고 named binary resource 독립 추출·최종 manifest 추가 대조까지 연결했습니다. Play 제공물·기능·실제 통신·신고 제출은 별도입니다.
 
 2026-10-26 source `289d8ba1889aff153b86355ea259dd60afe68c48`의 [실제 입력 사전검사](operating-build-input-preflight.ko.md)는 당시 빈 Title과 legacy 다음 code1/관측 최대26 충돌을 검출했습니다. 10월27일에는 [비공개 로컬 Title 준비·개발 기준27 검증](baseline-version27-20261027.ko.md)을 진행했으며 legacy 계산 이력과 구분합니다. 이 입력 준비와 개발 APK 결과는 광고 승인·운영 키 사용·운영 서명 AAB 생성·출시를 자동 허용하지 않습니다. [전체 잔여 목록](remaining-recovery-work.ko.md)을 유지합니다.
