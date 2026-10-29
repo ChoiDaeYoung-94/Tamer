@@ -26,7 +26,25 @@
 
 추가 strict RELRO end-modulo16384 진단은 `libc++_shared.so`, `libmain.so`, `libunity.so`의3개 항목이 미충족입니다. 기본 검사 통과와 분리해 기록하며, 이 진단만으로 실제 runtime crash나 스토어 거절을 단정하지 않습니다. 개발27의2건은 별도 아티팩트 이력이며 이번 결과와 합치지 않습니다.
 
-compiled resource·config SHA와 직렬화 값은 prebuild/scene/postbuild receipt에 연결됐습니다. **최종 binary resource의 독립 추출은 아직 하지 않았습니다.** 실제 ARM64 16KB·Play APK/split ZIP/설치·운영 광고/동의·계정/저장/구매·정책/심사는 이 기본 정적 검사의 범위 밖입니다. `binaryVerified`, `distributable`, `releaseReady`는 false로 유지합니다.
+compiled resource·config SHA와 직렬화 값은 prebuild/scene/postbuild receipt에 연결됐습니다. **10월29일 후속 읽기에서 최종 AAB의 named resource 바이트를 독립 추출해 exact plan의 payload와 SHA 일치를 확인했습니다.** 실제 ARM64 16KB·Play APK/split ZIP/설치·운영 광고/동의·계정/저장/구매·정책/심사는 이 기본 정적 검사의 범위 밖입니다. `binaryVerified`, `distributable`, `releaseReady`는 false로 유지합니다.
+
+## 2026-10-29 바이너리 리소스·manifest 후속 대조
+
+같은 AAB의 resource meta GUID에 대응하는 player-data entry 한 개(1,688 bytes)를 읽었습니다. `RevivalPrivateAdsRelease` 이름과 정수 길이·정렬 프레임 뒤의 실제 payload를 독립 추출해 exact plan의 원래 resource와 바이트/SHA가 같음을 확인했습니다. 이 검사는 전체 type tree 해석이나 실행 중 `Resources.Load` 성공을 증명하지 않습니다. 기존 전체 SHA 검증 파일의 동일 identity·크기·mtime와 읽기 handle의 writer/deleter 차단을 확인했고, 뒤 manifest 검사에서 전체 AAB SHA도 전후 다시 일치했습니다. 리소스 바이트·GUID/entry·내부 설정값은 비공개 증거에 보존했습니다.
+
+최종 manifest를 기존 고정 Java/bundletool로 한 번 읽어 새 조건만 대조했습니다. 실제 실행은 child1·최대 heap256MiB·CPU1로0.516초였으며 새 빌드·앱 실행·키 사용·SDK 설치는 없었습니다.
+
+| 실제 manifest 조건 | 관측과 한계 |
+| --- | --- |
+| GMA App ID | 복구된 동일 source 설정과 일치. 실제 값은 공개하지 않음 |
+| GMA `MobileAdsInitProvider` | 포함. 존재만으로 실제 동의 전 송신을 확정하지 않음 |
+| `DELAY_APP_MEASUREMENT_INIT` | 항목 없음. 이것만으로 SDK 결함·개인정보 위반이나 실제 초기화 시점을 판정하지 않음 |
+| 초기화/광고 로드 최적화 | 두 metadata 모두 true. 동의·수집 중단 설정으로 표현하지 않음 |
+| Unity metadata | `6000.3.25f1` |
+| cleartext / network security config | 두 application 속성이 명시돼 있지 않음. 전체 송신 TLS 보장·실제 평문 송신의 증거로 확대하지 않음 |
+| 권한 | INTERNET/네트워크 상태·wake/foreground, Billing, 광고 ID 및 AdServices ID/attribution/topics, 비공개 receiver 권한 포함. 선언만으로 각 데이터의 실제 수집·선택 여부를 확정하지 않음 |
+
+`binaryResourceIndependentlyExtracted=true`, `runtimeResourceLoadVerified=false`이며 최종 `binaryVerified/distributable/releaseReady=false`는 유지합니다. 다음 단계의 운영 동의·기능·신고 확인을 대신하지 않습니다.
 
 ## 실패 보존과 정확 복구
 
@@ -36,4 +54,4 @@ compiled resource·config SHA와 직렬화 값은 prebuild/scene/postbuild recei
 
 ## 다음 연결
 
-binary resource 독립 추출과 제공24+후보의 Data safety/공개 안내 정합을 필요한 범위로 마친 뒤, 준비된 AAB의 사용자 수동 업로드와 같은 Play 제공물·필요 기능/정책 검증으로 이어갑니다. 실제 키 입력이 성공했다는 이유로 백업 복호화·외부 복구나 출시 전체를 완료 처리하지 않습니다. [전체 잔여 목록](remaining-recovery-work.ko.md), [현황](current-recovery-status.ko.md), [단일 입력 경계](single-input-signing-20261027.ko.md)를 유지합니다.
+binary resource 독립 추출은 완료했으며 제공24+후보의 Data safety/공개 안내 정합을 필요한 범위로 마친 뒤, 준비된 AAB의 사용자 수동 업로드와 같은 Play 제공물·필요 기능/정책 검증으로 이어갑니다. 실제 키 입력이 성공했다는 이유로 백업 복호화·외부 복구나 출시 전체를 완료 처리하지 않습니다. [전체 잔여 목록](remaining-recovery-work.ko.md), [현황](current-recovery-status.ko.md), [단일 입력 경계](single-input-signing-20261027.ko.md)를 유지합니다.

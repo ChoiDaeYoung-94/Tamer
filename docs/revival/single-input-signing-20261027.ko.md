@@ -62,7 +62,7 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 ## 2026-10-29 실제 키·AAB 연결
 
-10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 build receipt에 연결했고 binary resource 독립 추출은 남아 있습니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
+10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 receipt에 연결한 뒤 실제 AAB의 named resource 바이트를 독립 추출해 plan과 일치를 확인했습니다. 최종 manifest의 광고 metadata/권한도 읽었으며 runtime load·실제 통신은 미검증입니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
 
 ## 후속: 실행 없는 metadata 준비
 
@@ -76,4 +76,4 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이 코드 통합 당시에는 실제 metadata 생성·키 입력·운영 AAB를 실행하지 않았습니다. 이후10월29일의 실제 metadata 준비는 위 날짜별 결과로 구분하며 키 입력·운영 AAB의10월29일 후속 성공은 위 실제 연결 결과로 구분합니다. 준비된 inventory도 실제 실행 시 exact 후보와 다시 대조해야 합니다.
 
-10월29일 필요한 로컬 직접 입력을 접수해 실키 challenge와 같은 exact source의 운영 후보27 AAB 생성·기본 서명/manifest/version/native 검사·정확 원복을 마쳤습니다. **새 운영 AAB는 비공개로 준비돼 있지만 아직 업로드·제출하지 않았습니다.** binary resource 독립 추출과 같은 Play 제공물·필요 기능/정책 검증은 별도이며, [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
+10월29일 필요한 로컬 직접 입력을 접수해 실키 challenge와 같은 exact source의 운영 후보27 AAB 생성·기본 서명/manifest/version/native 검사·정확 원복을 마쳤습니다. **새 운영 AAB는 비공개로 준비돼 있지만 아직 업로드·제출하지 않았습니다.** binary resource 독립 추출은 완료했고 같은 Play 제공물·필요 기능/정책 검증은 별도이며, [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
