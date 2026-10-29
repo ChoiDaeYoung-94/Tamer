@@ -1,12 +1,18 @@
 # 아이콘·UI 페이스리프트 검토안 — 2026-10-29
 
-사용자 요청으로 앱 아이콘과 게임 전반 UI의 첫 스타일을 적용했습니다. 실제 작업본은 `D:/codex/worktrees/tamer-working/Tamer`, UI 코드 커밋은 `codex/ui-facelift-1029@493b87dbc57a1b55d19302aac239e50a310b36dc`입니다. [인트로 PR #492](https://github.com/ChoiDaeYoung-94/Tamer/pull/492)를 기반으로 하며 [이슈 #491](https://github.com/ChoiDaeYoung-94/Tamer/issues/491)에서 추적합니다. 사용자 화면 검토와 운영 검증이 남아 있어 완료·배포 상태로 표현하지 않습니다.
+사용자 요청으로 앱 아이콘과 게임 전반 UI의 첫 스타일을 적용했습니다. 실제 작업본은 `D:/codex/worktrees/tamer-working/Tamer`, 최신 Android 통합 검증 소스는 `codex/ui-facelift-1029@998a808e2913dbd68fab268b5cef07dbc9c5a3fc`입니다. [인트로 PR #492](https://github.com/ChoiDaeYoung-94/Tamer/pull/492)를 기반으로 한 [UI PR #493](https://github.com/ChoiDaeYoung-94/Tamer/pull/493)이며 [이슈 #491](https://github.com/ChoiDaeYoung-94/Tamer/issues/491)에서 추적합니다. 사용자 화면 검토와 운영 검증이 남아 있어 전체 완료·배포 상태로 표현하지 않습니다.
 
 짙은 녹색 패널과 금색 주요 버튼, 밝은 본문으로 표현을 통일했습니다. 로그인 제목·로딩·닉네임 입력, 마을/전투 공통 HUD와 포획·설정 버튼, 플레이어 정보 팝업, 상점 탭·목록·구매 안내, 설정·종료/회복 팝업, 캐릭터 선택·조이스틱·전환 화면을 다듬었습니다. 상점에는 기존 팝업 닫기 동작으로 연결한 명시적 닫기 버튼을 추가했습니다. No Ads의 고정 가격 문구는 제거하고 Google Play에서 실제 가격을 확인하도록 안내합니다.
 
 기존 금발 캐릭터와 박쥐 동료를 살린 새 아이콘을 제작해 기본·Android legacy/round·adaptive 슬롯에 연결했습니다. 적응형 아이콘은 별도 투명 전경과 단색 배경을 사용합니다. [최종 에셋·도구·전체 프롬프트](../images/facelift-assets-20261029.ko.md)를 함께 기록했습니다. 한글이 필요한 설정/개인정보 UI의 기존 글꼴과 원래 atlas를 유지하고 별도 재질로 외곽선만 정리했습니다.
 
-## 현재 확인 — 22:30 KST 근접 안내판·포획 실제 동작
+## 현재 추가 확인 — 23:09 KST 인트로 통합·Android 아이콘
+
+source998a808의 별도 네트워크 차단/debug 앱에서 canonical Intro→원래 Login→memory Main을 정상·모의 디코더 오류·모의 재생 지연 각각의 새 프로세스로 확인했습니다. 완료/Login 각1·기존 영상/음향 정지·serverReady/광고/결제 차단, 인증/연령 입력0입니다. [정확한 APK·관찰 실패2회와 한계](quad-d-intro-and-estimate-20261029.ko.md)를 함께 기록합니다. 운영 Login 성공과 구분합니다. 추가 격리 계약/씬 순서2/2, GUID 참조135파일/미해결0입니다.
+
+LD 기본 launcher에서 새 캐릭터/동료 아이콘과 숲색 배경이 실제로 표시되고 현재 둥근 사각 마스크 안에 머리 실루엣이 들어옴을 확인했습니다. 다른 launcher 마스크·실제 노치/다른 기기 비율·스토어 자료와 사용자 디자인 검토는 남아 있습니다. 운영27은 원래 설치 base SHA 그대로이고 전체 비시스템20개/Tamer16개를 보존한 뒤 시험 VM을 정상 종료했습니다. [최종 후보 준비안](final-facelift-candidate-plan-20261029.ko.md)은 아직 실행 전입니다.
+
+## 22:30 KST 근접 안내판·포획 실제 동작
 
 source `83cfd19216c20bdb01aa866d39d8b8566054070d`의 격리 UI APK(130793669B/SHA-256 `0becb38d05ee68ea8ea2fb086f2f07238db178ac17c1c62a52b3270d0f52b4ab`)를 기본 검사하고 원본84파일 복구/Editor 정상 종료 후 기존 own UI 앱만 데이터 보존 갱신했습니다. 기존19개 비시스템 앱/Tamer15개를 유지했습니다. 관련 상호작용7/7과 변경 없는 기본10개 결과를 구분합니다.
 
