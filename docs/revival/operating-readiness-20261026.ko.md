@@ -8,7 +8,11 @@
 
 현재 앱 무결성 메뉴는 Google Play로 보호됨→Play 스토어 보호→Play 앱 서명 관리로 이어집니다. 앱 서명 키와 업로드 키를 구분하고 업로드 공개 DER를 실제 다운로드했습니다. 다운로드 이벤트 대기는 시간 초과됐으나 해당 시각의 새678byte 파일 존재·인증서 파싱·SHA-256을 확인했고 기존 검토 upload DER 및 원본 키에서 추출해 둔 공개 DER와 byte 동일했습니다. 원래 다운로드와 비공개 owner+SYSTEM 근거 사본을 보존하며 지문/계정별 URL은 공개하지 않습니다. 개인키 본문·암호·새 challenge·운영 AAB 서명 검증은 실행하지 않았습니다.
 
-정상 Browser Use 연결 확인을 이전 Windows URL 판독 중단의 해결로 표현하지 않습니다. 설정·확장/프로필·쿠키/CDP 우회, 새 탭·설정 저장/키 재설정·업로드/제출은 없었습니다. 이 읽기는 AdMob/UMP의 모든 지역·파트너와 Data safety 답안의 재검증이 아니며 수정 전fb13 plan/source-review는 계속 실행 보류입니다. 새 계획·source-review·실제 runtime/native pin·필요한 비밀 입력·운영 AAB·같은 Play 제공물 검증은 남아 있습니다.
+정상 Browser Use 연결 확인을 이전 Windows URL 판독 중단의 해결로 표현하지 않습니다. 설정·확장/프로필·쿠키/CDP 우회, 새 탭·설정 저장/키 재설정·업로드/제출은 없었습니다. 이 읽기는 AdMob/UMP의 모든 지역·파트너와 Data safety 답안의 재검증이 아니며 수정 전fb13 plan/source-review는 계속 실행 보류입니다. 이후 새 계획·source-review·실제 runtime/native pin 준비는 아래 결과로 연결했습니다. 필요한 비밀 입력·운영 AAB·같은 Play 제공물 검증은 남아 있습니다.
+
+## 2026-10-29 수정 후보·실제 metadata 준비
+
+10월29일10:17~10:23(KST), exact 후보 HEAD `eba77a66`에서 새 비실행 plan과 기존6필드 source-review를 준비하고 실제 `prepare_binding.py`의 native Collector를 통과했습니다. plan은 보호7,062파일·복구 snapshot7,060개·private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 소스 검토는 도구156파일과 PR473 실행 내용의 동일성을 기존 검증에 연결했으며 새 시험을 실행하지 않았습니다. 실제 metadata는 runtime732파일을 포함한907개 pin의 파일 식별·ACL·SHA를 확인해 기존25필드 binding과6-source manifest를 비공개 생성했습니다. Collector가 종료하며 소유 핸들을 모두 닫았으므로 실행 시 다시 확인해야 합니다. `metadataPrepared=true`이며 암호 입력·개인키 challenge·claim/producer·Assets staging·SDK/운영 빌드는 미실행, `actualBuildExecuted/binaryVerified/distributable=false`입니다. 현재 Console 최대26과 인증서를 연결했지만 후보27은 미예약이며 새 운영 AAB는 없습니다. 옛 fb13fa4 plan/source-review는 보류·superseded로 보존하고 재사용하거나 예산을 초기화하지 않았습니다.
 
 ## 2026-10-27 후속 준비 이력
 

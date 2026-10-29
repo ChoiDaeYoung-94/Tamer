@@ -56,7 +56,9 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 10월29일 source `3c44ab1`의 approved source 사전검사와 도구156파일 SHA 대조는 수용됐고, 실행 관련 추적 내용은 PR473 최종head와 같습니다. 새 plan/source-review·현재 cert·runtime/native pin·실키·AAB는 아직 준비하지 않았습니다. 일반 `python` 명령의3.15.1과 이전 서명 준비에서 관측한 standalone3.12.14는 다른 실행 파일이므로, 실제 준비 시 검토한 절대 runtime 경로와 실행 조건을 명시해야 합니다.
 
-이후 같은 날 정상 Browser Use에서 현재 Console 최대code26·production24제공/26미승인과 upload 공개 인증서를 재확인했습니다. 다운로드한 현재 DER는 기존 검토 공개 DER와 byte 동일하며 개인키 challenge의 통과가 아닙니다. source27은 미예약이고 수정 소스의 새 exact plan/source-review·실제 metadata/native pin·실키·운영 AAB는 남아 있습니다. [현재 관측과 한계](operating-readiness-20261026.ko.md)를 같은 후보 준비에 연결합니다.
+이후 같은 날 정상 Browser Use에서 현재 Console 최대code26·production24제공/26미승인과 upload 공개 인증서를 재확인했습니다. 다운로드한 현재 DER는 기존 검토 공개 DER와 byte 동일하며 개인키 challenge의 통과가 아닙니다. source27은 미예약이며 이후 새 exact plan/source-review와 실제 metadata를 아래 결과로 준비했습니다. 실키·운영 AAB는 남아 있습니다. [현재 관측과 한계](operating-readiness-20261026.ko.md)를 같은 후보 준비에 연결합니다.
+
+10월29일10:17~10:23(KST), exact 후보 HEAD `eba77a66`에서 새 비실행 plan과 기존6필드 source-review를 준비하고 실제 `prepare_binding.py`의 native Collector를 통과했습니다. plan은 보호7,062파일·복구 snapshot7,060개·private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 소스 검토는 도구156파일과 PR473 실행 내용의 동일성을 기존 검증에 연결했으며 새 시험을 실행하지 않았습니다. 실제 metadata는 runtime732파일을 포함한907개 pin의 파일 식별·ACL·SHA를 확인해 기존25필드 binding과6-source manifest를 비공개 생성했습니다. Collector가 종료하며 소유 핸들을 모두 닫았으므로 실행 시 다시 확인해야 합니다. `metadataPrepared=true`이며 암호 입력·개인키 challenge·claim/producer·Assets staging·SDK/운영 빌드는 미실행, `actualBuildExecuted/binaryVerified/distributable=false`입니다. 현재 Console 최대26과 인증서를 연결했지만 후보27은 미예약이며 새 운영 AAB는 없습니다. 옛 fb13fa4 plan/source-review는 보류·superseded로 보존하고 재사용하거나 예산을 초기화하지 않았습니다.
 
 ## 후속: 실행 없는 metadata 준비
 
@@ -68,6 +70,6 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 후속으로 실제 Windows의 새 합성 폴더에서 owner+SYSTEM ACL의 path/handle 긍정 수용, 실제 Collector bootstrap/save/pin·identity/SDDL/SHA·CREATE_NEW 충돌 시 원본 보존과 정상/예외 핸들 정리를1회26항목으로 확인했습니다. 전체 승인 gate·실제 plan/키/runtime inventory는 실행하지 않았고 합성 출력은 launcher binding으로 거부됩니다. 기존40+6 시험이나 실제 metadata 전체 성공에 합산하지 않습니다.
 
-성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이번 코드 통합에서 **실제 metadata 생성·키 입력·운영 AAB는 미실행**입니다. 현실 inventory 전체 수집과 source/운영 승인 등 선행조건은 exact actual build HEAD에서 확인해야 합니다.
+성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이 코드 통합 당시에는 실제 metadata 생성·키 입력·운영 AAB를 실행하지 않았습니다. 이후10월29일의 실제 metadata 준비는 위 날짜별 결과로 구분하며 키 입력·운영 AAB는 계속 미실행입니다. 준비된 inventory도 실제 실행 시 exact 후보와 다시 대조해야 합니다.
 
 이후 필요한 직접 입력은 준비된 로컬 창에서 받습니다. 실제 AAB를 만들면 같은 artifact의 서명·manifest/version·resource/native와 원본 복구를 검사하고, 사용자 수동 업로드 후 같은 Play 제공물·필요 기능/정책을 확인합니다. **현재 업로드할 새 운영 AAB는 없습니다.** [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
