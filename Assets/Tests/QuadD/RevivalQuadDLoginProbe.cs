@@ -101,22 +101,33 @@ public sealed class RevivalQuadDLoginProbe : MonoBehaviour
 
     private IEnumerator ObserveResult()
     {
-        float deadline = Time.realtimeSinceStartup + 22;
+        float deadline = Time.realtimeSinceStartup + 28;
         while ((loginEntries == 0 || RevivalGameplayIsolation.BlockedLogins != 1 ||
-            RevivalGameplayIsolation.Reads == 0) && Time.realtimeSinceStartup < deadline) yield return null;
+            RevivalGameplayIsolation.Reads == 0 || !FixtureReady()) && Time.realtimeSinceStartup < deadline) yield return null;
         // Native Stop/AudioSource state may settle after the completion callback.
         // Observe the following frame and the actual destination, not callback timing.
         yield return null;
         bool stoppedAtDestination = (video == null || !video.isPlaying) && (audio == null || !audio.isPlaying);
         bool passed = introEntries == 1 && loginEntries == 1 && completions == 1 && stoppedAtDestination &&
             (mode != "natural" || highestFrame > 0) && RevivalGameplayIsolation.BlockedLogins == 1 &&
-            RevivalGameplayIsolation.Reads > 0 && Managers.Instance != null && Managers.DataM.IsServerDataReady &&
-            !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable;
+            RevivalGameplayIsolation.Reads > 0 && FixtureReady();
         Debug.Log((passed ? "INTRO_LOGIN_PASS" : "INTRO_LOGIN_FAIL") + " mode=" + mode +
             " intro=" + introEntries + " login=" + loginEntries + " completions=" + completions +
             " highestFrame=" + highestFrame + " stoppedAtCallback=" + videoStoppedAtCallback + "," + audioStoppedAtCallback +
             " stoppedAtDestination=" + stoppedAtDestination +
-            " blockedLogins=" + RevivalGameplayIsolation.BlockedLogins + " memoryReads=" + RevivalGameplayIsolation.Reads);
+            " blockedLogins=" + RevivalGameplayIsolation.BlockedLogins + " memoryReads=" + RevivalGameplayIsolation.Reads +
+            " scene=" + RuntimeSceneManager.GetActiveScene().name +
+            " serverReady=" + (Managers.DataM != null && Managers.DataM.IsServerDataReady) +
+            " adsBlocked=" + (Managers.GoogleAdMobM != null && !Managers.GoogleAdMobM.CanRequestAds) +
+            " iap=" + (Managers.IAPM == null ? "missing" : Managers.IAPM.Status.ToString()));
     }
+
+    // ShopMan.Awake initializes the blocked IAP fixture in Main, after Login's
+    // memory read. Do not judge that service during the intervening NextScene.
+    private static bool FixtureReady() => Managers.Instance != null && Managers.DataM != null &&
+        Managers.DataM.IsServerDataReady && RuntimeSceneManager.GetActiveScene().name == "Main" &&
+        Managers.SceneM != null && !Managers.SceneM.IsTransitioning && Player.Instance != null &&
+        Managers.GoogleAdMobM != null && !Managers.GoogleAdMobM.CanRequestAds &&
+        Managers.IAPM != null && Managers.IAPM.Status == IAPStatus.Unavailable;
 }
 #endif
