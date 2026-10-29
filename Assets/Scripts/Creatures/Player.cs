@@ -178,12 +178,16 @@ public class Player : Creature
     {
         if (Input.GetMouseButtonDown(0))
         {
-            RaycastHit hit;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out hit))
+            Collider target = WorldActionCollider(ray);
+#if TAMER_FACELIFT_UI_HARNESS
+            if (Physics.Raycast(ray, out var firstHit, Mathf.Infinity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
+                Debug.Log("FACELIFT_WORLD_TOUCH first=" + firstHit.collider.name + " firstTrigger=" + firstHit.collider.isTrigger +
+                    " selected=" + (target == null ? "none" : target.name));
+#endif
+            if (target != null)
             {
-                switch (hit.collider.tag)
+                switch (target.tag)
                 {
                     case "GoogleAdMob":
                         AD.Managers.SoundM.UI_Click();
@@ -197,6 +201,22 @@ public class Player : Creature
                 }
             }
         }
+    }
+
+    // Proximity volumes reveal signs, but must not intercept the sign's own click collider.
+    // Preserve solid occlusion so a touch cannot activate a sign through a wall.
+    private static Collider WorldActionCollider(Ray ray)
+    {
+        var hits = Physics.RaycastAll(ray, Mathf.Infinity, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
+        Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+        foreach (var hit in hits)
+        {
+            var collider = hit.collider;
+            if (collider.isTrigger && !collider.CompareTag("GoogleAdMob") && !collider.CompareTag("GoGameScene"))
+                continue;
+            return collider;
+        }
+        return null;
     }
 
     #endregion
