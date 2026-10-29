@@ -14,6 +14,10 @@
 
 10월29일10:17~10:23(KST), exact 후보 HEAD `eba77a66`에서 새 비실행 plan과 기존6필드 source-review를 준비하고 실제 `prepare_binding.py`의 native Collector를 통과했습니다. plan은 보호7,062파일·복구 snapshot7,060개·private payload9개/설치도구7파일을 연결했고 원키·CLI는 복제하지 않았습니다. 소스 검토는 도구156파일과 PR473 실행 내용의 동일성을 기존 검증에 연결했으며 새 시험을 실행하지 않았습니다. 실제 metadata는 runtime732파일을 포함한907개 pin의 파일 식별·ACL·SHA를 확인해 기존25필드 binding과6-source manifest를 비공개 생성했습니다. Collector가 종료하며 소유 핸들을 모두 닫았으므로 실행 시 다시 확인해야 합니다. `metadataPrepared=true`이며 암호 입력·개인키 challenge·claim/producer·Assets staging·SDK/운영 빌드는 미실행, `actualBuildExecuted/binaryVerified/distributable=false`입니다. 현재 Console 최대26과 인증서를 연결했지만 후보27은 미예약이며 새 운영 AAB는 없습니다. 옛 fb13fa4 plan/source-review는 보류·superseded로 보존하고 재사용하거나 예산을 초기화하지 않았습니다.
 
+## 2026-10-29 사용자 업로드·Play 앱서명 APK 후속
+
+10월29일12:13~12:29(KST), 사용자가 후보27 AAB를 일시중지 내부 테스트 초안에 업로드했고 같은 아티팩트의 Play 서명 범용 APK를 한 개 내려받아 기본 정적검사를 마쳤습니다. 현재 Play 앱 서명·package27/1.0.5/min25/target36/ARM64·non-debug/non-test와 같은 설정 payload, 압축native6개의 LOAD/ZIP구조·보수RELRO배치를 확인했습니다. 압축native의 직접 mmap용 ZIP16KB 정렬은 적용 대상이 없고 추가strict RELRO3개·실제16KB/모든기기별split/운영기능·정책심사는 별도입니다. 사용자 미저장 초안을 보존했으며 저장/검토전송/배포·트랙재개0, 원본 AAB/작업본/키를 유지했습니다. [파일 해시·정확한 범위](play-candidate27-static-20261029.ko.md)를 따르며 같은 업로드·키 입력·빌드를 반복하지 않습니다.
+
 ## 2026-10-29 실제 운영 후보 생성·기본 검사·복구
 
 10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 receipt에 연결한 뒤 실제 AAB의 named resource 바이트를 독립 추출해 plan과 일치를 확인했습니다. 최종 manifest의 광고 metadata/권한도 읽었으며 runtime load·실제 통신은 미검증입니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
@@ -85,7 +89,7 @@ Google은 common 목록을 갱신하며 제공업체에 여러 동의 framework 
 
 10월27일 [단일 입력 연결](single-input-signing-20261027.ko.md)을 구현하고 합성 검증·독립 소스 검토를 접수했습니다. 같은 입력으로 실제 Java challenge와 exact plan의 signing receipt를 연결하며, 소유 producer와 필요한 빌드 자손에만 암호를 전달합니다. 실제 운영 키·암호·AAB는 아직 미실행입니다. 현재 운영 승인과 새 actual build HEAD의 plan/source/runtime·인증서 근거를 준비한 뒤 입력창을 엽니다. 이전 15필드 metadata, 공개 인증서 일치·합성 challenge를 실제 AAB 서명 성공으로 계산하지 않으며 원본 JKS 계약과 일반 메뉴 외부 키 계약을 구분합니다.
 
-현재는 **운영 후보27 AAB가 비공개로 준비돼 있습니다.** 직접 키 입력과 단일 빌드·기본 정적검사/정확 복구를 확인했으며, binary resource 독립 추출·manifest 추가 대조를 마쳤으며 다음은 운영 신고/공개 안내 정합→준비 파일 수동 업로드→같은 Play 제공물·필요 기능/정책 확인입니다. [실제 후보의 한계](operating-candidate27-20261029.ko.md)와 [전체 잔여 계획](remaining-recovery-work.ko.md)을 따르며 실제16KB/5초 추가조사/CI·App Center의 명시 보류를 유지합니다.
+현재는 **후보27 초안 업로드와 같은 Play 범용 APK 기본 정적검사까지 완료했습니다.** [정확한 파일과 한계](play-candidate27-static-20261029.ko.md)를 따르며 사용자 미저장 초안을 보존합니다. 다음은 운영 신고/공개 안내 정합·필요 운영 기능/기기별 제공물·심사 확인입니다. 실제16KB/5초 추가조사/CI·App Center의 명시 보류는 유지하며 같은 입력/빌드/업로드를 반복하지 않습니다.
 
 ## 이후 준비한 입력 검사와 개발 진단
 

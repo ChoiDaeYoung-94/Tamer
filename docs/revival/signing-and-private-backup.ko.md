@@ -1,6 +1,12 @@
 # 서명 역할 확인과 비공개 에셋 복구
 
-## 2026-10-26 현재 역할·입력 준비
+## 2026-10-29 현재 키 실사용과 Play 앱서명 대조
+
+사용자 직접 마스킹 입력으로 현재 운영 JKS의 개인키 challenge와 upload 인증서 일치·실제 후보27 AAB 서명을 확인했습니다. 이후 사용자가 초안에 올린 같은 후보의 Play 범용 APK를 내려받아 현재 Play 앱서명 역할과 일치를 확인했습니다. upload와 app signing을 구분하며 [실제 결과](play-candidate27-static-20261029.ko.md)에 연결합니다. 원키는 보존했고 새 키 복제·생성이나 암호 재입력을 하지 않았습니다.
+
+이 후속은 이미 보관한 암호화 백업의 실제 복호화/원본 세 역할 대조·portable/offsite 복원 완료가 아닙니다. 기존 백업 receipt의 false 필드는 덮어쓰지 않으며 운영3역할 백업과 별도 IAP test-app5역할 복구 도구를 혼합하지 않습니다. 백업 암호가 추가로 필요해지면 기존 JKS 입력 성공과 구분합니다.
+
+## 2026-10-26 역할·입력 준비 이력
 
 운영 Console의 현재 upload/app signing 공개 인증서를 구분해 기존 JKS의 공개 인증서와 대조했습니다. 기존 JKS는 현재 upload 역할과 일치하며 app signing과는 다릅니다. 외부 비공개 JKS 사본은 저장소 원본과 바이트가 같고 파일 정체성·owner/SYSTEM ACL·Java/class 해시를 고정한 입력 metadata를 준비했습니다. 실제 암호 입력·JKS integrity/getKey·challenge·운영 AAB 서명은 아직 수행하지 않았습니다. 공개 인증서 일치를 개인키 실사용 성공으로 바꾸지 않습니다.
 

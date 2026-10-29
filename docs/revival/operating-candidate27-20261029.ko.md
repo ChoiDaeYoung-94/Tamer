@@ -14,7 +14,11 @@
 | AAB 크기 | 76,868,171 bytes |
 | AAB SHA-256 | `961730db025bfec34ba2a8cca405bb2c60d646dcbf8fd2cdc64f627456e8af83` |
 
-기존 producer의 파일명은 `disabled-preparation.aab`이지만 실제 mode는 plan·callback의 `approved_adult_release`로 확인했습니다. 이름만으로 disabled/privacy/debug 경로를 혼합하지 않습니다. code27 파일은 생성됐지만 Console에 예약·업로드·제출된 번호는 아닙니다.
+기존 producer의 파일명은 `disabled-preparation.aab`이지만 실제 mode는 plan·callback의 `approved_adult_release`로 확인했습니다. 이름만으로 disabled/privacy/debug 경로를 혼합하지 않습니다. 생성 직전 code27은 미사용이었지만 이후 사용자 직접 내부 테스트 초안 업로드를 확인했습니다. 현재27은 사용된 코드이며 검토 전송·배포·트랙 재개는 하지 않았습니다.
+
+## 2026-10-29 후속 업로드·Play APK 검사
+
+10월29일12:13~12:29(KST), 사용자가 후보27 AAB를 일시중지 내부 테스트 초안에 업로드했고 같은 아티팩트의 Play 서명 범용 APK를 한 개 내려받아 기본 정적검사를 마쳤습니다. 현재 Play 앱 서명·package27/1.0.5/min25/target36/ARM64·non-debug/non-test와 같은 설정 payload, 압축native6개의 LOAD/ZIP구조·보수RELRO배치를 확인했습니다. 압축native의 직접 mmap용 ZIP16KB 정렬은 적용 대상이 없고 추가strict RELRO3개·실제16KB/모든기기별split/운영기능·정책심사는 별도입니다. 사용자 미저장 초안을 보존했으며 저장/검토전송/배포·트랙재개0, 원본 AAB/작업본/키를 유지했습니다. [파일 해시·정확한 범위](play-candidate27-static-20261029.ko.md)를 따르며 같은 업로드·키 입력·빌드를 반복하지 않습니다.
 
 ## 실제 확인한 결과
 
@@ -60,4 +64,4 @@ compiled resource·config SHA와 직렬화 값은 prebuild/scene/postbuild recei
 
 ## 다음 연결
 
-binary resource 독립 추출은 완료했으며 제공24+후보의 Data safety/공개 안내 정합을 필요한 범위로 마친 뒤, 준비된 AAB의 사용자 수동 업로드와 같은 Play 제공물·필요 기능/정책 검증으로 이어갑니다. 실제 키 입력이 성공했다는 이유로 백업 복호화·외부 복구나 출시 전체를 완료 처리하지 않습니다. [전체 잔여 목록](remaining-recovery-work.ko.md), [현황](current-recovery-status.ko.md), [단일 입력 경계](single-input-signing-20261027.ko.md)를 유지합니다.
+binary resource 독립 추출·후보27 사용자 초안 업로드·같은 Play 범용 APK 기본 정적검사를 마쳤습니다. 다음은 제공24+후보의 Data safety/공개 안내 정합과 필요한 최소 운영 기능·기기별 제공물/정책 확인입니다. 실제 키 입력·APK 기본 검사만으로 백업 복호화·외부 복원이나 출시 전체를 완료 처리하지 않습니다. [전체 잔여 목록](remaining-recovery-work.ko.md), [현황](current-recovery-status.ko.md), [단일 입력 경계](single-input-signing-20261027.ko.md)를 유지합니다.
