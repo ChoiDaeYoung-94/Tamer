@@ -64,6 +64,10 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 10월29일10:55~11:10(KST), source `eba77a66`에서 단일 직접 입력→실제 기존 키 challenge→운영 후보27 AAB1회 생성→기본 정적검사→정확 복구를 마쳤습니다. payload822개 전부 현재 upload signer 일치, code27/1.0.5/min25/target36/ARM64·non-debug/non-test와 native6개 LOAD·보수 RELRO 배치를 확인했습니다. 추가 strict RELRO end-modulo 진단3건·실제16KB/Play 제공물·운영 기능/정책은 별도입니다. 원본9개/소유 staging9개와 보호7,062파일의 내용 복구·clean/소유 프로세스0·AAB 해시 보존을 확인했습니다. compiled resource는 receipt에 연결한 뒤 실제 AAB의 named resource 바이트를 독립 추출해 plan과 일치를 확인했습니다. 최종 manifest의 광고 metadata/권한도 읽었으며 runtime load·실제 통신은 미검증입니다. [정확한 파일·검증·한계](operating-candidate27-20261029.ko.md)를 따르며 최종 binaryVerified/distributable/releaseReady=false, 업로드·제출·새 운영 기능 실행은0입니다.
 
+## 2026-10-29 같은 Play 앱서명 APK 후속
+
+10월29일12:13~12:29(KST), 사용자가 후보27 AAB를 일시중지 내부 테스트 초안에 업로드했고 같은 아티팩트의 Play 서명 범용 APK를 한 개 내려받아 기본 정적검사를 마쳤습니다. 현재 Play 앱 서명·package27/1.0.5/min25/target36/ARM64·non-debug/non-test와 같은 설정 payload, 압축native6개의 LOAD/ZIP구조·보수RELRO배치를 확인했습니다. 압축native의 직접 mmap용 ZIP16KB 정렬은 적용 대상이 없고 추가strict RELRO3개·실제16KB/모든기기별split/운영기능·정책심사는 별도입니다. 사용자 미저장 초안을 보존했으며 저장/검토전송/배포·트랙재개0, 원본 AAB/작업본/키를 유지했습니다. [파일 해시·정확한 범위](play-candidate27-static-20261029.ko.md)를 따르며 같은 업로드·키 입력·빌드를 반복하지 않습니다.
+
 ## 후속: 실행 없는 metadata 준비
 
 `prepare_binding.py`는 검토가 끝난 기존 plan/source-review·현재 cert·키 소유권의 독립 근거를 받아 기존25필드 binding과6-source manifest를 조립합니다. 준비기 자체의 source와 exact helper·runtime·파일 식별/ACL/SHA를 확인하며 두 검토 bool은 기본 false입니다. 근거 파일 존재만으로 승인을 만들거나 옛15필드 binding을 변환하지 않습니다. [인수와 경계](../../tools/revival/signing_launcher/README.ko.md)의 placeholder로 실행하지 않습니다.
@@ -76,4 +80,4 @@ Python은 검토된 standalone runtime만 지원합니다. source-only 로더와
 
 성공해도 `metadataPrepared=true`만 뜻하며 `actualBuildExecuted`·`binaryVerified`·`distributable`은 false입니다. 이 코드 통합 당시에는 실제 metadata 생성·키 입력·운영 AAB를 실행하지 않았습니다. 이후10월29일의 실제 metadata 준비는 위 날짜별 결과로 구분하며 키 입력·운영 AAB의10월29일 후속 성공은 위 실제 연결 결과로 구분합니다. 준비된 inventory도 실제 실행 시 exact 후보와 다시 대조해야 합니다.
 
-10월29일 필요한 로컬 직접 입력을 접수해 실키 challenge와 같은 exact source의 운영 후보27 AAB 생성·기본 서명/manifest/version/native 검사·정확 원복을 마쳤습니다. **새 운영 AAB는 비공개로 준비돼 있지만 아직 업로드·제출하지 않았습니다.** binary resource 독립 추출은 완료했고 같은 Play 제공물·필요 기능/정책 검증은 별도이며, [전체 복구 잔여](remaining-recovery-work.ko.md)를 유지합니다.
+10월29일 직접 키 입력→실키 challenge→운영 AAB1회/정확 복구에 이어 사용자 초안 업로드와 같은 Play 범용 APK 기본 정적검사까지 마쳤습니다. **현재27은 업로드된 코드이고 검토전송/배포·트랙재개는0입니다.** 업로드 키와 Play 앱 서명 역할을 각각 대조했으며 전체 운영 기능·기기별 split/정책/심사는 별도입니다. [후속 범위](play-candidate27-static-20261029.ko.md)와 [전체 잔여](remaining-recovery-work.ko.md)를 유지합니다.
