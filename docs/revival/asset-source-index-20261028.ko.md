@@ -16,7 +16,7 @@
 | `SafeArea.cs` | namespace Crystal와 주석의 원문 forum 링크. 공식 Store의 Crystal Pug Safe Area Helper130488을 출처 후보로 확인 | 원문 forum 접근 실패·정확 취득 버전/로컬 byte 동일성/권한 미확인. 현재 무료·표준 EULA 표시는 로컬 취득 증거가 아니며 유사 코드로 대체하지 않음 |
 | Avalon 폰트 | manifest의 두 폰트 및 meta 항목 확인 | 별도 폰트 권한 미확인 유지. 다른 폰트의 라이선스로 대체하지 않음 |
 
-TMP 하위 `LiberationSans - OFL.txt`에는 SIL Open Font License 1.1 표기가 있습니다. 해당 문서와 폰트 바이너리의 대조·완전성 검증은 하지 않았으며 전체 TMP나 Avalon의 허가로 확대하지 않습니다. `EmojiOne Attribution.txt`의 출처 표기도 개별 에셋의 라이선스 확인을 대신하지 않습니다.
+TMP 하위 LiberationSans.ttf의 name table은 Liberation Sans Regular/Version2.00.1·Google2010/Red Hat2012·OFL1.1을 포함하고, 동반 `LiberationSans - OFL.txt`의 저작권/허가 표기와 연결됐습니다. 두 파일은 기존 manifest SHA/크기와 일치했습니다. [폰트 내부 식별·허가문 대조](liberation-font-identity-20261029.ko.md)이며 upstream TTF byte 동일성·완전성/수정 이력·전체 TMP/Avalon 권한은 미검증입니다. EmojiOne Attribution.txt는 제공자 링크/조건 확인 요청이며 개별 포함 버전·라이선스를 대신하지 않습니다.
 
 구매·계정·버전의 권위 있는 증빙은 기존 [#92](https://github.com/ChoiDaeYoung-94/Tamer/issues/92)의 후속으로 남습니다. 확인 가능한 원구매 기록이 생기면 위 후보와 정확 파일·취득 주체를 대조합니다. 증빙 미확인만으로 새 구매를 요구하거나 원본을 삭제하지 않습니다. 복원·빌드 성공도 권한 확인으로 계산하지 않습니다.
 
