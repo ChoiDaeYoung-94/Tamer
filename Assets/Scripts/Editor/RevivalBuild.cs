@@ -14,6 +14,24 @@ public static class RevivalBuild
     public const string SmokeScene = "Assets/Tests/Scenes/RevivalSmoke.unity";
     public const string ApplicationId = "com.AeDeong.MonsterTamer.revival";
 
+    [Serializable]
+    private sealed class ToolchainVersion
+    {
+        public string applicationVersion = "";
+        public int androidVersionCode = 0;
+    }
+
+    public static bool MatchesToolchainVersion(string version, int versionCode, string toolchainJson)
+    {
+        if (string.IsNullOrWhiteSpace(toolchainJson)) return false;
+        ToolchainVersion expected;
+        try { expected = JsonUtility.FromJson<ToolchainVersion>(toolchainJson); }
+        catch (ArgumentException) { return false; }
+        return expected != null && !string.IsNullOrWhiteSpace(expected.applicationVersion) &&
+            expected.androidVersionCode > 0 && version == expected.applicationVersion &&
+            versionCode == expected.androidVersionCode;
+    }
+
     // Shared by the isolated baseline and production builder; never persists the override.
     public static IDisposable AndroidRelroLinkScope() => new RelroLinkScope();
 
@@ -82,8 +100,10 @@ public static class RevivalBuild
         if (Application.unityVersion != "6000.3.25f1") throw new BuildFailedException("Expected Unity 6000.3.25f1.");
         foreach (var file in new[] { "Build/AOSSettingAPK.txt", "Build/AOSSettingAAB.txt", "Build/checkedBuilding.txt" })
             if (File.Exists(file)) throw new BuildFailedException("Legacy build marker exists: " + file);
-        if (PlayerSettings.bundleVersion != "1.0.5" || PlayerSettings.Android.bundleVersionCode != 27)
-            throw new BuildFailedException("Expected unchanged version 1.0.5/code27.");
+        string toolchain = Path.GetFullPath(Path.Combine(Application.dataPath, "../tools/revival/toolchain.json"));
+        if (!MatchesToolchainVersion(PlayerSettings.bundleVersion, PlayerSettings.Android.bundleVersionCode,
+            File.ReadAllText(toolchain)))
+            throw new BuildFailedException("Player version must match the reviewed tools/revival/toolchain.json.");
         if ((int)PlayerSettings.Android.minSdkVersion != 25 || (int)PlayerSettings.Android.targetSdkVersion != 36
             || PlayerSettings.Android.targetArchitectures != AndroidArchitecture.ARM64)
             throw new BuildFailedException("Expected min25/target36/ARM64.");

@@ -31,6 +31,27 @@ public class RevivalBaselineTests
 
     [Test] public void Revival_BaselineSettingsAndMarkersAreSafe() => Invoke("ValidateBaseline");
 
+    [TestCase("1.0.5", 27, "{\"applicationVersion\":\"1.0.5\",\"androidVersionCode\":27}", true)]
+    [TestCase("1.0.5", 29, "{\"applicationVersion\":\"1.0.5\",\"androidVersionCode\":29}", true)]
+    [TestCase("1.0.5", 30, "{\"applicationVersion\":\"1.0.5\",\"androidVersionCode\":30}", true)]
+    [TestCase("1.0.5", 27, "{\"applicationVersion\":\"1.0.5\",\"androidVersionCode\":29}", false)]
+    [TestCase("1.0.5", 29, "{\"applicationVersion\":\"1.0.5\",\"androidVersionCode\":27}", false)]
+    [TestCase("1.0.4", 29, "{\"applicationVersion\":\"1.0.5\",\"androidVersionCode\":29}", false)]
+    [TestCase("1.0.5", 29, "{}", false)]
+    [TestCase("1.0.5", 29, "{\"applicationVersion\":\"1.0.5\"}", false)]
+    [TestCase("1.0.5", 29, "{\"androidVersionCode\":29}", false)]
+    [TestCase("1.0.5", 29, "invalid JSON", false)]
+    public void Revival_BaselineVersionTracksReviewedToolchain(string version, int versionCode,
+        string toolchainJson, bool expected)
+    {
+        // Verify the real Unity JSON reader and drift guard without changing PlayerSettings.
+        var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("RevivalBuild"))
+            .First(t => t != null);
+        var result = type.GetMethod("MatchesToolchainVersion", BindingFlags.Public | BindingFlags.Static)
+            .Invoke(null, new object[] { version, versionCode, toolchainJson });
+        Assert.That(result, Is.EqualTo(expected));
+    }
+
     [Test] public void Revival_DirtyAdditiveSceneIsPreservedWhenOperationsReject()
     {
         Invoke("RequireSavedScenes");
