@@ -1,6 +1,13 @@
 # Tamer 복구 현황과 다음 순서 — 2026-10-30
 
-## 현재 요약 — 16:28 KST
+## 현재 요약 — 17:02 KST 후보29 생성·정확 복구
+
+후보29를 source`6bb7b37c53a3be764e032b1e1c880b1af752da3c`에서 기존 키로1회 생성하고 서명/기본 패키지 검사·원본 복구를 완료했습니다. Quad D 인트로·새 아이콘/UI와 IAP AdsIntent 보호를 포함하며 AAB76,133,522B/SHA`eecea981f569fcccd2609fa20124ea2faf45c46bd7d4a19855eb4c7b03b2c663`입니다. 원본9/staging9·보호7112파일 SHA/집합·Git clean·관측 소유16프로세스/Editor0을 확인했습니다. [정확 입력과 범위](candidate29-built-20261030.ko.md)를 따릅니다. 기존28은 이 IAP 보완이 없는 이전 검토본으로 보존합니다.
+
+다음은 새 후보 수동 업로드/분석과 정상 Play 제공·기존 로그인/저장·구매/No Ads·연령/개인정보/삭제 경로, 최종 UI·스토어/정책·심사입니다. 계정 No Ads 권한은 미확인입니다. 정확 규격 Play512px/대표1024×500 이미지 변환은 완료했고 최종 디자인/실제 화면·Console 반영은 남습니다. 전체 활성 release의26 미포함 대조도 제출 전에 필요합니다. 심사 전송·배포·트랙 재개0, 코드 PR492/493/495 Draft/미병합입니다.
+
+
+## 16:28 KST 이력 — IAP 보호 소스 검사
 
 후속 [IAP 광고 동의 보호](iap-advertising-intent-20261030.ko.md)를 source54873ac에서 보완했습니다. 게임에 없는 IAP 광고 데이터 opt-in을 기존/native Granted 값으로 대신 허용하지 않고 AdsIntent를 Denied로 정합니다. 관련 Editor6/6·컴파일 오류0·보호6946파일 원복/clean·소유Editor0입니다. 기존 명시 Analytics 선택과 No Ads 상품/권한·구매/복원·GMA 연령/UMP 소스는 유지합니다. 기존 AAB28/sourcef5d7ab4에는 이 수정이 없으며 새 서명·빌드/제공은 아직 하지 않았습니다. 실제 사용자 Granted/광고 ID 전송을 관측했다는 뜻은 아닙니다.
 
