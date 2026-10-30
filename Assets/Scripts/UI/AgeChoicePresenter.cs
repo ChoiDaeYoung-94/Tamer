@@ -97,8 +97,9 @@ namespace AD
             _ageInput.textComponent = text;
             _ageInput.placeholder = placeholder;
             _ageInput.targetGraphic = background;
-            _ageInput.contentType = TMP_InputField.ContentType.IntegerNumber;
-            _ageInput.characterValidation = TMP_InputField.CharacterValidation.Digit;
+            // Keep pasted input intact: silently stripping punctuation can change the reported age.
+            _ageInput.contentType = TMP_InputField.ContentType.Standard;
+            _ageInput.characterValidation = TMP_InputField.CharacterValidation.None;
             _ageInput.keyboardType = TouchScreenKeyboardType.NumberPad;
             // Validate the complete entry; truncating a pasted birth year could turn it into an adult age.
             _ageInput.characterLimit = 0;

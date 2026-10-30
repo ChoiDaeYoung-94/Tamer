@@ -335,6 +335,8 @@ public class RevivalAgeChoiceUITests
             var input = canvas.transform.Find("Content/AgeInput").GetComponent(Find("TMPro.TMP_InputField"));
             var inputText = input.GetType().GetProperty("text");
             Assert.That(inputText.GetValue(input), Is.EqualTo(""), "No age may be preselected.");
+            Assert.That(input.GetType().GetProperty("characterValidation").GetValue(input).ToString(), Is.EqualTo("None"),
+                "Pasted punctuation must not be stripped into a different age.");
             buttons.Single(b => b.name == "SubmitAge").onClick.Invoke();
             Assert.That(stored, Is.Null, "Blank input must not persist an adult default.");
             Assert.That(canvas.gameObject.activeSelf, Is.True);
@@ -345,6 +347,10 @@ public class RevivalAgeChoiceUITests
             Assert.That(stored, Is.Null, "A birth year must not be silently truncated into an adult age.");
             Assert.That(canvas.gameObject.activeSelf, Is.True);
             AssertNoSdk(ads);
+            inputText.SetValue(input, "1.8");
+            buttons.Single(b => b.name == "SubmitAge").onClick.Invoke();
+            Assert.That(stored, Is.Null, "A decimal age must not be rewritten into 18.");
+            Assert.That(canvas.gameObject.activeSelf, Is.True);
             inputText.SetValue(input, "12");
             buttons.Single(b => b.name == "SubmitAge").onClick.Invoke();
             Assert.That(stored, Is.EqualTo("1|under13"));
