@@ -1,6 +1,22 @@
 # Quad D 인트로 교체와 남은 기간 추정 — 2026-10-29
 
-## 최신 구현 체크포인트
+## 현재 통합 확인 — 23:09 KST
+
+UI PR493의 source `998a808e2913dbd68fab268b5cef07dbc9c5a3fc`에서 **실제 canonical QuadDIntro→원래 Login→오프라인 Main**을 확인했습니다. 별도 앱 ID `com.AeDeong.MonsterTamer.revival.faceliftintrologin1029`, debug/min25/target36/ARM64·정확한6개 build-only define·네트워크/결제 권한 및 자동 GMA/PGS provider 차단·백업 비활성화입니다. APK는152851254B/SHA-256 `a999192f562472b4243f20d5a82579e5e775a0ea8393d740475ac07495840aa6`이며 운영 후보27과 다릅니다. 관련 격리 계약/씬 순서2/2와 GUID 참조135파일/미해결0을 확인했습니다.
+
+| 같은 APK의 새 프로세스 | 실제 확인 결과 |
+| --- | --- |
+| 정상 재생 | 실제 Quad D 로고 화면·최대 frame99, 완료1/Login1/Main 진입, 이전 영상·음향 정지 |
+| 모의 디코더 오류 | 시험 관찰기가 원래 오류 콜백을 호출한 후 완료1/Login1/Main·정지 |
+| 모의 재생 지연 | 실제 재생 상태를 일시정지하고 시험 기한만 단축해 원래 deadline 이후 완료1/Login1/Main·정지 |
+
+세 경우 모두 blockedLogin1/memoryReads2/serverReady/광고 차단/IAP Unavailable을 확인했습니다. 실제 사용자 인증·연령/동의 입력은0이고, 원래 연령 질문은 선택하지 않은 채 보존했습니다. 알려진 오프라인 개발 PlayerConnection socket 진단3건씩은 별도로 기록했고 미분류 Unity 오류는0입니다. 기존19개 앱에 분리 fixture 한 개를 추가한20개/그중Tamer16개와 기존 저장을 보존했습니다. 세 실행의41PNG·시점별 로그/메타데이터는 비공개입니다. 자연 영상의 실제 로고 화면과 이후 Main의 연령 질문을 별도로 확인했습니다.
+
+관찰 실패2회도 보존합니다. 첫 source d8273dd/APK03073949…는 재생/완료/Login을 확인했지만 완료 콜백과 같은 순간의 오디오 정지를 요구해 실패했습니다. 다음 b326d5d/APK80eeeab8…에서는 목적지 정지가 확인됐으나 Login→Main 사이에서 서비스 준비를 너무 일찍 판정했습니다. 마지막 관찰기는 콜백 상태와 목적지 정지를 나누고 Main/데이터/광고/결제 준비를 기다립니다. 이 재시도에서 공통 인트로의 재생/음향 코드는 바꾸지 않았습니다.
+
+이것은 오프라인 통합 검증입니다. 실제 디코더 준비8초 초과·실제 기기 장애 전체, 운영 PGS/저장·No Ads, 새 정식 후보와 native ARM64/16KB를 통과한 것은 아닙니다. [운영 Play 제공 차단](candidate27-first-launch-20261029.ko.md), [사용자 검토 후 새 후보 순서](final-facelift-candidate-plan-20261029.ko.md)를 유지합니다. PR492/493는 Draft이고 실제 심사 전송·배포·트랙 재개는0입니다.
+
+## 19:25 KST 격리 재생 구현 이력
 
 실제 작업본은 `D:/codex/worktrees/tamer-working/Tamer`, 인트로 코드 커밋은 `codex/quad-d-intro-1029@0c8b0b19c9f7d0015f623ae2c674ee8de1e9d866`입니다. [Draft PR #492](https://github.com/ChoiDaeYoung-94/Tamer/pull/492)는 아직 병합하지 않았습니다. Unity `6000.3.25f1` / revision `e1dba0a9aba4`, Android min25/target36/ARM64, Unity CLI `1.0.0-beta.8`을 사용했습니다.
 

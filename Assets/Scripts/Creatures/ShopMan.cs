@@ -34,6 +34,7 @@ public class ShopMan : MonoBehaviour
     private bool _isEquipmentItem;
     private bool _purchasePending;
     private bool _purchaseResultOpen;
+    private bool _closeItemInfoOnResult;
     private string _inventoryOwner;
     private int _inventoryGeneration = -1;
     private AD.DataManager.AllyPurchaseIntent _pendingAllyPurchase;
@@ -60,6 +61,7 @@ public class ShopMan : MonoBehaviour
 
     public void ClearInventorySession()
     {
+        _closeItemInfoOnResult = false;
         _purchasePending = false;
         _pendingAllyPurchase = null;
         _pendingEquipmentPurchase = null;
@@ -101,6 +103,7 @@ public class ShopMan : MonoBehaviour
 
     public void ChooseItem(string itemName, string price, string info, bool isEquipment)
     {
+        _closeItemInfoOnResult = false;
         _purchasePending = false;
         _pendingAllyPurchase = null;
         _pendingEquipmentPurchase = null;
@@ -147,8 +150,9 @@ public class ShopMan : MonoBehaviour
         ShowPurchaseResult(_isEquipmentItem ? "Confirm this equipment purchase." : _confirmAllyMessage);
     }
 
-    private void ShowPurchaseResult(string message)
+    private void ShowPurchaseResult(string message, bool completed = false)
     {
+        _closeItemInfoOnResult = completed;
         _purchaseResultOpen = true;
         _afterBuyText.text = message;
         _afterBuyPanel.SetActive(true);
@@ -162,7 +166,7 @@ public class ShopMan : MonoBehaviour
 
         if (!_purchasePending)
         {
-            AD.Managers.PopupM.DisablePop();
+            if (!DismissPurchaseResult()) _purchaseResultOpen = true;
             return;
         }
 
@@ -182,7 +186,7 @@ public class ShopMan : MonoBehaviour
             {
                 ResetItems();
                 PlayerUICanvas.Instance.UpdatePlayerInfo();
-                ShowPurchaseResult(_successBuyMessage);
+                ShowPurchaseResult(_successBuyMessage, completed: true);
             })) ShowPurchaseResult(_unavailableAllyMessage);
             return;
         }
@@ -196,10 +200,20 @@ public class ShopMan : MonoBehaviour
             CurrentItemsList = inventory.OwnedItems.ToList();
             _currentItemsText = string.Join(",", CurrentItemsList);
             ResetItems(); PlayerUICanvas.Instance.UpdatePlayerInfo();
-            ShowPurchaseResult(_successBuyMessage);
+            ShowPurchaseResult(_successBuyMessage, completed: true);
         });
-        if (result == AD.EquipmentPurchaseResult.AlreadyCommittedCompleted) ShowPurchaseResult(_successBuyMessage);
+        if (result == AD.EquipmentPurchaseResult.AlreadyCommittedCompleted) ShowPurchaseResult(_successBuyMessage, completed: true);
         else if (result != AD.EquipmentPurchaseResult.Completed) ShowPurchaseResult(_unavailableAllyMessage);
+    }
+
+    private bool DismissPurchaseResult()
+    {
+        var popups = AD.Managers.PopupM;
+        popups.RequestClosePopup(_afterBuyPanel);
+        if (_afterBuyPanel.activeSelf) return false;
+        if (_closeItemInfoOnResult) popups.RequestClosePopup(_itemInfoPanel);
+        _closeItemInfoOnResult = false;
+        return true;
     }
 
     private bool TryConsumePurchase(int availableGold)

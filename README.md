@@ -1,8 +1,8 @@
 # Monster Tamer
 
-![Monster Tamer 홍보 일러스트 — 금발 사냥꾼, 보라색 마법사와 용이 있는 숲](docs/images/monster-tamer-hero-20261027.png)
+![Monster Tamer 홍보 일러스트 — 금발 사냥꾼과 박쥐가 있는 숲](docs/images/monster-tamer-feature-draft-20261030.png)
 
-> AI로 제작한 소개용 일러스트입니다. 실제 게임 화면은 아래에서 확인하실 수 있으며, 현재 제공되는 그래픽·지형·기능을 그대로 재현한 이미지는 아닙니다. [이미지 출처·제작 프롬프트](docs/images/README.md#홍보-일러스트)
+> AI로 제작한 소개용 일러스트입니다. 실제 게임 화면은 아래에서 확인하실 수 있으며, 현재 제공되는 그래픽·지형·기능을 그대로 재현한 이미지는 아닙니다. [이미지 출처·제작 프롬프트](docs/images/store-feature-draft-20261030.ko.md)
 
 **몬스터를 동료로 모으고, 함께 싸우며 성장하는 Android 3D 게임**
 

@@ -39,7 +39,7 @@ namespace AD
             scaler.matchWidthOrHeight = .5f;
             _modal.AddComponent<UnityEngine.UI.GraphicRaycaster>();
             var background = _modal.AddComponent<UnityEngine.UI.Image>();
-            background.color = new Color(.055f, .065f, .085f, 1);
+            background.color = new Color32(18, 39, 36, 255);
             var content = DeletionView.Rect("Content", root);
             content.anchorMin = new Vector2(.08f, .12f);
             content.anchorMax = new Vector2(.92f, .88f);
@@ -76,7 +76,7 @@ namespace AD
             if (font != null) text.font = font;
             text.text = value;
             text.fontSize = size;
-            text.color = Color.white;
+            text.color = new Color32(246, 241, 221, 255);
             text.alignment = TextAlignmentOptions.Center;
             text.raycastTarget = false;
             text.richText = false;
