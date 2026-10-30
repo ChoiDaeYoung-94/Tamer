@@ -182,7 +182,9 @@ public class RevivalAgeChoiceUITests
             Assert.That(modal.gameObject.activeSelf, Is.True);
             Assert.That(Time.timeScale, Is.Zero);
             Assert.That(Status(label), Does.Contain("연령대"));
-            modal.GetComponentsInChildren<Button>().Single(b => b.name == "Adult").onClick.Invoke();
+            var ageInput = modal.Find("Content/AgeInput").GetComponent(Find("TMPro.TMP_InputField"));
+            ageInput.GetType().GetProperty("text").SetValue(ageInput, "18");
+            modal.GetComponentsInChildren<Button>().Single(b => b.name == "SubmitAge").onClick.Invoke();
             Assert.That(stored, Is.EqualTo("1|18plus"));
             Assert.That(Result(ads), Is.EqualTo("AgeRequired"), "Age selection must not resume discovery.");
             Assert.That(modal.gameObject.activeSelf, Is.False);
