@@ -19,6 +19,12 @@ APP_ID = 'com.AeDeong.MonsterTamer'
 UNITY_VERSION = '6000.3.25f1'
 UNITY_REVISION = 'e1dba0a9aba4'
 TOOLCHAIN_CONFIG = 'tools/revival/toolchain.json'
+QUAD_D_INTRO_SCENE = 'Assets/QuadD/Scenes/QuadDIntro.unity'
+QUAD_D_INTRO_COMMIT = '55bf9e4aa48c2f95942f3c2c995f1d55414e97c0'
+QUAD_D_INTRO_PACKAGE = ('https://github.com/ChoiDaeYoung-94/ChoiDaeYoung-94.git'
+                        '?path=/unity/com.quadd.intro#' + QUAD_D_INTRO_COMMIT)
+QUAD_D_INTRO_SCRIPT_GUID = '1d401bfd5913e2a4fafd9c58a0c4be34'
+QUAD_D_CANVAS_SCRIPT_GUID = '882f2ac2f8e5245449cbcaf6ea133299'
 UNVERIFIED = ['Play Console active upload certificate and highest published version code',
               'Production account continuity, changed-progress writes, purchase restore and receipt authority',
               'Privacy/deletion endpoint, retention decisions and published declarations',
@@ -30,7 +36,47 @@ PIPELINE_GENERATED_RESOURCES = ['Assets/Settings/Pipeline/Resources/RuntimePipel
                                 'Assets/Settings/Pipeline/Resources/RuntimePipelineBuildInfo.asset']
 SOURCE_INPUTS = ['ProjectSettings/ProjectSettings.asset', 'ProjectSettings/ProjectVersion.txt',
                  'ProjectSettings/EditorBuildSettings.asset', 'Assets/Resources/IAPProductCatalog.json',
-                 TOOLCHAIN_CONFIG, PIPELINE_RUNTIME_CONFIG, *PIPELINE_GENERATED_RESOURCES]
+                 TOOLCHAIN_CONFIG, PIPELINE_RUNTIME_CONFIG, *PIPELINE_GENERATED_RESOURCES,
+                 'Packages/manifest.json', 'Packages/packages-lock.json',
+                 QUAD_D_INTRO_SCENE, QUAD_D_INTRO_SCENE + '.meta',
+                 'Assets/QuadD/QuadDIntroCanvasOutput.cs', 'Assets/QuadD/QuadDIntroCanvasOutput.cs.meta',
+                 'Assets/Scripts/Managers/Sub/RuntimeInitialize.cs']
+
+
+def approved_entry_flow(root, scenes, settings):
+    """Accept the legacy entry or the pinned intro -> Login flow, without preview scenes."""
+    login = 'Assets/Scenes/Login.unity'
+    if (not scenes or len(scenes) != len(set(scenes)) or scenes.count(login) != 1
+            or any(path.startswith('Assets/Tests/') or 'harness' in path.lower() for path in scenes)):
+        return False
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate intro package setting')
+            result[key] = value
+        return result
+    try:
+        manifest_path = root / 'Packages/manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8-sig'), object_pairs_hook=unique) if manifest_path.exists() else {}
+        package = manifest.get('dependencies', {}).get('com.quadd.intro')
+        if scenes[0] == login:
+            return package is None and QUAD_D_INTRO_SCENE not in scenes
+        if scenes[:2] != [QUAD_D_INTRO_SCENE, login] or package != QUAD_D_INTRO_PACKAGE:
+            return False
+        lock = json.loads((root / 'Packages/packages-lock.json').read_text(encoding='utf-8-sig'), object_pairs_hook=unique)
+        pinned = lock['dependencies']['com.quadd.intro']
+        scene = (root / QUAD_D_INTRO_SCENE).read_text(encoding='utf-8-sig')
+        scripts = re.findall(r'^  m_Script: \{fileID: 11500000, guid: ([0-9a-f]{32}), type: 3\}$', scene, re.M)
+        destinations = re.findall(r'^  nextSceneName:[ \t]*([^\r\n]*)$', scene, re.M)
+        return (pinned.get('source') == 'git' and pinned.get('depth') == 0
+                and pinned.get('hash') == QUAD_D_INTRO_COMMIT and pinned.get('version') == QUAD_D_INTRO_PACKAGE
+                and scripts.count(QUAD_D_INTRO_SCRIPT_GUID) == 1 and destinations == ['Login']
+                and scripts.count(QUAD_D_CANVAS_SCRIPT_GUID) == 1
+                and re.search(r'^  m_ShowUnitySplashScreen: 0\r?$', settings, re.M) is not None
+                and re.search(r'^  m_SplashScreenLogos: \[\]\r?$', settings, re.M) is not None)
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError, AttributeError):
+        return False
 
 
 def unity_source_pinned(root):
@@ -152,7 +198,7 @@ def source_checks(root):
         'il2cpp': android_value('scriptingBackend') == '1',
         'noGlobalHarnessDefines': not any(d.startswith('TAMER_') for d in defines),
         'iapAutoInitExplicitlyDisabled': catalog.get('enableCodelessAutoInitialization') is False and catalog.get('enableUnityGamingServicesAutoInitialization') is False,
-        'loginFirstScene': bool(scenes) and scenes[0].strip() == 'Assets/Scenes/Login.unity',
+        'approvedEntryFlow': approved_entry_flow(root, [path.strip() for path in scenes], settings),
         'noLegacyBuildMarkers': not any((root/'Build'/name).exists() for name in ('AOSSettingAPK.txt','AOSSettingAAB.txt','checkedBuilding.txt')),
         'pipelineRuntimeDisabled': pipeline_runtime_disabled(root),
         'noStagedPipelineResources': no_staged_pipeline_resources(root),
