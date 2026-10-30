@@ -277,7 +277,7 @@ public class RevivalAgeChoiceUITests
     }
 
     [Test]
-    public void Revival_AgeViewHasNeutralChoicesSavesDeclineAndRestoresPause()
+    public void Revival_AgeViewStartsBlankSavesOnlyBucketAndRestoresPause()
     {
         var scene = EditorSceneManager.NewPreviewScene();
         var root = new GameObject("Age UI fixture", typeof(RectTransform));
@@ -309,7 +309,7 @@ public class RevivalAgeChoiceUITests
             Assert.That(canvas.gameObject.activeSelf, Is.True);
             Assert.That(Time.timeScale, Is.Zero);
             var buttons = canvas.GetComponentsInChildren<Button>();
-            Assert.That(buttons.Length, Is.EqualTo(5));
+            Assert.That(buttons.Length, Is.EqualTo(2));
             Assert.That(buttons.Select(b => b.GetComponent<LayoutElement>().preferredHeight).Distinct().Count(), Is.EqualTo(1));
             Assert.That(buttons.All(b => b.navigation.mode == Navigation.Mode.None), Is.True);
             Assert.That(buttons.Select(b => b.targetGraphic.color).Distinct().Count(), Is.EqualTo(1));
@@ -330,6 +330,29 @@ public class RevivalAgeChoiceUITests
             Assert.That(buttons.All(b => ((RectTransform)b.transform).rect.height > 0), Is.True);
             foreach (RectTransform child in contentRect)
                 Assert.That(child.rect.width, Is.LessThanOrEqualTo(contentRect.rect.width + 1), child.name);
+            var input = canvas.transform.Find("Content/AgeInput").GetComponent(Find("TMPro.TMP_InputField"));
+            var inputText = input.GetType().GetProperty("text");
+            Assert.That(inputText.GetValue(input), Is.EqualTo(""), "No age may be preselected.");
+            buttons.Single(b => b.name == "SubmitAge").onClick.Invoke();
+            Assert.That(stored, Is.Null, "Blank input must not persist an adult default.");
+            Assert.That(canvas.gameObject.activeSelf, Is.True);
+            Assert.That(Time.timeScale, Is.Zero);
+            AssertNoSdk(ads);
+            inputText.SetValue(input, "2008");
+            buttons.Single(b => b.name == "SubmitAge").onClick.Invoke();
+            Assert.That(stored, Is.Null, "A birth year must not be silently truncated into an adult age.");
+            Assert.That(canvas.gameObject.activeSelf, Is.True);
+            AssertNoSdk(ads);
+            inputText.SetValue(input, "12");
+            buttons.Single(b => b.name == "SubmitAge").onClick.Invoke();
+            Assert.That(stored, Is.EqualTo("1|under13"));
+            Assert.That(inputText.GetValue(input), Is.EqualTo(""), "Exact age must be cleared on close.");
+            Assert.That(canvas.gameObject.activeSelf, Is.False);
+            Assert.That(Time.timeScale, Is.EqualTo(.5f));
+            Call(presenter, "Open");
+            Assert.That(inputText.GetValue(input), Is.EqualTo(""), "Reopening must not reuse the previous age.");
+            Assert.That(canvas.gameObject.activeSelf, Is.True);
+            AssertNoSdk(ads);
             buttons.Single(b => b.name == "Declined").onClick.Invoke();
             Assert.That(stored, Is.EqualTo("1|declined"));
             Assert.That(canvas.gameObject.activeSelf, Is.False);
