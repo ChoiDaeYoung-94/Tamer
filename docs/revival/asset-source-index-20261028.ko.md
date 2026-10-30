@@ -14,7 +14,8 @@
 | `TextMesh Pro` | 2016 User Guide 파일명과 아래 별도 폰트/스프라이트 표기 | 현재 TMP 전체·각 포함 에셋의 버전/권한을 한꺼번에 확정하지 않음 |
 | `MiniJSON.cs` | Calvin Rien(2013) MIT 허가 헤더 및 darktable/1411710의 고정 revision 원문과 해당 파일 byte 동일 | 해당 파일의 출처/허가 표기 연결. 다른 파일/그룹에 확대하지 않고 기존 비공개 분류 유지. [근거](asset-source-evidence-20261029.ko.md) |
 | `SafeArea.cs` | namespace Crystal와 주석의 원문 forum 링크. 공식 Store의 Crystal Pug Safe Area Helper130488을 출처 후보로 확인 | 원문 forum 접근 실패·정확 취득 버전/로컬 byte 동일성/권한 미확인. 현재 무료·표준 EULA 표시는 로컬 취득 증거가 아니며 유사 코드로 대체하지 않음 |
-| Avalon 폰트 | manifest의 두 폰트 및 meta 항목 확인 | 별도 폰트 권한 미확인 유지. 다른 폰트의 라이선스로 대체하지 않음 |
+| Avalon 폰트 | 두 폰트/두meta가 고정 PlayFab 공식 commit75e09bf의 공개 blob과 byte 동일·기존 manifest 일치. [10월30일 근거](font-emoji-source-evidence-20261030.ko.md) | 별도 폰트 권한 미확인 유지. 공개 저장소 라이선스만으로 전체 허가를 확정하지 않음 |
+| EmojiOne 샘플 | Attribution/JSON/PNG/Sprite asset4개가 현재 builtin uGUI2.0.0의 TMP Essential Resources와 byte 동일. [10월30일 근거](font-emoji-source-evidence-20261030.ko.md) | 패키지 일치와 개별 EmojiOne 허가/버전·제3자 권리를 구분. 원문 제공자 링크 접근 실패와 비공개 분류 유지 |
 
 TMP 하위 LiberationSans.ttf의 name table은 Liberation Sans Regular/Version2.00.1·Google2010/Red Hat2012·OFL1.1을 포함하고, 동반 `LiberationSans - OFL.txt`의 저작권/허가 표기와 연결됐습니다. 두 파일은 기존 manifest SHA/크기와 일치했습니다. [폰트 내부 식별·허가문 대조](liberation-font-identity-20261029.ko.md)이며 upstream TTF byte 동일성·완전성/수정 이력·전체 TMP/Avalon 권한은 미검증입니다. EmojiOne Attribution.txt는 제공자 링크/조건 확인 요청이며 개별 포함 버전·라이선스를 대신하지 않습니다.
 
