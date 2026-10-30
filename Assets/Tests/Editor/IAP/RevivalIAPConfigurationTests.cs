@@ -58,7 +58,7 @@ public class RevivalIAPConfigurationTests
     }
 
     [Test]
-    public void Revival_IAP_ExplicitConsentChoicesArePreserved()
+    public void Revival_IAP_ExplicitAnalyticsChoiceIsPreserved()
     {
         var result = SafeDefaults(new ConsentState
         {
@@ -67,5 +67,23 @@ public class RevivalIAPConfigurationTests
         });
         Assert.That(result.AdsIntent, Is.EqualTo(ConsentStatus.Denied));
         Assert.That(result.AnalyticsIntent, Is.EqualTo(ConsentStatus.Granted));
+    }
+
+    [TestCase(ConsentStatus.Unspecified, ConsentStatus.Denied)]
+    [TestCase(ConsentStatus.Denied, ConsentStatus.Denied)]
+    [TestCase(ConsentStatus.Granted, ConsentStatus.Granted)]
+    public void Revival_IAP_UnsupportedAdvertisingGrantCannotAuthorizeIdentifiers(
+        ConsentStatus analytics, ConsentStatus expectedAnalytics)
+    {
+        // A prior/native Ads grant is not an opt-in collected by this game.
+        // Keep this pure: never read GAID, change native consent or start a store.
+        var result = SafeDefaults(new ConsentState
+        {
+            AdsIntent = ConsentStatus.Granted,
+            AnalyticsIntent = analytics
+        });
+        Assert.That(result.AdsIntent, Is.EqualTo(ConsentStatus.Denied),
+            "IAP advertising identifiers need a separate, implemented opt-in flow.");
+        Assert.That(result.AnalyticsIntent, Is.EqualTo(expectedAnalytics));
     }
 }
