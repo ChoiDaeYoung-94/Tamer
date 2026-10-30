@@ -26,6 +26,12 @@
 
 추가로 저장소의 GMA/UMP DLL10개를 실행 없이 Mono.Cecil0.11.5로 읽었습니다. 자동 시작 attribute가 붙은 메서드4개 중3개는 static 상태 초기화이며, `Insight.CacheBaseProperties`는 플랫폼·앱 ID/버전·Unity 버전·OS·기기 모델을 로컬 필드에 캐시합니다. 이4개 메서드의 직접 호출 목록에는 광고 초기화·광고 ID·네트워크 호출이 없었습니다. 따라서 **성인 전 SDK 내부 처리가 전혀 없음**이라고 쓰지 않습니다. Android client/UMP client의 static 생성자와 native 객체 경로는 자동 시작 메서드와 구분하며, 이 assembly 메타데이터 검사도 IL2CPP 최종 실행·간접 호출 전체를 대신하지 않습니다.
 
+## 최종 Play APK의 지정 진입점 후속
+
+Google 앱 서명 APK29/SHA`5e10b8632d56fb4b9aa20bac58ae3501d87b13d79f5ea3b37f4a9ef0811bd44b`의DEX3개를 설치된 공식 Android SDK build-tools36.0.0 `dexdump -d -n`으로 읽었습니다. checksum/verification 생략 옵션은 사용하지 않았고20,256클래스 중 지정 provider/delegate2개를 찾아 발췌했습니다. 두 `onCreate`는 정수0을 반환하며, `attachInfo`의 직접 호출은 metadata/앱ID 형식 검사·로그·상위 provider 연결입니다. 읽은 두 클래스의 직접 호출 목록에 광고 ID 조회·MobileAds.initialize·네트워크 호출은 관측하지 못했습니다.
+
+이는 앞선 캐시 AAR 관측을 실제 최종 DEX의 지정 진입점에 연결한 정적 근거입니다. 방문한20,256클래스 전체를 분석했다는 뜻이 아니며 간접 종속·OS/Play 서비스·IL2CPP 실행·기기 통신·모든 영구 식별자 차단은 미검증입니다. 기존 로그인의 기기 식별자 경로도 광고 gate와 별도이며 이를 지우거나 계정을 이행하지 않았습니다. [내부29 제공](internal29-live-20261030.ko.md)은 운영 검증을 준비하는 단계로 정책 승인과 구분합니다.
+
 ## 실제 심사 동선에 적어야 할 내용
 
 1. 제공된 Google/Play Games 계정으로 기존 저장을 불러옵니다. 새 게임 계정 생성·저장 초기화·구매 권한 변경을 요구하지 않습니다.
