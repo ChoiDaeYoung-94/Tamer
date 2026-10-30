@@ -9,6 +9,8 @@ Google Play 지원 답변은 기본값 없는 나이 직접 입력을 요청했�
 - 정확한 나이는 기존 저장 형식·로그·네트워크 payload에 추가하지 않습니다. 화면을 닫거나 다시 열 때 입력값을 비웁니다. 기존 구간 저장 형식과 미성년/미상/거절·편집 중 광고 gate, No Ads·계정·구매 권한을 유지합니다.
 - Scene/prefab/GUID·운영 버전29·서명키·공용 SDK를 변경하지 않았습니다. 새 정책용 입력은 기존 runtime 생성 uGUI에 한정됩니다.
 
+운영29 source6bb7b37부터 보완 source39f87b4까지의 실행 관련 차이7파일도 대조했습니다. Player runtime 변경은 `LocalAgeChoice.cs`와 `AgeChoicePresenter.cs`2개이며, 나머지는 Editor 기준 검사/시험과 전체가 Editor·격리 gameplay define 아래에 있는 PHOTO helper입니다. Packages·ProjectSettings·toolchain 버전과 로그인/저장·구매/No Ads·SDK 소스는 이 구간에서 변하지 않았습니다. 이는 정적 변경 범위 확인이며 새 제공물의 실행 검증을 대신하지 않습니다.
+
 ## 검증과 복구
 
 추가 코드 검토에서 입력기의 숫자 필터가 문장부호를 삭제해 `1.8`을 `18`로 바꿀 가능성을 피하도록, 숫자 키보드는 유지하면서 원문 전체를 검증하게 수정했습니다. runtime 수정380f790을 포함한 source`5e0b5e5151dcc39343522490f0c478e04391ac37`에서 관련 UI3개를 다시 실행해 **3/3·실패0·컴파일 오류0**을 확인했습니다. 원문 보존 설정과 소수 입력 거절도 검사했습니다. 아래는 앞선 실패 원인과 보완 이력입니다.
