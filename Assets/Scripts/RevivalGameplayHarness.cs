@@ -70,6 +70,24 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         _photoRestoreDeadline = Time.realtimeSinceStartup + 1;
         if (++_photoRestoreTaps >= 3) SetPhotoMode(false);
     }
+
+    private void OpenOriginalShopForPhoto()
+    {
+        if (_busy || !Ready("Main") || !RevivalGameplayIsolation.AllowsCaptureAssist) return;
+        var shop = ShopMan.Instance;
+        if (shop == null) { Mark("PHOTO_SHOP_UNAVAILABLE owner=missing"); return; }
+        // Mirror the original proximity trigger's panel activation, without moving
+        // the player or changing the shop, inventory, currency, or purchase state.
+        var field = typeof(ShopMan).GetField("_popupShopUI",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var panel = field?.GetValue(shop) as GameObject;
+        if (panel == null || panel.scene.handle != shop.gameObject.scene.handle ||
+            panel.scene.handle != UnitySceneManager.GetActiveScene().handle)
+        { Mark("PHOTO_SHOP_UNAVAILABLE original-panel=missing-or-stale"); return; }
+        panel.SetActive(true);
+        Mark(panel.activeInHierarchy ? "PHOTO_SHOP_OPEN original-panel-only" : "PHOTO_SHOP_UNAVAILABLE inactive-parent");
+        if (panel.activeInHierarchy) SetPhotoMode(true);
+    }
 #endif
 
     // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
@@ -854,7 +872,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));
         GUILayout.BeginArea(new Rect(15, 15, 970,
 #if TAMER_GAMEPLAY_PHOTO
-            420
+            480
 #else
             350
 #endif
@@ -886,6 +904,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUI.enabled = true;
 #endif
 #if TAMER_GAMEPLAY_PHOTO
+        GUI.enabled = !_busy && Ready("Main") && RevivalGameplayIsolation.AllowsCaptureAssist;
+        if (GUILayout.Button("Open original shop (photo UI only)", GUILayout.Height(45))) OpenOriginalShopForPhoto();
         GUI.enabled = !_busy && (Ready("Main") || Ready("Game")) && RevivalGameplayIsolation.AllowsCaptureAssist;
         if (GUILayout.Button("Hide diagnostics for photo (restore: triple-tap top-left corner)", GUILayout.Height(55)))
             SetPhotoMode(true);

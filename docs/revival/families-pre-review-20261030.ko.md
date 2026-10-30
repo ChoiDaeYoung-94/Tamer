@@ -4,6 +4,8 @@
 
 ## 제출 전에 연결할 근거
 
+18:44 KST 읽기 후속: Console 대상 연령은9~12·13~15·16~17·18+이고 교사 추천 프로그램 미포함, 광고 ID 사용·광고 포함 신고입니다. 대상 연령은 검토 전송 준비 상태로 표시됩니다. 관리 화면의 기존 선택과 개요 상세를 대조했고 값 변경/저장·미성년 선언 확인·심사 전송은 하지 않았습니다. 혼합 대상 신고와 성인 전 ID/SDK 처리의 실제 검증·최종 심사 승인을 구분합니다.
+
 | 항목 | 확인한 범위 | 남은 확인 |
 | --- | --- | --- |
 | 연령별 광고 | 혼합 대상 앱이며 성인만 광고 경로를 허용합니다. `AgeTreatmentPolicy.IsReviewed`는 미성년3구간 false/Adult true, Unknown·Declined는 미승인입니다. `CanBeginConsent`와 실제 init/load/show가 이 경계를 사용합니다. | 정확한 최종 제공물에서 미성년/미상/거절·수정 중과 성인 경로를 관측합니다. 성인 전 광고 표시 차단만으로 모든 SDK 데이터 처리가 없다고 쓰지 않습니다. |
@@ -23,6 +25,12 @@
 게임의 일반 SDK 진입은 `GoogleAdMobManager`의 `SetRequestConfiguration`→UMP 경로와 `InitializeConfiguredSdk`를 대조했습니다. 연령/환경 gate를 먼저 검사하고, 명시 보상 요청에는 준비된 계정·No Ads·최신 동의도 요구합니다. PGS/PlayFab 로그인과 Unity IAP·엔진의 처리는 이 광고 gate와 별개입니다. 레거시 기기 로그인에는 Android 기기 식별자 경로가 남아 있으므로 이를 광고 ID와 혼동하거나 모든 식별자 전송 없음으로 표현하지 않습니다. 운영 계정을 임의 이행·초기화하지 않습니다.
 
 추가로 저장소의 GMA/UMP DLL10개를 실행 없이 Mono.Cecil0.11.5로 읽었습니다. 자동 시작 attribute가 붙은 메서드4개 중3개는 static 상태 초기화이며, `Insight.CacheBaseProperties`는 플랫폼·앱 ID/버전·Unity 버전·OS·기기 모델을 로컬 필드에 캐시합니다. 이4개 메서드의 직접 호출 목록에는 광고 초기화·광고 ID·네트워크 호출이 없었습니다. 따라서 **성인 전 SDK 내부 처리가 전혀 없음**이라고 쓰지 않습니다. Android client/UMP client의 static 생성자와 native 객체 경로는 자동 시작 메서드와 구분하며, 이 assembly 메타데이터 검사도 IL2CPP 최종 실행·간접 호출 전체를 대신하지 않습니다.
+
+## 최종 Play APK의 지정 진입점 후속
+
+Google 앱 서명 APK29/SHA`5e10b8632d56fb4b9aa20bac58ae3501d87b13d79f5ea3b37f4a9ef0811bd44b`의DEX3개를 설치된 공식 Android SDK build-tools36.0.0 `dexdump -d -n`으로 읽었습니다. checksum/verification 생략 옵션은 사용하지 않았고20,256클래스 중 지정 provider/delegate2개를 찾아 발췌했습니다. 두 `onCreate`는 정수0을 반환하며, `attachInfo`의 직접 호출은 metadata/앱ID 형식 검사·로그·상위 provider 연결입니다. 읽은 두 클래스의 직접 호출 목록에 광고 ID 조회·MobileAds.initialize·네트워크 호출은 관측하지 못했습니다.
+
+이는 앞선 캐시 AAR 관측을 실제 최종 DEX의 지정 진입점에 연결한 정적 근거입니다. 방문한20,256클래스 전체를 분석했다는 뜻이 아니며 간접 종속·OS/Play 서비스·IL2CPP 실행·기기 통신·모든 영구 식별자 차단은 미검증입니다. 기존 로그인의 기기 식별자 경로도 광고 gate와 별도이며 이를 지우거나 계정을 이행하지 않았습니다. [내부29 제공](internal29-live-20261030.ko.md)은 운영 검증을 준비하는 단계로 정책 승인과 구분합니다.
 
 ## 실제 심사 동선에 적어야 할 내용
 
