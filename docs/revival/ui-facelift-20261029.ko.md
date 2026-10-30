@@ -6,7 +6,11 @@
 
 기존 금발 캐릭터와 박쥐 동료를 살린 새 아이콘을 제작해 기본·Android legacy/round·adaptive 슬롯에 연결했습니다. 적응형 아이콘은 별도 투명 전경과 단색 배경을 사용합니다. [최종 에셋·도구·전체 프롬프트](../images/facelift-assets-20261029.ko.md)를 함께 기록했습니다. 한글이 필요한 설정/개인정보 UI의 기존 글꼴과 원래 atlas를 유지하고 별도 재질로 외곽선만 정리했습니다.
 
-## 현재 추가 확인 — 2026-10-30 12:07 KST 상점 동료의 재실행 복원
+## 현재 추가 확인 — 2026-10-30 15:20 KST 통합 AAB 생성
+
+같은 UI/인트로 실행 내용을 sourcef5d7ab4/code28 운영 검토 AAB로 생성했습니다. 실제 package/version/서명·native 기본 배치, QuadDIntro→Login 씬 배열·영상 원본 SHA/새 launcher 아이콘·승인 광고 resource 일치와 원본 복구를 확인했습니다. [AAB 생성과 기본 검사](candidate28-built-20261030.ko.md)는 새 파일의 실제 입력/해시/한계를 기록합니다. 기존 source998a808은 별도 격리 Android 통합 검증의 소스이며 이 새 운영 AAB의 로그인·저장/No Ads·기기/정책 통과를 대신하지 않습니다.
+
+## 2026-10-30 12:07 KST 이력 — 상점 동료의 재실행 복원
 
 같은 source83cfd19/SHA0becb38d…의 기존 격리 UI 앱에서 원래 상점으로 Bat 동료를100G에 구매했습니다. 원래 상품 확인→동료 구매 확인→성공→목록 복귀/닫기를 거쳐 가상gold7144→7044, 동료0/10→1/10과 저장1회를 확인했습니다. 새 프로세스로 돌아온 뒤에는 gold7044/HP200·동료1/10과 Bat 모델, 기존 SimpleSword/MasterShield·HUD 일치, reads2/writes0·오류0을 확인했습니다. 재실행 전후 synthetic cloud 바이트도 같았습니다. 실제 계정/서버 저장·현금 결제·No Ads나 포획으로 얻은 동료의 재실행 복원은 별도입니다.
 
