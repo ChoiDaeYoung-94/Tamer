@@ -19,6 +19,7 @@ public sealed class RevivalGuestEntryUiHarness : MonoBehaviour
     public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.guestentry1102";
     public const string ReleaseApplicationId = "com.AeDeong.MonsterTamer.revival.guestentry1102release";
     public const string FullEngineApplicationId = "com.AeDeong.MonsterTamer.revival.guestentry1102full";
+    public const string X86ApplicationId = "com.AeDeong.MonsterTamer.revival.guestentry1102x86";
     public TMP_FontAsset Font;
     private readonly LoginGuestEntryGate _gate = new LoginGuestEntryGate();
     private readonly LoginGuestIdentityPreparation _identities = new LoginGuestIdentityPreparation();
@@ -33,7 +34,8 @@ public sealed class RevivalGuestEntryUiHarness : MonoBehaviour
         package == ApplicationId && !editor && development && android;
 
     public static bool AllowsReleaseContext(string package, bool editor, bool development, bool android) =>
-        (package == ReleaseApplicationId || package == FullEngineApplicationId) && !editor && !development && android;
+        (package == ReleaseApplicationId || package == FullEngineApplicationId || package == X86ApplicationId) &&
+        !editor && !development && android;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void TraceManagedStartup()

@@ -13,6 +13,7 @@ public class RevivalGuestEntryHarnessTests
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102release", false, true, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102full", false, true, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestempty1102", false, true, true, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102x86", false, true, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102", true, true, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102", false, false, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102", false, true, false, false)]
@@ -25,6 +26,10 @@ public class RevivalGuestEntryHarnessTests
 
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102release", false, false, true, true)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102full", false, false, true, true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102x86", false, false, true, true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102x86", false, true, true, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102x86", true, false, true, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102x86", false, false, false, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestempty1102", false, false, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102full", false, true, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102full", true, false, true, false)]

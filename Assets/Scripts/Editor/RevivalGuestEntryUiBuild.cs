@@ -16,6 +16,7 @@ public static class RevivalGuestEntryUiBuild
     public const string ReleaseOutput = "Build/revival/Tamer-guest-entry-ui-release-1102.apk";
     public const string FullEngineOutput = "Build/revival/Tamer-guest-entry-ui-full-1102.apk";
     public const string PlainOutput = "Build/revival/Tamer-guest-empty-1102.apk";
+    public const string X86Output = "Build/revival/Tamer-guest-entry-ui-x86-1102.apk";
     public const string PlainApplicationId = "com.AeDeong.MonsterTamer.revival.guestempty1102";
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
@@ -24,13 +25,15 @@ public static class RevivalGuestEntryUiBuild
     public static bool ReleaseEngineBuild { get; private set; }
     public static bool FullEngineBuild { get; private set; }
     public static bool PlainSceneBuild { get; private set; }
-    public static string ExpectedApplicationId => PlainSceneBuild ? PlainApplicationId
+    public static bool X86Build { get; private set; }
+    public static string ExpectedApplicationId => X86Build ? RevivalGuestEntryUiHarness.X86ApplicationId
+        : PlainSceneBuild ? PlainApplicationId
         : FullEngineBuild ? RevivalGuestEntryUiHarness.FullEngineApplicationId
         : ReleaseEngineBuild ? RevivalGuestEntryUiHarness.ReleaseApplicationId : RevivalGuestEntryUiHarness.ApplicationId;
 
     public static bool IsFixtureId(string id) => id == RevivalGuestEntryUiHarness.ApplicationId ||
         id == RevivalGuestEntryUiHarness.ReleaseApplicationId || id == RevivalGuestEntryUiHarness.FullEngineApplicationId ||
-        id == PlainApplicationId;
+        id == PlainApplicationId || id == RevivalGuestEntryUiHarness.X86ApplicationId;
 
     public static bool AllowsGlobalDefines(string defines) => !string.IsNullOrEmpty(defines)
         ? !defines.Split(';').Any(s => s.Trim().StartsWith("TAMER_", StringComparison.Ordinal)) : true;
@@ -39,13 +42,17 @@ public static class RevivalGuestEntryUiBuild
     public static void BuildReleaseAndroid() => Build(true);
     public static void BuildFullEngineAndroid() => Build(true, true);
     public static void BuildPlainAndroid() => Build(true, true, true);
+    public static void BuildX86Android() => Build(true, true, false, true);
 
-    private static void Build(bool releaseEngine, bool fullEngine = false, bool plainScene = false)
+    private static void Build(bool releaseEngine, bool fullEngine = false, bool plainScene = false, bool x86 = false)
     {
         if (fullEngine && !releaseEngine) throw new BuildFailedException("Full-engine diagnostic uses the release engine only.");
         if (plainScene && !fullEngine) throw new BuildFailedException("Plain-scene diagnostic preserves the same full release engine.");
-        string output = plainScene ? PlainOutput : fullEngine ? FullEngineOutput : releaseEngine ? ReleaseOutput : Output;
-        string applicationId = plainScene ? PlainApplicationId : fullEngine ? RevivalGuestEntryUiHarness.FullEngineApplicationId
+        if (x86 && (!releaseEngine || !fullEngine || plainScene))
+            throw new BuildFailedException("The separate x86 diagnostic requires its full release guest fixture.");
+        string output = x86 ? X86Output : plainScene ? PlainOutput : fullEngine ? FullEngineOutput : releaseEngine ? ReleaseOutput : Output;
+        string applicationId = x86 ? RevivalGuestEntryUiHarness.X86ApplicationId : plainScene ? PlainApplicationId
+            : fullEngine ? RevivalGuestEntryUiHarness.FullEngineApplicationId
             : releaseEngine ? RevivalGuestEntryUiHarness.ReleaseApplicationId
             : RevivalGuestEntryUiHarness.ApplicationId;
         var originals = new[] { Manifest, AdsSettings, AdsManifest }.ToDictionary(p => p, File.ReadAllBytes);
@@ -55,6 +62,7 @@ public static class RevivalGuestEntryUiBuild
         string oldAlias = PlayerSettings.Android.keyaliasName;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         bool oldStripEngineCode = PlayerSettings.stripEngineCode;
+        var oldArchitectures = PlayerSettings.Android.targetArchitectures;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         int code = 1;
         try
@@ -83,6 +91,10 @@ public static class RevivalGuestEntryUiBuild
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
             if (fullEngine) PlayerSettings.stripEngineCode = false;
+            // The initial reviewed ARM64 baseline was checked above. Only this separate
+            // offline fixture changes the build architecture, and finally restores it.
+            if (x86) PlayerSettings.Android.targetArchitectures = AndroidArchitecture.X86_64;
+            X86Build = x86;
             FullEngineBuild = fullEngine;
             PlainSceneBuild = plainScene;
             ReleaseEngineBuild = releaseEngine;
@@ -101,6 +113,7 @@ public static class RevivalGuestEntryUiBuild
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Isolated guest UI build failed.");
             Debug.Log("GUEST_ENTRY_UI_ENGINE full_engine=" + fullEngine + " strip_engine=" + PlayerSettings.stripEngineCode);
             Debug.Log("GUEST_ENTRY_UI_VARIANT plain_scene=" + plainScene);
+            Debug.Log("GUEST_ENTRY_UI_ABI target=" + PlayerSettings.Android.targetArchitectures);
             Debug.Log("GUEST_ENTRY_UI_BUILD_OK operating_key_used=false operating_scenes=0");
             code = 0;
         }
@@ -111,6 +124,7 @@ public static class RevivalGuestEntryUiBuild
             ReleaseEngineBuild = false;
             FullEngineBuild = false;
             PlainSceneBuild = false;
+            X86Build = false;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.productName = oldName;
             PlayerSettings.Android.useCustomKeystore = oldKey;
@@ -118,6 +132,7 @@ public static class RevivalGuestEntryUiBuild
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
             EditorUserBuildSettings.buildAppBundle = oldBundle;
             PlayerSettings.stripEngineCode = oldStripEngineCode;
+            PlayerSettings.Android.targetArchitectures = oldArchitectures;
             AssetDatabase.SaveAssets();
             foreach (var item in originals) {
                 File.WriteAllBytes(item.Key, item.Value);
@@ -163,6 +178,9 @@ public sealed class RevivalGuestEntryUiBuildScene : IProcessSceneWithReport
             throw new BuildFailedException("Guest UI requires its dedicated debug-signed smoke build and matching engine variant.");
         if (RevivalGuestEntryUiBuild.FullEngineBuild && PlayerSettings.stripEngineCode)
             throw new BuildFailedException("Full-engine diagnostic must preserve engine code for this build only.");
+        var expectedArchitecture = RevivalGuestEntryUiBuild.X86Build ? AndroidArchitecture.X86_64 : AndroidArchitecture.ARM64;
+        if (PlayerSettings.Android.targetArchitectures != expectedArchitecture)
+            throw new BuildFailedException("Isolated fixture architecture does not match its dedicated build variant.");
         foreach (var root in scene.GetRootGameObjects())
             if (root.GetComponentsInChildren<MonoBehaviour>(true).Length != 0)
                 throw new BuildFailedException("The original smoke scene must have no game behaviours.");

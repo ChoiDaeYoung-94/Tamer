@@ -1,6 +1,14 @@
 # 손님 설정 Android 격리 검증 준비 — 2026-11-02
 
-상태는 **source `67a252f`의 빈 장면 진단 Editor28/28·별도 IL2CPP APK1회·정확 복구 완료, 기기 비교 대기**입니다. 앞선 손님 앱 세 변형의 LD 첫 실행은 흰 화면으로 미완료이며 실제 선택/손님 설정 저장·재시작을 아직 확인하지 못했습니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+상태는 **source `67a252f`의 빈 장면 진단28/28·APK/정확 복구 완료, LD에서는 손님 시험 코드 없는 새 ARM64 앱도 흰 화면**입니다. 앞선 손님 앱 세 변형과 함께 원인은 미확정이며 실제 선택/저장·재시작은 아직 검증하지 못했습니다. 다음은 별도 x86_64 진단의33개 조건/빌드 준비입니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+
+## 19:02 KST 빈 장면 기기 결과·별도 CPU 진단 준비
+
+위 빈 장면 APK를 지정 Tamer/index1에1회 설치하고 실제 base SHA/버전/nondebuggable을 확인했습니다. 손님 시험 코드·초기화 등록·주입0인데도 첫 실행 후2분 이상 같은 흰 화면이 관측됐습니다. 이전 ARM64 기준 앱의 C#·렌더 관측과 구분하며 손님 UI만의 원인으로 단정하지 않습니다. 나이/계정/UI 입력·서버 호출·같은 조건 재실행0입니다. 기존9개 APK 불변과 자체 앱 중지/이번에 연 VM 정상 종료·추적host/VM/transport0 확인 뒤10:02:31.014 UTC/19:02:31.014 KST에 실제 반환했습니다(인수09:58:50.069 UTC/18:58:50.069 KST). 원본 화면/로그·기존 앱/저장·모든 APK를 보존했습니다.
+
+다음 진단은 LD의 ARM 번역 경로를 분리하기 위한 별도 `guestentry1102x86` 앱입니다. 설치된6000.3.25f1에 x86_64 Release 라이브러리가 있고, 공식 [AndroidArchitecture API](https://docs.unity.com/en-us/engine/6000.3/script-reference/unityeditor/androidarchitecture)와 [6.3의 기존 프로젝트 지원 제한](https://docs.unity.com/en-us/engine/6000.3/manual/whats-new/unity63)을 확인했습니다. 지원 여부는 실제 빌드 결과로 대조하며 지원 제한 플래그·도구 버전을 바꾸지 않습니다.
+
+빌드 시작 전에 기존 Unity/min25/target36/ARM64 기준을 검증하고 이 별도 offline/debug 서명 시험 APK에 한해 x86_64를 선택한 뒤 finally에서 원래 ARM64를 복원합니다. 별도 ID·전체 Release 엔진·같은 view/손님 helper·권한/provider/백업 제외를 유지합니다. 실제 APK의 유일 ABI/ELF machine과 설치 SHA/선택 CPU를 확인하고, 이 결과를 운영 ARM64·실제 ARM64/16KB 검증으로 계산하지 않습니다. 제품 Login/서버·SDK 설치/기존 키와 toolchain.json은 변경하지 않습니다. 관련33개 검사·새 APK/기기 실행은 아직 전입니다. 실물 Android 기기의 사용 가능 여부도 별도 확인 중입니다.
 
 ## 18:39 KST 빈 장면 산출물·정확 복구 완료
 
