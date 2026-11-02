@@ -2,7 +2,7 @@
 
 ## 11월2일 최신 상태
 
-사용자 승인 후 [신규 손님 진입](mixed-audience-login-20261102.ko.md)을 구현하고 `a42d5f7`에서 [관련 Editor95/95·Android release C# 컴파일](guest-entry-validation-20261102.ko.md)을 확인했습니다. 기존 계정/진행·No Ads·불명확한 이력·삭제/pending 보호를 유지하며 실패 시 자동 손님 생성은 없습니다. 후보30에는 이 보완이 없습니다. 새 화면 격리 확인·현재 Console 번호에 맞춘 새 서명 후보·운영 손님 전체 기능과 정확한 심사/계정 생성·데이터 안내는 남았습니다.
+사용자 승인 후 [신규 손님 진입](mixed-audience-login-20261102.ko.md)을 구현하고 `9f9324e`에서 [관련 Editor96/96·소스22/22·Android C#·Editor 화면2비율](guest-entry-validation-20261102.ko.md)을 확인했습니다. 기존 계정/진행·No Ads·불명확한 이력·삭제/pending 보호를 유지하며 실패 시 자동 손님 생성은 없습니다. 후보30에는 이 보완이 없습니다. Android 저장/입력·재시작의 격리 확인, 현재 Console 번호에 맞춘 새 서명 후보·운영 손님 전체 기능과 [정확한 심사/계정 생성·데이터 안내](guest-review-instructions-draft-20261102.ko.md) 적용은 남았습니다.
 
 [후보30 재개 점검](candidate30-readiness-20261102.ko.md): 원본 AAB 무결성·포함 SDK metadata와 실제 후보30의 지정 광고 provider2개 읽기를 완료했습니다. 해당 정적 점검의 새 빌드·앱 실행은 없으며 위 신규 소스 검증 및 아래 운영 검증과 구분합니다. 마지막 Console 값은10월30일 관측으로 구분합니다.
 
