@@ -4,11 +4,12 @@ import hashlib
 import tempfile
 import json
 import os
+import struct
 import sys
 import zipfile
 from unittest.mock import patch
 from pathlib import Path
-from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, candidate_checks, main, PIPELINE_RUNTIME_CONFIG
+from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, inspect_guest_ui_exclusion, candidate_checks, main, PIPELINE_RUNTIME_CONFIG, GUEST_UI_METADATA, GUEST_UI_INITIALIZERS, GUEST_UI_DIAGNOSTIC_MARKERS
 from test_verify_native_alignment import elf_fixture
 
 
@@ -41,10 +42,69 @@ class ReleaseCandidateTests(unittest.TestCase):
             yield bundletool, java, source
 
     @staticmethod
+    def synthetic_runtime(archive):
+        archive.writestr(GUEST_UI_METADATA, struct.pack('<II', 0xfab11baf, 39) + b'synthetic game metadata')
+        archive.writestr(GUEST_UI_INITIALIZERS, '{"root":[]}')
+
+    @staticmethod
     def synthetic_aab(path, segments=None):
         path.parent.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(path, 'w') as archive:
             archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture(segments or [dict(memsz=4096)]))
+            ReleaseCandidateTests.synthetic_runtime(archive)
+
+    def test_guest_ui_exclusion_accepts_product_names_but_rejects_each_fixture_marker(self):
+        import io
+        for marker in (b'LoginGuestIdentityPreparation InitialAccountChoiceView', *GUEST_UI_DIAGNOSTIC_MARKERS):
+            with self.subTest(marker=marker):
+                stream=io.BytesIO()
+                with zipfile.ZipFile(stream, 'w') as archive:
+                    archive.writestr(GUEST_UI_METADATA, struct.pack('<II', 0xfab11baf, 39) + marker)
+                    archive.writestr(GUEST_UI_INITIALIZERS, '{"root":[]}')
+                stream.seek(0)
+                if marker in GUEST_UI_DIAGNOSTIC_MARKERS:
+                    with self.assertRaisesRegex(ValueError, 'diagnostic code'):
+                        inspect_guest_ui_exclusion(stream)
+                else:
+                    result=inspect_guest_ui_exclusion(stream)
+                    self.assertTrue(result['guestUiDiagnosticAbsent'])
+                    self.assertFalse(result['operatingRuntimeVerified'])
+
+    def test_guest_ui_exclusion_rejects_bad_or_missing_runtime_payloads(self):
+        import io
+        cases=[(None, b'{"root":[]}'), (b'wrong metadata', b'{"root":[]}'),
+               (struct.pack('<II', 0xfab11baf, 38), b'{"root":[]}'),
+               (struct.pack('<II', 0xfab11baf, 39), None),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[],"root":[]}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[{}]}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":null}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":NaN}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[{"className":1,"methodName":"Start"}]}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[{"className":"RevivalGuestEntryUiHarness","methodName":"TraceManagedStartup"}]}')]
+        for metadata, initializers in cases:
+            with self.subTest(metadata=metadata, initializers=initializers):
+                stream=io.BytesIO()
+                with zipfile.ZipFile(stream, 'w') as archive:
+                    if metadata is not None:archive.writestr(GUEST_UI_METADATA, metadata)
+                    if initializers is not None:archive.writestr(GUEST_UI_INITIALIZERS, initializers)
+                stream.seek(0)
+                with self.assertRaises(ValueError):inspect_guest_ui_exclusion(stream)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
+    def test_candidate_rejects_fixture_even_when_manifest_signature_and_native_pass(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder).resolve()
+            artifact=root/'diagnostic.aab'
+            with zipfile.ZipFile(artifact,'w') as archive:
+                archive.writestr('base/lib/arm64-v8a/test.so',elf_fixture([dict(memsz=4096)]))
+                archive.writestr(GUEST_UI_METADATA,struct.pack('<II',0xfab11baf,39)+b'RevivalGuestEntryUiHarness')
+                archive.writestr(GUEST_UI_INITIALIZERS,'{"root":[]}')
+            before=artifact.read_bytes()
+            with self.synthetic_tools(root) as (bundletool,java,_), \
+                    patch('verify_release_candidate.subprocess.check_output',side_effect=['',self.manifest,'{}']):
+                with self.assertRaisesRegex(ValueError,'diagnostic code'):
+                    candidate_checks(artifact,27,26,'0'*64,bundletool,java)
+            self.assertEqual(before,artifact.read_bytes())
 
     def test_reviewed_candidate_manifest(self):
         self.assertEqual(validate_manifest(self.manifest,27,26)['versionCode'],27)
@@ -308,6 +368,7 @@ class ReleaseCandidateTests(unittest.TestCase):
                 with self.subTest(segments=segments):
                     with zipfile.ZipFile(artifact,'w') as archive:
                         archive.writestr('base/lib/arm64-v8a/test.so',elf_fixture(segments))
+                        self.synthetic_runtime(archive)
                     with self.synthetic_tools(Path(folder).resolve()) as (bundletool, java, _), \
                          patch('verify_release_candidate.subprocess.check_output',
                                side_effect=['',self.manifest,'{}']):
@@ -333,6 +394,7 @@ class ReleaseCandidateTests(unittest.TestCase):
                 archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture([
                     dict(memsz=4096), dict(offset=512, vaddr=512, memsz=512),
                     dict(kind=0x6474E552, memsz=4096)]))
+                self.synthetic_runtime(archive)
             with self.synthetic_tools(Path(folder).resolve()) as (bundletool, java, _), \
                     patch('verify_release_candidate.subprocess.check_output',
                           side_effect=['', self.manifest, '{}']):
