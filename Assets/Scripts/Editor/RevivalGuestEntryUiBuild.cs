@@ -14,24 +14,32 @@ public static class RevivalGuestEntryUiBuild
 {
     public const string Output = "Build/revival/Tamer-guest-entry-ui-1102.apk";
     public const string ReleaseOutput = "Build/revival/Tamer-guest-entry-ui-release-1102.apk";
+    public const string FullEngineOutput = "Build/revival/Tamer-guest-entry-ui-full-1102.apk";
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
     private const string AdsManifest = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
     public static bool BuildActive { get; private set; }
     public static bool ReleaseEngineBuild { get; private set; }
-    public static string ExpectedApplicationId => ReleaseEngineBuild
-        ? RevivalGuestEntryUiHarness.ReleaseApplicationId : RevivalGuestEntryUiHarness.ApplicationId;
+    public static bool FullEngineBuild { get; private set; }
+    public static string ExpectedApplicationId => FullEngineBuild ? RevivalGuestEntryUiHarness.FullEngineApplicationId
+        : ReleaseEngineBuild ? RevivalGuestEntryUiHarness.ReleaseApplicationId : RevivalGuestEntryUiHarness.ApplicationId;
+
+    public static bool IsFixtureId(string id) => id == RevivalGuestEntryUiHarness.ApplicationId ||
+        id == RevivalGuestEntryUiHarness.ReleaseApplicationId || id == RevivalGuestEntryUiHarness.FullEngineApplicationId;
 
     public static bool AllowsGlobalDefines(string defines) => !string.IsNullOrEmpty(defines)
         ? !defines.Split(';').Any(s => s.Trim().StartsWith("TAMER_", StringComparison.Ordinal)) : true;
 
     public static void BuildAndroid() => Build(false);
     public static void BuildReleaseAndroid() => Build(true);
+    public static void BuildFullEngineAndroid() => Build(true, true);
 
-    private static void Build(bool releaseEngine)
+    private static void Build(bool releaseEngine, bool fullEngine = false)
     {
-        string output = releaseEngine ? ReleaseOutput : Output;
-        string applicationId = releaseEngine ? RevivalGuestEntryUiHarness.ReleaseApplicationId
+        if (fullEngine && !releaseEngine) throw new BuildFailedException("Full-engine diagnostic uses the release engine only.");
+        string output = fullEngine ? FullEngineOutput : releaseEngine ? ReleaseOutput : Output;
+        string applicationId = fullEngine ? RevivalGuestEntryUiHarness.FullEngineApplicationId
+            : releaseEngine ? RevivalGuestEntryUiHarness.ReleaseApplicationId
             : RevivalGuestEntryUiHarness.ApplicationId;
         var originals = new[] { Manifest, AdsSettings, AdsManifest }.ToDictionary(p => p, File.ReadAllBytes);
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
@@ -39,6 +47,7 @@ public static class RevivalGuestEntryUiBuild
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
         string oldAlias = PlayerSettings.Android.keyaliasName;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
+        bool oldStripEngineCode = PlayerSettings.stripEngineCode;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         int code = 1;
         try
@@ -66,6 +75,8 @@ public static class RevivalGuestEntryUiBuild
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
+            if (fullEngine) PlayerSettings.stripEngineCode = false;
+            FullEngineBuild = fullEngine;
             ReleaseEngineBuild = releaseEngine;
             BuildActive = true;
             Directory.CreateDirectory(Path.GetDirectoryName(output));
@@ -88,12 +99,14 @@ public static class RevivalGuestEntryUiBuild
         {
             BuildActive = false;
             ReleaseEngineBuild = false;
+            FullEngineBuild = false;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.productName = oldName;
             PlayerSettings.Android.useCustomKeystore = oldKey;
             PlayerSettings.Android.keyaliasName = oldAlias;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
             EditorUserBuildSettings.buildAppBundle = oldBundle;
+            PlayerSettings.stripEngineCode = oldStripEngineCode;
             AssetDatabase.SaveAssets();
             foreach (var item in originals) {
                 File.WriteAllBytes(item.Key, item.Value);
@@ -114,7 +127,7 @@ public static class RevivalGuestEntryUiBuild
         public void OnPostGenerateGradleAndroidProject(string path)
         {
             string id = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
-            if (id != RevivalGuestEntryUiHarness.ApplicationId && id != RevivalGuestEntryUiHarness.ReleaseApplicationId) return;
+            if (!IsFixtureId(id)) return;
             if (!BuildActive || id != ExpectedApplicationId)
                 throw new BuildFailedException("Guest fixture backup rules require owned build scope and variant.");
             string target = Path.Combine(path, "src/main/res/xml/tamer_playerrestore_rules.xml");
@@ -131,12 +144,14 @@ public sealed class RevivalGuestEntryUiBuildScene : IProcessSceneWithReport
     {
         string id = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         if (report == null || !BuildPipeline.isBuildingPlayer ||
-            (id != RevivalGuestEntryUiHarness.ApplicationId && id != RevivalGuestEntryUiHarness.ReleaseApplicationId)) return;
+            !RevivalGuestEntryUiBuild.IsFixtureId(id)) return;
         bool development = (report.summary.options & BuildOptions.Development) != 0;
         if (!RevivalGuestEntryUiBuild.BuildActive || id != RevivalGuestEntryUiBuild.ExpectedApplicationId ||
             scene.path != RevivalBuild.SmokeScene || development == RevivalGuestEntryUiBuild.ReleaseEngineBuild ||
             PlayerSettings.Android.useCustomKeystore)
             throw new BuildFailedException("Guest UI requires its dedicated debug-signed smoke build and matching engine variant.");
+        if (RevivalGuestEntryUiBuild.FullEngineBuild && PlayerSettings.stripEngineCode)
+            throw new BuildFailedException("Full-engine diagnostic must preserve engine code for this build only.");
         foreach (var root in scene.GetRootGameObjects())
             if (root.GetComponentsInChildren<MonoBehaviour>(true).Length != 0)
                 throw new BuildFailedException("The original smoke scene must have no game behaviours.");
