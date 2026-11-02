@@ -1,6 +1,9 @@
 #if TAMER_GUEST_ENTRY_UI_HARNESS && (!TAMER_REVIVAL_SMOKE || TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS || TAMER_TEST_ADS || TAMER_DELETION_HARNESS)
 #error Guest entry UI requires its dedicated offline smoke variant.
 #endif
+#if TAMER_GUEST_ENTRY_UI_RELEASE_HARNESS && !TAMER_GUEST_ENTRY_UI_HARNESS
+#error The release-engine diagnostic requires the dedicated guest UI fixture.
+#endif
 #if UNITY_EDITOR || TAMER_GUEST_ENTRY_UI_HARNESS
 using System;
 using System.Collections;
@@ -14,6 +17,7 @@ using UnityEngine;
 public sealed class RevivalGuestEntryUiHarness : MonoBehaviour
 {
     public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.guestentry1102";
+    public const string ReleaseApplicationId = "com.AeDeong.MonsterTamer.revival.guestentry1102release";
     public TMP_FontAsset Font;
     private readonly LoginGuestEntryGate _gate = new LoginGuestEntryGate();
     private readonly LoginGuestIdentityPreparation _identities = new LoginGuestIdentityPreparation();
@@ -27,11 +31,29 @@ public sealed class RevivalGuestEntryUiHarness : MonoBehaviour
     public static bool AllowsContext(string package, bool editor, bool development, bool android) =>
         package == ApplicationId && !editor && development && android;
 
+    public static bool AllowsReleaseContext(string package, bool editor, bool development, bool android) =>
+        package == ReleaseApplicationId && !editor && !development && android;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void TraceManagedStartup()
+    {
+#if TAMER_GUEST_ENTRY_UI_HARNESS && !UNITY_EDITOR
+        Debug.Log("GUEST_ENTRY_UI_BOOT phase=managed-subsystem");
+#endif
+    }
+
     private void Start()
     {
-        if (!AllowsContext(Application.identifier, Application.isEditor, Debug.isDebugBuild,
-            Application.platform == RuntimePlatform.Android) || Font == null)
-            throw new InvalidOperationException("Dedicated Android development UI fixture required.");
+#if TAMER_GUEST_ENTRY_UI_RELEASE_HARNESS
+        bool allowed = AllowsReleaseContext(Application.identifier, Application.isEditor, Debug.isDebugBuild,
+            Application.platform == RuntimePlatform.Android);
+#else
+        bool allowed = AllowsContext(Application.identifier, Application.isEditor, Debug.isDebugBuild,
+            Application.platform == RuntimePlatform.Android);
+#endif
+        if (!allowed || Font == null)
+            throw new InvalidOperationException("Dedicated Android UI fixture and matching engine variant required.");
+        Debug.Log("GUEST_ENTRY_UI_BOOT phase=start-context-accepted");
         if (UnityEngine.Object.FindAnyObjectByType<Managers>() != null ||
             UnityEngine.Object.FindAnyObjectByType<AD.Login>() != null)
             throw new InvalidOperationException("No game manager or operating login may exist in this fixture.");
@@ -53,6 +75,7 @@ public sealed class RevivalGuestEntryUiHarness : MonoBehaviour
         panel.offsetMin = panel.offsetMax = Vector2.zero;
         _view = panel.gameObject.AddComponent<InitialAccountChoiceView>();
         _view.Build(Font, null, null);
+        Debug.Log("GUEST_ENTRY_UI_BOOT phase=view-built");
         _diagnostics = Label(root.transform, "Diagnostics", "", 25, .91f, .99f);
         _saved = Label(root.transform, "SavedState", "", 38, .30f, .70f);
         _saved.gameObject.SetActive(false);

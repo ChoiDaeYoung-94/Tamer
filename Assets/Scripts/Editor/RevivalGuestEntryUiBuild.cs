@@ -13,16 +13,26 @@ using UnityEngine.SceneManagement;
 public static class RevivalGuestEntryUiBuild
 {
     public const string Output = "Build/revival/Tamer-guest-entry-ui-1102.apk";
+    public const string ReleaseOutput = "Build/revival/Tamer-guest-entry-ui-release-1102.apk";
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
     private const string AdsManifest = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
     public static bool BuildActive { get; private set; }
+    public static bool ReleaseEngineBuild { get; private set; }
+    public static string ExpectedApplicationId => ReleaseEngineBuild
+        ? RevivalGuestEntryUiHarness.ReleaseApplicationId : RevivalGuestEntryUiHarness.ApplicationId;
 
     public static bool AllowsGlobalDefines(string defines) => !string.IsNullOrEmpty(defines)
         ? !defines.Split(';').Any(s => s.Trim().StartsWith("TAMER_", StringComparison.Ordinal)) : true;
 
-    public static void BuildAndroid()
+    public static void BuildAndroid() => Build(false);
+    public static void BuildReleaseAndroid() => Build(true);
+
+    private static void Build(bool releaseEngine)
     {
+        string output = releaseEngine ? ReleaseOutput : Output;
+        string applicationId = releaseEngine ? RevivalGuestEntryUiHarness.ReleaseApplicationId
+            : RevivalGuestEntryUiHarness.ApplicationId;
         var originals = new[] { Manifest, AdsSettings, AdsManifest }.ToDictionary(p => p, File.ReadAllBytes);
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         string oldName = PlayerSettings.productName;
@@ -39,7 +49,7 @@ public static class RevivalGuestEntryUiBuild
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android || BuildActive ||
                 !AllowsGlobalDefines(PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android)))
                 throw new BuildFailedException("Dedicated Android build and no global Tamer symbols required.");
-            if (File.Exists(Output) || Directory.Exists(Output)) throw new BuildFailedException("Preserve existing guest UI artifact.");
+            if (File.Exists(output) || Directory.Exists(output)) throw new BuildFailedException("Preserve existing guest UI artifact.");
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
                 throw new BuildFailedException("IAP/UGS auto initialization must remain disabled.");
@@ -51,20 +61,23 @@ public static class RevivalGuestEntryUiBuild
             settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
             settings.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.SaveAssets();
-            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, RevivalGuestEntryUiHarness.ApplicationId);
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, applicationId);
             PlayerSettings.productName = "Tamer Guest UI Trial";
             PlayerSettings.Android.useCustomKeystore = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.buildAppBundle = false;
+            ReleaseEngineBuild = releaseEngine;
             BuildActive = true;
-            Directory.CreateDirectory(Path.GetDirectoryName(Output));
+            Directory.CreateDirectory(Path.GetDirectoryName(output));
             BuildReport report;
             using (RevivalBuild.AndroidRelroLinkScope())
                 report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                     scenes = new[] { RevivalBuild.SmokeScene }, target = BuildTarget.Android,
-                    targetGroup = BuildTargetGroup.Android, locationPathName = Output,
-                    options = BuildOptions.Development | BuildOptions.CompressWithLz4,
-                    extraScriptingDefines = new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GUEST_ENTRY_UI_HARNESS" }
+                    targetGroup = BuildTargetGroup.Android, locationPathName = output,
+                    options = BuildOptions.CompressWithLz4 | (releaseEngine ? BuildOptions.None : BuildOptions.Development),
+                    extraScriptingDefines = releaseEngine
+                        ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GUEST_ENTRY_UI_HARNESS", "TAMER_GUEST_ENTRY_UI_RELEASE_HARNESS" }
+                        : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GUEST_ENTRY_UI_HARNESS" }
                 });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Isolated guest UI build failed.");
             Debug.Log("GUEST_ENTRY_UI_BUILD_OK operating_key_used=false operating_scenes=0");
@@ -74,6 +87,7 @@ public static class RevivalGuestEntryUiBuild
         finally
         {
             BuildActive = false;
+            ReleaseEngineBuild = false;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.productName = oldName;
             PlayerSettings.Android.useCustomKeystore = oldKey;
@@ -99,8 +113,10 @@ public static class RevivalGuestEntryUiBuild
         public int callbackOrder => 100;
         public void OnPostGenerateGradleAndroidProject(string path)
         {
-            if (PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != RevivalGuestEntryUiHarness.ApplicationId) return;
-            if (!BuildActive) throw new BuildFailedException("Guest fixture backup rules require owned build scope.");
+            string id = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
+            if (id != RevivalGuestEntryUiHarness.ApplicationId && id != RevivalGuestEntryUiHarness.ReleaseApplicationId) return;
+            if (!BuildActive || id != ExpectedApplicationId)
+                throw new BuildFailedException("Guest fixture backup rules require owned build scope and variant.");
             string target = Path.Combine(path, "src/main/res/xml/tamer_playerrestore_rules.xml");
             Directory.CreateDirectory(Path.GetDirectoryName(target));
             File.WriteAllText(target, RevivalGameplayBuild.PlayerRestoreExtractionRules());
@@ -113,11 +129,14 @@ public sealed class RevivalGuestEntryUiBuildScene : IProcessSceneWithReport
     public int callbackOrder => 0;
     public void OnProcessScene(Scene scene, BuildReport report)
     {
+        string id = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         if (report == null || !BuildPipeline.isBuildingPlayer ||
-            PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != RevivalGuestEntryUiHarness.ApplicationId) return;
-        if (!RevivalGuestEntryUiBuild.BuildActive || scene.path != RevivalBuild.SmokeScene ||
-            (report.summary.options & BuildOptions.Development) == 0 || PlayerSettings.Android.useCustomKeystore)
-            throw new BuildFailedException("Guest UI requires its dedicated debug-signed smoke build.");
+            (id != RevivalGuestEntryUiHarness.ApplicationId && id != RevivalGuestEntryUiHarness.ReleaseApplicationId)) return;
+        bool development = (report.summary.options & BuildOptions.Development) != 0;
+        if (!RevivalGuestEntryUiBuild.BuildActive || id != RevivalGuestEntryUiBuild.ExpectedApplicationId ||
+            scene.path != RevivalBuild.SmokeScene || development == RevivalGuestEntryUiBuild.ReleaseEngineBuild ||
+            PlayerSettings.Android.useCustomKeystore)
+            throw new BuildFailedException("Guest UI requires its dedicated debug-signed smoke build and matching engine variant.");
         foreach (var root in scene.GetRootGameObjects())
             if (root.GetComponentsInChildren<MonoBehaviour>(true).Length != 0)
                 throw new BuildFailedException("The original smoke scene must have no game behaviours.");

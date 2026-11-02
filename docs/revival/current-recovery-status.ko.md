@@ -2,7 +2,7 @@
 
 ## 최신 추가 — 승인된 신규 손님 진입 구현·관련 검증
 
-[별도 Android UI 시험 앱](guest-ui-android-preparation-20261102.ko.md)은 `2663d27`에서 Editor 격리12/12·IL2CPP APK1회·ID/권한/provider/debug 서명·백업 제외와 정확 복구를 확인했습니다. 보호6,960파일/키·clean·소유Editor0/추적139프로세스 잔존0이며07:21:11.260 UTC/16:21:11.260 KST에 자원을 실제 반환했습니다. native LOAD/ZIP·RELRO 배치는 통과했고 추가 엄격 raw end-modulo 진단2건은 별도 실패로 보존합니다. **기기 저장/터치/재시작은 대기**이며 운영 SDK/계정·실제16KB·정책 검증으로 확대하지 않습니다.
+[별도 Android UI 시험 앱](guest-ui-android-preparation-20261102.ko.md)은 `2663d27`에서 Editor 격리12/12·IL2CPP APK1회·ID/권한/provider/debug 서명·백업 제외와 정확 복구를 확인했습니다. 이후 LD에 같은 SHA를 설치했으나 첫 실행이4분 이상 흰 화면/fixture 표시0·손님ID0으로 끝나 **기기 저장/터치/재시작은 미완료**입니다. 같은 재실행/운영 계정 호출0이며 개발 엔진과 일반 엔진의 차이를 분리할 별도 진단 변형/관련21개 검사를 준비합니다. 새 검사/빌드는 아직 미실행입니다. 보호6,960파일/키·소유Editor0/추적139프로세스 잔존0과 기기 차례 종료 후6개 보존 APK 불변·ownVM/host잔존0을 확인했고, 마지막 실제 반환은07:36:03.633 UTC/16:36:03.633 KST입니다. native LOAD/ZIP·RELRO 배치 통과와 추가 엄격 raw end-modulo2건 실패를 구분하며 운영 SDK/계정·실제16KB·정책 검증으로 확대하지 않습니다.
 
 [신규 사용자 선택 로그인](mixed-audience-login-20261102.ko.md)은 사용자 승인 후 구현하고 `9f9324e`에서 한글 폰트·복구/실패 안내까지 보완했습니다. 빈 최초 상태에서 Google/손님을 명시 선택하며, 손님 ID 저장을 마친 뒤 기존 CustomID 로그인으로 연결합니다. 기존 계정·진행/구매·불명확한 이력·삭제/pending 보호와 실패 시 자동 신규 생성 금지를 유지했습니다. [관련 검증](guest-entry-validation-20261102.ko.md)은 Editor96/96·가짜 경계 실제 소스22/22·Android release C#68 assemblies·오류0, Editor 화면2비율의 글자/배치 확인과 보호6,954파일/키 복구·clean·소유Editor0입니다. **Android 저장/재시작·실제 제공 화면/입력·새 후보·운영 기능/정책 검증은 미완료**입니다.
 

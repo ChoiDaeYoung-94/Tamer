@@ -1,6 +1,18 @@
 # 손님 설정 Android 격리 검증 준비 — 2026-11-02
 
-상태는 **source `2663d27`의 Editor 격리12/12·오프라인 IL2CPP APK1회 생성·산출물 확인·정확 복구 완료, 기기 실행 대기**입니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+상태는 **source `2663d27`의 Editor 격리12/12·오프라인 IL2CPP APK1회 생성·정확 복구 완료, LD 첫 실행은 선택 화면 전 흰 화면으로 미완료**입니다. 일반 실행 엔진을 쓰는 별도 진단 변형을 준비하며 새21개 격리 검사/빌드/실행은 아직 하지 않았습니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+
+## 16:36 KST 기기 결과와 다음 변경 조건
+
+공식 list2의 정확한 `Tamer`/index1과 indexed ADB serial을 대조했습니다. LD Android14/API34·ARM64 번역·4KB이며 실제 ARM64/16KB 검증이 아닙니다. 시작 당시 모든 VM이 꺼져 있어 index1만 열었습니다. 구형 `faceliftui1029` 시험 앱1개는 기존 기록의 APK SHA와 일치함을 확인하고 APK·내부/외부 비캐시 시험 자료를 비공개 보존/검증한 뒤 제거했습니다. 실제 재설치/자료 복원은 하지 않았습니다.
+
+새 시험 APK는1회 설치했고 설치된 base APK의 SHA·code30/1.0.5·debug 표시가 위 산출물과 일치했습니다. 존재하지 않는 패키지의 `pm path` 종료1을 사전 도구가 오류로 처리한1회는 설치 호출 전이며, 정확한 package 목록 대조로 고친 후 설치1회에 성공했습니다. 실행 후4분 이상 흰720×1280 화면이 유지됐고 `GUEST_ENTRY_UI` 첫 표시·손님 ID/모드가 없었습니다. UnityMain 스레드의 CPU 사용은 증가했지만 원인은 미확정입니다. 같은 조건 재실행·선택/계정 생성·나이 입력0이며 실제 PlayerPrefs 손님 저장/재시작은 **미검증**입니다. native stack 진단은 root 요구로 불가했으며 승격/설정 우회는 하지 않았습니다.
+
+원본 화면/로그·신규 앱의 설정·설치/보존 자료를 비공개 보존했습니다. 다른 Tamer6개 APK와 운영 앱의 해시는 불변이며 운영 계정/저장/No Ads 자료를 읽거나 실행하지 않았습니다. 새 시험 앱만 중지하고 이번에 연 index1을 정상 종료한 뒤 host PID+시작시각 잔존0·모든 VM정지·자체 transport0을 확인했습니다. ADB daemon 종료/reset은0입니다. 실제 인수07:28:44.548 UTC/16:28:44.548 KST, 실제 반환07:36:03.633 UTC/16:36:03.633 KST이며 FPS/Paw에 통지했습니다.
+
+다음 가설은 **Development 엔진/초기화와 guest fixture 자체를 분리**하는 것입니다. 현재 설치된 사진 앱을 추측한 과거 사본이 아닌 실제 base SHA로 대조하니 일반 실행 엔진이며, 새 앱과 native5/6종이 다릅니다. 첫 과거 사진 사본 불일치 대조는 입력 검증에서 중단했고 실제 설치 SHA와 맞는 사본으로 바로잡았습니다. 이 차이만으로 흰 화면의 원인을 단정하지 않습니다. Unity의 [Android manifest 안내](https://docs.unity.com/en-us/engine/6000.3/manual/platform-specific/android/introducing/manifest)는 development에서 Internet Access를 Require로 설정하는 기본 동작을 설명하지만, 이번 증상의 원인이나 네트워크 권한 추가를 정당화하는 증거는 아닙니다.
+
+준비한 진단은 별도 ID `com.AeDeong.MonsterTamer.revival.guestentry1102release`, 일반 실행 엔진·**기존 운영 키와 무관한 debug 서명**·동일한 offline/백업 제외·빈 smoke 사본을 사용합니다. release/development 변형은 각각의 ID·실행 엔진을 교차 거부하고, 추가 release macro는 build-local guest/smoke 변형에서만 허용합니다. 최초 managed subsystem/화면 생성 단계 표시를 더해 멈춘 경계를 구분합니다. APK 경로도 `Tamer-guest-entry-ui-release-1102.apk`로 분리하며 기존 산출물을 보존합니다. 일반 실행 엔진의 앱은 `run-as` 접근을 전제하지 않고 실제 새 프로세스의 PlayerPrefs 읽기/동일 ID SHA·화면으로 저장을 대조합니다. 새21개 검사·빌드·기기 실행은 fresh 공유 차례 확인 후 수행합니다.
 
 ## 16:21 KST 빌드 체크포인트
 
