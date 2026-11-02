@@ -7,6 +7,21 @@ using UnityEngine;
 public class RevivalGuestEntryViewTests
 {
     [Test]
+    public void Revival_LoginPrefabReferencesTheExistingKoreanFontForFirstEntry()
+    {
+        var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/LoginCanvas.prefab");
+        Assert.That(prefab, Is.Not.Null);
+        var type = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("AD.Login")).First(t => t != null);
+        var login = prefab.GetComponent(type);
+        Assert.That(login, Is.Not.Null);
+        var font = type.GetField("_firstEntryFont", BindingFlags.NonPublic | BindingFlags.Instance)
+            .GetValue(login) as UnityEngine.Object;
+        Assert.That(font, Is.Not.Null, "The English loading font must not be the only input to the Korean choice UI.");
+        Assert.That(UnityEditor.AssetDatabase.AssetPathToGUID(UnityEditor.AssetDatabase.GetAssetPath(font)),
+            Is.EqualTo("6b62d0bbc19501141b40b8d32a134954"));
+    }
+
+    [Test]
     public void Revival_GuestViewUsesEqualExplicitChoicesAndRebindsOnlyOwnedListeners()
     {
         var root = new GameObject("GuestViewTest", typeof(RectTransform), typeof(Canvas),

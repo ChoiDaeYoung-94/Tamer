@@ -32,7 +32,7 @@ namespace AD
             _status.gameObject.SetActive(false);
             Label("Message", "Google 없이도 게임을 이용할 수 있습니다.\n"
                 + "손님 선택 시 서버 저장용 게임 계정이 생성됩니다.\n"
-                + "앱 삭제·기기 변경 뒤에는 복구가 제한될 수 있습니다.\n\n"
+                + "앱 삭제·기기 변경 뒤에는\n게임 진행·구매 권한 복구가 제한될 수 있습니다.\n\n"
                 + "기존 Google 계정은 ‘Google로 계속’을 선택하세요.", font, 32, 450, content);
             GoogleButton = Button("ContinueGoogle", "Google로 계속", font, content, google);
             GuestButton = Button("StartGuest", "Google 없이 시작", font, content, guest);

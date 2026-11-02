@@ -1635,6 +1635,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _loading: {fileID: 5713890000723573174}
   _loadingText: {fileID: 3012680990639250688}
+  _firstEntryFont: {fileID: 11400000, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
   _retry: {fileID: 3012680990507863292}
   _retryText: {fileID: 3012680989898721272}
   _nicknamePanel: {fileID: 3012680989975265795}

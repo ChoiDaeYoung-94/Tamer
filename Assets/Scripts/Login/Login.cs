@@ -27,6 +27,7 @@ namespace AD
         [Header("--- UI Elements ---")]
         [SerializeField] private GameObject _loading;
         [SerializeField] private TMPro.TMP_Text _loadingText;
+        [SerializeField] private TMPro.TMP_FontAsset _firstEntryFont;
         [SerializeField] private GameObject _retry;
         [Tooltip("재시도 패널에 실패 사유를 표시 (선택 사항, 연결하지 않아도 동작)")]
         [SerializeField] private TMPro.TMP_Text _retryText;
@@ -394,7 +395,9 @@ namespace AD
             if (string.IsNullOrEmpty(selectedId))
             {
                 LogStep("Google login: MissingSelectedIdentity");
-                _loginFailureMessage = "Google Play sign-in is required. Retry with your original account.";
+                _loginFailureMessage = _firstEntryView != null && HasEligibleFirstEntryState()
+                    ? "Google 로그인에 연결하지 못했습니다.\n다시 선택해 주세요."
+                    : "Google Play sign-in is required. Retry with your original account.";
                 return false;
             }
             _selectedGpgsId = selectedId;
@@ -1192,8 +1195,10 @@ namespace AD
 
         #region UI
 
-        private bool CanOfferFirstEntry() => _dataOwner != null && ReferenceEquals(_dataOwner, Managers.DataM) &&
-            !_accountDeleted && !GuestIdentities.HasUncertainWrites && !_operations.IsRunning && _cts != null && !_cts.IsCancellationRequested &&
+        private bool CanOfferFirstEntry() => !_operations.IsRunning && HasEligibleFirstEntryState();
+
+        private bool HasEligibleFirstEntryState() => _dataOwner != null && ReferenceEquals(_dataOwner, Managers.DataM) &&
+            !_accountDeleted && !GuestIdentities.HasUncertainWrites && _cts != null && !_cts.IsCancellationRequested &&
             LoginGuestEntryPolicy.CanOffer(_dataOwner.HasKnownAccount, HasLocalProgress(),
                 PlayerPrefs.GetString(PrefsKeyLoginMode, ""), PlayerPrefs.GetString(PrefsKeyGpgsId, ""),
                 PlayerPrefs.GetString(PrefsKeyCustomId, ""), _dataOwner.DeletionInProgress,
@@ -1216,7 +1221,8 @@ namespace AD
                 panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
                 panel.offsetMin = panel.offsetMax = Vector2.zero;
                 _firstEntryView = panel.gameObject.AddComponent<InitialAccountChoiceView>();
-                _firstEntryView.Build(_loadingText != null ? _loadingText.font : null, null, null);
+                _firstEntryView.Build(_firstEntryFont != null ? _firstEntryFont :
+                    (_loadingText != null ? _loadingText.font : null), null, null);
             }
             _firstEntryView.SetChoices(() => ChooseFirstEntry(false, owner, generation, deletionEpoch, version),
                 () => ChooseFirstEntry(true, owner, generation, deletionEpoch, version));
