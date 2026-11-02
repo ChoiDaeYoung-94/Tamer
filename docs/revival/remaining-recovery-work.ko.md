@@ -2,6 +2,8 @@
 
 ## 11월2일 최신 상태
 
+재개 후 [이전 exact ARM64 사진 앱의 첫 화면](guest-ui-android-preparation-20261102.ko.md)에서 같은 Tamer 인스턴스의 C#·렌더를 관측했습니다. 전체 게임/손님 저장 검증은 아니며 새 fixture 시작 원인은 미확정입니다. `4bf6a5e`의 다음 진단은 별도 앱에서 엔진 스트리핑만 끄는26개 조건/새 APK 준비이고 실행은 아직 전입니다. 앱/VM 정상 종료와 재개 후host/transport0 확인·실제 반환 통지를 마쳤습니다. 오늘22시/실제주간90% 기준으로 후속을 진행합니다.
+
 [별도 손님 UI Android APK](guest-ui-android-preparation-20261102.ko.md)는 `4a53075`에서 일반 실행 엔진/debug 서명 변형의 Editor21/21·APK1회·산출물과 보호6,960파일/키 복구를 확인했습니다. 두 변형의 LD 첫 실행은 모두 흰 화면/초기 표시 미관측으로 끝나 저장/터치/재시작은 미완료입니다. 같은 조건 재실행 없이 이전 격리 앱의 첫 화면 비교를 준비합니다. 구형 시험 앱1개는 APK/시험자료 검증 보존 후 정리했고 두 번째 설치 전의7개 APK는 불변입니다. Editor0/빌드90잔존0 및 ownVM/host/transport0 확인 후 마지막17:30:37 KST에 실제 반환했습니다. 기존 APK/AAB·Library/증거 보존, native LOAD/ZIP·RELRO 배치 통과와 raw 진단2건 미충족·실제16KB 미검증을 구분합니다.
 
 사용자 승인 후 [신규 손님 진입](mixed-audience-login-20261102.ko.md)을 구현하고 `9f9324e`에서 [관련 Editor96/96·소스22/22·Android C#·Editor 화면2비율](guest-entry-validation-20261102.ko.md)을 확인했습니다. 기존 계정/진행·No Ads·불명확한 이력·삭제/pending 보호를 유지하며 실패 시 자동 손님 생성은 없습니다. 후보30에는 이 보완이 없습니다. Android 저장/입력·재시작의 격리 확인, 현재 Console 번호에 맞춘 새 서명 후보·운영 손님 전체 기능과 [정확한 심사/계정 생성·데이터 안내](guest-review-instructions-draft-20261102.ko.md) 적용은 남았습니다.
