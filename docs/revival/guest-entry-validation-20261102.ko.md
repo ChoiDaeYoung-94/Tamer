@@ -35,6 +35,12 @@ Android 전용 `#if`의 실제 컴파일을 확인하기 위해 Unity [CompilePl
 
 렌더 원본은 PNG67,377B/SHA`83bbfdd41393572b53e77108cf190226de02ace9d93308bd32027e8b81618267`, PNG80,661B/SHA`87cb8a3765f8fb884071a3edab9be0bdabb162ead5c8e83030669911f6eb6b3d`입니다. 리사이즈/보정 없이 비공개 보존합니다. 렌더가 변경한 동적 폰트 데이터와 Editor 직렬화 URP 설정2개·ProjectSettings를 보존/원복했고 이후 보호6,954파일 SHA/집합·키·clean/Editor0을 대조했습니다. 자원 인수06:32:39.4874423 UTC/15:32:39.487 KST, 신규 실행 종료 후 실제 반환06:40:36.1000476 UTC/15:40:36.100 KST입니다. 실제 공유 사용/예약0으로 FPS/Paw에 통지했습니다.
 
+## Android 격리 APK 후속 — 16:21 KST
+
+`2663d27`의 [별도 UI/PlayerPrefs 시험 앱](guest-ui-android-preparation-20261102.ko.md)을 추가하고 Editor 격리12/12·IL2CPP APK1회·산출물/보호 입력 복구를 확인했습니다. 위96/22/68·Editor 렌더는 각각 명시한 기존 소스의 검증이며 합산한 전체 회귀로 표시하지 않습니다. 새 APK는98,959,190B/SHA`a21baead5430135f035fde9a22e7365d503c852ac7a0996939a6f4248799952a`, 별도 ID/debug 서명·네트워크/결제/광고ID 권한과 GMA/PGS 자동 provider 부재입니다. 실제 기기 저장/터치/재시작은 아직 실행하지 않았습니다.
+
+첫 builder의 이름 충돌 CS0104는 검사/APK 실행 전 수정했고 새 시도12/12와 APK 성공을 확인했습니다. native LOAD/ZIP·RELRO 배치는 통과, 추가 엄격 raw end-modulo 진단2건은 실패로 따로 보존했습니다. 실제16KB 실행은 미검증입니다. 새 fixture 자산6개를 더한 보호6,960파일 SHA/집합·키·clean·Editor0·추적139프로세스 잔존0을 확인했고07:21:11.260 UTC/16:21:11.260 KST에 공유 자원을 실제 반환했습니다.
+
 ## 아직 남은 완료 조건
 
 1. Android의 실제 저장소와 입력·오류 후 복귀·앱 재시작을 분리된 시험 앱에서 확인합니다. Editor 화면/가짜 경계 통과를 실제 PlayerPrefs 저장이나 운영 SDK 증거로 확대하지 않습니다.

@@ -1,6 +1,16 @@
 # 손님 설정 Android 격리 검증 준비 — 2026-11-02
 
-상태는 **시험 앱 코드 준비·Editor 격리 검사/APK/기기 실행 전**입니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+상태는 **source `2663d27`의 Editor 격리12/12·오프라인 IL2CPP APK1회 생성·산출물 확인·정확 복구 완료, 기기 실행 대기**입니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+
+## 16:21 KST 빌드 체크포인트
+
+Unity6000.3.25f1/revision e1dba0a9aba4·pinned CLI1.0.0-beta.8·Pipeline0.6.0-exp.1, min25/target36/ARM64를 사용했습니다. APK는98,959,190B/SHA`a21baead5430135f035fde9a22e7365d503c852ac7a0996939a6f4248799952a`, code30/1.0.5의 **별도 시험 앱**입니다. 실제 APK에서 debug 서명 유효/운영 인증서와 다름, 아래 권한/provider 부재와 백업·이전 제외18항목을 확인했습니다. 운영 후보30의 번호나 파일을 교체하지 않습니다.
+
+native6개의 LOAD/ZIP 검사와 제한된 RELRO 배치 검사는 통과했습니다. 추가 `--strict-relro` 진단은 `libc++_shared.so`·`libmain.so`의 raw end-modulo 조건2건으로 실패했습니다. 이 진단과 whole-LOAD 예외를 반영한 배치 검사는 구분하며 실제16KB 기기 실행·정책 승인으로 계산하지 않습니다. 이 결과만으로 SDK/도구 버전을 바꾸거나 재빌드하지 않았습니다.
+
+첫 `2bbb781` 시도는 검사용 builder의 `AD.SceneManager`/Unity `SceneManager` 이름 충돌 CS0104로 검사/APK 실행 전에 중단했습니다. 원문과6,960입력 복구를 보존하고 Unity 타입을 명시한 `2663d27`에서12개 통과와 APK1회 성공을 확인했습니다. 빌드가 직렬화한 설정/씬7개 출력을 보존한 후 원본 바이트로 복구했고, 전체6,960파일 SHA/집합·기존 키·Git clean·소유Editor0·추적139프로세스 잔존0을 대조했습니다. smoke 원본 씬은 줄바꿈 외 의미 변화0입니다. Library/원시 로그와 기존 AAB30은 보존했습니다.
+
+자원 실제 인수07:08:42.4739889 UTC/16:08:42.473 KST, 실제 반환07:21:11.2607457 UTC/16:21:11.260 KST입니다. FPS/Paw에 반환을 통지했고, LD/ADB 기기 범위는 별도 fresh 조율 전까지 시작하지 않습니다.
 
 | 경계 | 준비한 제한 |
 | --- | --- |
