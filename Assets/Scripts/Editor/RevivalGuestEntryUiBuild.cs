@@ -91,6 +91,7 @@ public static class RevivalGuestEntryUiBuild
                         : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GUEST_ENTRY_UI_HARNESS" }
                 });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Isolated guest UI build failed.");
+            Debug.Log("GUEST_ENTRY_UI_ENGINE full_engine=" + fullEngine + " strip_engine=" + PlayerSettings.stripEngineCode);
             Debug.Log("GUEST_ENTRY_UI_BUILD_OK operating_key_used=false operating_scenes=0");
             code = 0;
         }
