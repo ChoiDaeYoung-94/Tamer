@@ -1,6 +1,16 @@
 # 손님 설정 Android 격리 검증 준비 — 2026-11-02
 
-상태는 **source `2663d27`의 Editor 격리12/12·오프라인 IL2CPP APK1회 생성·정확 복구 완료, LD 첫 실행은 선택 화면 전 흰 화면으로 미완료**입니다. 일반 실행 엔진을 쓰는 별도 진단 변형을 준비하며 새21개 격리 검사/빌드/실행은 아직 하지 않았습니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+상태는 **source `4a53075`의 일반 실행 엔진 변형 Editor21/21·별도 IL2CPP APK1회·정확 복구 완료, 새 변형의 기기 실행 대기**입니다. 이전 Development APK의 LD 첫 실행은 선택 화면 전 흰 화면으로 미완료였습니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+
+## 17:20 KST 일반 실행 엔진 변형 생성·복구
+
+`4a530751796e75b3c88157c3d662052af916c56c`에서 엔진별 ID/context와 global define 오염 검사21/21·C# 오류0을 확인했습니다. 기존12개와 새21개를 더한 별도 전체 회귀로 표시하지 않습니다. Unity/CLI/Pipeline·min25/target36/ARM64는 아래 기준 그대로입니다.
+
+새 APK는 `com.AeDeong.MonsterTamer.revival.guestentry1102release`, code30/1.0.5·71,778,144B/SHA`4ed01d55be003f36ea30a2cfa538e385df56801ea1b6d4ad615f08d845936d29`입니다. 일반 실행 엔진으로 debuggable=false이나 **debug 서명 유효·운영 인증서와 다름**을 실제 산출물에서 확인했습니다. INTERNET/NETWORK_STATE/BILLING/AD_ID/AdServices·GMA/PGS 자동 provider 부재와 백업/이전 제외18항목도 대조했습니다. 초기 managed subsystem 표시의 runtime 등록은 정적으로 확인했으며 실행 관측은 아직 전입니다.
+
+첫 산출물 검사는 release 최적화 후 원래 XML 경로를 가정해 `failed to find file`로 중단했습니다. APK를 다시 빌드하지 않고 manifest의 dataExtractionRules 리소스 ID→실제 `res/dH.xml` 연결을 따라 새 검사 시도에서18개 제외를 확인했습니다. 최초 로그와 수정한 검사 결과를 구분해 보존했습니다. native6개의 LOAD/ZIP·RELRO 배치는 통과했고 raw end-modulo 진단2건은 미충족으로 유지합니다. 실제16KB 실행은 미검증입니다.
+
+빌드가 직렬화한7개 출력 보존/원본 바이트 복구, 보호6,960파일 SHA/집합·키·Git clean·소유Editor0·추적90프로세스 잔존0을 대조했습니다. 이전 Development APK와 AAB30·Library/원시 증거는 보존했습니다. 실제 인수08:12:14.800 UTC/17:12:14.800 KST→실제 반환08:20:40.931 UTC/17:20:40.931 KST이며 FPS/Paw에 통지했습니다. 기기 확인은 새 범위의 fresh 동의 뒤 수행합니다.
 
 ## 16:36 KST 기기 결과와 다음 변경 조건
 
@@ -12,7 +22,7 @@
 
 다음 가설은 **Development 엔진/초기화와 guest fixture 자체를 분리**하는 것입니다. 현재 설치된 사진 앱을 추측한 과거 사본이 아닌 실제 base SHA로 대조하니 일반 실행 엔진이며, 새 앱과 native5/6종이 다릅니다. 첫 과거 사진 사본 불일치 대조는 입력 검증에서 중단했고 실제 설치 SHA와 맞는 사본으로 바로잡았습니다. 이 차이만으로 흰 화면의 원인을 단정하지 않습니다. Unity의 [Android manifest 안내](https://docs.unity.com/en-us/engine/6000.3/manual/platform-specific/android/introducing/manifest)는 development에서 Internet Access를 Require로 설정하는 기본 동작을 설명하지만, 이번 증상의 원인이나 네트워크 권한 추가를 정당화하는 증거는 아닙니다.
 
-준비한 진단은 별도 ID `com.AeDeong.MonsterTamer.revival.guestentry1102release`, 일반 실행 엔진·**기존 운영 키와 무관한 debug 서명**·동일한 offline/백업 제외·빈 smoke 사본을 사용합니다. release/development 변형은 각각의 ID·실행 엔진을 교차 거부하고, 추가 release macro는 build-local guest/smoke 변형에서만 허용합니다. 최초 managed subsystem/화면 생성 단계 표시를 더해 멈춘 경계를 구분합니다. APK 경로도 `Tamer-guest-entry-ui-release-1102.apk`로 분리하며 기존 산출물을 보존합니다. 일반 실행 엔진의 앱은 `run-as` 접근을 전제하지 않고 실제 새 프로세스의 PlayerPrefs 읽기/동일 ID SHA·화면으로 저장을 대조합니다. 새21개 검사·빌드·기기 실행은 fresh 공유 차례 확인 후 수행합니다.
+진단 변형은 별도 ID `com.AeDeong.MonsterTamer.revival.guestentry1102release`, 일반 실행 엔진·**기존 운영 키와 무관한 debug 서명**·동일한 offline/백업 제외·빈 smoke 사본을 사용합니다. release/development 변형은 각각의 ID·실행 엔진을 교차 거부하고, 추가 release macro는 build-local guest/smoke 변형에서만 허용합니다. 최초 managed subsystem/화면 생성 단계 표시를 더해 멈춘 경계를 구분합니다. APK 경로도 `Tamer-guest-entry-ui-release-1102.apk`로 분리하며 기존 산출물을 보존합니다. 일반 실행 엔진의 앱은 `run-as` 접근을 전제하지 않고 실제 새 프로세스의 PlayerPrefs 읽기/동일 ID SHA·화면으로 저장을 대조합니다. 위21개/빌드 완료와 아직 남은 기기 검증을 구분합니다.
 
 ## 16:21 KST 빌드 체크포인트
 

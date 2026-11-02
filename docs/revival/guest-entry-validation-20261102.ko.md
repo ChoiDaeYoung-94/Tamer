@@ -47,6 +47,12 @@ Android 전용 `#if`의 실제 컴파일을 확인하기 위해 Unity [CompilePl
 
 현재 설치된 사진 APK의 정확 SHA로 일반 실행 엔진과 새 Development 엔진의 차이를 확인했습니다. [일반 실행 엔진 진단 변형](guest-ui-android-preparation-20261102.ko.md)은 별도 ID·debug 서명/동일 offline 제한·엔진별 runtime gate와 시작 단계 표시를 준비한 상태이며 새21개 검사/빌드/실행은 아직 하지 않았습니다. 위12/96/22/68 검증을 이 미실행 변경에 대한 통과로 확대하지 않습니다.
 
+## 일반 실행 엔진 APK 후속 — 17:20 KST
+
+`4a53075`의 엔진별 격리 조건21/21·컴파일 오류0과 [별도 일반 실행 엔진 APK1회](guest-ui-android-preparation-20261102.ko.md)를 확인했습니다.71,778,144B/SHA`4ed01d55be003f36ea30a2cfa538e385df56801ea1b6d4ad615f08d845936d29`, 별도 release ID·debug 서명/운영 인증서와 다름·debuggable=false·offline 권한/provider/백업 제외를 실제 산출물에서 대조했습니다. 최적화된 XML 파일명 가정의 검사 실패1회는 원문을 보존하고 manifest 리소스 연결을 읽는 새 시도에서 확인했으며 재빌드하지 않았습니다. native LOAD/ZIP·RELRO 배치 통과와 raw end-modulo2건 미충족·실제16KB 미검증을 구분합니다.
+
+전체6,960파일 SHA/집합·키·Git clean·소유Editor0/추적90잔존0을 복구했고 이전 APK/AAB30·Library/증거를 보존했습니다. 실제 인수08:12:14.800 UTC/17:12:14.800 KST→반환08:20:40.931 UTC/17:20:40.931 KST입니다. 새 변형의 Android 선택/저장/재시작은 아직 전이며 위12/96/22/68·Editor 화면은 각각 이전 소스의 검증 범위로 유지합니다.
+
 ## 아직 남은 완료 조건
 
 1. Android의 실제 저장소와 입력·오류 후 복귀·앱 재시작을 분리된 시험 앱에서 확인합니다. Editor 화면/가짜 경계 통과를 실제 PlayerPrefs 저장이나 운영 SDK 증거로 확대하지 않습니다.

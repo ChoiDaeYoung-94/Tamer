@@ -2,7 +2,7 @@
 
 ## 11월2일 최신 상태
 
-[별도 손님 UI Android APK](guest-ui-android-preparation-20261102.ko.md)의 Editor 격리12/12·IL2CPP 빌드1회·산출물과 보호6,960파일/키 복구를 `2663d27`에서 확인했습니다. LD 설치 SHA는 일치했으나 첫 실행이 흰 화면/fixture 표시·손님ID0으로 끝나 저장/터치/재시작은 미완료입니다. 원인을 단정하지 않고 별도 일반 실행 엔진 변형/관련21개 검사를 준비하며 실행은 아직 전입니다. 구형 시험 앱1개만 APK/시험자료 검증 보존 후 정리했고, 다른Tamer6개 APK 불변/ownVM·host잔존0 확인 후16:36:03 KST에 실제 반환했습니다. native LOAD/ZIP·RELRO 배치 통과와 추가 엄격 진단2건 실패를 구분하며 실제16KB 실행은 미검증입니다.
+[별도 손님 UI Android APK](guest-ui-android-preparation-20261102.ko.md)의 Development 첫 실행은 LD 흰 화면으로 미완료였으며, 후속 `4a53075`의 일반 실행 엔진/debug 서명 변형에서 Editor21/21·APK1회·산출물과 보호6,960파일/키 복구를 확인했습니다. 새 변형의 저장/터치/재시작은 대기입니다. 구형 시험 앱1개는 APK/시험자료 검증 보존 후 정리했고 다른Tamer6개 APK는 불변입니다. 마지막 빌드 차례는Editor0/추적90잔존0 확인 후17:20:40 KST에 실제 반환했습니다. 기존 APK/AAB·Library/증거 보존, native LOAD/ZIP·RELRO 배치 통과와 raw 진단2건 미충족·실제16KB 미검증을 구분합니다.
 
 사용자 승인 후 [신규 손님 진입](mixed-audience-login-20261102.ko.md)을 구현하고 `9f9324e`에서 [관련 Editor96/96·소스22/22·Android C#·Editor 화면2비율](guest-entry-validation-20261102.ko.md)을 확인했습니다. 기존 계정/진행·No Ads·불명확한 이력·삭제/pending 보호를 유지하며 실패 시 자동 손님 생성은 없습니다. 후보30에는 이 보완이 없습니다. Android 저장/입력·재시작의 격리 확인, 현재 Console 번호에 맞춘 새 서명 후보·운영 손님 전체 기능과 [정확한 심사/계정 생성·데이터 안내](guest-review-instructions-draft-20261102.ko.md) 적용은 남았습니다.
 
