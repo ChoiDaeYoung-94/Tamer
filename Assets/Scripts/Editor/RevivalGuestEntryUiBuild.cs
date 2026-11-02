@@ -125,7 +125,7 @@ public sealed class RevivalGuestEntryUiBuildScene : IProcessSceneWithReport
         if (font == null || AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(font)) != "6b62d0bbc19501141b40b8d32a134954")
             throw new BuildFailedException("Existing Korean font required.");
         var created = new GameObject("Local guest UI fixture");
-        SceneManager.MoveGameObjectToScene(created, scene);
+        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(created, scene);
         created.AddComponent<RevivalGuestEntryUiHarness>().Font = font;
     }
 }
