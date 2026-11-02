@@ -2,7 +2,7 @@
 
 ## 최신 추가 — 승인된 신규 손님 진입 구현·관련 검증
 
-[별도 Android UI 시험 앱](guest-ui-android-preparation-20261102.ko.md)은 첫 Development APK의 LD 흰 화면 뒤 `4a53075`에서 엔진별 격리21/21·일반 실행 엔진/debug 서명 APK1회·권한/provider/백업 제외와 정확 복구를 확인했습니다. 새 APK는71,778,144B/SHA`4ed01d55be003f36ea30a2cfa538e385df56801ea1b6d4ad615f08d845936d29`이며 **기기 저장/터치/재시작은 대기**입니다. 보호6,960파일/키·clean·소유Editor0/추적90프로세스 잔존0을 확인했고 마지막 실제 반환은08:20:40.931 UTC/17:20:40.931 KST입니다. 기존Development APK·AAB30·Library/증거를 보존했습니다. native LOAD/ZIP·RELRO 배치 통과와 raw end-modulo2건 미충족·실제16KB 미검증을 구분하며 운영 SDK/계정·정책 검증으로 확대하지 않습니다.
+[별도 Android UI 시험 앱](guest-ui-android-preparation-20261102.ko.md)은 `4a53075`에서 엔진별 격리21/21·일반 실행 엔진/debug 서명 APK1회·권한/provider/백업 제외와 정확 복구를 확인했습니다. 새 APK는71,778,144B/SHA`4ed01d55be003f36ea30a2cfa538e385df56801ea1b6d4ad615f08d845936d29`이나 **두 변형의 LD 첫 실행은 흰 화면/초기 표시 미관측으로 끝나 선택·저장·재시작은 미완료**입니다. 같은 조건 재실행/운영 호출0·원인 미확정으로 유지하며 이전 격리 앱의 첫 화면 비교를 준비합니다. 보호6,960파일/키·빌드Editor0/90잔존0, 기기 종료 후 기존7개 APK 불변·ownVM/host/transport0이며 마지막 실제 반환은08:30:37.364 UTC/17:30:37.364 KST입니다. 기존 APK·AAB30·Library/증거를 보존했습니다. native LOAD/ZIP·RELRO 배치 통과와 raw 진단2건 미충족·실제16KB 미검증을 운영/정책 검증과 구분합니다.
 
 [신규 사용자 선택 로그인](mixed-audience-login-20261102.ko.md)은 사용자 승인 후 구현하고 `9f9324e`에서 한글 폰트·복구/실패 안내까지 보완했습니다. 빈 최초 상태에서 Google/손님을 명시 선택하며, 손님 ID 저장을 마친 뒤 기존 CustomID 로그인으로 연결합니다. 기존 계정·진행/구매·불명확한 이력·삭제/pending 보호와 실패 시 자동 신규 생성 금지를 유지했습니다. [관련 검증](guest-entry-validation-20261102.ko.md)은 Editor96/96·가짜 경계 실제 소스22/22·Android release C#68 assemblies·오류0, Editor 화면2비율의 글자/배치 확인과 보호6,954파일/키 복구·clean·소유Editor0입니다. **Android 저장/재시작·실제 제공 화면/입력·새 후보·운영 기능/정책 검증은 미완료**입니다.
 
