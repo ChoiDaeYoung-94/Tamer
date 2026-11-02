@@ -67,6 +67,8 @@ class DataManager {
  public bool ReceiptOnly,DeletionInProgress,Progress; private bool _known;
  public bool HasKnownAccount { get=>ReceiptOnly || _known; set { _known=value; } }
  public int Generation,Epoch; public void SuspendAccountSession() { Generation++; }
+ public int AccountGeneration=>Generation;
+ public int DeletionEpoch=>Epoch;
  public void UpdatePlayerData() { }
 }
 static class Managers { public static DataManager DataM; }
@@ -92,6 +94,7 @@ class Probe {
  private int _loginGeneration,_loginDeletionEpoch;
  private string _pendingFirstEntryRetry,_signupCandidateIdentity,_loginFailureMessage,_diagnosticPhase;
  private LoginOperationGate _operations=new LoginOperationGate();
+ private LoginGuestEntryGate _firstEntry=new LoginGuestEntryGate();
  private InitialAccountChoiceView _firstEntryView=new InitialAccountChoiceView();
  private FakeSignupGate _googleSignup=new FakeSignupGate();
  private Box _loading=new Box(),_retry=new Box(),_nicknamePanel=new Box(),_signupPanel=new Box();
