@@ -84,6 +84,7 @@ namespace AD
         // Survives Login scene recreation after an uncertain PlayerPrefs write.
         private static readonly LoginGuestIdentityPreparation GuestIdentities = new LoginGuestIdentityPreparation();
         private InitialAccountChoiceView _firstEntryView;
+        private string _pendingFirstEntryRetry;
 
         private bool CapturedLoginSessionCurrent() => _loginCaptured && _dataOwner != null
             && !_dataOwner.ReceiptOnly && !_dataOwner.DeletionInProgress
@@ -312,6 +313,12 @@ namespace AD
             finally
             {
                 _operations.EndOperation();
+                // Retry is reported inside the operation. Re-offer only after its
+                // completion, when the first-entry gate can safely accept a choice.
+                var firstEntryRetry = _pendingFirstEntryRetry;
+                _pendingFirstEntryRetry = null;
+                if (firstEntryRetry != null && _firstEntryView != null)
+                    TryShowFirstEntryChoice(firstEntryRetry);
             }
         }
 
@@ -1256,6 +1263,7 @@ namespace AD
         private void ShowRetry(string message)
         {
             if (_loginCaptured && !LoginCurrent()) return;
+            _pendingFirstEntryRetry = null;
             if (_accountDeleted) message = _loginFailureMessage;
             AD.Managers.DataM.SuspendAccountSession();
             if (_loginCaptured) _loginGeneration = _dataOwner.AccountGeneration;
@@ -1271,7 +1279,11 @@ namespace AD
             if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_googleSignup.Offer(_signupCandidateIdentity, _loginGeneration, _loginDeletionEpoch,
                 CanOfferGoogleSignup())) ShowGoogleSignupChoice();
-            else if (_firstEntryView != null) TryShowFirstEntryChoice(message);
+            else if (_firstEntryView != null)
+            {
+                if (_operations.IsRunning) _pendingFirstEntryRetry = message;
+                else TryShowFirstEntryChoice(message);
+            }
         }
 
         private void ShowGoogleSignupChoice()
