@@ -1,6 +1,25 @@
 # 손님 설정 Android 격리 검증 준비 — 2026-11-02
 
-상태는 **source `67a252f`의 빈 장면 진단28/28·APK/정확 복구 완료, LD에서는 손님 시험 코드 없는 새 ARM64 앱도 흰 화면**입니다. 앞선 손님 앱 세 변형과 함께 원인은 미확정이며 실제 선택/저장·재시작은 아직 검증하지 못했습니다. 다음은 별도 x86_64 진단의33개 조건/빌드 준비입니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+최신 상태는 **source `0754b25`의 Editor33/33·별도 x86_64 APK1회와 LD의 실제 선택·PlayerPrefs 저장·새 프로세스 동일 ID 복원 통과**입니다. 새 ARM64 네 변형은 첫 화면에 도달하지 못했고, 이전 정확 ARM64 앱과 새 x86 앱은 같은 LD에서 C#·렌더를 관측했습니다. 원인을 ARM 변환 경로로 좁히는 근거이나 확정 진단은 아닙니다. 운영 ARM64·실물 기기·16KB·정상 Play 제공·실제 인증/서버 저장은 미검증입니다. [제품 구현 검증](guest-entry-validation-20261102.ko.md)과 아래 시각별 이력을 구분합니다.
+
+## 19:52 KST x86 실제 저장·재시작 완료
+
+검증 checkout은 `D:/codex/worktrees/tamer-working/Tamer`, branch `codex/mixed-audience-login-1102`, 실행 source는 `0754b25fcd2d5748913bedb5e14e5999ed01d938`입니다. Unity6000.3.25f1/CLI1.0.0-beta.8/Pipeline0.6.0-exp.1의 설치된 모듈만 사용했으며 SDK 설치·버전 변경은 없습니다.
+
+| 항목 | 관측 결과 | 한계 |
+| --- | --- | --- |
+| 빌드/산출물 | Editor33/33·C# 오류0·APK1회, 75,687,006B/SHA256 `7bca89846b76855f442c4b90575b0e679206f582c930622c3e1290d8920b455e` | 별도 `guestentry1102x86` 진단 앱 |
+| 구성 | min25/target36·유일 ABI x86_64·ELF machine62·6개 LOAD4KB·공식 full Release 엔진 동일·nondebuggable/debug 서명/운영 인증서와 다름 | 운영 ARM64/16KB 실행 근거 아님 |
+| 오프라인 제한 | INTERNET/네트워크·결제·AD_ID 권한과 GMA/PGS 자동 provider 없음·백업 제외18항목 | 앱의 모든 SDK 로컬 초기화 부재를 뜻하지 않음 |
+| 첫 화면/모의 실패 | 설치 SHA·primaryCpuAbi=x86_64 일치, managed 시작3단계·한글 화면, 모의 Google 실패 후 mode empty/ID 없음·재선택 가능 | 실제 Google 인증 호출0 |
+| 손님 저장/재시작 | 실제 view 입력→PlayerPrefs 저장/flush/read-back, `custom-pending`, 새 PID2728→2942에서 동일 ID SHA 복원 | 가짜 인증 경계·서버 계정 생성/인증 요청0 |
+| 보존/종료 | 기존10개 APK SHA·집합 불변·운영 계정 사용0, 자체 앱 중지/이번에 연 VM 정상 종료·추적 host/VM/transport0 | 새 시험 앱은 후속 확인용으로 보존 |
+
+빌드 전 ARM64 기준을 확인하고 임시 x86 설정만 적용했습니다. Resolver의 Gradle ABI 제외 교환을 별도로 대조한 뒤 변경8개를 보존·원본 복원했고 보호6,960파일 SHA/집합·키·Git clean·Editor0/실제 추적 빌드 자손202잔존0을 확인했습니다. PID 재사용으로 포함된 전날 Windows4신원은 생성 시각으로 제외해 원기록을 보존했으며 프로세스 종료0입니다. 소유권 감사 비교식/CIM 미세초 차이로 보호 중단2회 후 수정·재대조했으며 APK 재빌드는 없었습니다.
+
+빌드 자원은10:41:53.075 UTC/19:41:53.075 KST 인수→10:47:20.060 UTC/19:47:20.060 KST 반환, 기기는10:50:23.337 UTC/19:50:23.337 KST 인수→10:52:46.357 UTC/19:52:46.357 KST 실제 반환입니다. FPS/Paw와 직렬 조율했습니다. 사용자는 오늘 실물 Android 없이 LD만 가능하다고 답해 실제 ARM64 교차 검증은 남깁니다. 원본 APK/PNG/로그/설정·기존 AAB30·Library를 비공개 보존했습니다.
+
+이하 절은 각 시점의 준비·실패·복구 이력입니다. 과거의 ‘아직 전/대기’를 위 최신 결과와 혼동하지 않습니다.
 
 ## 19:02 KST 빈 장면 기기 결과·별도 CPU 진단 준비
 

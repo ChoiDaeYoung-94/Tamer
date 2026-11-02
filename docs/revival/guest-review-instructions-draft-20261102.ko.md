@@ -40,6 +40,7 @@ Google의 [심사 로그인 세부정보 요건](https://support.google.com/goog
 - 공급자/기능 문구: **Google 없이 시작해도 게임 계정·서버 저장을 위한 PlayFab 처리와 사용 기능에 따른 서비스 처리가 발생합니다. Google 로그인 선택과 광고 연령/개인정보 설정은 별개입니다.** Google/광고·모든 SDK 데이터 처리 없음으로 안내하지 않습니다.
 - 계정 생성 방식은 현재 저장한 `OAuth + 기타`와 대조합니다. 기타 설명 후보는 **Google Play Games 인증 또는 사용자가 명시적으로 선택한 무작위 사용자 지정 식별자 기반 게임 계정. 기존 기기 로그인 계정은 원래 방식으로 복원**입니다. 새 손님에게 Android 기기 ID를 쓴다고 쓰지 않습니다.
 - 무작위 손님 ID도 계정 인증·진행 귀속을 위해 기기 밖으로 전송되므로 익명·개인정보 수집 없음으로 신고하지 않습니다. Google [Data safety 안내](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)의 유형/목적에 맞춰 기존 사용자 ID 항목과 공급자 처리를 최종 대조합니다. 현재 수집10/공유6 답안을 이 문구만으로 추가·삭제하지 않습니다.
+- 11월2일 재확인한 Google [Families 데이터 지침](https://support.google.com/googleplay/android-developer/answer/11043825?hl=en)은 어린이/나이 미상의 AAID 등 전송 제한과 시작 시 기본 차단, 어린이 대상 미승인 API/SDK를 필수 로그인으로 요구하지 않는 조건을 설명합니다. 새 무작위 손님 ID는 광고/기기 식별자를 읽지 않는 계정 인증 경로이지만, 이 소스 분리만으로 PlayFab·PGS·모든 SDK의 어린이 데이터 처리 적합성을 판정하지 않습니다. 최종 제공물의 SDK 시작/전송과 실제 정책 신고를 함께 확인합니다.
 - 기존 삭제 URL·소유 확인·접수와 공급자 삭제 완료의 구분을 유지합니다. 손님도 동일한 삭제 동선에 접근하는지 최종 제공판에서 확인합니다. 기존 Google 계정으로 자동 연결/병합하거나 다른 계정의 No Ads를 옮기는 기능은 추가하지 않았습니다.
 
 [미게시 공개 정책 초안](privacy-policy-release-draft.ko.md), [기존 공식 Data safety 저장 범위](data-safety-saved-20261029.ko.md), [전체 잔여](remaining-recovery-work.ko.md)를 함께 적용합니다. 실제 처리와 제공판을 확인한 뒤 공식 신고/정책을 구체화하며 최종 심사 전송·프로덕션 출시는 별도입니다.

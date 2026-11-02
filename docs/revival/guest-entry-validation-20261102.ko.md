@@ -1,6 +1,12 @@
 # 신규 손님 진입 구현·격리 검증 — 2026-11-02
 
-사용자가 혼합 연령 대상을 유지하는 **신규 사용자 손님 플레이 구현·격리 검증**을 승인했습니다. 실제 운영 계정 생성·최종 심사·배포는 별도입니다. 검증한 checkout은 `D:/codex/worktrees/tamer-working/Tamer`, 브랜치는 `codex/mixed-audience-login-1102`, 최신 소스는 `9f9324eee24d89cd2feb69b4f58de1c64d65a986`입니다. Editor96개의 실행 head는 `fd3b365`이며 이후 차이는 검사용 Python 모형 보완뿐으로 Assets/Packages/ProjectSettings 차이가 없습니다. [설계와 공식 정책 입력](mixed-audience-login-20261102.ko.md), [PR500](https://github.com/ChoiDaeYoung-94/Tamer/pull/500), [이슈499](https://github.com/ChoiDaeYoung-94/Tamer/issues/499)를 연결합니다.
+## 최신 결과 — 19:52 KST
+
+제품 구현 체크포인트 `9f9324e`의 Editor96/96·소스 경계22/22·Android C#68 assemblies에 더해, 별도 진단 source `0754b25`의 격리 조건33/33·x86 APK1회와 **LD Android 실제 화면 입력·모의 Google 실패 후 ID 미생성·PlayerPrefs 저장·새 프로세스 동일 ID 복원**을 확인했습니다. [산출물·소유권·복구 근거](guest-ui-android-preparation-20261102.ko.md)를 따르며 수치를 전체 회귀 합계로 합산하지 않습니다. 기존10개 APK와 보호6,960파일/키·ARM64 설정을 보존/복원했고 소유 실행을 종료했습니다. 최신 실제 반환은10:52:46.357 UTC/19:52:46.357 KST입니다.
+
+새 ARM64 네 변형의 첫 실행 차단 원인은 미확정입니다. 성공한 x86 진단은 운영 ARM64/16KB·정상 Play 제공·실제 Google/PlayFab·운영 손님 계정/서버 저장·구매/No Ads 검증을 대신하지 않습니다. 사용자는 오늘 실물 Android 없이 LD만 가능하다고 답했습니다. 아래는 제품 구현과 각 실행 당시의 범위·이력입니다.
+
+사용자가 혼합 연령 대상을 유지하는 **신규 사용자 손님 플레이 구현·격리 검증**을 승인했습니다. 실제 운영 계정 생성·최종 심사·배포는 별도입니다. 검증한 checkout은 `D:/codex/worktrees/tamer-working/Tamer`, 브랜치는 `codex/mixed-audience-login-1102`, 제품 구현 체크포인트는 `9f9324eee24d89cd2feb69b4f58de1c64d65a986`입니다. Editor96개의 실행 head는 `fd3b365`이며 그 체크포인트까지 차이는 검사용 Python 모형 보완뿐으로 Assets/Packages/ProjectSettings 차이가 없습니다. [설계와 공식 정책 입력](mixed-audience-login-20261102.ko.md), [PR500](https://github.com/ChoiDaeYoung-94/Tamer/pull/500), [이슈499](https://github.com/ChoiDaeYoung-94/Tamer/issues/499)를 연결합니다.
 
 15:40 KST 후속: 기존 영문 loading 폰트를 새 한글 화면에 그대로 사용하지 않도록 기존 DungGeunMo 폰트를 LoginCanvas의 전용 입력에 Editor API로 연결했습니다. prefab의 의미 있는 변경은 참조1개이며 원래 GUID/구조를 보존했습니다. Editor가 덧붙인 빈 이름5곳의 공백은 엄격한 비교와 포맷 정리로 제거했습니다. 새 이용자의 Google 실패 문구도 다시 선택할 수 있다는 안내로 맞추되 기존 계정/pending의 복원 안내는 유지했습니다. 손님 선택에 진행·구매 권한 복구 제한을 명시했습니다.
 
@@ -11,7 +17,7 @@
 - 기존 Google/Android/Custom 계정·진행/구매 흔적·불명확한 로드·삭제/receipt-only·기존 pending은 신규 손님 제안 대상에서 제외합니다. 로그인 실패를 자동 손님 생성으로 전환하지 않습니다. 재시작은 이미 저장한 같은 ID를 사용합니다.
 - 선택은 소유 manager·계정 세대·삭제 epoch·화면 버전에 묶인 일회용입니다. 이전 화면의 늦은 콜백이 새 선택을 소비하지 못합니다. 로그인 실패 후 선택 재표시는 실행 종료 뒤에 수행합니다.
 - Custom 경로에서 managed PGS 활성화와 Android 기기 ID 읽기를 건너뜁니다. 공식 `SUPPRESS_GAME_PROFILE_CREATION` 설정을 추가하되 native 자동 처리·모든 데이터 전송이 차단됐다고 판정하지 않습니다.
-- SDK·운영 타이틀 보안 설정·기존 키·구매 권한·저장 형식·씬/프리팹은 바꾸지 않았습니다. 새 UI는 기존 LoginCanvas 아래에 구성하며 계정 생성 코드를 자체 소유하지 않습니다.
+- SDK·운영 타이틀 보안 설정·기존 키·구매 권한·저장 형식을 유지했습니다. LoginCanvas의 전용 폰트 참조1개를 연결하고 나머지 프리팹 구조를 보존했습니다. 새 UI는 기존 LoginCanvas 아래에 구성하며 계정 생성 코드를 자체 소유하지 않습니다.
 
 ## 실제 검증과 복구
 
