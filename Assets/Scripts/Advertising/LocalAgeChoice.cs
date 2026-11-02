@@ -42,6 +42,22 @@ namespace AD.Advertising
             return true;
         }
 
+        /// <summary>Only the resulting bucket is persisted; the entered age is transient.</summary>
+        public static bool TryParseAgeInput(string text, out AgeChoice choice)
+        {
+            choice = AgeChoice.Unknown;
+            if (string.IsNullOrEmpty(text) || text.Length > 3) return false;
+            int years = 0;
+            foreach (char digit in text)
+            {
+                if (digit < '0' || digit > '9') return false;
+                years = years * 10 + digit - '0';
+            }
+            choice = years < 13 ? AgeChoice.Under13 : years < 16 ? AgeChoice.From13To15
+                : years < 18 ? AgeChoice.From16To17 : AgeChoice.Adult;
+            return true;
+        }
+
         public static string Encode(AgeChoice choice)
         {
             switch (choice)
