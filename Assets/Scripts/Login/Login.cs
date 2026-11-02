@@ -41,11 +41,11 @@ namespace AD
 
 
         // Previous Google identity is a continuity hint, never authentication proof.
-        private const string PrefsKeyGpgsId = "AD_LastGpgsId";
+        private const string PrefsKeyGpgsId = LoginGuestIdentityPreparation.GoogleIdKey;
         // GPGS를 전혀 사용할 수 없는 환경에서 사용하는 단말 고유 id
-        private const string PrefsKeyCustomId = "AD_CustomId";
+        private const string PrefsKeyCustomId = LoginGuestIdentityPreparation.CustomIdKey;
         // 이 단말이 어떤 방식으로 계정을 만들었는지 (계정이 갈라지는 것을 방지)
-        private const string PrefsKeyLoginMode = "AD_LoginMode";
+        private const string PrefsKeyLoginMode = LoginGuestIdentityPreparation.ModeKey;
         private const string PrefsKeyGoogleSignupPending = "AD_GoogleSignupPending";
 
         private const string LoginModeGpgs = "gpgs";
@@ -80,6 +80,10 @@ namespace AD
         private TMPro.TMP_Text _signupMessage;
         private UnityEngine.UI.Button _signupOfferButton;
         private UnityEngine.UI.Button _signupConfirmButton;
+        private readonly LoginGuestEntryGate _firstEntry = new LoginGuestEntryGate();
+        // Survives Login scene recreation after an uncertain PlayerPrefs write.
+        private static readonly LoginGuestIdentityPreparation GuestIdentities = new LoginGuestIdentityPreparation();
+        private InitialAccountChoiceView _firstEntryView;
 
         private bool CapturedLoginSessionCurrent() => _loginCaptured && _dataOwner != null
             && !_dataOwner.ReceiptOnly && !_dataOwner.DeletionInProgress
@@ -160,7 +164,7 @@ namespace AD
 #endif
                 return;
             }
-            StartLogin();
+            if (!TryShowFirstEntryChoice()) StartLogin();
         }
 
         private void ShowReceiptOnlyBlocked()
@@ -178,6 +182,7 @@ namespace AD
 
         private void OnDestroy()
         {
+            _firstEntry.Revoke();
             _googleSignup.Revoke();
             _cts?.Cancel();
             if (CapturedLoginSessionCurrent() && !_operations.HasEnteredScene)
@@ -193,13 +198,11 @@ namespace AD
         private void StartLogin()
         {
             if (_accountDeleted) return;
+            if (_dataOwner == null || !ReferenceEquals(_dataOwner, Managers.DataM)) return;
             if (AD.Managers.DataM == null || AD.Managers.DataM.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
             if (AD.Managers.DataM != null && AD.Managers.DataM.DeletionInProgress) return;
 #if (TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS) && !TAMER_DELETION_GAMEPLAY
             return;
-#endif
-#if !TAMER_DELETION_GAMEPLAY
-            ActivateNativeGoogle();
 #endif
             if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginLogin())
             {
@@ -209,6 +212,8 @@ namespace AD
 
             AD.Managers.DataM.SuspendAccountSession();
             CaptureLoginSession();
+            _firstEntry.Revoke();
+            if (_firstEntryView != null) _firstEntryView.gameObject.SetActive(false);
             _signupCandidateIdentity = null;
             _googleSignup.Revoke();
             RunLoginAsync(_cts.Token).Forget();
@@ -333,6 +338,14 @@ namespace AD
         {
             string cachedGpgsId = PlayerPrefs.GetString(PrefsKeyGpgsId, string.Empty);
             string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
+            string customId = PlayerPrefs.GetString(PrefsKeyCustomId, string.Empty);
+            if (!LoginGuestIdentityPreparation.IsConsistent(mode, customId) || GuestIdentities.HasUncertainWrites ||
+                (LoginGuestIdentityPreparation.IsGuestIdentity(customId) &&
+                    (!string.IsNullOrEmpty(cachedGpgsId) || PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending))))
+            {
+                _loginFailureMessage = "Guest account setup could not be saved reliably. Restart the app before retrying. No new account has been requested.";
+                return false;
+            }
             if (mode == "device" && !string.IsNullOrEmpty(cachedGpgsId))
             {
                 LogStep("Google login: ConflictingSavedMode");
@@ -354,6 +367,7 @@ namespace AD
                 return false;
             }
 
+            ActivateNativeGoogle(); // Saved device/custom users and unchosen first entry never call managed PGS.
             string authenticatedId = await AuthenticateGooglePlayAsync(token);
             if (LoginCancelled(token))
             {
@@ -490,8 +504,11 @@ namespace AD
             string customId = PlayerPrefs.GetString(PrefsKeyCustomId, string.Empty);
             string deviceId = null;
 #if UNITY_ANDROID && !UNITY_EDITOR
-            deviceId = SystemInfo.deviceUniqueIdentifier;
-            if (deviceId == SystemInfo.unsupportedIdentifier) deviceId = null;
+            if (mode != LoginModeCustom && mode != "custom-pending")
+            {
+                deviceId = SystemInfo.deviceUniqueIdentifier;
+                if (deviceId == SystemInfo.unsupportedIdentifier) deviceId = null;
+            }
 #endif
             string selectedMode = LoginContinuityPolicy.SelectDeviceMode(mode,
                 !string.IsNullOrEmpty(customId), !string.IsNullOrEmpty(deviceId));
@@ -1168,6 +1185,66 @@ namespace AD
 
         #region UI
 
+        private bool CanOfferFirstEntry() => _dataOwner != null && ReferenceEquals(_dataOwner, Managers.DataM) &&
+            !_accountDeleted && !GuestIdentities.HasUncertainWrites && !_operations.IsRunning && _cts != null && !_cts.IsCancellationRequested &&
+            LoginGuestEntryPolicy.CanOffer(_dataOwner.HasKnownAccount, HasLocalProgress(),
+                PlayerPrefs.GetString(PrefsKeyLoginMode, ""), PlayerPrefs.GetString(PrefsKeyGpgsId, ""),
+                PlayerPrefs.GetString(PrefsKeyCustomId, ""), _dataOwner.DeletionInProgress,
+                PlayerPrefs.GetInt(DataManager.DeletionLoginPauseKey, 0) != 0, _receiptRecoverySignIn,
+                PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending), !AD.Advertising.PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial);
+
+        private bool TryShowFirstEntryChoice(string status = null)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR && !TAMER_DELETION_GAMEPLAY && !TAMER_GAMEPLAY_HARNESS && !TAMER_IAP_HARNESS
+            if (Application.identifier != "com.AeDeong.MonsterTamer" || Debug.isDebugBuild) return false;
+            if (!CanOfferFirstEntry()) return false;
+            var owner = _dataOwner;
+            int generation = owner.AccountGeneration;
+            int deletionEpoch = owner.DeletionEpoch;
+            if (!_firstEntry.Offer(owner, generation, deletionEpoch, true)) return false;
+            long version = _firstEntry.Version;
+            if (_firstEntryView == null)
+            {
+                var panel = DeletionView.Rect("InitialAccountChoice", transform);
+                panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
+                panel.offsetMin = panel.offsetMax = Vector2.zero;
+                _firstEntryView = panel.gameObject.AddComponent<InitialAccountChoiceView>();
+                _firstEntryView.Build(_loadingText != null ? _loadingText.font : null, null, null);
+            }
+            _firstEntryView.SetChoices(() => ChooseFirstEntry(false, owner, generation, deletionEpoch, version),
+                () => ChooseFirstEntry(true, owner, generation, deletionEpoch, version));
+            _firstEntryView.SetStatus(status);
+            if (_loading != null) _loading.SetActive(false);
+            if (_retry != null) _retry.SetActive(false);
+            if (_signupPanel != null) _signupPanel.SetActive(false);
+            _firstEntryView.transform.SetAsLastSibling();
+            _firstEntryView.gameObject.SetActive(true);
+            return true;
+#else
+            return false;
+#endif
+        }
+
+        private void ChooseFirstEntry(bool guest, DataManager owner, int generation, int deletionEpoch, long version)
+        {
+            if (_dataOwner == null || !ReferenceEquals(owner, _dataOwner) ||
+                !_firstEntry.TryChoose(Managers.DataM, _dataOwner.AccountGeneration,
+                    _dataOwner.DeletionEpoch, version, CanOfferFirstEntry())) return;
+            if (_firstEntryView != null) _firstEntryView.gameObject.SetActive(false);
+            if (guest && !GuestIdentities.TryPrepare(key => PlayerPrefs.GetString(key, ""),
+                PlayerPrefs.SetString, PlayerPrefs.Save, LoginGuestIdentityPreparation.NewIdentity,
+                () => _dataOwner != null && ReferenceEquals(_dataOwner, Managers.DataM) &&
+                    _dataOwner.AccountGeneration == generation && _dataOwner.DeletionEpoch == deletionEpoch &&
+                    !_dataOwner.HasKnownAccount && !HasLocalProgress() && !_dataOwner.DeletionInProgress &&
+                    PlayerPrefs.GetInt(DataManager.DeletionLoginPauseKey, 0) == 0 && !_receiptRecoverySignIn))
+            {
+                _loginFailureMessage = "Guest account setup could not be saved. Restart the app before trying again. No account request was sent.";
+                ShowRetry(_loginFailureMessage);
+                return;
+            }
+            StartLogin();
+        }
+
         private void ShowLoading(string message)
         {
             if (_signupPanel != null) _signupPanel.SetActive(false);
@@ -1194,6 +1271,7 @@ namespace AD
             if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_googleSignup.Offer(_signupCandidateIdentity, _loginGeneration, _loginDeletionEpoch,
                 CanOfferGoogleSignup())) ShowGoogleSignupChoice();
+            else if (_firstEntryView != null) TryShowFirstEntryChoice(message);
         }
 
         private void ShowGoogleSignupChoice()
@@ -1232,6 +1310,7 @@ namespace AD
                 {
                     _googleSignup.Revoke(); _signupCandidateIdentity = null;
                     _signupPanel.SetActive(false);
+                    if (_firstEntryView != null) TryShowFirstEntryChoice();
                 });
                 _signupPanel = panel.gameObject;
             }
