@@ -35,7 +35,7 @@ def main():
     original = login_path.read_bytes()
     login = original.decode('utf-8-sig')
     markers = ('private void StartLogin()', 'private async UniTask RunLoginAsync(',
-               'private void ShowRetry(')
+               'private void ShowRetry(', 'private static void ApplyLoginPrivacyDefaults()')
     methods = '\n'.join(block(login, marker) for marker in markers)
     methods = methods.replace('UniTask<', 'Task<').replace('async UniTask ', 'async Task ')
     queries = []
@@ -57,6 +57,8 @@ def main():
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using PlayFab;
+namespace PlayFab { static class PlayFabSettings { public static bool DisableDeviceInfo,DisableFocusTimeCollection; } }
 static class TaskRecorder { public static Task Last; public static void Forget(this Task task) { Last=task; } }
 namespace AD {
 class Box { public bool activeSelf; public void SetActive(bool value) { activeSelf=value; } }
@@ -109,6 +111,7 @@ class Probe {
   _loginGeneration==_dataOwner.Generation && _loginDeletionEpoch==_dataOwner.Epoch;
  private bool LoginCancelled(CancellationToken token)=>token.IsCancellationRequested || !LoginCurrent();
  private Task<bool> WaitForNetworkAsync(CancellationToken token) {
+  Require(PlayFabSettings.DisableDeviceInfo && PlayFabSettings.DisableFocusTimeCollection,"privacy before network");
   token.ThrowIfCancellationRequested(); return HeldNetwork?.Task ?? Task.FromResult(Network);
  }
  private Task<bool> LoginOnAndroidAsync(CancellationToken token) {
@@ -138,6 +141,7 @@ class Probe {
  METHODS
  private static void Require(bool condition,string label) { if(!condition) throw new Exception(label); }
  private static Probe Fresh() {
+  PlayFabSettings.DisableDeviceInfo=PlayFabSettings.DisableFocusTimeCollection=false;
   PlayerPrefs.Values.Clear(); Managers.DataM=new DataManager();
   Advertising.PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial=false;
   GuestIdentities=new LoginGuestIdentityPreparation();

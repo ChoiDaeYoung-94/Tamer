@@ -251,6 +251,7 @@ namespace AD
 
             try
             {
+                ApplyLoginPrivacyDefaults();
 #if !TAMER_DELETION_GAMEPLAY
                 if (!await WaitForNetworkAsync(token))
                 {
@@ -321,6 +322,19 @@ namespace AD
                 if (firstEntryRetry != null && _firstEntryView != null)
                     TryShowFirstEntryChoice(firstEntryRetry);
             }
+        }
+
+        // Login precedes the age screen. Optional SDK reporting can otherwise
+        // read Android ID after login, including a newly prepared CustomID.
+        // Keep account authentication and gameplay requests unchanged.
+        private static void ApplyLoginPrivacyDefaults()
+        {
+#if !UNITY_EDITOR && !TAMER_DELETION_GAMEPLAY
+            PlayFabSettings.DisableDeviceInfo = true;
+            PlayFabSettings.DisableFocusTimeCollection = true;
+            if (!PlayFabSettings.DisableDeviceInfo || !PlayFabSettings.DisableFocusTimeCollection)
+                throw new InvalidOperationException("Optional login reporting could not be disabled.");
+#endif
         }
 
         /// <summary>

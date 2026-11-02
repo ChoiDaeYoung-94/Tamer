@@ -4,6 +4,16 @@
 
 첫 화면·선택 토큰은 기존 계정/진행·불명확한 이력·삭제/receipt-only·기존 생성 대기 상태를 거부합니다. 손님 ID와 custom-pending을 성공적으로 저장한 뒤 기존 CustomID 로그인으로 진행하며, 저장이 불확실하면 프로세스가 끝날 때까지 인증을 막습니다. 새 ID는 기존 기기 식별자와 무관한 무작위 GUID입니다. 새 손님/기존 Custom 방식에는 managed PGS 활성화와 Android 기기 ID 읽기를 수행하지 않습니다. 자동 PGS 프로필 생성 억제의 공식 manifest 항목도 추가했습니다. 이 소스 변경은 기존 AAB30에 들어 있지 않으며 실제 SDK 통신/정책 승인 결과가 아닙니다.
 
+## 로그인 후 선택적 SDK 보고 보완 — 21:31 KST
+
+설치 SDK의 `PlayFabDeviceUtil.SendDeviceInfoToPlayFab`은 서버가 `GatherDeviceInfo`를 요청하고 `DisableDeviceInfo=false`이면 `PlayFabDataGatherer`를 생성합니다. 이 생성자는 Android에서 `Settings.Secure.android_id`를 읽는 `PlayFabSettings.DeviceUniqueIdentifier`를 포함합니다. 따라서 로그인 요청에서 기기 ID를 쓰지 않는 CustomID 경로도 선택적 보고까지 자동으로 차단한 것은 아닙니다. 이는 소스에서 확인한 가능 경로이며 실제 운영 전송 관측이나 새 정책 거절은 아닙니다.
+
+`RunLoginAsync`의 네트워크 대기/인증 전에 `DisableDeviceInfo`와 `DisableFocusTimeCollection`을 켜고 두 값의 적용을 확인하도록 보완했습니다. 연령 창은 Main/Game에 있으므로 모든 일반 Player 로그인에 적용하며 성인도 이 선택적 보고를 다시 켜지 않습니다. Editor/기존 오프라인 삭제 fixture는 제외합니다. 개인 설정 에셋·서버 설정/타이틀, 기존 인증 방식/ID·서버 저장·구매/No Ads는 바꾸지 않았습니다. 기존 기기 기반 계정의 인증 식별자를 이전하는 변경은 포함하지 않습니다.
+
+실제 새 로그인 메서드/흐름을 가짜 UI/auth/설정 경계에 연결한22조건과 SDK 보고 메서드의 가짜 식별자/요청 경계9조건을 통과했습니다. 보고 차단이 없을 때 식별자 읽기/요청이 발생하는 음성 대조와 차단 후 정적/instance API·이용시간 전송 없음, 적용 실패의 거부를 검사했습니다. 첫 SDK probe의 namespace alias 누락1건은 수정 후 통과했습니다. 이 단계의 새 Editor/Android 전체 Player 컴파일·실제 SDK/계정/네트워크 실행은0이며 이전96/96·68 assemblies·x86 동선은 이 수정 전의 근거로 구분합니다. 최종 제공판의 실제 통신 확인과 모든 공급자 데이터 정합은 계속 남습니다.
+
+PGS 프로필 생성 억제는 플랫폼 인증 전체의 중지를 뜻하지 않습니다. [Google의 PGS v2 안내](https://developer.android.com/games/pgs/android/android-signin)는 시작 시 자동 인증을 설명합니다. 캐시된22.0.0 AAR의 native provider 등록/초기화와 Unity 플러그인의 명시 초기화 코드도 읽었지만 이를 운영 패킷이나 Google 무통신 증명으로 계산하지 않습니다. 공식 데이터 보안10개 수집/6개 공유를 이 보완만으로 줄이거나 저장하지 않습니다.
+
 ## 확인한 문제와 근거
 
 Google [API Services User Data Policy의 Child-directed apps](https://developers.google.com/terms/api-services-user-data-policy#child-directed-apps)는 혼합 대상 앱에서 Google 로그인을 선택 기능으로 제공하고 Google 계정 로그인 없이 앱 전체를 사용할 수 있어야 한다고 설명합니다. 어린이의 감독 계정도 부모 승인으로 Play Games 프로필을 만들 수 있다는 [Family Link 안내](https://support.google.com/families/answer/7106960?hl=en)는 이 선택 요구를 대신하지 않습니다.11월2일 공식 원문을 읽었습니다.
