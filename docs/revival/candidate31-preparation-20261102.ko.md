@@ -25,17 +25,17 @@ Quad D 인트로·새 아이콘/UI·중립 나이 입력·IAP 동의 보호에 [
 
 버전 변경은 ProjectSettings/toolchain의30→31이며 표시1.0.5·Unity6000.3.25f1/e1dba0a9aba4·CLI1.0.0-beta.8·min25/target36/ARM64·기존 앱ID/키를 유지합니다. 별도 x86 진단의 [UI/PlayerPrefs/새 프로세스 동일 ID](guest-ui-android-preparation-20261102.ko.md)는 source0754b25의 근거로 유지하고 운영 ARM64/16KB·정상 Play 제공으로 계산하지 않습니다. 새 ARM64 네 변형의 첫 실행 차단은 미확정이며 오늘 실물 Android 없이 LD만 가능합니다.
 
-코드31의 실제 소스 사전검사12/12(Unity pin·앱ID/min/target/ARM64/IL2CPP·전역 시험 define 없음·IAP 자동 초기화/인트로·Pipeline 제외)를 확인했습니다. 기존 x86 실행 이후 런타임 소스는 바꾸지 않았으며 위 버전/검사기 변경과 구분합니다. 원본 복구를 마친 뒤 의도한 버전31 변경을 별도 커밋하는 것으로, 과거30 스냅샷과 현재 설정이 모두 같다고 보고하지 않습니다.
+코드31의 실제 소스 사전검사12/12(Unity pin·앱ID/min/target/ARM64/IL2CPP·전역 시험 define 없음·IAP 자동 초기화/인트로·Pipeline 제외)를 확인했습니다. 이 번호/검사기 변경 뒤에는 아래 로그인 선택적 보고 차단도 추가했습니다. 원본 복구를 마친 뒤 의도한 변경을 별도 커밋했으며, 과거30 스냅샷·x86 실행 소스와 현재 설정/게임 코드가 모두 같다고 보고하지 않습니다.
 
 운영 AAB 검사기에는 실제 metadata39·RuntimeInitialize 목록에서 격리용 `RevivalGuestEntryUiHarness`와 시작/단계 표시가 남으면 거부하는 조건을 추가했습니다. 파일 누락/잘못된 버전·중복 JSON·잘못된 initializer도 거부하며 읽기 크기를 제한합니다. 관련22/22(실제 Windows 잠금 경계 포함), 기존 AAB30의 음성 대조와 실제 x86 runtime 바이트의 양성 거부를 확인했습니다. 새 APK/AAB 빌드나 SDK 실행 없이 검사했고 원본30은 불변입니다. 이는 운영 로직/정책 전체 검증을 대신하지 않습니다.
 
 ## 다음 실행과 남은 경계
 
-추가로 [선택적 PlayFab 기기/이용시간 보고](mixed-audience-login-20261102.ko.md#로그인-후-선택적-sdk-보고-보완--2131-kst)를 일반 Player의 네트워크 대기/인증 전에 차단했습니다. 실제 SDK 소스의 조건부 Android ID 읽기 경로를 확인한 보완으로 로그인22조건/가짜 SDK 보고9조건을 통과했습니다. 이전 Editor96/96·Android68 assemblies·x86 동선과 이 추가 수정의 검증 범위를 구분하며, 새 Android 타입 컴파일과 실제 통신 검증은 아직 남습니다. 기존 개인 설정 에셋/타이틀·계정 인증 ID·서버 설정을 바꾸지 않았습니다.
+추가로 [선택적 PlayFab 기기/이용시간 보고](mixed-audience-login-20261102.ko.md#로그인-후-선택적-sdk-보고-보완--2131-kst)를 일반 Player의 네트워크 대기/인증 전에 차단했습니다. 실제 SDK 소스의 조건부 Android ID 읽기 경로를 확인한 보완으로 로그인22조건/가짜 SDK 보고9조건을 통과했습니다. 이후 source8492c69에서 새 제품 Editor96/96·오류0·공식 일반 Android Player 스크립트68개 컴파일까지 확인했습니다. 기존 x86 동선과 실제 운영 통신의 검증 범위는 구분하며 후자는 남습니다. 기존 개인 설정 에셋/타이틀·계정 인증 ID·서버 설정을 바꾸지 않았습니다.
 
 ### 실제 JDK 선택과 계획 갱신
 
-설치 도구7개의 Hub 경로·식별/해시를 준비하는 것과 Unity가 실제 선택한 도구는 구분합니다. 11월2일 실제 격리 빌드 로그와 다른 프로젝트 총괄의 읽기 확인에서, 공용 External Tools 설정은 같은 공식 버전의 별도 JDK 사본을 선택하고 있었습니다. 두 `java.exe`의 바이트는 같지만 서로 다른 파일이고 전체 JDK의 동일성은 확인하지 않았습니다. 이 공용 설정/사본은 Tamer가 변경하지 않습니다.
+설치 도구7개의 Hub 경로·식별/해시를 준비하는 것과 Unity가 실제 선택한 도구는 구분합니다. 11월2일 실제 격리 빌드 로그와 다른 프로젝트 총괄의 읽기 확인에서, 공용 External Tools 설정은 같은 공식 버전의 별도 JDK 사본을 선택하고 있었습니다. 22:27 KST 후속으로 두 JDK 전체421파일씩의 집합/바이트 동일성과 각각 `java -version` exit0/Temurin17.0.18+8을 확인했습니다. 두 공용 설정의 원래 타입/원문은 전후 불변이며 setter0입니다. 바이트가 같아도 실제 선택은 다른 경로/파일이므로 Hub pin과 맞춘 것으로 보지 않습니다.
 
 producer에는 실제 `AndroidExternalToolsSettings.jdkRootPath`가 검토한 Editor 아래의 `Data/PlaybackEngines/AndroidPlayer/OpenJDK`와 일치하고 `java.exe`의 SHA가 plan의 pin과 같아야 진행하는 검사를 추가했습니다. 키/PlayerSettings를 적용하기 전 `D14`에서 검사하고 build snapshot/callback에서도 다시 확인합니다. 다른 경로의 동일 바이트 사본·빈 값/상대 경로·해시 불일치·읽기 실패를 거부하며 getter만 사용합니다. [Unity 공식 API](https://docs.unity.com/en-us/engine/6000.3/script-reference/unityeditor/android/androidexternaltoolssettings/jdkrootpath)에 따라 유효한 별도 경로는 별도 JDK 선택이므로, Hub 파일을 잠갔다는 이유로 실제 선택까지 일치했다고 계산하지 않습니다.
 
