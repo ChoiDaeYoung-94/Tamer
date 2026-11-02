@@ -1,8 +1,8 @@
 # 혼합 대상의 선택형 Google 로그인 보완안 — 2026-11-02
 
-상태는 **사용자 구현·격리 검증 승인 후 코드 초안·실행 검증 대기**입니다. 명시 손님 선택/고정 CustomID 저장과 기존 복원 경로를 연결하고, 실제 계정·서버·신고는 변경하지 않았습니다. 후보30의 서명/기본 검사와 이번 정책 경계의 해결 여부를 구분합니다.
+상태는 **사용자 승인 후 구현·관련 Editor 95/95·Android release C# 컴파일 완료, 격리 화면·운영 제공 검증 대기**입니다. 검증한 소스는 `a42d5f7103d4fe9b928022f2e0af34601920dd86`이며 [검증 범위와 남은 조건](guest-entry-validation-20261102.ko.md)을 따릅니다. 실제 계정·서버·신고는 변경하지 않았습니다. 후보30의 서명/기본 검사와 이번 정책 경계의 해결 여부를 구분합니다.
 
-첫 화면·선택 토큰은 기존 계정/진행·불명확한 이력·삭제/receipt-only·기존 생성 대기 상태를 거부합니다. 손님 ID와 custom-pending을 성공적으로 저장한 뒤 기존 CustomID 로그인으로 진행하며, 저장이 불확실하면 프로세스가 끝날 때까지 인증을 막습니다. 새 ID는 기존 기기 식별자와 무관한 무작위 GUID입니다. 새 손님/기존 Custom 방식에는 managed PGS 활성화와 Android 기기 ID 읽기를 수행하지 않습니다. 자동 PGS 프로필 생성 억제의 공식 manifest 항목도 추가했습니다. 이 소스 변경은 기존 AAB30에 들어 있지 않으며 테스트 통과·실제 SDK 통신/정책 승인 결과가 아닙니다.
+첫 화면·선택 토큰은 기존 계정/진행·불명확한 이력·삭제/receipt-only·기존 생성 대기 상태를 거부합니다. 손님 ID와 custom-pending을 성공적으로 저장한 뒤 기존 CustomID 로그인으로 진행하며, 저장이 불확실하면 프로세스가 끝날 때까지 인증을 막습니다. 새 ID는 기존 기기 식별자와 무관한 무작위 GUID입니다. 새 손님/기존 Custom 방식에는 managed PGS 활성화와 Android 기기 ID 읽기를 수행하지 않습니다. 자동 PGS 프로필 생성 억제의 공식 manifest 항목도 추가했습니다. 이 소스 변경은 기존 AAB30에 들어 있지 않으며 실제 SDK 통신/정책 승인 결과가 아닙니다.
 
 ## 확인한 문제와 근거
 
@@ -15,7 +15,7 @@ Google [API Services User Data Policy의 Child-directed apps](https://developers
 - `SelectDeviceMode`와 CustomID API 코드는 있으나 최초 Android 화면에 사용자가 Google 없이 시작하는 선택은 없습니다. 인증 실패를 장치 계정 생성으로 자동 전환하지 않는 보호는 의도된 기존 경계입니다.
 - [연령 창](../../Assets/Scripts/UI/AgeChoicePresenter.cs)은 Main/Game에서 열립니다. 광고 gate의 미성년 차단만으로 로그인 선택 문제를 해결했다고 볼 수 없습니다.
 
-이는 공개 소스와 공식 정책의 대조입니다. 새 거절 메일을 받은 사실이나 후보30을 실제 Google 미인증 계정으로 실행한 결과가 아닙니다. 신규 계정 기능의 선택 방식은 사용자 결정 후 구현합니다.
+이는 공개 소스와 공식 정책의 대조입니다. 새 거절 메일을 받은 사실이나 후보30을 실제 Google 미인증 계정으로 실행한 결과가 아닙니다. 사용자가 손님 플레이 구현·격리 검증을 승인해 위 최신 소스에 반영했습니다. 아래 표는 승인한 설계와 후속 운영 완료 조건입니다.
 
 ## 권장하는 변경 범위
 
@@ -38,7 +38,7 @@ Google을 선택하지 않아도 계정 기능에 필요한 PlayFab 처리는 �
 
 현재 Play Games Unity 플러그인은2.2.1, 실제 AAB의 Android PGS는22.0.0입니다. 공식 [Unity PGS 안내](https://developer.android.com/games/pgs/unity/unity-start#prevent-auto-triggered-profile-creation)는2.1.0 이상에서 `com.google.android.gms.games.SUPPRESS_GAME_PROFILE_CREATION=true`로 자동 프로필 생성 창을 억제하고 명시 인증 시점에 프로필을 만들 수 있다고 설명합니다. 후보30 manifest에는 이 항목이 없습니다.
 
-승인 후 이 공식 설정과 새 최초 화면을 연결하는 범위를 검토합니다. 플래그를 자동 PGS 인증·모든 데이터 처리 차단으로 해석하거나 provider를 임의 제거하지 않습니다. 기존 Google 프로필 사용자의 실제 로그인과 프로필이 없는 사용자의 비강제 진입은 각각 확인합니다. SDK 버전 업그레이드나 기존 계정 자격/서명 설정 변경은 이 안에 포함하지 않습니다.
+승인 후 이 공식 설정과 새 최초 화면을 연결했습니다. 플래그를 자동 PGS 인증·모든 데이터 처리 차단으로 해석하거나 provider를 임의 제거하지 않습니다. 기존 Google 프로필 사용자의 실제 로그인과 프로필이 없는 사용자의 비강제 진입은 각각 후속 확인합니다. SDK 버전 업그레이드나 기존 계정 자격/서명 설정 변경은 이 안에 포함하지 않습니다.
 
 PlayFab [LoginWithCustomID](https://learn.microsoft.com/en-us/rest/api/playfab/client/authentication/login-with-custom-id?view=playfab-rest)는 앱이 만든 고유 ID로 로그인하며 `CreateAccount`가 계정 생성 여부를 정합니다. 실제 운영 타이틀에서 해당 생성이 허용되는지는 미검증입니다. 이 설계 때문에 운영 API를 호출하거나 타이틀 보안 설정을 바꾸지 않습니다. 기존 `LoginWithDeviceAsync`의 Android ID 자동 선택을 신규 손님 경로로 그대로 전용하지 않습니다.
 
