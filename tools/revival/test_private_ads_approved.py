@@ -338,6 +338,7 @@ namespace GooglePlayGames.Editor {
 }''')
         refs = [api / name for name in ('mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Xml.dll')]
         refs += list(managed.glob('Unity*.dll')) + list((managed / 'UnityEngine').glob('*.dll'))
+        refs += [editor / 'PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll']
         refs += [ROOT / 'Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.dll', api / 'Facades/netstandard.dll']
         args = ['-nologo', '-langversion:9.0', '-target:library', '-define:UNITY_EDITOR', '-out:"' + str(output / 'template.dll') + '"']
         args += ['-r:"' + str(p) + '"' for p in refs] + ['"' + str(ROOT / p) + '"' for p in sources] + ['"' + str(stub) + '"']

@@ -78,6 +78,17 @@ def pin_installed_tools(stack, tools):
         handle.verify(expected['identity'], expected['sha256'])
 
 
+def installed_java_binding(tools):
+    """Bind the Java used by the Editor getter to the same reviewed Hub binary."""
+    java = str(Path(tools['editorExecutable']).parent /
+               'Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe')
+    item = tools['files'].get(java)
+    if (not isinstance(item, dict) or not isinstance(item.get('sha256'), str) or
+            not re.fullmatch('[0-9a-f]{64}', item['sha256'])):
+        raise ValueError('Pinned Android Java binding required')
+    return item['sha256']
+
+
 def encoded(value):
     return json.dumps(value, ensure_ascii=True, sort_keys=True, indent=2).encode('utf-8')
 
@@ -371,6 +382,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
     sign = require_signing(root, plan, signing)
     with ExitStack() as tool_check:
         pin_installed_tools(tool_check, plan['installedTools'])
+    java_sha = installed_java_binding(plan['installedTools'])
     if CLI not in plan['before']:
         raise ValueError('Exact CLI missing from review')
     run = base.safe_path(root, plan['run'])
@@ -401,6 +413,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
                    TAMER_PRIVATE_ADS_RESOURCE_SHA256=plan['resourceSha256'],
                    TAMER_PRIVATE_ADS_EDITOR=plan['installedTools']['editorExecutable'],
                    TAMER_PRIVATE_ADS_EDITOR_SHA256=plan['installedTools']['files'][plan['installedTools']['editorExecutable']]['sha256'],
+                   TAMER_PRIVATE_ADS_JAVA_SHA256=java_sha,
                    TAMER_PRIVATE_ADS_SETTINGS_RECEIPT=str(run / 'settings-restoration.json'),
                    TAMER_PRIVATE_ADS_KEYSTORE=str(base.safe_path(root, KEY)),
                    TAMER_PRIVATE_ADS_KEYSTORE_SHA256=sign['keystoreSha256'],

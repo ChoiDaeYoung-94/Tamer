@@ -177,6 +177,11 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             if (!string.Equals(Path.GetFullPath(editor), Path.GetFullPath(Required("TAMER_PRIVATE_ADS_EDITOR")),
                     StringComparison.OrdinalIgnoreCase) || Hash(File.ReadAllBytes(editor)) !=
                     Required("TAMER_PRIVATE_ADS_EDITOR_SHA256")) throw Rejected();
+            // External Tools preferences are shared across projects. Read the actual
+            // selection and reject a different copy, even if its java.exe is identical.
+            // Never repair or temporarily change another project's JDK preference here.
+            failureStage = "D14";
+            CheckAndroidJdk();
             failureStage = "D04";
             using (var settings = new SettingsScope())
             {
@@ -239,6 +244,29 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         catch { throw new BuildFailedException("Private preparation rejected (" + failureStage + "). Output is not distributable."); }
         // Emit only fixed stage/plan codes, never the original exception or private values.
         finally { snapshot = null; approvedProduction = approvedPrivacy = false; }
+    }
+
+    private static void CheckAndroidJdk()
+    {
+        if (!MatchesApprovedJdk(Required("TAMER_PRIVATE_ADS_EDITOR"),
+                UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath,
+                Required("TAMER_PRIVATE_ADS_JAVA_SHA256"))) throw Rejected();
+    }
+    private static bool MatchesApprovedJdk(string editor, string selectedRoot, string expectedHash)
+    {
+        try
+        {
+            if (!IsFullyQualifiedKeystorePath(editor) || !IsFullyQualifiedKeystorePath(selectedRoot) ||
+                string.IsNullOrWhiteSpace(expectedHash)) return false;
+            var expected = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(editor),
+                "Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe"));
+            var selected = Path.GetFullPath(Path.Combine(selectedRoot, "bin/java.exe"));
+            var comparison = Path.DirectorySeparatorChar == '\\'
+                ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return string.Equals(expected, selected, comparison) &&
+                Hash(File.ReadAllBytes(expected)) == expectedHash;
+        }
+        catch { return false; }
     }
 
     private static void ValidatePlayFabSettings(string expectedTitle, string expectedSettingsHash)
@@ -313,6 +341,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     }
     private static void CheckSnapshot()
     {
+        CheckAndroidJdk();
         if (snapshot == null || Hash(File.ReadAllBytes(snapshot.ConfigPath)) != snapshot.ConfigHash ||
             Hash(File.ReadAllBytes(ResourcePath)) != snapshot.ResourceHash ||
             EditorUserBuildSettings.buildAppBundle == approvedPrivacy || EditorUserBuildSettings.development ||

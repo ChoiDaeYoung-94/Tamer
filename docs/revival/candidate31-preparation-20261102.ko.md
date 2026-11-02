@@ -31,7 +31,17 @@ Quad D 인트로·새 아이콘/UI·중립 나이 입력·IAP 동의 보호에 [
 
 ## 다음 실행과 남은 경계
 
-1. 새 exact HEAD의 사전 검사·producer plan·서명 도구/공개 인증서 binding을 대조합니다. 기존 계획/암호 입력 결과를 재사용하지 않습니다.
+### 실제 JDK 선택과 계획 갱신
+
+설치 도구7개의 Hub 경로·식별/해시를 준비하는 것과 Unity가 실제 선택한 도구는 구분합니다. 11월2일 실제 격리 빌드 로그와 다른 프로젝트 총괄의 읽기 확인에서, 공용 External Tools 설정은 같은 공식 버전의 별도 JDK 사본을 선택하고 있었습니다. 두 `java.exe`의 바이트는 같지만 서로 다른 파일이고 전체 JDK의 동일성은 확인하지 않았습니다. 이 공용 설정/사본은 Tamer가 변경하지 않습니다.
+
+producer에는 실제 `AndroidExternalToolsSettings.jdkRootPath`가 검토한 Editor 아래의 `Data/PlaybackEngines/AndroidPlayer/OpenJDK`와 일치하고 `java.exe`의 SHA가 plan의 pin과 같아야 진행하는 검사를 추가했습니다. 키/PlayerSettings를 적용하기 전 `D14`에서 검사하고 build snapshot/callback에서도 다시 확인합니다. 다른 경로의 동일 바이트 사본·빈 값/상대 경로·해시 불일치·읽기 실패를 거부하며 getter만 사용합니다. [Unity 공식 API](https://docs.unity.com/en-us/engine/6000.3/script-reference/unityeditor/android/androidexternaltoolssettings/jdkrootpath)에 따라 유효한 별도 경로는 별도 JDK 선택이므로, Hub 파일을 잠갔다는 이유로 실제 선택까지 일치했다고 계산하지 않습니다.
+
+관련 Python producer18/18·승인 모드16/16을 통과했습니다. 실제 가드 메서드를 가짜 getter/파일에 연결한21조건과 설치된 실제 Android Editor API를 참조한 전체 템플릿 컴파일도 통과했습니다. 첫 가드 시험의 C# 문자 리터럴 오류1건을 수정해 해당 시험만 재실행했고, 전체 템플릿은 첫 시도 통과/반복0입니다. 이 실행은 순수 컴파일/가짜 경계이며 Editor·Java/Gradle·실키/서명 빌드·공용 설정 쓰기는0입니다. 실제 선택/빌드 성공 검증으로 계산하지 않습니다.
+
+기존 source72abf0c에서 만든 비실행 계획은 새 가드 추가 전에 **시도0·보존·superseded**로 기록했습니다. 새 소스의 검토/계획과 현재 공개 업로드 인증서·실제 JDK 선택의 정합을 마치기 전에는 암호창/서명 빌드를 시작하지 않습니다. 현재 환경에서 가드가 거부할 조건을 알고 있으므로 사용자 암호 입력으로 먼저 진행하지 않습니다. 새 가드의 검사 범위는 JDK 경로/`java.exe`이며 전체 SDK/JDK 파일 집합의 실행 출처나 운영 성공을 보장하지 않습니다.
+
+1. 새 exact HEAD의 사전 검사·producer plan·서명 도구/공개 인증서 binding과 실제 JDK 선택을 대조합니다. 기존 계획/암호 입력 결과를 재사용하지 않습니다.
 2. 준비가 모두 맞으면 사용자가 로컬 창에서 기존 저장소/alias 암호를 직접 입력해 AAB1회 생성합니다. 원본·임시/변경 파일·소유 프로세스와 기존 키/계정/저장·AAB30·Library/증거를 보존하고 정확 복구합니다.
 3. 기본 서명/버전·manifest/native와 새 격리 코드 제외 검사, 실제 새 손님 코드/문구·인트로/아이콘·연령/광고 리소스를 대조합니다. 새 결과가 나오기 전에 통과로 표시하지 않습니다.
 4. 기존 수동 업로드 합의와 실제 제공 범위를 확인하고 정상 Play/운영 계정·서버 저장·구매No Ads·연령/SDK·삭제·심사 동선을 연결합니다. 손님 운영 계정 생성·내부 제공·최종 정책 심사/프로덕션 출시는 각 승인 범위를 구분합니다.
