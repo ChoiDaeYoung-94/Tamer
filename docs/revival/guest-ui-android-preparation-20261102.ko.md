@@ -1,6 +1,16 @@
 # 손님 설정 Android 격리 검증 준비 — 2026-11-02
 
-상태는 **source `4a53075`의 일반 실행 엔진 변형 Editor21/21·별도 IL2CPP APK1회·정확 복구 완료, LD 두 변형의 첫 실행은 흰 화면으로 미완료**입니다. 아직 실제 선택/손님 설정 저장·재시작을 확인하지 못했습니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+상태는 **source `f593692`의 전체 엔진 변형 Editor26/26·별도 IL2CPP APK1회·정확 복구 완료, LD 세 변형의 첫 실행은 흰 화면으로 미완료**입니다. 아직 실제 선택/손님 설정 저장·재시작을 확인하지 못했습니다. 다음은 손님 시험 컴포넌트를 빼는 빈 장면 진단 준비입니다. [현재 구현·검증](guest-entry-validation-20261102.ko.md)의 Editor/가짜 경계 결과에 더해 실제 Android의 PlayerPrefs 저장과 강제 종료 후 복원을 확인하기 위한 범위입니다. 운영 계정 생성·실제 Google 인증·심사/배포는 포함하지 않습니다.
+
+## 18:31 KST 전체 엔진 진단 결과와 빈 장면 준비
+
+`f59369231d5a0eecd87a22f69cf684afb2bbfc37`(제품 파일은4bf6a5e와 같음)에서26/26·C# 오류0과 `guestentry1102full` APK1회를 확인했습니다.73,669,884B/SHA`965cb9d3d8ceeb2cbf4d2d687525e0cc63624e8ed342fcb46474a2b0784daee8`, 일반 실행 엔진/debug 서명·nondebuggable·offline 권한/provider/백업 제외18항목을 대조했습니다. 실제 `libunity.so`28,683,072B/SHA`5e001dbbd6eb12f6ce12b51b4aea8710bf8a0878d094fe076f3c253aae7075fe`가 설치 Unity 공식 Release 라이브러리와 바이트 단위로 같고, 실행 로그의 `full_engine=True strip_engine=False`를 확인했습니다. 원래 stripEngineCode 값은 복원했습니다.
+
+출력7개 보존/원본 바이트 복구·6,960파일 SHA/집합·키·clean·Editor0/추적78잔존0을 확인했습니다. 빌드 차례09:20:31.054 UTC/18:20:31.054 KST→실제 반환09:23:52.828 UTC/18:23:52.828 KST입니다. native LOAD/ZIP·RELRO 배치 통과와 raw 진단2건 미충족·실제16KB 미검증은 유지합니다.
+
+이 APK를 LD Tamer에 정확 SHA로1회 설치했으나3분 이상 동일 흰 화면/첫 managed 표시 미관측 상태였습니다. 손님 선택·인증/나이/서버·저장 검증0, 동일 재실행0입니다. 앱 중지/이번에 연 VM 정상 종료 뒤 기존8개 Tamer APK 불변·자체host/VM/transport0을 확인했습니다. 기기 차례09:26:16.396 UTC/18:26:16.396 KST→실제 반환09:31:08.597 UTC/18:31:08.597 KST이며 FPS/Paw에 통지했습니다. 세 변형을 서로 다른 변경 조건의 첫 실행3건으로 보존하며 스트리핑을 원인으로 확정하지 않습니다.
+
+다음 비교는 같은 전체 Release 엔진·빈 smoke 씬/별도 `guestempty1102` ID·offline/debug 서명/백업 제한을 유지하고 **손님 시험 컴포넌트와 guest 변형 define을 제외**합니다. 원본 씬에 MonoBehaviour가 없음을 확인한 뒤 빌드 사본에도 주입하지 않습니다. `TAMER_REVIVAL_SMOKE`만 쓰므로 손님 시험 클래스가 Player에 포함되지 않아야 하며 실제 APK에서 이를 대조합니다. 제품 Login/계정/SDK 설정은 바꾸지 않습니다. 관련28개 검사·새 APK/기기 실행은 아직 전이며 기존 세 APK를 보존합니다.
 
 ## 17:30 KST 두 번째 첫 실행 결과 — 미완료
 

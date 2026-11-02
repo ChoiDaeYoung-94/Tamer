@@ -15,17 +15,22 @@ public static class RevivalGuestEntryUiBuild
     public const string Output = "Build/revival/Tamer-guest-entry-ui-1102.apk";
     public const string ReleaseOutput = "Build/revival/Tamer-guest-entry-ui-release-1102.apk";
     public const string FullEngineOutput = "Build/revival/Tamer-guest-entry-ui-full-1102.apk";
+    public const string PlainOutput = "Build/revival/Tamer-guest-empty-1102.apk";
+    public const string PlainApplicationId = "com.AeDeong.MonsterTamer.revival.guestempty1102";
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
     private const string AdsManifest = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
     public static bool BuildActive { get; private set; }
     public static bool ReleaseEngineBuild { get; private set; }
     public static bool FullEngineBuild { get; private set; }
-    public static string ExpectedApplicationId => FullEngineBuild ? RevivalGuestEntryUiHarness.FullEngineApplicationId
+    public static bool PlainSceneBuild { get; private set; }
+    public static string ExpectedApplicationId => PlainSceneBuild ? PlainApplicationId
+        : FullEngineBuild ? RevivalGuestEntryUiHarness.FullEngineApplicationId
         : ReleaseEngineBuild ? RevivalGuestEntryUiHarness.ReleaseApplicationId : RevivalGuestEntryUiHarness.ApplicationId;
 
     public static bool IsFixtureId(string id) => id == RevivalGuestEntryUiHarness.ApplicationId ||
-        id == RevivalGuestEntryUiHarness.ReleaseApplicationId || id == RevivalGuestEntryUiHarness.FullEngineApplicationId;
+        id == RevivalGuestEntryUiHarness.ReleaseApplicationId || id == RevivalGuestEntryUiHarness.FullEngineApplicationId ||
+        id == PlainApplicationId;
 
     public static bool AllowsGlobalDefines(string defines) => !string.IsNullOrEmpty(defines)
         ? !defines.Split(';').Any(s => s.Trim().StartsWith("TAMER_", StringComparison.Ordinal)) : true;
@@ -33,12 +38,14 @@ public static class RevivalGuestEntryUiBuild
     public static void BuildAndroid() => Build(false);
     public static void BuildReleaseAndroid() => Build(true);
     public static void BuildFullEngineAndroid() => Build(true, true);
+    public static void BuildPlainAndroid() => Build(true, true, true);
 
-    private static void Build(bool releaseEngine, bool fullEngine = false)
+    private static void Build(bool releaseEngine, bool fullEngine = false, bool plainScene = false)
     {
         if (fullEngine && !releaseEngine) throw new BuildFailedException("Full-engine diagnostic uses the release engine only.");
-        string output = fullEngine ? FullEngineOutput : releaseEngine ? ReleaseOutput : Output;
-        string applicationId = fullEngine ? RevivalGuestEntryUiHarness.FullEngineApplicationId
+        if (plainScene && !fullEngine) throw new BuildFailedException("Plain-scene diagnostic preserves the same full release engine.");
+        string output = plainScene ? PlainOutput : fullEngine ? FullEngineOutput : releaseEngine ? ReleaseOutput : Output;
+        string applicationId = plainScene ? PlainApplicationId : fullEngine ? RevivalGuestEntryUiHarness.FullEngineApplicationId
             : releaseEngine ? RevivalGuestEntryUiHarness.ReleaseApplicationId
             : RevivalGuestEntryUiHarness.ApplicationId;
         var originals = new[] { Manifest, AdsSettings, AdsManifest }.ToDictionary(p => p, File.ReadAllBytes);
@@ -77,6 +84,7 @@ public static class RevivalGuestEntryUiBuild
             EditorUserBuildSettings.buildAppBundle = false;
             if (fullEngine) PlayerSettings.stripEngineCode = false;
             FullEngineBuild = fullEngine;
+            PlainSceneBuild = plainScene;
             ReleaseEngineBuild = releaseEngine;
             BuildActive = true;
             Directory.CreateDirectory(Path.GetDirectoryName(output));
@@ -86,12 +94,13 @@ public static class RevivalGuestEntryUiBuild
                     scenes = new[] { RevivalBuild.SmokeScene }, target = BuildTarget.Android,
                     targetGroup = BuildTargetGroup.Android, locationPathName = output,
                     options = BuildOptions.CompressWithLz4 | (releaseEngine ? BuildOptions.None : BuildOptions.Development),
-                    extraScriptingDefines = releaseEngine
+                    extraScriptingDefines = plainScene ? new[] { "TAMER_REVIVAL_SMOKE" } : releaseEngine
                         ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GUEST_ENTRY_UI_HARNESS", "TAMER_GUEST_ENTRY_UI_RELEASE_HARNESS" }
                         : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_GUEST_ENTRY_UI_HARNESS" }
                 });
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Isolated guest UI build failed.");
             Debug.Log("GUEST_ENTRY_UI_ENGINE full_engine=" + fullEngine + " strip_engine=" + PlayerSettings.stripEngineCode);
+            Debug.Log("GUEST_ENTRY_UI_VARIANT plain_scene=" + plainScene);
             Debug.Log("GUEST_ENTRY_UI_BUILD_OK operating_key_used=false operating_scenes=0");
             code = 0;
         }
@@ -101,6 +110,7 @@ public static class RevivalGuestEntryUiBuild
             BuildActive = false;
             ReleaseEngineBuild = false;
             FullEngineBuild = false;
+            PlainSceneBuild = false;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.productName = oldName;
             PlayerSettings.Android.useCustomKeystore = oldKey;
@@ -156,6 +166,11 @@ public sealed class RevivalGuestEntryUiBuildScene : IProcessSceneWithReport
         foreach (var root in scene.GetRootGameObjects())
             if (root.GetComponentsInChildren<MonoBehaviour>(true).Length != 0)
                 throw new BuildFailedException("The original smoke scene must have no game behaviours.");
+        if (RevivalGuestEntryUiBuild.PlainSceneBuild)
+        {
+            Debug.Log("GUEST_ENTRY_UI_SCENE plain=True guest_components=0");
+            return;
+        }
         var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Fonts/DungGeunMo SDF.asset");
         if (font == null || AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(font)) != "6b62d0bbc19501141b40b8d32a134954")
             throw new BuildFailedException("Existing Korean font required.");
