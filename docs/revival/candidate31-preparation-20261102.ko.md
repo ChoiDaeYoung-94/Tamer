@@ -4,11 +4,11 @@
 
 ## 11월3일 후속
 
-11:51 KST에 [일회 독립 검토와 실제 JDK 선택·정확 복구](candidate31-signing-readiness-20261103.ko.md)를 마쳤습니다. 도구164개 SHA 일치/확정 미해결 P1·P2 없음, 실제 Hub getter/Java SHA·batch exit0과 두 공용 설정/제품6,960파일·키·양JDK421파일씩 복구/관측 소유0을 확인했습니다. 현재는 원래 공식 사본 선택으로 복구됐으며 실제 서명 차례에 임시 선택/복구를 다시 포함합니다. 새 exact plan/source-review·binding부터 연결하며 새 AAB31/암호 입력은0입니다. 아래 앞선 준비 상태와 구분합니다.
+13:00 KST 최신 [독립 검토와 실제 바탕화면 JDK·서명창 확인](candidate31-signing-readiness-20261103.ko.md)을 마쳤습니다. 도구164개 SHA 일치/확정 미해결 P1·P2 없음, 실제 Explorer의 Hub getter/Java SHA·batch exit0을 확인했습니다. 실제 사용자 JDK 두 값은 원래 absent로 전후 같아 공용 설정 임시 변경이 필요하지 않습니다. 새 exact plan/source-review·metadata921 pin/runtime732파일을 연결하고 실제 빈 암호창 화면까지 확인했으나, 입력 예산 종료로 prompt Timeout/키 검사·producer·빌드0입니다. 보호7,136파일 identity/SHA/집합·키·양JDK·양환경 설정 불변/clean·관측2신원0 확인 후04:00:16.251 UTC에 실제 반환했습니다. 소비된 attempt는 재사용하지 않으며 새 입력 가능 시점·계획·공유 범위가 필요합니다. 아래 앞선 준비 상태와 구분합니다.
 
 현재 Console 업로드 키 다운로드 이벤트는 timeout이었지만, 그 읽기 차례 안에 생성/기록된 실제 공개 DER 파일을 확인했습니다. X.509/개인키 없음과 기존 후보30 검토 DER·인증서 SHA의 바이트 일치를 대조하고 비공개 보존했습니다. 현재 공개 인증서 대기는 해소했으며, 키 재설정/업그레이드·비밀 입력·새 서명 빌드0입니다. 아래11월2일 복사/다운로드 미확인은 당시 이력입니다.
 
-[운영 PlayFab 읽기](playfab-login-data-review-20261103.ko.md)도 마쳤습니다. 현재 CustomID 생성 차단은 꺼짐·Client 로그인/데이터 API 허용이며 실제 생성 성공은 미검증입니다. 데이터 수집4옵션은 기존대로 켜져 있고, client 보고 차단과 공급자의 전체 처리는 구분합니다. 새 실제 SDK 로그인 응답/보고 소스의 가짜 전송10조건은 통과했으며 제품 코드는 불변입니다. 검사/문서 변경 전에 source5923의 비실행 계획도 **시도0·superseded·보존**했습니다. 새 exact 소스 검토/계획·실제 JDK 경로 정합·binding을 마친 뒤에만 로컬 암호 입력/새 AAB를 연결합니다.
+[운영 PlayFab 읽기](playfab-login-data-review-20261103.ko.md)도 마쳤습니다. 현재 CustomID 생성 차단은 꺼짐·Client 로그인/데이터 API 허용이며 실제 생성 성공은 미검증입니다. 데이터 수집4옵션은 기존대로 켜져 있고, client 보고 차단과 공급자의 전체 처리는 구분합니다. 실제 SDK 로그인 응답/보고 소스의 가짜 전송10조건은 통과했으며 제품 코드는 불변입니다. 검사/문서 변경 전 source5923의 비실행 계획과 실제 진단 후 identity가 바뀐 미소비 계획은 **superseded·보존**했습니다. 검토·계획·표시 확인과 실제 사용자 암호 입력/키 검사·AAB 생성은 구분합니다.
 
 ## 현재 Console과 선택 번호
 

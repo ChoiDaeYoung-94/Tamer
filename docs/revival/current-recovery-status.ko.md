@@ -1,8 +1,8 @@
 # Tamer 복구 현황과 다음 순서 — 2026-11-03
 
-## 최신 상태 — 11월3일 재개
+## 최신 상태 — 11월3일 13:00 KST
 
-11:51 KST 후속: [도구164개 독립 읽기 검토와 실제 JDK 선택·정확 복구](candidate31-signing-readiness-20261103.ko.md)를 마쳤습니다. 확정 미해결 P1/P2 없음·실제 Hub getter/Java SHA 일치·batch exit0이며 원래 두 공용 설정/제품6,960파일·키·양JDK421파일씩/clean·소유0을 확인하고02:51:21.919 UTC에 반환했습니다. 현재 설정은 원래 공식 사본 선택으로 복구됐으며 실제 서명에는 새 임시 선택/복구 범위가 필요합니다. 아래 재개 직후 남았던 독립 검토/JDK 검증은 이 후속으로 보완하며 새 exact 계획/실행용source-review·binding/암호/AAB31은 후속입니다.
+[도구164개 독립 읽기 검토와 실제 바탕화면 JDK·서명창 확인](candidate31-signing-readiness-20261103.ko.md)을 마쳤습니다. 확정 미해결 P1/P2 없음·실제 Explorer의 Hub getter/Java SHA 일치·batch exit0입니다. 실제 사용자 환경의 원래 JDK 두 값은 absent로 전후 같아 공용 설정을 바꾸지 않습니다. 새 exact 계획/source-review·native metadata921 pin/runtime732파일과 바탕화면 사전 검사를 통과하고 빈 암호창 화면까지 확인했으나 입력 예산 종료로 prompt Timeout/키 검사·producer·AAB31은0입니다. 보호7,136파일 identity/SHA/집합·키·양JDK421파일씩·양환경 설정 불변/clean·관측2신원0 확인 후04:00:16.251 UTC에 실제 반환했습니다. 소비된 attempt는 보존하고 새 입력 가능 시점·계획·공유 범위로 이어갑니다. 앞선 두 바로가기 실패는 암호창 전 환경 검사에서 발생했으며 클릭 속도나 암호 오류의 근거가 아닙니다.
 
 오늘은 별도 시간 종료 없이 실제 계정 전체 주간 사용률90% 초과 시 정상 마감합니다.11월2일23:30 마감은 완료한 이력입니다. source5923b5b/원격 동일·clean과 후보31 비실행 계획의 보호7,135파일 SHA/집합·기존 키·stage/journal 부재·Editor 종료를 재개 때 확인했습니다.
 
@@ -10,7 +10,7 @@
 
 추가로 실제 설치 SDK의 전체 로그인 응답/보고 소스와 가짜 전송 경계10조건을 통과했습니다. 서버 보고 켜짐·반복 로그인·주기/focus/quit 콜백에서도 보호된 보고 요청0을 확인했으며 로컬 모델/OS·세션 큐 구성은 남습니다. 첫 probe namespace 오류는 보존/수정했고 제품 코드·운영 인증·Editor/기기 실행0,02:28:59.668 UTC에 실제 반환했습니다. 기존 제품96/96·Android68개 컴파일은 제품 소스가 같으므로 기록용으로 반복하지 않았습니다.
 
-현재 업로드 인증서는 다운로드 이벤트 timeout 뒤 **실제 완료된 공개 DER**을 찾아 생성/기록 시각과 기존 후보30 검토 DER·인증서 SHA의 일치를 확인했습니다. 개인키가 없는 인증서와 현재 Console 읽기 근거를 비공개 보존했습니다. 기존의 사용자 공개 지문 확인 대기는 이 근거로 해소하며, 키/암호 입력·새 서명/AAB31은0입니다. 이전5923 비실행 계획은 새 검사/문서 변경 전에 미사용·superseded로 보존했고 실제 JDK 경로 정합·새 exact 소스 검토/계획·binding은 남습니다.
+현재 업로드 인증서는 다운로드 이벤트 timeout 뒤 **실제 완료된 공개 DER**을 찾아 생성/기록 시각과 기존 후보30 검토 DER·인증서 SHA의 일치를 확인했습니다. 개인키가 없는 인증서와 현재 Console 읽기 근거를 비공개 보존했습니다. 기존의 사용자 공개 지문 확인 대기는 이 근거로 해소하며, 키/암호 입력·새 서명/AAB31은0입니다. 이전5923 계획과 실제 진단 후 identity가 달라진 미사용 계획은 superseded로 보존했습니다. 위 실행의 정상 종료와 실제 서명/빌드 성공은 구분하며 운영 기능·정상 Play·최종 UI/스토어·심사/출시는 남습니다.
 
 ARM 시작 진단은 보존 로그만 추가 대조했습니다. ES3.2 fallback 오류/ES3.1 context·unknown attribute는 이전 정상 ARM64와 새 정상 x86에도 함께 있고, 세 로그 모두 같은 Unity revision·IL2CPP JNI·Swappy/오디오 초기화 성공을 포함합니다. 이 공통 로그만으로 그래픽 설정을 바꾸거나 근본 원인을 확정하지 않습니다. [Unity6.3 지원 환경](https://docs.unity.com/en-us/engine/6000.3/manual/get-started/install-and-upgrade/getting-started-installing-unity/system-requirements)은 Android 에뮬레이터를 정식 지원하지 않지만, 그 설명도 이 증상의 원인 증명이 아닙니다. 새 ARM64/실제16KB·정상 Play·최종 운영 검증은 남고 같은 앱/빌드를 반복 실행하지 않았습니다.
 
