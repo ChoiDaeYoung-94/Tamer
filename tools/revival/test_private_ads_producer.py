@@ -193,9 +193,12 @@ class ProducerTests(unittest.TestCase):
         fake_editor = str(self.root / producer.CLI)
         plan['installedTools'] = {'editorExecutable': fake_editor, 'files': {
             fake_editor: plan['before'][producer.CLI]}, 'manifestSha256': 'e' * 64}
+        fake_java = str(Path(fake_editor).parent / 'Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe')
+        plan['installedTools']['files'][fake_java] = {'sha256': 'c' * 64}
         path.write_bytes(producer.encoded(plan))
         sha = base.digest(path.read_bytes())
         def fake_run(command, *, env, stdout, stderr):
+            self.assertEqual(env['TAMER_PRIVATE_ADS_JAVA_SHA256'], 'c' * 64)
             run = self.root / plan['run']
             (run / 'disabled-preparation.aab').write_bytes(b'synthetic callback artifact')
             receipt = {'schema': 1, 'runId': plan['runId'], 'sourceHead': self.head,
@@ -276,6 +279,36 @@ class ProducerTests(unittest.TestCase):
         file.write_bytes(b'changed executable')
         with ExitStack() as stack, self.assertRaises(ValueError):
             producer.pin_installed_tools(stack, tools)
+
+    def test_java_binding_requires_exact_reviewed_hub_relative_binary(self):
+        editor = self.root / 'Hub/Editor/Unity.exe'
+        java = editor.parent / 'Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'
+        tools = {'editorExecutable': str(editor), 'files': {str(java): {'sha256': 'a' * 64}}}
+        self.assertEqual(producer.installed_java_binding(tools), 'a' * 64)
+        for files in ({}, {str(self.root / 'other/java.exe'): {'sha256': 'a' * 64}},
+                      {str(java): {'sha256': ''}}, {str(java): {'sha256': 'A' * 64}},
+                      {str(java): {'sha256': 'a' * 63}}, {str(java): None}):
+            with self.subTest(files=files), self.assertRaises(ValueError):
+                producer.installed_java_binding(dict(tools, files=files))
+
+    def test_missing_java_binding_rejects_before_launch_marker_or_asset_staging(self):
+        path, sha, plan = self.prepare()
+        fake_editor = str(self.root / producer.CLI)
+        plan['installedTools'] = {'editorExecutable': fake_editor, 'files': {
+            fake_editor: plan['before'][producer.CLI]}, 'manifestSha256': 'e' * 64}
+        path.write_bytes(producer.encoded(plan))
+        sha = base.digest(path.read_bytes())
+        with patch.object(base, 'preflight'), patch.object(base, 'git', return_value='synthetic'), \
+             patch.object(producer, 'require_source_review'), \
+             patch.object(producer, 'require_signing', return_value={}), \
+             patch.object(producer, 'pin_installed_tools'), \
+             patch.object(producer.subprocess, 'run', side_effect=AssertionError('No launch')):
+            with self.assertRaisesRegex(ValueError, 'Pinned Android Java binding required'):
+                producer.build_once(self.root, self.config, self.head, 'synthetic', path, sha,
+                                    path, path, allow_unity_build=True)
+        self.assertFalse((self.root / plan['run'] / 'launch-once.private.json').exists())
+        self.assertFalse((self.root / base.JOURNAL).exists())
+        self.assertFalse((self.root / producer.RESOURCE).exists())
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import struct
 import subprocess
 import zipfile
 from pathlib import Path
@@ -41,6 +42,60 @@ SOURCE_INPUTS = ['ProjectSettings/ProjectSettings.asset', 'ProjectSettings/Proje
                  QUAD_D_INTRO_SCENE, QUAD_D_INTRO_SCENE + '.meta',
                  'Assets/QuadD/QuadDIntroCanvasOutput.cs', 'Assets/QuadD/QuadDIntroCanvasOutput.cs.meta',
                  'Assets/Scripts/Managers/Sub/RuntimeInitialize.cs']
+
+GUEST_UI_METADATA = 'base/assets/bin/Data/Managed/Metadata/global-metadata.dat'
+GUEST_UI_INITIALIZERS = 'base/assets/bin/Data/RuntimeInitializeOnLoads.json'
+GUEST_UI_DIAGNOSTIC_MARKERS = (b'RevivalGuestEntryUiHarness', b'GUEST_ENTRY_UI_BOOT phase=',
+                               b'GUEST_ENTRY_UI phase=')
+
+
+def inspect_guest_ui_exclusion(aab):
+    """Reject the offline UI/auth fixture in the actual Unity release payload.
+
+    This checks a bounded metadata/header and initializer list, not the validity
+    of every IL2CPP table or the behavior of the operating login/SDKs.
+    """
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate runtime initialization field')
+            result[key] = value
+        return result
+
+    def reject_constant(_):
+        raise ValueError('Non-JSON runtime initialization value')
+
+    with zipfile.ZipFile(aab) as archive:
+        names = archive.namelist()
+        if len(names) != len(set(names)):
+            raise ValueError('Duplicate AAB ZIP entries')
+        payloads = []
+        for path, limit in ((GUEST_UI_METADATA, 64 * 1024 * 1024),
+                            (GUEST_UI_INITIALIZERS, 4 * 1024 * 1024)):
+            if path not in names or not 0 < archive.getinfo(path).file_size <= limit:
+                raise ValueError('Required bounded Unity runtime payload missing or oversized')
+            payloads.append(archive.read(path))
+    metadata, raw_initializers = payloads
+    if len(metadata) < 8 or struct.unpack_from('<II', metadata) != (0xfab11baf, 39):
+        raise ValueError('Expected reviewed Unity IL2CPP metadata header/version')
+    if any(marker in metadata for marker in GUEST_UI_DIAGNOSTIC_MARKERS):
+        raise ValueError('Guest UI diagnostic code is present in the release payload')
+    initializers = json.loads(raw_initializers.decode('utf-8-sig'), object_pairs_hook=unique,
+                              parse_constant=reject_constant)
+    if (type(initializers) is not dict or set(initializers) != {'root'}
+            or type(initializers['root']) is not list):
+        raise ValueError('Invalid Unity runtime initialization list')
+    for entry in initializers['root']:
+        if (type(entry) is not dict or not isinstance(entry.get('className'), str)
+                or not isinstance(entry.get('methodName'), str)):
+            raise ValueError('Invalid Unity runtime initialization entry')
+        if entry['className'].rsplit('.', 1)[-1] == 'RevivalGuestEntryUiHarness':
+            raise ValueError('Guest UI diagnostic initializer is present in the release payload')
+    return dict(guestUiDiagnosticAbsent=True, metadataVersion=39,
+                metadataSha256=hashlib.sha256(metadata).hexdigest(),
+                initializerSha256=hashlib.sha256(raw_initializers).hexdigest(),
+                initializerCount=len(initializers['root']), operatingRuntimeVerified=False)
 
 
 def approved_entry_flow(root, scenes, settings):
@@ -252,11 +307,14 @@ def candidate_checks(aab, version_code, published_max, certificate, bundletool, 
         signature=json.loads(run([java,signature_source,aab,'--release-cert-sha256',certificate]))
         held[aab].stream.seek(0)
         libraries=inspect_bundle_libraries(held[aab].stream)
+        held[aab].stream.seek(0)
+        runtime_isolation=inspect_guest_ui_exclusion(held[aab].stream)
         for path, handle in held.items():
             verify_locked_input(path, handle, hashes[path])
         return dict(schema=2,mode='aab',artifactSha256=hashes[aab],manifest=metadata,signature=signature,
-                    libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries),
-                    artifactCheckScope='AAB bundle validation, base manifest, payload signature, ARM64 ELF LOAD and conservative RELRO layout; raw end-modulo remains diagnostic',
+                    libraries=libraries,managedRuntimeIsolation=runtime_isolation,
+                    artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries) and runtime_isolation['guestUiDiagnosticAbsent'],
+                    artifactCheckScope='AAB bundle validation, base manifest, payload signature, guest UI diagnostic exclusion, ARM64 ELF LOAD and conservative RELRO layout; raw end-modulo remains diagnostic',
                     deliveredApkZipAlignmentVerified=False, arm64NativeRuntimeVerified=False,
                     productionBinary16KBVerified=False,
                     releaseReady=False,unverified=UNVERIFIED,

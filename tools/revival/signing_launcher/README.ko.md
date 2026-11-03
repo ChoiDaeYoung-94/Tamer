@@ -7,6 +7,13 @@ false/null과 source-review 미완료 항목을 채우는 기능은 없습니다
 
 ## 실행 연결
 
+실제 producer는 서명/PlayerSettings 적용 전에 Unity의 Android JDK getter가
+plan에 고정한 Hub JDK를 선택하는지와 `java.exe` SHA를 확인합니다(`D14`).
+같은 바이트의 다른 사본도 수용하지 않으며 공용 External Tools 설정은
+수정하지 않습니다. 가드 불일치가 알려진 환경에서는 암호 입력을 먼저
+요청하지 말고 실행 차례/도구 선택을 해결한 뒤 새 exact plan을 준비합니다.
+이 조건은 전체 JDK/SDK provenance나 운영 빌드 검증의 대체 근거가 아닙니다.
+
 1. 총괄이 exact build HEAD/branch와 clean checkout, Editor 종료, 현재 upload
    certificate/키 소유권 독립 근거, 승인 config, 신규 producer plan, exact
    source review와 도구 검토를 준비합니다. resource `sourceHead`의 검토

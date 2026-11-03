@@ -2,6 +2,22 @@
 
 새 UI·아이콘에 맞춘 소개 문구와 홍보 이미지 초안입니다. Console에 입력·저장·게시하지 않았습니다. 실제 앱 화면, 사용자 디자인 검토와 최종 제공 범위를 대조한 뒤 확정합니다. 기준 구현은 통합 후보28의 source `f5d7ab42edb4386c9339be1f7be0af28bf267364`입니다.
 
+## 11월2일 손님 후보용 교체 문구 — 미적용
+
+[손님 진입 구현](mixed-audience-login-20261102.ko.md)의 별도 x86 Android UI/설정 저장·재시작은 확인했으나 **운영 계정 생성·전체 기능/서버 저장과 정상 Play 제공은 미검증**입니다. 아래는 그 완료 뒤 전체 설명 마지막 문단에 적용할 후보이며, 현재 내부29/AAB30이나 이미 게시된 스토어의 동작으로 설명하지 않습니다. 앱 이름/짧은 설명과 기존 게임 특징은 유지합니다.
+
+한국어 교체 후보:
+
+> Google Play Games로 계속하거나 Google 없이 손님 게임 계정을 만들어 시작할 수 있습니다. 손님도 서버 저장용 게임 계정을 사용하며, 앱 삭제·기기 변경 뒤에는 진행과 구매 권한 복구가 제한될 수 있습니다. 기존 Google 계정은 원래 로그인으로 이용해 주세요. 앱 내 구매와 광고가 포함됩니다. 광고 제공 여부는 연령 선택, 개인정보 선택과 구매 권한 등에 따라 달라집니다.
+
+영어 교체 후보:
+
+> Choose Google Play Games or start with a guest game account without Google. Guest play also uses a game account for server saves. Recovering progress and purchase entitlements may be limited after uninstalling the app or changing devices. Use the original sign-in for an existing Google account. Includes in-app purchases and ads. Ad availability depends on age choices, privacy choices, and purchase entitlements.
+
+계정 연결/자동 병합·기기 간 복구 보장·운영 오프라인 플레이나 게임 전체 한국어 지원을 약속하지 않습니다. [미저장 심사/데이터 안내](guest-review-instructions-draft-20261102.ko.md)와 최종 제공물을 함께 대조합니다.11월2일 다시 확인한 [Google의 등록정보 규격](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en)에 따라 실제 입력 문자열의 이름30/짧은 설명80/전체 설명4000자 한도를 확인합니다. 아래10월30일 문구와 이미지 검토 이력은 보존합니다.
+
+실제 교체한 입력 문자열은 이름13자, 한국어/영어 짧은 설명40/78자·전체 설명498/941자입니다. 기존 게임 특징을 유지하고 마지막 로그인 문단만 바꾼 별도 미적용 파일로 보존했으며 Console 입력/저장·공개 게시0입니다. 아래370/677자는 교체 전10월30일 전체 설명의 길이입니다.
+
 ## 한국어 문구
 
 앱 이름은 기존 **Monster Tamer**를 유지합니다.
