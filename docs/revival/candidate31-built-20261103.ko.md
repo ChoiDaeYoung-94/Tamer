@@ -28,7 +28,7 @@ QuadDIntro→Login→Main→Game→SetCharacter→NextScene의6개 씬 순서 �
 
 ## Console 전달과 남은 조건
 
-15:00 KST 전후 기존 작업용 Chrome 창을 실제 창 ID·탭 마지막 열림·메일/Drive/GitHub/PlayFab/AdMob/Photon 구성으로 다시 확인했습니다. 업로드 전 번들22개·최신29·코드31 검색0개를 확인한 뒤 사용자가 내부 새 버전12에 수동 업로드했습니다. 이후 [Console 분석·Play APK 정적 검사·기호 첨부](candidate31-console-analysis-20261103.ko.md), 출시 노트/초안 저장·미리보기를 완료했습니다. 실제 내부 제공·검토 전송은 아직0입니다.
+15:00 KST 전후 기존 작업용 Chrome 창을 실제 창 ID·탭 마지막 열림·메일/Drive/GitHub/PlayFab/AdMob/Photon 구성으로 다시 확인했습니다. 업로드 전 번들22개·최신29·코드31 검색0개를 확인한 뒤 사용자가 내부 새 버전12에 수동 업로드했습니다. 이후 [Console 분석·Play APK 정적 검사·기호 첨부](candidate31-console-analysis-20261103.ko.md), 출시 노트/초안 저장·미리보기를 완료하고 사용자 별도 승인 뒤15:22 KST [내부31 제공](internal31-live-20261103.ko.md)을 확인했습니다. 정책 심사 전송·프로덕션은0입니다.
 
 검토용 AAB 사본·checksum·안내는 비공개 Downloads 폴더에 준비했고 원본과 SHA/크기가 같습니다. 서명키·암호·원시 로그·비공개 snapshot은 전달 폴더나 공개 Git에 넣지 않았습니다. 기존 후보30은 손님 보완 전 원본으로 보존했습니다.
 
