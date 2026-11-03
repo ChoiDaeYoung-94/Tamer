@@ -1,6 +1,6 @@
 # 손님 진입의 심사·데이터 안내 준비안 — 미저장
 
-손님 플레이는 [승인된 구현](mixed-audience-login-20261102.ko.md)에 연결하는 후속입니다. **이 안내를 Console에 저장하거나 공개 정책/시행일을 교체한 문서가 아닙니다.** 손님 선택이 없는29/30과 달리 [후보31을 내부 테스터에게 제공](internal31-live-20261103.ko.md)했지만 실제 기기의 정상 Play 설치·운영 동선·심사 계정 권한은 미검증입니다. 아래 문구는 그 확인 뒤 적용합니다.
+손님 플레이는 [승인된 구현](mixed-audience-login-20261102.ko.md)에 연결하는 후속입니다. **이 안내를 Console에 저장하거나 공개 정책/시행일을 교체한 문서가 아닙니다.** 손님 선택이 없는29/30과 달리 [후보31은 내부 제공·정상 Play 설치까지 확인](internal31-live-20261103.ko.md)했지만 LD 첫 실행이 흰 화면이어서 운영 동선·심사 계정 권한은 미검증입니다. [후보32 운영 검증 순서](candidate32-operating-validation-20261103.ko.md)와 같이 실제 제공 화면/계정·연령별 광고를 확인한 뒤 아래 문구를 적용합니다.
 
 Google의 [심사 로그인 세부정보 요건](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en-en)은 재사용 가능한 접근과 Google 등 외부 계정을 쓰는 경우의 구체적인 안내를 요구합니다. [심사 준비 도움말](https://support.google.com/googleplay/android-developer/answer/9859455?hl=en)에 따라 App access의 추가 안내를 맞추되, 현재 저장된 전용 심사 계정의 비밀값을 이 문서에 복제하지 않습니다. 손님 추가만으로 기존 심사 접근 신고를 ‘모든 기능에 특별 접근 불필요’로 바꾸지 않습니다.
 

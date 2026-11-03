@@ -13,6 +13,7 @@ from xml.etree import ElementTree as ET
 from install_bundletool import DEST, SHA256
 from verify_native_alignment import inspect_elf
 from windows_owned_files import LockedFile, locked_directories
+from private_ads_build import ABI_PROFILES, abi_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 ANDROID = '{http://schemas.android.com/apk/res/android}'
@@ -198,23 +199,34 @@ def ensure_output_safe(output, inputs):
         raise ValueError('Output already exists; select a new private report path')
 
 
-def inspect_bundle_libraries(aab):
+def inspect_bundle_libraries(aab, expected_abis=('arm64-v8a',)):
+    expected_abis = tuple(expected_abis)
+    if expected_abis not in (('arm64-v8a',), ('arm64-v8a', 'x86_64')):
+        raise ValueError('Exact reviewed ABI set required')
+    machines = {'arm64-v8a': 183, 'x86_64': 62}
+    observed = {abi: set() for abi in expected_abis}
     libraries=[]
     with zipfile.ZipFile(aab) as archive:
         names=archive.namelist()
         if len(names)!=len(set(names)): raise ValueError('Duplicate AAB ZIP entries')
         for name in names:
             if not name.endswith('.so'): continue
-            if not re.fullmatch(r'[^/]+/lib/arm64-v8a/[^/]+\.so',name):
+            match = re.fullmatch(r'([^/]+)/lib/([^/]+)/([^/]+\.so)', name)
+            if not match or match[2] not in expected_abis:
                 raise ValueError('Unexpected native library path or ABI')
+            abi = match[2]
             result=inspect_elf(archive.read(name))
-            if result['machine'] != 183 or result['bits'] != 64 or result['byteOrder'] != 'little':
-                raise ValueError('Native ELF does not match little-endian ARM64')
-            libraries.append(dict(path=name,loadPassed=result['passed'],relroPassed=result['relroChecksPassed'],
+            if result['machine'] != machines[abi] or result['bits'] != 64 or result['byteOrder'] != 'little':
+                raise ValueError('Native ELF does not match the reviewed little-endian ABI')
+            observed[abi].add((match[1], match[3]))
+            libraries.append(dict(path=name,abi=abi,loadPassed=result['passed'],relroPassed=result['relroChecksPassed'],
                                   relroPresent=result['relroPresent'],relroErrors=result['relroErrors'],
                                   relroLayoutPassed=result['relroLayoutChecksPassed'],
                                   relroLayoutErrors=result['relroLayoutErrors']))
-    if not libraries: raise ValueError('No ARM64 native libraries')
+    if any(not entries for entries in observed.values()):
+        raise ValueError('Required ABI native libraries missing')
+    if any(entries != observed[expected_abis[0]] for entries in observed.values()):
+        raise ValueError('Native library module/name sets differ across ABIs')
     return libraries
 
 
@@ -277,13 +289,14 @@ def validate_manifest(xml, version_code, published_max):
     return {'versionCode':version_code,'minSdk':25,'targetSdk':36,'debuggable':False,'testOnly':False}
 
 
-def candidate_checks(aab, version_code, published_max, certificate, bundletool, java):
+def candidate_checks(aab, version_code, published_max, certificate, bundletool, java, *, abi_profile='arm64'):
     """Bind path-based tool reads to held Windows file objects for this inspection.
 
     Only bundletool has a known digest pin. Holding Java and the signature source
     prevents their replacement during inspection; it does not authenticate a full
     JDK, its dependencies, or provide an ACL boundary against administrators.
     """
+    abi = abi_contract(abi_profile, 'disabled_candidate')
     if not re.fullmatch(r'[0-9a-fA-F]{64}', certificate):
         raise ValueError('Expected certificate SHA-256, not a keystore or password')
     # Preserve path components for the directory locks' reparse checks instead of
@@ -306,15 +319,15 @@ def candidate_checks(aab, version_code, published_max, certificate, bundletool, 
         metadata = validate_manifest(manifest,version_code,published_max)
         signature=json.loads(run([java,signature_source,aab,'--release-cert-sha256',certificate]))
         held[aab].stream.seek(0)
-        libraries=inspect_bundle_libraries(held[aab].stream)
+        libraries=inspect_bundle_libraries(held[aab].stream, abi['expectedAbis'])
         held[aab].stream.seek(0)
         runtime_isolation=inspect_guest_ui_exclusion(held[aab].stream)
         for path, handle in held.items():
             verify_locked_input(path, handle, hashes[path])
-        return dict(schema=2,mode='aab',artifactSha256=hashes[aab],manifest=metadata,signature=signature,
+        return dict(schema=2,mode='aab',**abi,artifactSha256=hashes[aab],manifest=metadata,signature=signature,
                     libraries=libraries,managedRuntimeIsolation=runtime_isolation,
                     artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries) and runtime_isolation['guestUiDiagnosticAbsent'],
-                    artifactCheckScope='AAB bundle validation, base manifest, payload signature, guest UI diagnostic exclusion, ARM64 ELF LOAD and conservative RELRO layout; raw end-modulo remains diagnostic',
+                    artifactCheckScope='AAB bundle validation, base manifest, payload signature, guest UI diagnostic exclusion, exact reviewed ABI set and ELF LOAD/conservative RELRO layout; raw end-modulo remains diagnostic',
                     deliveredApkZipAlignmentVerified=False, arm64NativeRuntimeVerified=False,
                     productionBinary16KBVerified=False,
                     releaseReady=False,unverified=UNVERIFIED,
@@ -332,13 +345,15 @@ def main():
     candidate.add_argument('--published-max-code',type=int,required=True)
     candidate.add_argument('--upload-cert-sha256',required=True)
     candidate.add_argument('--bundletool',type=Path,default=DEST)
+    candidate.add_argument('--abi-profile',choices=ABI_PROFILES,default='arm64')
     candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
     args=parser.parse_args()
     inputs=[ROOT/path for path in SOURCE_INPUTS]+[Path(__file__),ROOT/'tools/revival/VerifyAabSignature.java',
-        ROOT/'tools/revival/install_bundletool.py',ROOT/'tools/revival/verify_native_alignment.py']
+        ROOT/'tools/revival/install_bundletool.py',ROOT/'tools/revival/verify_native_alignment.py',
+        ROOT/'tools/revival/private_ads_build.py']
     if args.mode=='aab': inputs += [args.aab,args.bundletool,args.java]
     ensure_output_safe(args.output,inputs)
-    result=source_checks(ROOT) if args.mode=='source' else candidate_checks(args.aab,args.version_code,args.published_max_code,args.upload_cert_sha256,args.bundletool,args.java)
+    result=source_checks(ROOT) if args.mode=='source' else candidate_checks(args.aab,args.version_code,args.published_max_code,args.upload_cert_sha256,args.bundletool,args.java,abi_profile=args.abi_profile)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     # Exclusive creation also preserves evidence created after the preflight check.
     with args.output.open('x',encoding='utf-8') as report:

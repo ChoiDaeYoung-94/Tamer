@@ -355,6 +355,55 @@ class ReleaseCandidateTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'little-endian'):
                         inspect_bundle_libraries(artifact)
 
+    def test_exact_dual_abi_requires_matching_modules_names_and_elf_machines(self):
+        arm = ('base/lib/arm64-v8a/test.so', elf_fixture())
+        x86 = ('base/lib/x86_64/test.so', elf_fixture(machine=62))
+        cases = [([arm, x86], True), ([arm], False), ([x86], False),
+                 ([arm, (x86[0], arm[1])], False),
+                 ([arm, ('base/lib/x86_64/other.so', x86[1])], False),
+                 ([arm, ('feature/lib/x86_64/test.so', x86[1])], False),
+                 ([arm, x86, ('base/lib/armeabi-v7a/test.so', elf_fixture(bits=32))], False),
+                 ([arm, (x86[0], elf_fixture(machine=62, endian='>'))], False),
+                 ([arm, (x86[0], elf_fixture(machine=3, bits=32))], False)]
+        with tempfile.TemporaryDirectory() as folder:
+            artifact = Path(folder) / 'synthetic.aab'
+            for entries, accepted in cases:
+                with self.subTest(paths=[name for name, _ in entries]):
+                    with zipfile.ZipFile(artifact, 'w') as archive:
+                        for name, raw in entries:
+                            archive.writestr(name, raw)
+                    if accepted:
+                        result = inspect_bundle_libraries(artifact, ['arm64-v8a', 'x86_64'])
+                        self.assertEqual({entry['abi'] for entry in result}, {'arm64-v8a', 'x86_64'})
+                        with self.assertRaises(ValueError):
+                            inspect_bundle_libraries(artifact)  # ARM64 remains the default.
+                    else:
+                        with self.assertRaises(ValueError):
+                            inspect_bundle_libraries(artifact, ['arm64-v8a', 'x86_64'])
+            for abis in [[], ['x86_64'], ['x86_64', 'arm64-v8a'], ['arm64-v8a', 'arm64-v8a']]:
+                with self.subTest(abis=abis), self.assertRaises(ValueError):
+                    inspect_bundle_libraries(artifact, abis)
+
+    def test_candidate_dual_profile_requires_explicit_selection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            artifact = root / 'candidate.aab'
+            with zipfile.ZipFile(artifact, 'w') as archive:
+                archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture())
+                archive.writestr('base/lib/x86_64/test.so', elf_fixture(machine=62))
+                self.synthetic_runtime(archive)
+            with self.synthetic_tools(root) as (bundletool, java, _):
+                with patch('verify_release_candidate.subprocess.check_output', side_effect=['', self.manifest, '{}']):
+                    result = candidate_checks(artifact, 27, 26, '0'*64, bundletool, java,
+                                              abi_profile='internal_dual64')
+                self.assertTrue(result['artifactChecksPassed'])
+                self.assertFalse(result['releaseReady'])
+                self.assertFalse(result['arm64NativeRuntimeVerified'])
+                self.assertEqual(result['expectedAbis'], ['arm64-v8a', 'x86_64'])
+                with patch('verify_release_candidate.subprocess.check_output', side_effect=['', self.manifest, '{}']):
+                    with self.assertRaises(ValueError):
+                        candidate_checks(artifact, 27, 26, '0'*64, bundletool, java)
+
     @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
     def test_candidate_accepts_absent_relro_but_keeps_present_end_and_load_blockers(self):
         cases = [([dict(memsz=4096)], True, False),
@@ -435,9 +484,9 @@ class ReleaseCandidateTests(unittest.TestCase):
             def command(*args, **kwargs):
                 blocked_changes('command')
                 return next(outputs)
-            def native(stream):
+            def native(stream, expected_abis):
                 self.assertFalse(isinstance(stream, (str, Path)))
-                result = inspect_bundle_libraries(stream)
+                result = inspect_bundle_libraries(stream, expected_abis)
                 blocked_changes('after-native')
                 return result
 
