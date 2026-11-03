@@ -32,6 +32,6 @@ QuadDIntro→Login→Main→Game→SetCharacter→NextScene의6개 씬 순서 �
 
 검토용 AAB 사본·checksum·안내는 비공개 Downloads 폴더에 준비했고 원본과 SHA/크기가 같습니다. 서명키·암호·원시 로그·비공개 snapshot은 전달 폴더나 공개 Git에 넣지 않았습니다. 기존 후보30은 손님 보완 전 원본으로 보존했습니다.
 
-strict RELRO 끝주소 modulo 진단은 libc++_shared/libmain/libunity의3개에 남으며 기본 LOAD/보수적 배치6개 통과와 구분합니다. 이 진단만으로 실제 crash를 단정하지 않습니다. Play 생성 범용 APK의 서명·리소스·압축/추출 구성 정적 검사는 통과했지만 모든 split APK·실제16KB/ARM64 시작과 정상 Play 설치는 미검증입니다. 이전 LD의 새 ARM 네 변형 흰 화면도 원인 미확정입니다.
+strict RELRO 끝주소 modulo 진단은 libc++_shared/libmain/libunity의3개에 남으며 기본 LOAD/보수적 배치6개 통과와 구분합니다. 이 진단만으로 실제 crash를 단정하지 않습니다. 후속 [실제 Play 설치31·분할4개 서명/native/리소스 대조](internal31-live-20261103.ko.md)를 확인했으나 사용자 첫 실행은 LD 흰 화면입니다. 실제 ARM64 게임 시작·실물/16KB·전체 운영 기능은 미검증이고 이전 새 ARM 네 변형과 이번 흰 화면의 원인도 미확정입니다.
 
 정상 제공 경로에서 기존/손님 계정 전체 게임·서버 저장/재시작·구매/No Ads 복원·미성년/미상/거절/성인 경로의 실제 광고/SDK 통신·삭제를 확인해야 합니다. 심사 계정 No Ads 권한·App access, 타겟/데이터 보안·공개 개인정보/삭제 안내·최종 UI/스토어와 모든 활성 출시의26 미포함도 남습니다. 실제 내부 제공·정책 심사 전송·프로덕션은 각 승인 범위를 구분합니다. [전체 잔여](remaining-recovery-work.ko.md)

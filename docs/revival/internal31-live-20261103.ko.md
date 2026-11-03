@@ -1,5 +1,19 @@
 # 후보31 내부 테스터 제공 — 2026-11-03
 
+## 최신: 정상 Play 설치 완료·LD 첫 실행 흰 화면
+
+업데이트 승인 회신 뒤16:36 KST 사전 관찰에서 이미 ‘플레이’ 버튼과 **code31/1.0.5·installer/initiator=com.android.vending**을 확인했습니다. 에이전트가 업데이트 버튼을 누른 횟수는0이며 사용자/자동 업데이트 중 실제 주체는 확정하지 않습니다. 기존 UID·데이터 경로·최초 설치 시각은 유지됐고 계정 데이터는 읽거나 복사하지 않았습니다.
+
+실제 전달 분할APK는 base/config.arm64_v8a/gpdeku/gpdeku.config.arm64_v8a의4개이며 전부 현재 Play 인증서 서명을 검증했습니다. 원래 native6개는 AAB31과 바이트 일치하고 추가 libgpdeku1개를 포함한 native7개의 LOAD/보수적RELRO 배치는 통과했습니다. 모두 압축 저장·extractNativeLibs=true이며 원시 ZIP16KB 정렬 통과를 뜻하지 않습니다. strict 끝주소 modulo 진단3개는 그대로이고 실제16KB는 미검증입니다.
+
+광고 설정 payload도 원본과 일치했습니다. 이번 기기에 전달된 base의 minSdk는32/target36이며 원래 AAB와 Console 범용 APK의 min25와 구분합니다. 초기 분석기의 sdkVersion/minSdkVersion 표기 차이는 보존 manifest로 교정한 보충 기록을 남겼습니다. Google의 [생성 APK API](https://developers.google.com/android-publisher/api-ref/rest/v3/generatedapks/list)는 보호 적용 여부와 SDK별 변형을 구분하지만, 이 사실만으로 이번 min32의 원인이나 전체 구형 기기 지원 범위를 확정하지 않습니다.
+
+사용자가16:40 KST에 첫 실행한 뒤 흰 화면을 보고했고 실제 화면/프로세스·135행 로그를 보존했습니다. Unity6000.3.25f1/IL2CPP JNI·GLES3.1·Swappy·오디오 초기화에 도달했으나 게임/로그인 화면은 미관측입니다. 수집 로그의 Java/관리 예외·fatal signal은0이며 완전한 무결함 증거는 아닙니다. 라이선스 서비스 연결/보고 요청은 있지만 완료 verdict는 확인하지 않았습니다.
+
+CPU 관측에서는 Loading.AsyncRe/FMOD stream/AudioTrack3개 스레드가 지속 실행됐습니다. EGL/gspd 문구는 정상 ARM/x86 로그에도 있고 Houdini 만료 안내는 정상 ARM 로그에도 있어 단독 원인으로 사용하지 않습니다. 같은 조건 재실행 없이 CUA의 게임 탭 닫기로 정리하고 프로세스 부재를 확인했습니다. 설치31을 초기화 없이 유지합니다. 다음 [ARM64+x86_64 내부 검증안](candidate32-abi-validation-plan-20261103.ko.md)은 사용자 승인 후 준비 중이며 원인 확정·새 빌드/제공 완료는 아닙니다. 이어 Tamer/관리창을 정상 종료하고 다른 인스턴스/기기0·소유 PID/5037 listener를 대조한 뒤 소유 ADB만 정상 종료했습니다. 소유4신원 잔존0을 확인한 실제 전체 반환은07:59:25 UTC/16:59:25 KST입니다.
+
+아래는 내부 제공·업데이트 전 단계의 이력입니다.
+
 사용자가 후보31의 기존 내부 테스터 제공을 명시 승인한 뒤, 11월3일 **15:22 KST**에 내부 버전12의 ‘저장 및 출시’와 즉시 게시 확인을 실행했습니다. Console에서 **활성·최신 출시 버전31(1.0.5)·내부 테스터에게 제공됨·버전 코드1개**를 확인했습니다. 실제 기기에서 업데이트를 받은 결과와는 구분합니다.
 
 | 범위 | 결과 |
