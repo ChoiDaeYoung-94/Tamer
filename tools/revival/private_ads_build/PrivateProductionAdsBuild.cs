@@ -30,7 +30,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     {
         public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan, RunId, SourceHead, ResourceHash;
         public readonly string AppId, RewardedUnit;
-        public readonly string[] Scenes;
+        public readonly string AbiProfile;
+        public readonly string[] Scenes, ExpectedAbis;
+        public readonly AndroidArchitecture TargetArchitectures;
         public Snapshot(string root)
         {
             RunId = Required("TAMER_PRIVATE_ADS_RUN_ID");
@@ -42,6 +44,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             Output = Required("TAMER_PRIVATE_ADS_OUTPUT");
             Receipt = Required("TAMER_PRIVATE_ADS_RECEIPT");
             ResourceHash = Required("TAMER_PRIVATE_ADS_RESOURCE_SHA256");
+            string profile; string[] abis;
+            TargetArchitectures = ReadArchitectures(out profile, out abis);
+            AbiProfile = profile; ExpectedAbis = abis;
             var raw = File.ReadAllBytes(ConfigPath);
             if (Hash(raw) != ConfigHash) throw Rejected();
             if (approvedProduction || approvedPrivacy)
@@ -88,6 +93,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
 
         public void Apply()
         {
+            string profile; string[] abis;
+            var selectedArchitectures = ReadArchitectures(out profile, out abis);
             var existingKey = Required("TAMER_PRIVATE_ADS_KEYSTORE");
             if (!Path.IsPathRooted(existingKey) || Hash(File.ReadAllBytes(existingKey)) !=
                 Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256")) throw Rejected();
@@ -95,7 +102,7 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             EditorUserBuildSettings.development = false;
             EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
-            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.targetArchitectures = selectedArchitectures;
             PlayerSettings.Android.useCustomKeystore = true;
             PlayerSettings.Android.keystoreName = existingKey;
             PlayerSettings.Android.keyaliasName = Required("TAMER_PRIVATE_ADS_KEY_ALIAS");
@@ -235,6 +242,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             receipt.buildSceneValueMatched = true; receipt.compiledEditorGatesDisabled = !approved && !privacy;
             receipt.binaryVerified = false; receipt.distributable = false;
             receipt.mode = Mode; receipt.approvedBuildContractMatched = approved;
+            receipt.abiProfileVersion = 1; receipt.abiProfile = snapshot.AbiProfile;
+            receipt.expectedAbis = snapshot.ExpectedAbis;
             failureStage = "D11";
             using (var file = new FileStream(snapshot.Receipt, FileMode.CreateNew, FileAccess.Write))
             using (var writer = new StreamWriter(file)) writer.Write(JsonUtility.ToJson(receipt, true));
@@ -347,7 +356,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             EditorUserBuildSettings.buildAppBundle == approvedPrivacy || EditorUserBuildSettings.development ||
             EditorUserBuildSettings.exportAsGoogleAndroidProject ||
             PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) != ScriptingImplementation.IL2CPP ||
-            PlayerSettings.Android.targetArchitectures != AndroidArchitecture.ARM64 ||
+            PlayerSettings.Android.targetArchitectures != snapshot.TargetArchitectures ||
+            !AbiEnvironmentMatches() ||
             !PlayerSettings.Android.useCustomKeystore ||
             (AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed != approvedPrivacy) ||
             (!approvedProduction && !approvedPrivacy && (AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed ||
@@ -482,6 +492,25 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     { return value.StartsWith("TAMER_", StringComparison.Ordinal) ||
         value.IndexOf("TEST", StringComparison.OrdinalIgnoreCase) >= 0 ||
         value.IndexOf("HARNESS", StringComparison.OrdinalIgnoreCase) >= 0 || value == "DEVELOPMENT_BUILD"; }
+    private static AndroidArchitecture ReadArchitectures(out string profile, out string[] abis)
+    {
+        if (Required("TAMER_PRIVATE_ADS_ABI_PROFILE_VERSION") != "1") throw Rejected();
+        profile = Required("TAMER_PRIVATE_ADS_ABI_PROFILE");
+        AndroidArchitecture architectures;
+        if (profile == "arm64")
+        { architectures = AndroidArchitecture.ARM64; abis = new[] { "arm64-v8a" }; }
+        else if (profile == "internal_dual64" && !approvedPrivacy)
+        { architectures = AndroidArchitecture.ARM64 | AndroidArchitecture.X86_64; abis = new[] { "arm64-v8a", "x86_64" }; }
+        else throw Rejected();
+        if (Required("TAMER_PRIVATE_ADS_EXPECTED_ABIS") != string.Join(",", abis)) throw Rejected();
+        return architectures;
+    }
+    private static bool AbiEnvironmentMatches()
+    {
+        string profile; string[] abis;
+        return ReadArchitectures(out profile, out abis) == snapshot.TargetArchitectures &&
+            profile == snapshot.AbiProfile && abis.SequenceEqual(snapshot.ExpectedAbis);
+    }
     private static string Required(string name)
     { var value = Environment.GetEnvironmentVariable(name); if (string.IsNullOrEmpty(value)) throw Rejected(); return value; }
     private static string Hash(byte[] bytes)
@@ -491,8 +520,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     [Serializable] private class Receipt
     {
         public string runId, sourceHead, configSha256, artifactSha256, unityVersion, configuredAndroidDefines,
-            prospectivePlayerDefinePlanSha256, resourceSha256, mode;
-        public int schema, injectedManagers, loginScenes;
+            prospectivePlayerDefinePlanSha256, resourceSha256, mode, abiProfile;
+        public string[] expectedAbis;
+        public int schema, injectedManagers, loginScenes, abiProfileVersion;
         public bool preprocessed, postprocessed, productionContractVerified, buildSceneValueMatched, compiledEditorGatesDisabled,
             approvedBuildContractMatched, binaryVerified, distributable;
     }

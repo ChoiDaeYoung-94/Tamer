@@ -30,9 +30,10 @@ class ProducerTests(unittest.TestCase):
             file.write_bytes(b'synthetic original')
         self.head = 'a' * 40
 
-    def prepare(self):
+    def prepare(self, abi_profile='arm64'):
         result = producer.prepare_plan(self.root, self.config, self.head, 'synthetic', branch='synthetic',
-            preflight_result={'disabledPreparationValid': True, 'configSha256': base.digest(self.config.read_bytes())})
+            preflight_result={'disabledPreparationValid': True, 'configSha256': base.digest(self.config.read_bytes())},
+            abi_profile=abi_profile)
         plan_path = Path(result['plan'])
         return plan_path, result['planSha256'], producer.load_plan(self.root, plan_path, result['planSha256'])
 
@@ -46,6 +47,40 @@ class ProducerTests(unittest.TestCase):
         run = self.root / plan['run']
         producer.write_new(run / 'staged-owned.private.json', producer.encoded(staged))
         return run
+
+    def test_explicit_dual_abi_plan_and_default_arm64(self):
+        for profile, abis in [('arm64', ['arm64-v8a']), ('internal_dual64', ['arm64-v8a', 'x86_64'])]:
+            with self.subTest(profile=profile):
+                _, _, plan = self.prepare(profile)
+                self.assertEqual(plan['abiProfileVersion'], 1)
+                self.assertEqual(plan['abiProfile'], profile)
+                self.assertEqual(plan['expectedAbis'], abis)
+
+    def test_invalid_abi_prepare_rejected_before_private_staging(self):
+        before = set(self.root.rglob('*'))
+        for profile in (None, '', 'x86_64', ['arm64'], 'unknown'):
+            with self.subTest(profile=profile), self.assertRaises(ValueError):
+                self.prepare(profile)
+            self.assertEqual(set(self.root.rglob('*')), before)
+        self.assertEqual(base.abi_contract('internal_dual64', 'approved_adult_release')['expectedAbis'],
+                         ['arm64-v8a', 'x86_64'])
+        with self.assertRaises(ValueError):
+            base.abi_contract('internal_dual64', 'privacy_only_adult')
+
+    def test_missing_tampered_or_noncanonical_abi_plan_rejected(self):
+        path, _, original = self.prepare('internal_dual64')
+        mutations = [{'abiProfileVersion': True}, {'abiProfileVersion': 2}, {'abiProfile': 'x86_64'},
+                     {'expectedAbis': ['x86_64']}, {'expectedAbis': ['x86_64', 'arm64-v8a']},
+                     {'expectedAbis': ['arm64-v8a', 'x86_64', 'x86_64']},
+                     {'expectedAbis': 'arm64-v8a,x86_64'}, {'abiProfile': 'arm64'}]
+        for mutation in mutations + [{key: None} for key in base.abi_contract()]:
+            plan = dict(original, **mutation)
+            for key in mutation:
+                if plan[key] is None:
+                    del plan[key]
+            path.write_bytes(producer.encoded(plan))
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                producer.load_plan(self.root, path, base.digest(path.read_bytes()))
 
     def review_recovery(self, plan, sha, delta, late=None):
         run = self.root / plan['run']
@@ -188,7 +223,7 @@ class ProducerTests(unittest.TestCase):
         self.assertEqual((self.root / 'Build/old.apk').read_bytes(), b'synthetic original')
 
     def test_conditional_single_invocation_retains_staging_and_never_certifies_binary(self):
-        path, sha, plan = self.prepare()
+        path, sha, plan = self.prepare('internal_dual64')
         # Synthetic tool binding only; pinning is mocked and no Editor runs.
         fake_editor = str(self.root / producer.CLI)
         plan['installedTools'] = {'editorExecutable': fake_editor, 'files': {
@@ -199,6 +234,9 @@ class ProducerTests(unittest.TestCase):
         sha = base.digest(path.read_bytes())
         def fake_run(command, *, env, stdout, stderr):
             self.assertEqual(env['TAMER_PRIVATE_ADS_JAVA_SHA256'], 'c' * 64)
+            self.assertEqual(env['TAMER_PRIVATE_ADS_ABI_PROFILE_VERSION'], '1')
+            self.assertEqual(env['TAMER_PRIVATE_ADS_ABI_PROFILE'], plan['abiProfile'])
+            self.assertEqual(env['TAMER_PRIVATE_ADS_EXPECTED_ABIS'], ','.join(plan['expectedAbis']))
             run = self.root / plan['run']
             (run / 'disabled-preparation.aab').write_bytes(b'synthetic callback artifact')
             receipt = {'schema': 1, 'runId': plan['runId'], 'sourceHead': self.head,
@@ -210,6 +248,7 @@ class ProducerTests(unittest.TestCase):
                 'mode': 'disabled_candidate', 'approvedBuildContractMatched': False,
                 'prospectivePlayerDefinePlanSha256': 'b' * 64,
                 'artifactSha256': base.digest((run / 'disabled-preparation.aab').read_bytes())}
+            receipt.update(base.validate_abi_contract(plan))
             producer.write_new(run / 'hook-receipt.json', producer.encoded(receipt))
             producer.write_new(run / 'settings-restoration.json', producer.encoded(
                 {'schema': 1, 'runId': plan['runId'], 'scopedSettingsRestored': True}))
@@ -231,6 +270,10 @@ class ProducerTests(unittest.TestCase):
         self.assertTrue((self.root / plan['run'] / 'actual-delta.private.json').is_file())
         receipt_path = self.root / plan['run'] / 'hook-receipt.json'
         receipt = producer.read_json(receipt_path)
+        for mutation in ({'abiProfile': 'arm64'}, {'expectedAbis': ['x86_64']}, {'abiProfileVersion': True}):
+            receipt_path.write_bytes(producer.encoded(dict(receipt, **mutation)))
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                base.verify_hook_receipt(self.root, plan)
         receipt['resourceSha256'] = '0' * 64
         receipt_path.write_bytes(producer.encoded(receipt))
         with self.assertRaises(ValueError):

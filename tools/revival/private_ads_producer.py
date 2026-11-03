@@ -149,10 +149,11 @@ def resource_bytes(config, root):
 
 
 def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_manifest=None,
-                 mode='disabled_candidate'):
+                 mode='disabled_candidate', abi_profile='arm64'):
     """No subprocess or Assets write; caller supplies the read-only preflight result."""
     if mode not in MODES:
         raise ValueError('Producer mode rejected')
+    abi = base.abi_contract(abi_profile, mode)
     preflight_key = {'disabled_candidate': 'disabledPreparationValid', 'approved_adult_release': 'approvedSourceContractValid', 'privacy_only_adult': 'approvedPrivacySourceContractValid'}[mode]
     if preflight_result.get(preflight_key) is not True:
         raise ValueError('Read-only preflight required')
@@ -208,6 +209,7 @@ def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_
             'hook': hook, 'config': str(config), 'configSha256': preflight_result['configSha256'],
             'resourceSha256': owned[resource]['sha256'], 'before': before, 'owned': owned, 'installedTools': tools,
             'producerPrepared': False, 'binaryVerified': False, 'distributable': False}
+    plan.update(abi)
     file = run / 'plan.private.json'
     write_new(file, encoded(plan))
     return {'plan': str(file), 'planSha256': base.digest(file.read_bytes()),
@@ -225,6 +227,7 @@ def load_plan(root, path, reviewed_sha):
             plan.get('checkout') != str(root) or plan.get('producerPrepared') is not False or
             plan.get('binaryVerified') is not False or plan.get('distributable') is not False):
         raise ValueError('Candidate plan rejected')
+    base.validate_abi_contract(plan)
     if base.safe_path(root, plan['run']) != path.parent:
         raise ValueError('Run path mismatch')
     if (not base.re.fullmatch('[0-9a-f]{32}', plan['runId']) or
@@ -406,6 +409,9 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
         write_new(run / 'staged-owned.private.json', encoded(staged))
         env = {k: v for k, v in os.environ.items() if not k.startswith('TAMER_PRIVATE_ADS_')}
         env.update(TAMER_PRIVATE_ADS_PREPARE='1', TAMER_PRIVATE_ADS_MODE=plan['mode'], TAMER_PRIVATE_ADS_RUN_ID=plan['runId'],
+                   TAMER_PRIVATE_ADS_ABI_PROFILE_VERSION=str(plan['abiProfileVersion']),
+                   TAMER_PRIVATE_ADS_ABI_PROFILE=plan['abiProfile'],
+                   TAMER_PRIVATE_ADS_EXPECTED_ABIS=','.join(plan['expectedAbis']),
                    TAMER_PRIVATE_ADS_SOURCE_HEAD=head, TAMER_PRIVATE_ADS_CONFIG=str(config),
                    TAMER_PRIVATE_ADS_SHA256=plan['configSha256'],
                    TAMER_PRIVATE_ADS_OUTPUT=str(run / artifact_name(plan['mode'])),
@@ -563,6 +569,7 @@ def main():
     parser.add_argument('--source-review', type=Path)
     parser.add_argument('--tool-manifest', type=Path)
     parser.add_argument('--mode', choices=MODES, default='disabled_candidate')
+    parser.add_argument('--abi-profile', choices=base.ABI_PROFILES, default='arm64')
     parser.add_argument('--signing', type=Path)
     parser.add_argument('--allow-unity-build', action='store_true')
     parser.add_argument('--recovery', type=Path)
@@ -581,7 +588,7 @@ def main():
                 pre = base.preflight(root, args.config, args.expected_head, args.editor_version)
             result = prepare_plan(root, args.config, args.expected_head, args.editor_version,
                                   branch=base.git(root, 'branch', '--show-current'), preflight_result=pre,
-                                  tool_manifest=args.tool_manifest, mode=args.mode)
+                                  tool_manifest=args.tool_manifest, mode=args.mode, abi_profile=args.abi_profile)
         elif args.action == 'build-once':
             result = base.execute(root, args.config, args.expected_head, args.editor_version,
                                   plan=args.plan, reviewed_sha256=args.reviewed_plan_sha256,

@@ -118,6 +118,7 @@ class Fixture:
             'installedTools': {'editorExecutable': str(editor), 'manifestSha256': 'e' * 64,
                 'files': {str(editor): {'identity': list(BRIDGE.base.identity(editor)), 'sha256': PREP.sha(editor.read_bytes())}}},
             'producerPrepared': False, 'binaryVerified': False, 'distributable': False}
+        self.plan.update(BRIDGE.base.abi_contract())
         self.plan_path, self.review_path = self.run / 'plan.private.json', self.run / 'source-review.private.json'
         self.review = {'schema': 1, 'sourceHead': self.plan['head'],
             'sourceSha256': {p: entry['sha256'] for p, entry in before.items() if p.startswith('tools/revival/')},
@@ -242,6 +243,22 @@ class PrepareTests(unittest.TestCase):
         self.assertFalse(any(name in p['path'] for p in value['pins'] for name in ('Assets\\', 'ProjectSettings\\', 'Packages\\')))
         self.assertFalse(any((f.run / name).exists() for name in (BRIDGE.CLAIM, BRIDGE.SIGNING, BRIDGE.RESULT)))
         self.assertEqual(set(p.name for p in f.out.iterdir()), {PREP.BINDING_NAME, PREP.MANIFEST_NAME})
+
+    def test_explicit_internal_dual_abi_approved_plan_prepares_without_execution(self):
+        f = self.fixture
+        f.plan.update(BRIDGE.base.abi_contract('internal_dual64', 'approved_adult_release'))
+        f.rewrite_plan()
+        result = f.prepare()
+        self.assertTrue(result['metadataPrepared'])
+        self.assertFalse(result['actualBuildExecuted'])
+        self.assertFalse(result['distributable'])
+        self.assertEqual(f.last_collector.plan['expectedAbis'], ['arm64-v8a', 'x86_64'])
+
+    def test_missing_abi_contract_rejected_before_binding_output(self):
+        f = self.fixture
+        del f.plan['abiProfileVersion']
+        f.rewrite_plan()
+        self.reject()
 
     def test_request_review_bool_is_not_inferred_from_evidence(self):
         for name in ('currentUploadCertificateReviewed', 'existingKeyOwnershipReviewed'):

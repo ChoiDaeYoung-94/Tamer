@@ -1,5 +1,7 @@
 # 단일 입력 서명 launcher
 
+2026-11-03 내부 두 ABI 후보의 명시 프로필은 [구현·검증 기록](../../../docs/revival/candidate32-abi-tools-20261103.ko.md)을 따릅니다. producer 준비 시 기본 `--abi-profile arm64`를 유지하며 승인된 다음 내부 후보에만 `--abi-profile internal_dual64`를 지정합니다. 기존 `approved_adult_release` 광고 계약·이 launcher의 검증/키 입력 경로는 유지합니다. AAB 검사에도 동일 프로필을 명시해야 하며 이전 계획은 새 ABI 계약을 포함한 새 소스맵/HEAD로 다시 준비합니다. 이 설정 자체는 내부 제공·심사·프로덕션 승인이 아닙니다.
+
 검토된 `approved_adult_release` producer용 Windows 연결입니다. 기본 호출은
 암호창과 빌드를 시작하지 않습니다. 실제 운영 입력·서명·빌드·배포 통과는
 이 코드와 합성 검증만으로 선언하지 않습니다. 기존 광고/성인/지역 승인
