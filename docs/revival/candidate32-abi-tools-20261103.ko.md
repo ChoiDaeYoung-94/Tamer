@@ -1,5 +1,7 @@
 # 내부 두 ABI 후보 도구 — 구현·합성 검사
 
+최신 후속: 사용자 직접 입력 후 소스5178b8e에서 [후보32 AAB1회/두 ABI native12·정적 검사·원본 복구](candidate32-built-20261103.ko.md)를 완료했습니다. 아래 ‘새 AAB 없음/입력 차례 보류’는 이전 준비 이력이며 실제 Play 전달·게임/실물ARM64·16KB 검증은 계속 남습니다.
+
 `codex/internal-dual-abi-1103`은 후보31 기록 `166fe46`에서 분리한 다음 내부 후보 준비 브랜치입니다. [승인 범위](candidate32-abi-validation-plan-20261103.ko.md)의 ARM64+x86_64를 명시 프로필 `internal_dual64`로 결합합니다. 새 Android 후보의 실행 성공이나 출시 가능 판정은 아닙니다.
 
 ## 동작
