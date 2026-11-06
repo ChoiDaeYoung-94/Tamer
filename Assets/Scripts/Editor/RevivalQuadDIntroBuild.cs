@@ -12,7 +12,17 @@ public static class RevivalQuadDIntroBuild
 {
     private static string requestDirectory;
     private static bool x86Preview;
-    public static string PreviewManifest(string original) => RevivalGameplayBuild.PlayerRestoreManifest(original);
+    public static string PreviewManifest(string original)
+    {
+        var document = System.Xml.Linq.XDocument.Parse(RevivalGameplayBuild.PlayerRestoreManifest(original));
+        System.Xml.Linq.XNamespace android = "http://schemas.android.com/apk/res/android";
+        System.Xml.Linq.XNamespace tools = "http://schemas.android.com/tools";
+        var app = document.Root.Element("application");
+        // A literal fixture label also wins over localized app_name resources.
+        app.SetAttributeValue(android + "label", "Tamer Intro Check");
+        app.SetAttributeValue(tools + "replace", (string)app.Attribute(tools + "replace") + ",android:label");
+        return document.ToString();
+    }
     public static string X86Template(string original)
     {
         const string pattern = @"(?m)^[ \t]*exclude \('/lib/x86_64/\*' \+ '\*'\)[ \t]*\r?\n";
