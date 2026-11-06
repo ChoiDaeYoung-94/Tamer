@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -119,6 +120,47 @@ public class RevivalQuadDIntroTests
         Assert.That((string)method.Invoke(null, new object[] { prefix + excluded + suffix }), Is.EqualTo(prefix + suffix));
         Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { prefix + suffix }));
         Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { prefix + excluded + excluded + suffix }));
+    }
+
+    [TestCase("com.AeDeong.MonsterTamer.revival.quaddintro")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.quaddintro1106x86")]
+    public void OfflinePreviewDisablesBackupAndRetainsItsBoundaries(string identity)
+    {
+        var builder = Type.GetType("RevivalQuadDIntroBuild, Assembly-CSharp-Editor", true);
+        var method = builder.GetMethod("PreviewManifest", BindingFlags.Public | BindingFlags.Static);
+        const string original = "<manifest xmlns:android='http://schemas.android.com/apk/res/android'>" +
+            "<uses-permission android:name='android.permission.INTERNET'/>" +
+            "<application android:label='keep' android:allowBackup='true' android:fullBackupContent='true'>" +
+            "<provider android:name='com.google.android.gms.ads.MobileAdsInitProvider'/>" +
+            "</application></manifest>";
+        var result = XDocument.Parse((string)method.Invoke(null, new object[] { original }));
+        XNamespace android = "http://schemas.android.com/apk/res/android";
+        XNamespace tools = "http://schemas.android.com/tools";
+        var app = result.Root.Element("application");
+        Assert.That((string)app.Attribute(android + "label"), Is.EqualTo("keep"));
+        Assert.That((string)app.Attribute(android + "allowBackup"), Is.EqualTo("false"));
+        Assert.That((string)app.Attribute(android + "fullBackupContent"), Is.EqualTo("false"));
+        Assert.That((string)app.Attribute(android + "dataExtractionRules"), Is.EqualTo("@xml/tamer_playerrestore_rules"));
+        Assert.That(result.Root.Elements("uses-permission").Count(), Is.EqualTo(7));
+        Assert.That(result.Root.Elements("uses-permission").All(n => (string)n.Attribute(tools + "node") == "remove"), Is.True);
+        Assert.That(app.Elements("provider").Count(), Is.EqualTo(2));
+        Assert.That(app.Elements("provider").All(n => (string)n.Attribute(tools + "node") == "remove"), Is.True);
+
+        var rules = Type.GetType("RevivalGameplayBuild+PlayerRestoreBackupRules, Assembly-CSharp-Editor", true);
+        var supports = rules.GetMethod("SupportsIdentity", BindingFlags.Public | BindingFlags.Static);
+        Assert.That((bool)supports.Invoke(null, new object[] { identity }), Is.True);
+        Assert.That((bool)supports.Invoke(null, new object[] { "com.AeDeong.MonsterTamer" }), Is.False);
+        Assert.That((bool)supports.Invoke(null, new object[] { identity + ".unreviewed" }), Is.False);
+        var gameplay = Type.GetType("RevivalGameplayBuild, Assembly-CSharp-Editor", true);
+        var extraction = XDocument.Parse((string)gameplay.GetMethod("PlayerRestoreExtractionRules").Invoke(null, null));
+        Assert.That(extraction.Root.Name.LocalName, Is.EqualTo("data-extraction-rules"));
+        string[] domains = { "root", "file", "database", "sharedpref", "external", "device_root", "device_file", "device_database", "device_sharedpref" };
+        foreach (string section in new[] { "cloud-backup", "device-transfer" })
+        {
+            var excludes = extraction.Root.Element(section).Elements("exclude").ToArray();
+            Assert.That(excludes.Select(n => (string)n.Attribute("domain")), Is.EquivalentTo(domains));
+            Assert.That(excludes.All(n => (string)n.Attribute("path") == "."), Is.True);
+        }
     }
 
     [TestCase("QuadDIntro", "Assets/QuadD/Scenes/QuadDIntro.unity", true)]

@@ -12,6 +12,7 @@ public static class RevivalQuadDIntroBuild
 {
     private static string requestDirectory;
     private static bool x86Preview;
+    public static string PreviewManifest(string original) => RevivalGameplayBuild.PlayerRestoreManifest(original);
     public static string X86Template(string original)
     {
         const string pattern = @"(?m)^[ \t]*exclude \('/lib/x86_64/\*' \+ '\*'\)[ \t]*\r?\n";
@@ -78,7 +79,7 @@ public static class RevivalQuadDIntroBuild
             unity = Application.unityVersion, scene = RevivalQuadDAndroidProbe.ScenePath };
         try
         {
-            using (var manifest = new RevivalAdHarnessBuild.IsolatedManifestScope(RevivalGameplayBuild.OfflineManifest))
+            using (var manifest = new RevivalAdHarnessBuild.IsolatedManifestScope(PreviewManifest))
             {
                 if (x86Preview)
                     File.WriteAllBytes(templatePath, System.Text.Encoding.UTF8.GetBytes(

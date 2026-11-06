@@ -12,6 +12,10 @@ Editor API로 같은 시작 배경을 적용했습니다. Play/빌드 중이거�
 
 ## 검증 상태
 
+14:46 후속: `b910acf`의 x86 시험 APK 생성은 성공했습니다. 실제 파일은101,348,896bytes/SHA256 `d21a15309491ce077c39b9de9a6c3c75e910ed65e77659bb3d3d9145841a93dc`이며 BuildReport totalSize와 구분합니다. 앱ID/명칭·debug 서명/운영·Play 인증서와 구분·min25/target36·x86_64·오프라인 권한/두 초기 provider 제거·실제 시작 리소스#FF10151C·native6개 LOAD/ZIP/보수적RELRO·원영상88032bytes1회/observer표기를 확인했습니다. raw RELRO끝 진단3개와 실제16KB/운영 실행은 별도입니다.
+
+백업 차단 두 속성이 없다는 정적 gate에서 설치를 보류했습니다. 실제 기기 설치0이며 첫 APK/실패 검사를 보존했습니다. 시험 manifest가 기존 백업 차단/extraction 규칙을 사용하도록 하고 생성 callback의 exact 허용 목록에 Intro 두 ID만 추가했습니다. 운영 ID/임의 접미사는 제외하며 새2사례 검사·캐시 재패키징은 대기입니다. 영상/게임 진입·계정/키 설정의 새 제품 변경은 없습니다. 보호7137개/키/JDK·clean·소유Job0 복구 후05:46:27.672066UTC에 실제 자원을 반환했습니다. 아래는 이전 시도의 기록입니다.
+
 `8ee2b48`에서 단일 CPU1 Editor/CLI 실행1회를 마쳤습니다. 기존10개는 통과했고 새3개는 시험 코드의 UI assembly 이름 지정 오류(TypeLoadException)로 실패했습니다. CLI0/중첩 run_script 실패/실제 NUnit10통과3실패를 구분하며 통과로 처리하지 않았습니다. 설치된 어셈블리에서 UI type을 찾는 기존 프로젝트 방식으로 검사 참조를 고쳤습니다. 다음 차례에는 실패3개와 추가된 x86 격리/패키징 경계2개, 총5개만 재검증하며 기존 성공 전체 검사를 반복하지 않습니다.
 
 Editor 저장 때 URP low/medium 두 파일의 previous-version12→13 및 공백 직렬화가 함께 바뀌었습니다. 최초 복구 gate는 적용 전에 중단했습니다. 정확한 버전/공백 변경과 ProjectSettings의 배경·alias/공백만 검토한 뒤 의도한 배경1필드 외 보호7136개 바이트·원alias/키/JDK 설정을 복구했습니다. Library는 보존했고 Editor0 확인 뒤03:55:09.749885UTC/12:55:09KST에 실제 자원을 반환했습니다. 원래 파일 identity 복원은 주장하지 않습니다.
