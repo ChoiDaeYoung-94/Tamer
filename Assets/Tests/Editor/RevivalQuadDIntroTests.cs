@@ -15,6 +15,9 @@ public class RevivalQuadDIntroTests
     private static object InvokeOutput(Component output, string method, params object[] arguments) =>
         output.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(output, arguments);
 
+    private static Type UiType(string name) => AppDomain.CurrentDomain.GetAssemblies()
+        .Select(assembly => assembly.GetType("UnityEngine.UI." + name)).First(type => type != null);
+
     private static void WithVideoOutput(Action<GameObject, Component, VideoPlayer, Behaviour> verify)
     {
         var preview = EditorSceneManager.NewPreviewScene();
@@ -26,7 +29,7 @@ public class RevivalQuadDIntroTests
             var output = owner.AddComponent(Type.GetType("QuadDIntroCanvasOutput, Assembly-CSharp", true));
             InvokeOutput(output, "Awake");
             var picture = owner.transform.Find("Quad D Video Output/Video");
-            var image = (Behaviour)picture.GetComponent(Type.GetType("UnityEngine.UI.RawImage, Unity.ugui", true));
+            var image = (Behaviour)picture.GetComponent(UiType("RawImage"));
             verify(owner, output, owner.GetComponent<VideoPlayer>(), image);
         }
         finally { EditorSceneManager.ClosePreviewScene(preview); }
@@ -39,7 +42,7 @@ public class RevivalQuadDIntroTests
             Assert.That(image.enabled, Is.False, "A texture-less RawImage must never be visible.");
             Assert.That(image.GetType().GetProperty("texture").GetValue(image), Is.Null);
             var background = owner.transform.Find("Quad D Video Output/Preparation Background");
-            var backdrop = background.GetComponent(Type.GetType("UnityEngine.UI.Image, Unity.ugui", true));
+            var backdrop = background.GetComponent(UiType("Image"));
             Assert.That((Color)backdrop.GetType().GetProperty("color").GetValue(backdrop),
                 Is.EqualTo((Color)new Color32(16, 21, 28, 255)));
             Assert.That((bool)backdrop.GetType().GetProperty("raycastTarget").GetValue(backdrop), Is.False);
@@ -85,6 +88,24 @@ public class RevivalQuadDIntroTests
             Assert.That(owner.GetComponentInChildren<Canvas>(true).enabled, Is.False);
             Assert.That(video.sendFrameReadyEvents, Is.False);
         });
+    }
+
+    [Test]
+    public void X86VideoPreviewRequiresItsOwnIdentityAndCannotLoadLogin()
+    {
+        var type = Type.GetType("RevivalQuadDAndroidProbe, Assembly-CSharp", true);
+        var method = type.GetMethod("SafeX86Scope", BindingFlags.Public | BindingFlags.Static);
+        string app = (string)type.GetField("X86ApplicationId").GetRawConstantValue();
+        string scene = (string)type.GetField("ScenePath").GetRawConstantValue();
+        string destination = (string)type.GetField("Destination").GetRawConstantValue();
+        Func<string, string, int, bool, string, bool> safe = (a, s, n, login, d) =>
+            (bool)method.Invoke(null, new object[] { a, s, n, login, d });
+        Assert.That(safe(app, scene, 1, false, destination), Is.True);
+        Assert.That(safe("com.AeDeong.MonsterTamer", scene, 1, false, destination), Is.False);
+        Assert.That(safe(app, "Assets/Scenes/Login.unity", 1, false, destination), Is.False);
+        Assert.That(safe(app, scene, 2, false, destination), Is.False);
+        Assert.That(safe(app, scene, 1, true, destination), Is.False);
+        Assert.That(safe(app, scene, 1, false, "Login"), Is.False);
     }
 
     [TestCase("QuadDIntro", "Assets/QuadD/Scenes/QuadDIntro.unity", true)]

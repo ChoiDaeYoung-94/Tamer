@@ -35,7 +35,7 @@ public static class QuadDIntroEditor
             oldSplashStillDisabled = !PlayerSettings.SplashScreen.show, scenesUnchanged = true };
     }
 
-    public static object ValidateFirstFrame(string outputDirectory)
+    public static object ValidateFirstFrame(string outputDirectory, bool onlyNewCases = false)
     {
         string directory = Path.GetFullPath(outputDirectory);
         string allowed = Path.GetFullPath(Path.Combine(Root, "Logs/revival/intro-first-frame-1106")) + Path.DirectorySeparatorChar;
@@ -48,11 +48,17 @@ public static class QuadDIntroEditor
         try
         {
             api.RegisterCallbacks(capture);
-            api.Execute(new ExecutionSettings(new Filter { testMode = TestMode.EditMode,
-                testNames = new[] { "RevivalQuadDIntroTests" } }) { runSynchronously = true });
+            string[] names = onlyNewCases ? new[] {
+                "RevivalQuadDIntroTests.PreparingVideoHasNoWhiteImageAndUsesFullScreenIntroBackground",
+                "RevivalQuadDIntroTests.DecodedFrameNotificationStillRequiresAnActualVideoTexture",
+                "RevivalQuadDIntroTests.CompletionCannotBeUndoneByALateVideoFrame",
+                "RevivalQuadDIntroTests.X86VideoPreviewRequiresItsOwnIdentityAndCannotLoadLogin"
+            } : new[] { "RevivalQuadDIntroTests" };
+            api.Execute(new ExecutionSettings(new Filter { testMode = TestMode.EditMode, testNames = names })
+                { runSynchronously = true });
             if (capture.Result == null) throw new InvalidOperationException("The synchronous test run produced no verdict.");
             TestRunnerApi.SaveResultToFile(capture.Result, Path.Combine(directory, "editmode.xml"));
-            if (capture.Result.FailCount != 0 || capture.Result.SkipCount != 0 || capture.Result.PassCount != 13)
+            if (capture.Result.FailCount != 0 || capture.Result.SkipCount != 0 || capture.Result.PassCount != (onlyNewCases ? 4 : 14))
                 throw new InvalidOperationException("Intro tests did not all pass; preserve the XML before investigating.");
             return new { passed = capture.Result.PassCount, failed = capture.Result.FailCount,
                 background = PlayerSettings.SplashScreen.backgroundColor.ToString(), actualPlayerBuilds = 0 };
