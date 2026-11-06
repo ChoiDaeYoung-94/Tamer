@@ -22,7 +22,13 @@ Editor 저장 때 URP low/medium 두 파일의 previous-version12→13 및 공�
 
 CLI/Editor가 먼저 끝난 뒤 남은 소유 컴파일러는 자연 종료했습니다. 생성 시각을 대조해 빌드보다 먼저 실행된 원격 데스크톱 프로세스의 PID 재사용 오분류를 제외했고 해당 프로세스를 조작하지 않았습니다. 변경10개(격리 앱 설정·오프라인 manifest/광고 시험 ID·ABI 패키징·의존성/URP 직렬화)를 각각 검토하고 보호7137개 원본 바이트·키/JDK·clean·소유 프로세스0을 확인했습니다. Library/부분 컴파일 캐시는 보존했고04:36:00.010231UTC/13:36:00KST에 전체 공유 자원을 실제 반환했습니다. 성공 APK가 없어 제안했던 후속 LD 차례는 실행하지 않았습니다.
 
-다음은 다른 프로젝트와 차례를 맞춰 단일 Editor 관련 검사·첫 영상 관측, 필요한 격리 Android APK/LD cold·warm 촬영입니다. 기존 앱 삭제/데이터 초기화·운영 인증/계정 생성·서명키 자동 입력을 하지 않습니다. 수정본 제공 전 실제 APK SHA/설정 복구·소유 실행 종료를 기록합니다. 실제 Android 시작 창과 실물 ARM64/16KB는 각각 별도 검증입니다.
+후속으로 캐시 보존·CPU8/private Windows Job·새 실행 상한을 준비했습니다. 14:00 차례에서는 Editor의 IL 후처리 실행기가 `msquic.dll` 접근 위반(c0000005)으로 종료해 Android 빌드 요청 전 대기했습니다. Windows Application 이벤트와 Library의 실행기 PID를 대조했습니다. DOTNET processor count를8→1로 바꾼 새 Editor에서도 같은 모듈/예외가 재현돼 이 변경만으로 해소되지 않았습니다. 각 Editor의 Android 요청0·APK0이며 최초 네이티브 컴파일 시간 초과1회와 구분합니다.
+
+정상 종료 창/Pipeline이 없는 배치 대기 상태에서 해당 소유 Editor/CLI 신원을 대조해 종료하고 private Job 자식 잔존0을 확인했습니다. 두 후속 시도는 보호7137개 바이트 변경0·키/JDK·clean을 확인했습니다. Library/실패 이벤트는 보존했고 원래14:30 상한을 연장하지 않은 채05:10:56.355443UTC/14:10:56KST에 전체 자원을 조기 반환했습니다. CPU-affinity 제한 방식의 영향은 아직 가설이며 전체 게임이나 Unity 버전 전체의 오류로 확정하지 않습니다.
+
+다음은 설치된 동일 vendor API의 초기화/종료만 호출하는 작은 비교로 강제 Job affinity·개별 process affinity·CPU-rate 제한을 구분하는 것입니다. 이 진단에는 Editor/게임/계정·네트워크 listener/connection을 사용하지 않으며, 아직 미실행입니다. [.NET6.0.18 원문](https://github.com/dotnet/runtime/blob/v6.0.18/src/libraries/System.Net.Quic/src/System/Net/Quic/Implementations/MsQuic/Internal/MsQuicApi.cs)의 API version1 호출과 [MsQuic 공식 API](https://microsoft.github.io/msquic/msquicdocs/docs/api/MsQuicOpenVersion.html)의 Open/Close 짝을 기준으로 준비했습니다. 이 자료만으로 로컬 충돌 원인을 판정하지 않습니다.
+
+진단 후 다른 프로젝트와 새 차례를 맞춰 격리 Android APK/실제 LD cold·warm 첫 영상 관측을 진행합니다. 기존 앱/데이터·운영 인증/계정 생성·서명키는 유지합니다. 수정본 제공 전 실제 APK SHA/설정 복구·소유 실행 종료를 기록합니다. 실제 Android 시작 창과 실물 ARM64/16KB는 각각 별도 검증입니다.
 
 ## Console 인수인계 재확인
 
