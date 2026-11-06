@@ -108,6 +108,19 @@ public class RevivalQuadDIntroTests
         Assert.That(safe(app, scene, 1, false, "Login"), Is.False);
     }
 
+    [Test]
+    public void X86PackagingChangesOnlyItsSingleReviewedExclusion()
+    {
+        var type = Type.GetType("RevivalQuadDIntroBuild, Assembly-CSharp-Editor", true);
+        var method = type.GetMethod("X86Template", BindingFlags.Public | BindingFlags.Static);
+        const string excluded = "      exclude ('/lib/x86_64/*' + '*')\r\n";
+        const string prefix = "packaging {\r\n      exclude ('/lib/armeabi-v7a/*' + '*')\r\n";
+        const string suffix = "      exclude ('/lib/x86/*' + '*')\r\n}\r\n";
+        Assert.That((string)method.Invoke(null, new object[] { prefix + excluded + suffix }), Is.EqualTo(prefix + suffix));
+        Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { prefix + suffix }));
+        Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { prefix + excluded + excluded + suffix }));
+    }
+
     [TestCase("QuadDIntro", "Assets/QuadD/Scenes/QuadDIntro.unity", true)]
     [TestCase("QuadDIntro", "Assets/Unknown/QuadDIntro.unity", false)]
     [TestCase("Main", "Assets/Scenes/Main.unity", false)]

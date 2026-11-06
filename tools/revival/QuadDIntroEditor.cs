@@ -52,13 +52,14 @@ public static class QuadDIntroEditor
                 "RevivalQuadDIntroTests.PreparingVideoHasNoWhiteImageAndUsesFullScreenIntroBackground",
                 "RevivalQuadDIntroTests.DecodedFrameNotificationStillRequiresAnActualVideoTexture",
                 "RevivalQuadDIntroTests.CompletionCannotBeUndoneByALateVideoFrame",
-                "RevivalQuadDIntroTests.X86VideoPreviewRequiresItsOwnIdentityAndCannotLoadLogin"
+                "RevivalQuadDIntroTests.X86VideoPreviewRequiresItsOwnIdentityAndCannotLoadLogin",
+                "RevivalQuadDIntroTests.X86PackagingChangesOnlyItsSingleReviewedExclusion"
             } : new[] { "RevivalQuadDIntroTests" };
             api.Execute(new ExecutionSettings(new Filter { testMode = TestMode.EditMode, testNames = names })
                 { runSynchronously = true });
             if (capture.Result == null) throw new InvalidOperationException("The synchronous test run produced no verdict.");
             TestRunnerApi.SaveResultToFile(capture.Result, Path.Combine(directory, "editmode.xml"));
-            if (capture.Result.FailCount != 0 || capture.Result.SkipCount != 0 || capture.Result.PassCount != (onlyNewCases ? 4 : 14))
+            if (capture.Result.FailCount != 0 || capture.Result.SkipCount != 0 || capture.Result.PassCount != (onlyNewCases ? 5 : 15))
                 throw new InvalidOperationException("Intro tests did not all pass; preserve the XML before investigating.");
             return new { passed = capture.Result.PassCount, failed = capture.Result.FailCount,
                 background = PlayerSettings.SplashScreen.backgroundColor.ToString(), actualPlayerBuilds = 0 };

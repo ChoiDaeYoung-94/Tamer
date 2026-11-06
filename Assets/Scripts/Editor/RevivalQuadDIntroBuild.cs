@@ -12,6 +12,13 @@ public static class RevivalQuadDIntroBuild
 {
     private static string requestDirectory;
     private static bool x86Preview;
+    public static string X86Template(string original)
+    {
+        const string pattern = @"(?m)^[ \t]*exclude \('/lib/x86_64/\*' \+ '\*'\)[ \t]*\r?\n";
+        var matches = System.Text.RegularExpressions.Regex.Matches(original, pattern);
+        if (matches.Count != 1) throw new BuildFailedException("Expected one reviewed x86_64 packaging exclusion.");
+        return original.Remove(matches[0].Index, matches[0].Length);
+    }
     public static object RequestBuild() => RequestBuildForAbi(false);
     public static object RequestX86Build() => RequestBuildForAbi(true);
     private static object RequestBuildForAbi(bool x86)
@@ -54,9 +61,12 @@ public static class RevivalQuadDIntroBuild
     {
         const string settingsPath = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
         const string adsManifestPath = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
-        var files = new[] { settingsPath, settingsPath + ".meta", adsManifestPath, adsManifestPath + ".meta" };
+        const string templatePath = "Assets/Plugins/Android/mainTemplate.gradle";
+        var files = new[] { settingsPath, settingsPath + ".meta", adsManifestPath, adsManifestPath + ".meta",
+            templatePath, templatePath + ".meta" };
         var originals = files.ToDictionary(p => p, File.ReadAllBytes);
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
+        string oldName = PlayerSettings.productName;
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
         string oldAlias = PlayerSettings.Android.keyaliasName;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
@@ -70,10 +80,14 @@ public static class RevivalQuadDIntroBuild
         {
             using (var manifest = new RevivalAdHarnessBuild.IsolatedManifestScope(RevivalGameplayBuild.OfflineManifest))
             {
+                if (x86Preview)
+                    File.WriteAllBytes(templatePath, System.Text.Encoding.UTF8.GetBytes(
+                        X86Template(System.Text.Encoding.UTF8.GetString(originals[templatePath]))));
                 var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(settingsPath));
                 settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
                 settings.ApplyModifiedPropertiesWithoutUndo();
                 PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, applicationId);
+                if (x86Preview) PlayerSettings.productName = "Tamer Intro Check";
                 if (x86Preview) PlayerSettings.Android.targetArchitectures = AndroidArchitecture.X86_64;
                 PlayerSettings.Android.useCustomKeystore = false;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
@@ -100,6 +114,7 @@ public static class RevivalQuadDIntroBuild
         {
             try {
                 PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
+                PlayerSettings.productName = oldName;
                 PlayerSettings.Android.useCustomKeystore = oldKey;
                 PlayerSettings.Android.keyaliasName = oldAlias;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
