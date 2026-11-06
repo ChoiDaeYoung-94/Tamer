@@ -12,6 +12,10 @@ Editor API로 같은 시작 배경을 적용했습니다. Play/빌드 중이거�
 
 ## 검증 상태
 
+15:58 최종 후속: 양측 실제 반환/비충돌·주간28%를 새로 확인하고 긴 실행 대신 내부150초/CLI180초/소유Job210초의 단일 캐시 빌드만 진행했습니다. `77169e2`(검사538c23a 이후 문서3개만 변경)에서 APK 생성이 성공했고 launcher activity의 literal 이름 Tamer Intro Check와 기본 APK 검사를 통과했습니다. 실제 파일119,190,044bytes/SHA256 `1c29310bc9f4929603f7de7bcabaec3ec420a0991bcfd5589a31443dc391c096`이며 BuildReport totalSize와 구분합니다. application의 언어별 이름은 유지하고 실행 activity만 구분합니다. debug/x86_64·min25/target36·오프라인 권한/두 provider 제거·백업 false/전송18제외·#FF10151C·원영상·native6개 LOAD/ZIP/보수적RELRO를 확인했습니다. raw RELRO끝 진단3개와 실제16KB는 별도입니다.
+
+최종 APK/해시/안내를 `C:/Users/user/Downloads/Tamer-intro-check-20261106`에 보관했습니다. **LD/x86_64 인트로 전용**이며 전체 게임 후보가 아닙니다. 새 APK의 설치/실제 cold·resume·warm은 미실행입니다. 보호7137/키/JDK·clean·소유Job0 복구06:57:19.238599UTC와 복사 SHA 확인 뒤 전체 실제 반환06:58:07.142494UTC를 기록했습니다. 주간29%에서 추가 Editor/LD 없이 기록/보고하며 30%초과에 이미 도달한 것으로 표현하지 않습니다. 아래15:50의 최종 APK 미생성은 이 후속 전 체크포인트입니다.
+
 15:50 최종 체크포인트: `d2c9541`의 명칭/백업 경계2/2 뒤 실제 재패키징은 Unity launcher의 application label `@string/app_name`과 시험 library의 literal label 병합 충돌로 실패했습니다. 외부 CLI0·중첩 실패·APK0을 구분합니다. 제어 도구가 추가한 이름 변경 위치의 오류이며 게임/SDK 오류로 확대하지 않습니다. 보호7137/키/JDK·소스 clean·소유Job0 복구는06:47:55.027606UTC에 완료했습니다.
 
 `538c23a`는 application/언어별 리소스를 유지하고 정확한 Unity 실행 activity의 label만 Tamer Intro Check로 한정합니다. 관련2사례는 실제 EditMode2/2·실패/건너뜀0이며 다른 activity 이름 보존과 진입 activity가 없을 때 거부도 확인했습니다. 보호7137/키/JDK·clean·Job/소유실행0 확인 후06:50:37.205808UTC에 전체 자원을 실제 반환했습니다. **마지막 소스의 APK 생성·Android 병합 결과·실제 실행은 미검증**입니다. 주간28% 관측에서 종료 여유를 위해 긴 APK/LD 실행을 추가하지 않고 기록을 마칩니다. 30% 초과에 이미 도달한 것으로 표현하지 않습니다. 아래는 앞선 단계 이력입니다.

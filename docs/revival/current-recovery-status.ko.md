@@ -2,7 +2,7 @@
 
 ## 최신 — 인트로 첫 프레임 보완·Console 인수인계 확인
 
-[인트로 첫 프레임 보완](intro-first-frame-20261106.ko.md)은 관련5/5·백업 경계2/2와 a7eb728의 x86 시험 APK119,190,044bytes 정적 gate 통과/LD 설치까지 완료했습니다. 한국어 이름이 기존 앱과 같아 실제 실행0입니다. d2c9541의 application 명칭 변경은 실제 launcher manifest 병합에서 실패해 APK0으로 보존했습니다. 538c23a는 정확한 Unity 실행 activity만 이름을 바꾸며 관련2/2를 확인했지만 최종 APK/실제 cold·resume·warm은 미검증입니다. 보호7137/키/JDK·clean·소유Job0 후15:50:37KST 실제 반환, 주간28%에서 긴 추가 실행을 보류합니다. PR502 Draft/미병합·기존32원본·계정/저장/구매NoAds/정책·실물ARM64/16KB·최종UI/스토어/신고·심사/프로덕션·출시후 정리 전체 잔여를 유지합니다.
+[인트로 첫 프레임 보완](intro-first-frame-20261106.ko.md)의 첫 프레임/배경 관련5/5 이력과 최종 실행명칭/백업 경계2/2를 확인했습니다. application label 병합 실패/APK0을 보존한 뒤 실행 activity로 범위를 바로잡았고, 77169e2의 짧은 캐시 APK1회·최종 launcher 이름/기본 gate 검사를 통과했습니다. 새 인트로 전용 x86 APK119,190,044bytes/SHA1c29310b…를 다운로드 Tamer-intro-check-20261106에 보관했으며 설치/실제 cold·resume·warm은 미실행입니다. 보호7137/키/JDK·clean·소유Job0·복사 SHA 후15:58:07KST 실제 반환, 주간29%로 추가 실행 없이 기록합니다. PR502 Draft/미병합·기존32원본·계정/저장/구매NoAds/정책·실물ARM64/16KB·최종UI/스토어/신고·심사/프로덕션·출시후 정리 잔여는 유지합니다.
 
 14:17 동일 DLL 비교에서 강제 Job affinity8만 c0000005로 실패했습니다. affinity 대신 CPU-rate25%와 atomic Job 종료 보호를 적용한 뒤 실제 Editor/두 APK 생성이 성공해 이번 실행 제한 방식과의 충돌 해소를 확인했습니다. Unity/게임 전체 오류로 확대하지 않으며 DLL·공용 설정·Library를 보존했습니다.
 
