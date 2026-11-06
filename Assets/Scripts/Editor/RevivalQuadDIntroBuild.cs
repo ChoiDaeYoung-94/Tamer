@@ -16,11 +16,12 @@ public static class RevivalQuadDIntroBuild
     {
         var document = System.Xml.Linq.XDocument.Parse(RevivalGameplayBuild.PlayerRestoreManifest(original));
         System.Xml.Linq.XNamespace android = "http://schemas.android.com/apk/res/android";
-        System.Xml.Linq.XNamespace tools = "http://schemas.android.com/tools";
         var app = document.Root.Element("application");
-        // A literal fixture label also wins over localized app_name resources.
-        app.SetAttributeValue(android + "label", "Tamer Intro Check");
-        app.SetAttributeValue(tools + "replace", (string)app.Attribute(tools + "replace") + ",android:label");
+        // The launcher module owns the application label. Label only our entry
+        // activity so localized app_name resources cannot hide this fixture.
+        var entry = app.Elements("activity").Single(node =>
+            (string)node.Attribute(android + "name") == "com.unity3d.player.UnityPlayerActivity");
+        entry.SetAttributeValue(android + "label", "Tamer Intro Check");
         return document.ToString();
     }
     public static string X86Template(string original)

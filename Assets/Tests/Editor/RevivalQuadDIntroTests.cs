@@ -131,14 +131,21 @@ public class RevivalQuadDIntroTests
         const string original = "<manifest xmlns:android='http://schemas.android.com/apk/res/android'>" +
             "<uses-permission android:name='android.permission.INTERNET'/>" +
             "<application android:label='keep' android:allowBackup='true' android:fullBackupContent='true'>" +
+            "<activity android:name='com.unity3d.player.UnityPlayerActivity' android:label='@string/app_name'/>" +
+            "<activity android:name='UnrelatedActivity' android:label='keep activity'/>" +
             "<provider android:name='com.google.android.gms.ads.MobileAdsInitProvider'/>" +
             "</application></manifest>";
         var result = XDocument.Parse((string)method.Invoke(null, new object[] { original }));
         XNamespace android = "http://schemas.android.com/apk/res/android";
         XNamespace tools = "http://schemas.android.com/tools";
         var app = result.Root.Element("application");
-        Assert.That((string)app.Attribute(android + "label"), Is.EqualTo("Tamer Intro Check"));
-        Assert.That(((string)app.Attribute(tools + "replace")).Split(','), Does.Contain("android:label"));
+        Assert.That((string)app.Attribute(android + "label"), Is.EqualTo("keep"));
+        Assert.That(((string)app.Attribute(tools + "replace")).Split(','), Does.Not.Contain("android:label"));
+        var entry = app.Elements("activity").Single(n => (string)n.Attribute(android + "name") == "com.unity3d.player.UnityPlayerActivity");
+        Assert.That((string)entry.Attribute(android + "label"), Is.EqualTo("Tamer Intro Check"));
+        Assert.That((string)app.Elements("activity").Single(n => (string)n.Attribute(android + "name") == "UnrelatedActivity").Attribute(android + "label"), Is.EqualTo("keep activity"));
+        Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] {
+            original.Replace("com.unity3d.player.UnityPlayerActivity", "MissingEntry") }));
         Assert.That((string)app.Attribute(android + "allowBackup"), Is.EqualTo("false"));
         Assert.That((string)app.Attribute(android + "fullBackupContent"), Is.EqualTo("false"));
         Assert.That((string)app.Attribute(android + "dataExtractionRules"), Is.EqualTo("@xml/tamer_playerrestore_rules"));
