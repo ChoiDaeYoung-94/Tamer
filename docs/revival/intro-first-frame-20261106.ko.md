@@ -26,7 +26,9 @@ CLI/Editor가 먼저 끝난 뒤 남은 소유 컴파일러는 자연 종료했�
 
 정상 종료 창/Pipeline이 없는 배치 대기 상태에서 해당 소유 Editor/CLI 신원을 대조해 종료하고 private Job 자식 잔존0을 확인했습니다. 두 후속 시도는 보호7137개 바이트 변경0·키/JDK·clean을 확인했습니다. Library/실패 이벤트는 보존했고 원래14:30 상한을 연장하지 않은 채05:10:56.355443UTC/14:10:56KST에 전체 자원을 조기 반환했습니다. CPU-affinity 제한 방식의 영향은 아직 가설이며 전체 게임이나 Unity 버전 전체의 오류로 확정하지 않습니다.
 
-다음은 설치된 동일 vendor API의 초기화/종료만 호출하는 작은 비교로 강제 Job affinity·개별 process affinity·CPU-rate 제한을 구분하는 것입니다. 이 진단에는 Editor/게임/계정·네트워크 listener/connection을 사용하지 않으며, 아직 미실행입니다. [.NET6.0.18 원문](https://github.com/dotnet/runtime/blob/v6.0.18/src/libraries/System.Net.Quic/src/System/Net/Quic/Implementations/MsQuic/Internal/MsQuicApi.cs)의 API version1 호출과 [MsQuic 공식 API](https://microsoft.github.io/msquic/msquicdocs/docs/api/MsQuicOpenVersion.html)의 Open/Close 짝을 기준으로 준비했습니다. 이 자료만으로 로컬 충돌 원인을 판정하지 않습니다.
+양측 총괄이 독립 실행의 비충돌을 확인한 뒤14:17에 같은 설치 DLL의 초기화/종료만 호출하는3사례를 비교했습니다. 강제 Job affinity8에서 같은 c0000005가 재현됐고, 초기 process affinity8 및 Job CPU-rate25%는 Open/Close 정상 완료·exit0이었습니다. 개별 process 방식에서는 vendor 초기화가 mask를8개→전체32개로 넓혔습니다. 새 실행 장치의 강제 Job affinity와 vendor 초기화의 충돌을 재현으로 구분했으며 실제 Editor 재시작 해소는 아직 미검증입니다.
+
+이 진단의 Editor/빌드·listener/connection API·공용 설정 변경은0입니다. 각 Job active0·동일 DLL SHA불변과 도구 불변을 확인해05:17:01.485376UTC/14:17:01KST에 실제 반환했습니다. [.NET6.0.18 원문](https://github.com/dotnet/runtime/blob/v6.0.18/src/libraries/System.Net.Quic/src/System/Net/Quic/Implementations/MsQuic/Internal/MsQuicApi.cs)의 API version1과 [MsQuic 공식 API](https://microsoft.github.io/msquic/msquicdocs/docs/api/MsQuicOpenVersion.html)의 Open/Close 짝을 사용했습니다. 다음 전체 실행은 atomic Job/kill-on-close를 유지하면서 강제 affinity 대신 CPU-rate25%를 적용하는 조건으로 새 차례를 잡습니다.
 
 진단 후 다른 프로젝트와 새 차례를 맞춰 격리 Android APK/실제 LD cold·warm 첫 영상 관측을 진행합니다. 기존 앱/데이터·운영 인증/계정 생성·서명키는 유지합니다. 수정본 제공 전 실제 APK SHA/설정 복구·소유 실행 종료를 기록합니다. 실제 Android 시작 창과 실물 ARM64/16KB는 각각 별도 검증입니다.
 
