@@ -2,7 +2,7 @@
 
 ## 최신 — 인트로 첫 프레임 보완·Console 인수인계 확인
 
-[인트로 첫 프레임 보완](intro-first-frame-20261106.ko.md)의 관련5/5에 이어 a7eb728의 백업 경계2/2·캐시 x86 APK 재패키징1회·설치 전 정적 gate를 완료했습니다. APK119,190,044bytes/SHA05c7375d…이며 백업 false/전송18제외·시작색·원영상·debug 서명/native6개 기본 검사를 통과했습니다. 보호7137/키/JDK·clean·Job0 복구 후15:10:23KST 빌드 자원을 반환했습니다. LD 설치는 완료했지만 한국어 명칭이 기존 게임과 같아 모호한 아이콘을 선택하지 않고 실행0/첫 화면 미검증으로 보존했습니다. f4d406a의 시험 명칭 보완2사례·새 APK 검증 후 cold/resume/warm 확인이 다음입니다. LD/관리 창/own ADB 프로세스0·실제 반환15:27:44KST이며, PR502 Draft/미병합과 기존 계정·저장·구매/No Ads·연령별 광고/SDK·삭제·실물 ARM64/16KB·최종 UI/스토어/신고·심사/프로덕션·출시후 정리 잔여를 유지합니다.
+[인트로 첫 프레임 보완](intro-first-frame-20261106.ko.md)은 관련5/5·백업 경계2/2와 a7eb728의 x86 시험 APK119,190,044bytes 정적 gate 통과/LD 설치까지 완료했습니다. 한국어 이름이 기존 앱과 같아 실제 실행0입니다. d2c9541의 application 명칭 변경은 실제 launcher manifest 병합에서 실패해 APK0으로 보존했습니다. 538c23a는 정확한 Unity 실행 activity만 이름을 바꾸며 관련2/2를 확인했지만 최종 APK/실제 cold·resume·warm은 미검증입니다. 보호7137/키/JDK·clean·소유Job0 후15:50:37KST 실제 반환, 주간28%에서 긴 추가 실행을 보류합니다. PR502 Draft/미병합·기존32원본·계정/저장/구매NoAds/정책·실물ARM64/16KB·최종UI/스토어/신고·심사/프로덕션·출시후 정리 전체 잔여를 유지합니다.
 
 14:17 동일 DLL 비교에서 강제 Job affinity8만 c0000005로 실패했습니다. affinity 대신 CPU-rate25%와 atomic Job 종료 보호를 적용한 뒤 실제 Editor/두 APK 생성이 성공해 이번 실행 제한 방식과의 충돌 해소를 확인했습니다. Unity/게임 전체 오류로 확대하지 않으며 DLL·공용 설정·Library를 보존했습니다.
 
