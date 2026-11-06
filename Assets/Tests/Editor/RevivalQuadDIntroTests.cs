@@ -12,6 +12,81 @@ using UnityEngine.Video;
 
 public class RevivalQuadDIntroTests
 {
+    private static object InvokeOutput(Component output, string method, params object[] arguments) =>
+        output.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(output, arguments);
+
+    private static void WithVideoOutput(Action<GameObject, Component, VideoPlayer, Behaviour> verify)
+    {
+        var preview = EditorSceneManager.NewPreviewScene();
+        try
+        {
+            var owner = new GameObject("First video frame fixture");
+            owner.SetActive(false);
+            SceneManager.MoveGameObjectToScene(owner, preview);
+            var output = owner.AddComponent(Type.GetType("QuadDIntroCanvasOutput, Assembly-CSharp", true));
+            InvokeOutput(output, "Awake");
+            var picture = owner.transform.Find("Quad D Video Output/Video");
+            var image = (Behaviour)picture.GetComponent(Type.GetType("UnityEngine.UI.RawImage, Unity.ugui", true));
+            verify(owner, output, owner.GetComponent<VideoPlayer>(), image);
+        }
+        finally { EditorSceneManager.ClosePreviewScene(preview); }
+    }
+
+    [Test]
+    public void PreparingVideoHasNoWhiteImageAndUsesFullScreenIntroBackground()
+    {
+        WithVideoOutput((owner, output, video, image) => {
+            Assert.That(image.enabled, Is.False, "A texture-less RawImage must never be visible.");
+            Assert.That(image.GetType().GetProperty("texture").GetValue(image), Is.Null);
+            var background = owner.transform.Find("Quad D Video Output/Preparation Background");
+            var backdrop = background.GetComponent(Type.GetType("UnityEngine.UI.Image, Unity.ugui", true));
+            Assert.That((Color)backdrop.GetType().GetProperty("color").GetValue(backdrop),
+                Is.EqualTo((Color)new Color32(16, 21, 28, 255)));
+            Assert.That((bool)backdrop.GetType().GetProperty("raycastTarget").GetValue(backdrop), Is.False);
+            var rect = background.GetComponent<RectTransform>();
+            Assert.That(rect.anchorMin, Is.EqualTo(Vector2.zero));
+            Assert.That(rect.anchorMax, Is.EqualTo(Vector2.one));
+            Assert.That(rect.offsetMin, Is.EqualTo(Vector2.zero));
+            Assert.That(rect.offsetMax, Is.EqualTo(Vector2.zero));
+            InvokeOutput(output, "OnFrameReady", video, -1L);
+            InvokeOutput(output, "LateUpdate");
+            Assert.That(image.enabled, Is.False);
+            Assert.That(video.sendFrameReadyEvents, Is.True, "Invalid frames must not end the first-frame wait.");
+        });
+    }
+
+    [Test]
+    public void DecodedFrameNotificationStillRequiresAnActualVideoTexture()
+    {
+        WithVideoOutput((owner, output, video, image) => {
+            var other = new GameObject("Unrelated player").AddComponent<VideoPlayer>();
+            SceneManager.MoveGameObjectToScene(other.gameObject, owner.scene);
+            InvokeOutput(output, "OnFrameReady", other, 0L);
+            Assert.That(video.sendFrameReadyEvents, Is.True);
+            InvokeOutput(output, "OnFrameReady", video, 0L);
+            Assert.That(video.sendFrameReadyEvents, Is.False, "Continuous per-frame events are unnecessary.");
+            InvokeOutput(output, "LateUpdate");
+            Assert.That(image.enabled, Is.False);
+            Assert.That((Color)image.GetType().GetProperty("color").GetValue(image), Is.EqualTo(Color.white),
+                "The decoded picture must retain its original colours.");
+        });
+    }
+
+    [Test]
+    public void CompletionCannotBeUndoneByALateVideoFrame()
+    {
+        WithVideoOutput((owner, output, video, image) => {
+            InvokeOutput(output, "Complete");
+            InvokeOutput(output, "Complete");
+            InvokeOutput(output, "OnFrameReady", video, 0L);
+            InvokeOutput(output, "LateUpdate");
+            Assert.That(image.enabled, Is.False);
+            Assert.That(image.GetType().GetProperty("texture").GetValue(image), Is.Null);
+            Assert.That(owner.GetComponentInChildren<Canvas>(true).enabled, Is.False);
+            Assert.That(video.sendFrameReadyEvents, Is.False);
+        });
+    }
+
     [TestCase("QuadDIntro", "Assets/QuadD/Scenes/QuadDIntro.unity", true)]
     [TestCase("QuadDIntro", "Assets/Unknown/QuadDIntro.unity", false)]
     [TestCase("Main", "Assets/Scenes/Main.unity", false)]
@@ -34,6 +109,7 @@ public class RevivalQuadDIntroTests
         Assert.That(scenes.Any(s => s == "Assets/Tests/Scenes/QuadD/Test.unity"), Is.False);
         Assert.That(PlayerSettings.SplashScreen.show, Is.False);
         Assert.That(PlayerSettings.SplashScreen.logos, Is.Empty);
+        Assert.That(PlayerSettings.SplashScreen.backgroundColor, Is.EqualTo((Color)new Color32(16, 21, 28, 255)));
         var video = AssetDatabase.LoadAssetAtPath<VideoClip>("Packages/com.quadd.intro/Runtime/Resources/QuadD/QuadDIntro.mp4");
         Assert.That(video, Is.Not.Null);
         Assert.That(video.width, Is.EqualTo(1920));

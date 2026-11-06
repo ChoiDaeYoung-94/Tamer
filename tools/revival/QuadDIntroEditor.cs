@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.SceneManagement;
+using UnityEditor.TestTools.TestRunner.Api;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
@@ -20,6 +21,57 @@ public static class QuadDIntroEditor
     public const string PreviewDestination = "RevivalQuadDIntroPreviewNoDestination";
     private static string Root => Directory.GetParent(Application.dataPath).FullName;
     private static string PrivateRoot => Path.Combine(Root, ".revival-local", "quad-d-intro");
+
+    public static object ApplyStartupBackground()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode || BuildPipeline.isBuildingPlayer)
+            throw new InvalidOperationException("Stop playback/building before changing the startup background.");
+        if (EditorBuildSettings.scenes.FirstOrDefault(s => s.enabled)?.path != IntroPath)
+            throw new InvalidOperationException("The production entry must remain the approved intro scene.");
+        var previous = PlayerSettings.SplashScreen.backgroundColor;
+        PlayerSettings.SplashScreen.backgroundColor = new Color32(16, 21, 28, 255);
+        AssetDatabase.SaveAssets();
+        return new { previous = previous.ToString(), current = PlayerSettings.SplashScreen.backgroundColor.ToString(),
+            oldSplashStillDisabled = !PlayerSettings.SplashScreen.show, scenesUnchanged = true };
+    }
+
+    public static object ValidateFirstFrame(string outputDirectory)
+    {
+        string directory = Path.GetFullPath(outputDirectory);
+        string allowed = Path.GetFullPath(Path.Combine(Root, "Logs/revival/intro-first-frame-1106")) + Path.DirectorySeparatorChar;
+        if (!directory.StartsWith(allowed, StringComparison.OrdinalIgnoreCase) || !Directory.Exists(directory) ||
+            File.Exists(Path.Combine(directory, "editmode.xml")))
+            throw new InvalidOperationException("A fresh, private validation directory is required.");
+        ApplyStartupBackground();
+        var api = ScriptableObject.CreateInstance<TestRunnerApi>();
+        var capture = new FirstFrameResults();
+        try
+        {
+            api.RegisterCallbacks(capture);
+            api.Execute(new ExecutionSettings(new Filter { testMode = TestMode.EditMode,
+                testNames = new[] { "RevivalQuadDIntroTests" } }) { runSynchronously = true });
+            if (capture.Result == null) throw new InvalidOperationException("The synchronous test run produced no verdict.");
+            TestRunnerApi.SaveResultToFile(capture.Result, Path.Combine(directory, "editmode.xml"));
+            if (capture.Result.FailCount != 0 || capture.Result.SkipCount != 0 || capture.Result.PassCount != 13)
+                throw new InvalidOperationException("Intro tests did not all pass; preserve the XML before investigating.");
+            return new { passed = capture.Result.PassCount, failed = capture.Result.FailCount,
+                background = PlayerSettings.SplashScreen.backgroundColor.ToString(), actualPlayerBuilds = 0 };
+        }
+        finally
+        {
+            api.UnregisterCallbacks(capture);
+            UnityEngine.Object.DestroyImmediate(api);
+        }
+    }
+
+    private sealed class FirstFrameResults : ICallbacks
+    {
+        public ITestResultAdaptor Result;
+        public void RunStarted(ITestAdaptor test) { }
+        public void RunFinished(ITestResultAdaptor result) { Result = result; }
+        public void TestStarted(ITestAdaptor test) { }
+        public void TestFinished(ITestResultAdaptor result) { }
+    }
 
     // Return before UPM imports scripts/domain reloads; InspectPackage verifies completion.
     public static object Install()
