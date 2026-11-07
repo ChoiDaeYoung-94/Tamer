@@ -28,13 +28,13 @@ namespace AD
                     var candidateStore = new FileDeletionRecoveryStore(path);
                     var candidate = candidateStore.Load();
                     if (candidate == null || !candidate.SubmissionStarted) continue;
-                    if (record != null) { blocked = "Multiple pending requests were found. No account was selected. Records and account data are preserved."; break; }
+                    if (record != null) { blocked = "대기 중인 요청이 여러 개 있어 계정을 선택하지 않았습니다. 요청 기록과 계정 데이터는 보존합니다."; break; }
                     if (candidate.Origin != _origin.AbsoluteUri || candidate.Title != _title ||
                         Path.GetFileName(path) != candidate.OwnerHash + ".json") throw new InvalidDataException();
                     record = candidate; store = candidateStore;
                 }
             }
-            catch (Exception) { blocked = "The saved request could not be read. No request was resent and your data is preserved."; }
+            catch (Exception) { blocked = "저장된 요청을 읽지 못했습니다. 요청을 다시 전송하지 않았으며 데이터는 보존합니다."; }
             if (record == null && blocked == null) return false;
             var root = new GameObject("DeletionReceiptRecovery", typeof(RectTransform), typeof(Canvas),
                 typeof(UnityEngine.UI.CanvasScaler), typeof(UnityEngine.UI.GraphicRaycaster));
@@ -72,20 +72,20 @@ namespace AD
             foreach (var button in new[] { view.RequestButton, view.ConfirmButton, view.SessionConfirmButton, view.CancelButton,
                 view.RetryButton, view.ReauthenticateButton }) button.gameObject.SetActive(false);
             bool receiptOnly = owner != null && owner.ReceiptOnly;
-            view.CloseButton.GetComponentInChildren<TMP_Text>().text = receiptOnly ? "Close recovery" : "Return to sign-in";
+            view.CloseButton.GetComponentInChildren<TMP_Text>().text = receiptOnly ? "복구 화면 닫기" : "로그인 화면으로";
             if (blocked == null && (owner == null || record == null || !owner.CanApplyDeletionReceipt(record)))
-                blocked = "A different account is active or the request binding is unclear. No account credentials or local data were changed.";
+                blocked = "다른 계정이 사용 중이거나 요청의 계정을 확인할 수 없습니다. 계정 인증 정보와 기기 데이터는 변경하지 않았습니다.";
             if (blocked != null)
             {
                 view.Message.text = blocked + (receiptOnly
-                    ? " You may close this screen. Sign-in is unavailable in this recovery session. Restart the app after local handling; this does not confirm deletion or safe rejoining."
-                    : " You may close this screen. Signing in to an existing account can check its own request; this does not confirm deletion or safe rejoining.");
+                    ? " 화면을 닫아도 됩니다. 이 복구 세션에서는 로그인할 수 없습니다. 기기 처리를 마친 뒤 앱을 다시 시작해 주세요. 삭제 완료나 안전한 재가입이 확인된 것은 아닙니다."
+                    : " 화면을 닫아도 됩니다. 기존 계정으로 로그인하면 해당 계정의 요청을 확인할 수 있습니다. 삭제 완료나 안전한 재가입이 확인된 것은 아닙니다.");
                 view.RefreshButton.gameObject.SetActive(false);
                 return;
             }
             _gateway = HttpDeletionGateway.ForSessionConfirmation(origin, s => throw new InvalidOperationException());
             _client = new DeletionReceiptClient(_gateway, new AndroidDeletionReceiptKeys(), store);
-            view.Message.text = "A previous deletion submission was found. Check its receipt without signing in. No deletion will be resent.";
+            view.Message.text = "이전 삭제 요청 전송 기록이 있습니다. 로그인하지 않고 접수 기록을 확인할 수 있습니다. 삭제 요청을 다시 전송하지 않습니다.";
             view.RefreshButton.onClick.AddListener(Check);
         }
 
@@ -102,8 +102,8 @@ namespace AD
                 if (snapshot.State == DeletionState.Accepted || snapshot.State == DeletionState.Cancelled)
                 {
                     _view.Message.text = snapshot.State == DeletionState.Accepted
-                        ? "Your deletion request was accepted. Only matching local account progress may be cleared. This is not confirmation of final erasure."
-                        : "The request was cancelled. No deletion was submitted.";
+                        ? "삭제 요청이 접수되었습니다. 일치하는 계정의 기기 진행도만 정리할 수 있습니다. 최종 삭제 완료가 확인된 것은 아닙니다."
+                        : "요청이 취소되었습니다. 삭제 요청은 전송되지 않았습니다.";
                     try
                     {
                         await _client.FinishAsync(_record, () =>
@@ -115,20 +115,20 @@ namespace AD
                     }
                     catch (Exception)
                     {
-                        if (!_lifetime.IsCancellationRequested) _view.Message.text += " Local handling could not finish. The confirmed receipt is preserved; retry does not submit deletion.";
+                        if (!_lifetime.IsCancellationRequested) _view.Message.text += " 기기 처리를 마치지 못했습니다. 확인된 접수 기록은 보존하며 다시 시도해도 삭제 요청을 전송하지 않습니다.";
                     }
                 }
-                else _view.Message.text = "Acceptance is still unknown or not submitted. Your data is preserved. No request was resent. You may close this screen or check again later.";
+                else _view.Message.text = "접수 여부가 아직 확인되지 않았거나 전송되지 않은 요청입니다. 데이터는 보존하고 요청은 다시 전송하지 않았습니다. 화면을 닫거나 나중에 다시 확인해 주세요.";
             }
             catch (Exception)
             {
                 if (!_lifetime.IsCancellationRequested)
                 {
-                    _view.Message.text = "This receipt cannot be checked now. Access may have expired, the protected key may be missing, or the connection may be unavailable. Acceptance remains unknown; data is preserved. "
+                    _view.Message.text = "지금은 접수 기록을 확인할 수 없습니다. 접근 기한이 지났거나 기기의 확인 정보 또는 연결을 사용할 수 없을 수 있습니다. 접수 여부는 미확인이며 데이터는 보존합니다. "
                         + (_owner != null && _owner.ReceiptOnly
-                            ? "Close this screen to stop. Sign-in is unavailable in this recovery session. Restart the app after local handling. "
-                            : "Close this screen to stop, or sign in explicitly to an existing account to check its request. ")
-                        + "No new account or deletion is created by this recovery.";
+                            ? "화면을 닫아 중단할 수 있습니다. 이 복구 세션에서는 로그인할 수 없습니다. 기기 처리를 마친 뒤 앱을 다시 시작해 주세요. "
+                            : "화면을 닫아 중단하거나 기존 계정으로 직접 로그인해 해당 요청을 확인할 수 있습니다. ")
+                        + "이 복구 과정에서 새 계정이나 삭제 요청을 만들지 않습니다.";
                 }
             }
             finally { _busy = false; if (!_lifetime.IsCancellationRequested) _view.RefreshButton.interactable = true; }

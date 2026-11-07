@@ -856,8 +856,8 @@ namespace AD
             {
                 panel.gameObject.SetActive(false);
                 if (_retryText != null) _retryText.text = _dataOwner != null && _dataOwner.DeletionInProgress
-                    ? "Deletion submission is unresolved. Open account deletion for details or contact doeud1410@gmail.com. No request will be resent."
-                    : "Sign in explicitly to continue.";
+                    ? "삭제 요청의 접수 여부가 미확인 상태입니다. 계정 삭제 화면에서 확인하거나 doeud1410@gmail.com으로 문의해 주세요. 요청을 다시 전송하지 않습니다."
+                    : "계속하려면 직접 로그인해 주세요.";
                 if (_retry != null) _retry.SetActive(true);
             });
             panel.gameObject.AddComponent<DeletionPresenter>().Bind(view);

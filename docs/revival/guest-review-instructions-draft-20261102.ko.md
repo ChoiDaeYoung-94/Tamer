@@ -15,7 +15,7 @@ Google의 [심사 로그인 세부정보 요건](https://support.google.com/goog
 | 선택적 PlayFab 기기정보/이용시간 보고 차단 | 일반 Player 로그인 전에 두 SDK flag를 적용하는 소스 보완/가짜 경계22+9 및 새 Editor96/96·일반 Android scripts68개 컴파일 확인. 실제 제공판 통신 대조 전이며 PGS/다른 SDK 무통신이나 공식 신고 유형 감소로 계산하지 않음 |
 | 연령 차단 자체를 검사할 광고 가능 계정 | No Ads가 없는 계정으로 미성년/성인 둘 다 대조해야 함. No Ads만으로 광고가 안 나온 결과와 구분 |
 | 성인 동의/광고·미성년 및 응답하지 않음 동선 | 최종 제공판에서 새로 확인. 광고 표시 차단과 모든 SDK 처리 중지는 별개 |
-| 메뉴/문구 | 소스 기준 설정 톱니 → `Account & privacy` → `연령대 다시 선택` / `광고 개인정보 설정 확인`. 실제 제공 화면과 최종 대조 |
+| 메뉴/문구 | 최신 소스 기준 설정 톱니 → `계정 및 개인정보` → `연령대 다시 선택` / `광고 개인정보 설정 확인`. 기존 제공31의 영어 `Account & privacy`와 구분하고 최종 제공 화면과 대조 |
 
 ## App access 추가 안내 영문 초안
 
@@ -27,7 +27,7 @@ Google의 [심사 로그인 세부정보 요건](https://support.google.com/goog
 >
 > The guest route creates a server-backed game account without requiring Google game sign-in. It uses the same game features and server-save flow. Reopening the app on the same installation resumes that account. Recovery of progress and purchases after app removal or a device change may be limited. Use a fresh review test device/profile for this route if another game account is already saved; preserve that existing account.
 >
-> After entering the game, the age field is blank. Enter an age and confirm, or select “응답하지 않음” (Prefer not to answer). To change it, open the gear icon, “Account & privacy”, then “연령대 다시 선택” (Choose age again). This stores an age group on the device, not the entered age or date of birth.
+> After entering the game, the age field is blank. Enter an age and confirm, or select “응답하지 않음” (Prefer not to answer). To change it in the next release, open the gear icon, “계정 및 개인정보” (Account and privacy), then “연령대 다시 선택” (Choose age again). This stores an age group on the device, not the entered age or date of birth. The currently delivered version31 still uses the English “Account & privacy” caption; verify these steps against the final submitted version.
 >
 > Users under 18, users of unknown age, and users who decline to answer do not receive ads and can continue playing. Test the under-13, 13–15, and 16–17 groups separately. For the adult ads route, use an account without No Ads, enter 18 or above, complete any privacy choices offered for the region, and use the optional rewarded-buff point in the village. Ads may be unavailable because of consent, connectivity, or ad inventory; this does not block normal gameplay.
 >
