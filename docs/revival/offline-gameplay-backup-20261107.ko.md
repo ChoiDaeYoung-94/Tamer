@@ -1,13 +1,13 @@
-# 기본/PHOTO·캐릭터/인트로 연결 격리 앱의 백업 차단
+# 오프라인 시험 앱의 Android 백업 차단 — 2026-11-07
 
-실물 숫자 키보드 확인용으로 기존 PHOTO APK를 검사하던 중, 해당 APK manifest에 `allowBackup`·`fullBackupContent`·`dataExtractionRules` 차단이 없음을 확인했습니다. 기존 파일과 LD의 시험 데이터는 보존하고 그 APK를 실물폰에 새로 설치하지 않았습니다.
+기존 PHOTO APK 검사에서 allowBackup/fullBackupContent/dataExtractionRules 차단 누락을 발견했습니다. 원본과 LD 시험 자료는 보존하고 해당 APK를 실물폰에 새로 설치하지 않았습니다. 기본/PHOTO 빌드에 기존 백업 차단 manifest를 적용하고, Gradle callback이 기본·캐릭터·인트로 연결 fixture의 정확 ID에서 제외 XML을 만들도록 보완했습니다. 운영 ID와 임의 접미사는 추가 허용하지 않습니다.
 
-`RevivalGameplayBuild`의 기본 gameplay/PHOTO 경로에도 기존 격리용 백업 manifest를 적용하고, 정확한 `.revival.gameplay` 앱 ID에 한해 Gradle callback이 cloud-backup/device-transfer 제외 XML을 기록하도록 보완했습니다. 운영 앱과 임의 접미사 ID는 callback 대상으로 추가하지 않습니다. 기존 운영 manifest 원본·실제 계정/저장·키와 기본 ARM64/min25/target36을 유지합니다.
+source `7c46a32`에서 관련 EditMode48/48(백업 경계11개 포함)을 실제 통과했습니다. 이전 source6aa40c9의42/42(당시 새5개)는 별도 이력으로, 확대 결과와 합산하지 않습니다.
 
-정확 ID 경계와 실제 Gradle callback의 양쪽9개 제외 출력을 확인하는 검사를 추가했습니다. 소스 `6aa40c9`에서 해당 클래스의 EditMode42/42(새 검사5개 포함)를 확인했습니다. 보호7,146파일/키/JDK·두 ADB 옵션의 정확한 원값과 Git clean을 복구했고, Editor 종료 뒤 소유 잔여 자식만 정리해 Job39 active0과 공유 서버 유지 뒤16:50:14KST 실제 반환했습니다.
+새 PHOTO ARM64 APK1회는 BuildReport Succeeded/errors0/warnings88입니다. 원래 controller는 고정 출력 APK까지 보호 원본 목록에 포함한 가드에서 exit1로 중단됐습니다. 실패와 생성된 파일을 보존한 뒤 새 APK를 별도 경로로 복사하고, 추가 빌드 없이 이전 출력과 변경된 설정6개를 정확 복구했습니다. 보호7,146파일 바이트/6,961파일 집합·키/JDK·공유 옵션 원값1/clean·소유 Job0을 대조했습니다. 원래 실패를 정상 종료로 바꾸지 않았습니다. 경고는 기존 SDK deprecated API 등의 항목이며 실제 packaged 인터넷 권한 부재를 별도로 확인했습니다.
 
-후속 준비에서 캐릭터·인트로 연결 fixture의 정확 ID도 callback 목록에 없음을 확인했습니다. Player용 조건부 `ShopPurchaseApplicationId` 별칭에 의존하지 않고 두 ID를 Editor callback에 명시했으며, 두 정확 ID/임의 접미사 거부와 실제 callback 출력까지 검사 범위를 넓혔습니다. 확대 후 EditMode48개는 아직 실행 전입니다. 기존42/42를 확대 후 결과로 계산하지 않습니다.
+실제 패키지는 오프라인 권한/provider 차단, Debug 인증서/Release engine, allowBackup/fullBackupContent=false, cloud/device 양쪽9개·총18개 제외, ARM64/min25/target36 및 native 기본 검사를 통과했습니다. 새 SHA-256은 `ec9c02c897f6054e357f1f9e34a6528b1d37f9bf03f3c40816de8a17915db759`입니다. 고정 Build 출력에는 이전 APK를 복구했으므로 새 산출물과 혼동하지 않습니다.
 
-빌드 요약의 결과·오류/경고 수를 로그에 남기는 Editor 진단도 추가했습니다. 다음 실제 Android 빌드에서 컴파일/출력을 검증합니다. 실행 전이던 PHOTO 준비1은 새 소스 준비로 대체하고 원본/스냅샷을 보존합니다. APK 생성/패키지 검사·실물 빈 입력/숫자 키보드/가림 확인은 아직 준비 중입니다. 나이 값 입력·확인·응답하지 않음 제출은 이 검증에 포함하지 않습니다.
+실물 Samsung SM-N986N/Android13/4KB에서 설치 SHA·선택 ARM64를 확인하고 빈 나이칸의 초점1회→숫자 키보드→뒤로 숨김1회를 확인했습니다. 같은 PID와 빈 원래 안내를 유지했고 입력/확인/거절 버튼이 키보드 위에 표시됐습니다. 나이값/확인/거절/Enter/Done과 실제 인증은0입니다. fixture 진단 overlay가 제목을 가리므로 깨끗한 운영 화면 전체를 확인한 결과로 계산하지 않습니다.
 
-부모 인트로/운영 준비 PR 위의 별도 변경입니다. 실제 검증과 원본/공용 설정 복구 근거를 추가하기 전 Draft로 유지합니다.
+정확 ID callback의 [인트로→로그인 통합 ARM64 APK/실물 세 경로](intro-login-physical-arm64-20261107.ko.md)도 실제 확인했습니다. 원본/GUID·기존 운영 계정/저장/NoAds·키와 기본 ARM64 경계를 보존합니다. 부모 PR502 위의 Draft PR503이며 운영 기능·정책 심사/프로덕션은 별도입니다.
