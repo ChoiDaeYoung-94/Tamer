@@ -108,6 +108,7 @@ public class Item : MonoBehaviour
 
         string itemInfo = $"상품 정보\n" +
             $"- {_itemName}\n" +
+            $"- 가격: {_itemPrice}G\n" +
             $"- {prefix}HP : {dataSource["Hp"]}\n" +
             $"- {prefix}공격력 : {dataSource["Power"]}\n" +
             $"- {prefix}공격 속도 : {dataSource["AttackSpeed"]}\n" +

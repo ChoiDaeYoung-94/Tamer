@@ -150,8 +150,12 @@ public class ShopMan : MonoBehaviour
             }
         }
         _purchasePending = true;
-        ShowPurchaseResult(_isEquipmentItem ? "이 장비를 구매할까요?" : _confirmAllyMessage);
+        ShowPurchaseResult(PurchaseConfirmationMessage());
     }
+
+    private string PurchaseConfirmationMessage() =>
+        (_isEquipmentItem ? "이 장비를 구매할까요?" : _confirmAllyMessage) + "\n" + _currentItemName +
+        "\n가격: " + _currentItemPrice.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + "G";
 
     private void ShowPurchaseResult(string message, bool completed = false)
     {
