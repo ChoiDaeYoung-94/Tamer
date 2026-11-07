@@ -30,6 +30,8 @@ namespace AD
         [SerializeField] private TMPro.TMP_FontAsset _firstEntryFont;
         private TMPro.TMP_FontAsset AccountUiFont => _firstEntryFont != null ? _firstEntryFont :
             _loadingText != null ? _loadingText.font : null;
+        private Material AccountUiMaterial => _nicknameInput != null && _nicknameInput.font == AccountUiFont
+            ? _nicknameInput.fontSharedMaterial : null;
         [SerializeField] private GameObject _retry;
         [Tooltip("재시도 패널에 실패 사유를 표시 (선택 사항, 연결하지 않아도 동작)")]
         [SerializeField] private TMPro.TMP_Text _retryText;
@@ -200,6 +202,8 @@ namespace AD
                 status.GetComponent<UnityEngine.UI.LayoutElement>().flexibleHeight = 1;
                 _receiptOnlyPanel = panel.gameObject;
             }
+            foreach (var label in _receiptOnlyPanel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                SetAccountText(label, label.text);
             _receiptOnlyPanel.transform.SetAsLastSibling();
             _receiptOnlyPanel.SetActive(true); // Informational only: no sign-in, retry or new-account action.
         }
@@ -1298,7 +1302,10 @@ namespace AD
         {
             if (label == null) return;
             var font = AccountUiFont;
+            var material = AccountUiMaterial;
             if (font != null && label.font != font) label.font = font;
+            if (font != null && material != null && label.fontSharedMaterial != material)
+                label.fontSharedMaterial = material;
             label.text = message;
         }
 
@@ -1382,6 +1389,8 @@ namespace AD
                 + "\n\n빈 진행도로 시작하려면 ‘새 게임 시작’을 선택하세요.";
             _signupOfferButton.gameObject.SetActive(true);
             _signupConfirmButton.gameObject.SetActive(false);
+            foreach (var label in _signupPanel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                SetAccountText(label, label.text);
             _signupPanel.SetActive(true);
         }
 
@@ -1472,6 +1481,12 @@ namespace AD
         private void SetNicknameNotice(GameObject panel, string message)
         {
             if (panel == null) return;
+            var background = panel.GetComponent<UnityEngine.UI.Image>();
+            if (background != null)
+            {
+                background.sprite = null;
+                background.color = new Color32(18, 39, 36, 255);
+            }
             foreach (var label in panel.GetComponentsInChildren<TMPro.TMP_Text>(true))
                 SetAccountText(label, label.GetComponentInParent<UnityEngine.UI.Button>(true) != null ? "확인" : message);
         }
