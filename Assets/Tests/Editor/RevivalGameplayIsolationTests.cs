@@ -102,8 +102,12 @@ public class RevivalGameplayIsolationTests
     }
 
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029", true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029", true)]
     [TestCase("com.AeDeong.MonsterTamer", false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay.extra", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029.extra", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029.extra", false)]
     [TestCase(null, false)]
     public void Revival_OfflineGameplayBackupRulesRequireExactFixtureIdentity(string identity, bool expected)
     {
@@ -111,8 +115,10 @@ public class RevivalGameplayIsolationTests
         Assert.That(rules.GetMethod("SupportsIdentity").Invoke(null, new object[] { identity }), Is.EqualTo(expected));
     }
 
-    [Test]
-    public void Revival_OfflineGameplayGradleCallbackWritesCloudAndDeviceTransferExclusions()
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029")]
+    public void Revival_OfflineGameplayGradleCallbackWritesCloudAndDeviceTransferExclusions(string identity)
     {
         var target = UnityEditor.Build.NamedBuildTarget.Android;
         string originalId = UnityEditor.PlayerSettings.GetApplicationIdentifier(target);
@@ -121,7 +127,7 @@ public class RevivalGameplayIsolationTests
         Directory.CreateDirectory(temporary);
         try
         {
-            UnityEditor.PlayerSettings.SetApplicationIdentifier(target, "com.AeDeong.MonsterTamer.revival.gameplay");
+            UnityEditor.PlayerSettings.SetApplicationIdentifier(target, identity);
             var type = Runtime("RevivalGameplayBuild+PlayerRestoreBackupRules");
             type.GetMethod("OnPostGenerateGradleAndroidProject").Invoke(Activator.CreateInstance(type), new object[] { temporary });
             string file = Path.Combine(temporary, "src/main/res/xml/tamer_playerrestore_rules.xml");

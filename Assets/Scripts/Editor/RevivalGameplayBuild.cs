@@ -92,6 +92,8 @@ public static class RevivalGameplayBuild
             identity == RevivalGameplayIsolation.InventoryRestoreApplicationId ||
             identity == RevivalGameplayIsolation.ShopPurchaseApplicationId ||
             identity == RevivalGameplayIsolation.FaceliftUiApplicationId ||
+            identity == RevivalGameplayIsolation.FaceliftCharacterUiApplicationId ||
+            identity == RevivalGameplayIsolation.FaceliftIntroLoginApplicationId ||
             identity == RevivalGameplayIsolation.DeletionGameplayApplicationId ||
             identity == RevivalGameplayIsolation.PrivacyProductUiApplicationId ||
             identity == RevivalDeletionTrialHarness.ApplicationId ||
