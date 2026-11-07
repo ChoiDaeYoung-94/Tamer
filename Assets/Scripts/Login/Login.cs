@@ -1409,7 +1409,12 @@ namespace AD
 
         private void EnsureRetryMessage()
         {
-            if (_retry == null || _retryText != null) return;
+            if (_retry == null) return;
+            if (!_accountDeleted)
+                foreach (var button in _retry.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+                    foreach (var caption in button.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                        SetAccountText(caption, "다시 시도");
+            if (_retryText != null) return;
             // Reuse the prefab's message, never the Retry button caption.
             var existing = _retry.transform.Find("TMP_Contents");
             if (existing != null) _retryText = existing.GetComponent<TMPro.TMP_Text>();
