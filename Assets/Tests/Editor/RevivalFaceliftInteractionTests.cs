@@ -77,6 +77,55 @@ public class RevivalFaceliftInteractionTests
     }
 
     [Test]
+    public void PendingPurchaseRequiresTheExplicitButtonButCompletedResultCanUseTheBackdrop()
+    {
+        var scene = EditorSceneManager.NewPreviewScene();
+        var owner = new GameObject("Inactive shop presentation owner");
+        owner.SetActive(false);
+        SceneManager.MoveGameObjectToScene(owner, scene);
+        var panel = new GameObject("Purchase result backdrop", typeof(RectTransform));
+        SceneManager.MoveGameObjectToScene(panel, scene);
+        try
+        {
+            var shop = owner.AddComponent(Find("ShopMan"));
+            var buttonType = Find("UnityEngine.UI.Button");
+            var backdrop = panel.AddComponent(buttonType);
+            var confirmObject = new GameObject("Explicit confirm", typeof(RectTransform));
+            confirmObject.transform.SetParent(panel.transform, false);
+            var confirm = confirmObject.AddComponent(buttonType);
+            var labelObject = new GameObject("Result text", typeof(RectTransform));
+            labelObject.transform.SetParent(panel.transform, false);
+            var label = labelObject.AddComponent(Find("TMPro.TextMeshProUGUI"));
+            int backdropClicks = 0, confirmClicks = 0;
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(backdrop))
+                .AddListener(() => backdropClicks++);
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(confirm))
+                .AddListener(() => confirmClicks++);
+            var pointer = Activator.CreateInstance(Find("UnityEngine.EventSystems.PointerEventData"), new object[] { null });
+            var click = buttonType.GetMethod("OnPointerClick");
+            shop.GetType().GetField("_afterBuyPanel", Members).SetValue(shop, panel);
+            shop.GetType().GetField("_afterBuyText", Members).SetValue(shop, label);
+            shop.GetType().GetField("_purchasePending", Members).SetValue(shop, true);
+            shop.GetType().GetMethod("ShowPurchaseResult", Members).Invoke(shop, new object[] { "Pending confirmation", false });
+            click.Invoke(backdrop, new[] { pointer });
+            click.Invoke(confirm, new[] { pointer });
+            Assert.That(backdropClicks, Is.Zero, "Touching the background must never confirm a pending purchase.");
+            Assert.That(confirmClicks, Is.EqualTo(1), "The explicit confirmation button must remain usable.");
+
+            shop.GetType().GetField("_purchasePending", Members).SetValue(shop, false);
+            shop.GetType().GetMethod("ShowPurchaseResult", Members).Invoke(shop, new object[] { "Completed result", true });
+            click.Invoke(backdrop, new[] { pointer });
+            Assert.That(backdropClicks, Is.EqualTo(1), "A completed result must retain backdrop dismissal.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(owner);
+            UnityEngine.Object.DestroyImmediate(panel);
+            EditorSceneManager.ClosePreviewScene(scene);
+        }
+    }
+
+    [Test]
     public void BlockingOwnerPreservesTheCompletedResultForRetry()
     {
         WithPopups((shop, popup, info, result, newer) => {

@@ -890,7 +890,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             string price = (string)typeof(Item).GetField("_itemPrice", fields).GetValue(item);
             Require(icon != null && icon.activeInHierarchy && text != null &&
                 text.gameObject.activeInHierarchy && !string.IsNullOrWhiteSpace(price) &&
-                text.text == itemName + "\nPrice - " + price + "G");
+                text.text == itemName + "\n가격: " + price + "G");
             names.Add(itemName);
         }
         string observation = string.Join(",", names.OrderBy(name => name, StringComparer.Ordinal));

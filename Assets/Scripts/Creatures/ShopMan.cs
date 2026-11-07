@@ -21,10 +21,10 @@ public class ShopMan : MonoBehaviour
 
     private string _currentItemName = string.Empty;
     private int _currentItemPrice = 0;
-    private const string _successBuyMessage = "Purchase completed.";
-    private const string _failedBuyMessage = "You don't have enough Gold.";
-    private const string _confirmAllyMessage = "Confirm this ally purchase.";
-    private const string _unavailableAllyMessage = "Purchase could not finish. Sign in again before trying another purchase.";
+    private const string _successBuyMessage = "구매를 완료했습니다.";
+    private const string _failedBuyMessage = "골드가 부족하거나 지금은 구매할 수 없는 상품입니다.";
+    private const string _confirmAllyMessage = "이 동료를 구매할까요?";
+    private const string _unavailableAllyMessage = "구매를 마치지 못했습니다. 다른 구매를 시도하기 전에 기존 계정으로 다시 로그인해 상태를 확인해 주세요.";
 
     public string _currentItemsText = string.Empty;
     public List<string> CurrentItemsList = new List<string>();
@@ -112,6 +112,9 @@ public class ShopMan : MonoBehaviour
         _currentItemName = itemName;
         _currentItemPrice = int.Parse(price);
         _itemInfoText.text = info;
+        foreach (var text in _itemInfoPanel.GetComponentsInChildren<TMP_Text>(true))
+            if (text != _itemInfoText && text.name == "TMP_content") text.text = "선택한 상품을 구매할까요?";
+        SetDialogCaptions(_itemInfoPanel, _itemInfoText, "Btn_yes", "구매하기");
         _isEquipmentItem = isEquipment;
         _itemInfoPanel.SetActive(true);
     }
@@ -147,7 +150,7 @@ public class ShopMan : MonoBehaviour
             }
         }
         _purchasePending = true;
-        ShowPurchaseResult(_isEquipmentItem ? "Confirm this equipment purchase." : _confirmAllyMessage);
+        ShowPurchaseResult(_isEquipmentItem ? "이 장비를 구매할까요?" : _confirmAllyMessage);
     }
 
     private void ShowPurchaseResult(string message, bool completed = false)
@@ -155,7 +158,29 @@ public class ShopMan : MonoBehaviour
         _closeItemInfoOnResult = completed;
         _purchaseResultOpen = true;
         _afterBuyText.text = message;
+        SetDialogCaptions(_afterBuyPanel, _afterBuyText, "Btn_OK", _purchasePending ? "구매 확정" : "확인");
+        // A pending purchase requires the explicit confirmation button, never the backdrop.
+        foreach (var backdrop in _afterBuyPanel.GetComponents<UnityEngine.UI.Button>())
+            backdrop.enabled = !_purchasePending;
         _afterBuyPanel.SetActive(true);
+    }
+
+    private static void SetDialogCaptions(GameObject panel, TMP_Text template, string confirmName, string confirmCaption)
+    {
+        foreach (var button in panel.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+        {
+            string caption = button.name == confirmName ? confirmCaption : button.name == "Btn_no" ? "돌아가기" : null;
+            if (caption == null) continue;
+            foreach (var label in button.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (template != null && template.font != null)
+                {
+                    label.font = template.font;
+                    label.fontSharedMaterial = template.fontSharedMaterial;
+                }
+                label.text = caption;
+            }
+        }
     }
 
     public void CheckSuccessBuy()

@@ -68,7 +68,7 @@ public class Item : MonoBehaviour
         }
 
         if (_isEquipped)
-            itemInfo += "\nEquipped";
+            itemInfo += "\n장착 중";
 
         _itemInfoText.text = itemInfo;
     }
@@ -80,7 +80,7 @@ public class Item : MonoBehaviour
             : AD.Managers.DataM.ItemData[_itemName] as Dictionary<string, object>;
 
         _itemPrice = dataSource["Price"].ToString();
-        return $"{_itemName}\nPrice - {_itemPrice}G";
+        return $"{_itemName}\n가격: {_itemPrice}G";
     }
 
     public void ChooseItem()
@@ -104,14 +104,14 @@ public class Item : MonoBehaviour
             ? AD.Managers.DataM.MonsterData[_creatureType.ToString()] as Dictionary<string, object>
             : AD.Managers.DataM.ItemData[_itemType.ToString()] as Dictionary<string, object>;
 
-        string prefix = _itemType != AD.GameConstants.Items.None ? "Plus " : "";
+        string prefix = _itemType != AD.GameConstants.Items.None ? "추가 " : "";
 
-        string itemInfo = $"Item Info\n" +
+        string itemInfo = $"상품 정보\n" +
             $"- {_itemName}\n" +
             $"- {prefix}HP : {dataSource["Hp"]}\n" +
-            $"- {prefix}Power : {dataSource["Power"]}\n" +
-            $"- {prefix}AttackSpeed : {dataSource["AttackSpeed"]}\n" +
-            $"- {prefix}MoveSpeed : {dataSource["MoveSpeed"]}";
+            $"- {prefix}공격력 : {dataSource["Power"]}\n" +
+            $"- {prefix}공격 속도 : {dataSource["AttackSpeed"]}\n" +
+            $"- {prefix}이동 속도 : {dataSource["MoveSpeed"]}";
 
         ShopMan.Instance.ChooseItem(_itemName, _itemPrice, itemInfo, _isItem);
     }
