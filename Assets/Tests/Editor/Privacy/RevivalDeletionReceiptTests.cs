@@ -160,7 +160,7 @@ public class RevivalDeletionReceiptTests
             var status = (GameObject)Field(Login,"_receiptOnlyPanel");
             Assert.That(status,Is.Not.Null);
             Assert.That(status.activeSelf,Is.True);
-            Assert.That(status.GetComponentsInChildren<UnityEngine.UI.Button>(true),Is.Empty,
+            Assert.That(status.GetComponentsInChildren(Runtime("UnityEngine.UI.Button"),true),Is.Empty,
                 "Receipt-only recovery must show information without authentication or account-creation actions.");
             Assert.That(Field(Login,"_loginCaptured"),Is.EqualTo(false));
             Assert.That(Invoke(Data,"TryUpdateLocalData","Gold","999"),Is.EqualTo(false));
