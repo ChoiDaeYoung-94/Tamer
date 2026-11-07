@@ -84,19 +84,23 @@ public static class RevivalGameplayBuild
     public sealed class PlayerRestoreBackupRules : UnityEditor.Android.IPostGenerateGradleAndroidProject
     {
         public int callbackOrder => 100;
+        public static bool SupportsIdentity(string identity) =>
+            identity == RevivalGameplayIsolation.PlayerRestoreApplicationId ||
+            identity == RevivalGameplayIsolation.AgeChoiceApplicationId ||
+            identity == RevivalGameplayIsolation.SessionApplicationId ||
+            identity == RevivalGameplayIsolation.InventoryRestoreApplicationId ||
+            identity == RevivalGameplayIsolation.ShopPurchaseApplicationId ||
+            identity == RevivalGameplayIsolation.FaceliftUiApplicationId ||
+            identity == RevivalGameplayIsolation.DeletionGameplayApplicationId ||
+            identity == RevivalGameplayIsolation.PrivacyProductUiApplicationId ||
+            identity == RevivalDeletionTrialHarness.ApplicationId ||
+            identity == RevivalDeletionTrialHarness.OnlineApplicationId ||
+            identity == RevivalQuadDAndroidProbe.ApplicationId ||
+            identity == RevivalQuadDAndroidProbe.X86ApplicationId;
         public void OnPostGenerateGradleAndroidProject(string path)
         {
             string identity = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
-            if (identity != RevivalGameplayIsolation.PlayerRestoreApplicationId &&
-                identity != RevivalGameplayIsolation.AgeChoiceApplicationId &&
-                identity != RevivalGameplayIsolation.SessionApplicationId &&
-                identity != RevivalGameplayIsolation.InventoryRestoreApplicationId &&
-                identity != RevivalGameplayIsolation.ShopPurchaseApplicationId &&
-                identity != RevivalGameplayIsolation.FaceliftUiApplicationId &&
-                identity != RevivalGameplayIsolation.DeletionGameplayApplicationId &&
-                identity != RevivalGameplayIsolation.PrivacyProductUiApplicationId &&
-                identity != RevivalDeletionTrialHarness.ApplicationId &&
-                identity != RevivalDeletionTrialHarness.OnlineApplicationId) return;
+            if (!SupportsIdentity(identity)) return;
             string destination = Path.Combine(path, "src/main/res/xml/tamer_playerrestore_rules.xml");
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
             File.WriteAllText(destination, PlayerRestoreExtractionRules());

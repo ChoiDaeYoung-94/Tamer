@@ -9,11 +9,15 @@ using UnityEngine.Video;
 public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
 {
     public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.quaddintro";
+    public const string X86ApplicationId = "com.AeDeong.MonsterTamer.revival.quaddintro1106x86";
     public const string ScenePath = "Assets/Tests/Scenes/QuadDAndroid/Test.unity";
     public const string Destination = "RevivalQuadDAndroidPreviewNoDestination";
 
     public static bool SafeScope(string appId, string scene, int sceneCount, bool loginAvailable, string destination)
         => appId == ApplicationId && scene == ScenePath && sceneCount == 1 && !loginAvailable && destination == Destination;
+
+    public static bool SafeX86Scope(string appId, string scene, int sceneCount, bool loginAvailable, string destination)
+        => appId == X86ApplicationId && SafeScope(ApplicationId, scene, sceneCount, loginAvailable, destination);
 
 #if TAMER_QUAD_D_INTRO_HARNESS
     private VideoPlayer video;
@@ -26,25 +30,50 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
     private bool captured;
     private string captureRenderMode;
     private double nextReceipt;
+    private double awakeSeconds, preparedSeconds = -1, playbackStartedSeconds = -1, decodedSeconds = -1, visibleSeconds = -1;
+    private int visibleBeforeDecode;
+    private UnityEngine.UI.RawImage picture;
 
     private void Awake()
     {
         intro = GetComponent<QuadDIntro>();
-        if (!SafeScope(Application.identifier, gameObject.scene.path, SceneManager.sceneCountInBuildSettings,
-                Application.CanStreamedLevelBeLoaded("Login"), intro.NextSceneName))
+        bool safe = SafeScope(Application.identifier, gameObject.scene.path, SceneManager.sceneCountInBuildSettings,
+                Application.CanStreamedLevelBeLoaded("Login"), intro.NextSceneName);
+#if TAMER_QUAD_D_INTRO_X86_HARNESS
+        safe = SafeX86Scope(Application.identifier, gameObject.scene.path, SceneManager.sceneCountInBuildSettings,
+                Application.CanStreamedLevelBeLoaded("Login"), intro.NextSceneName);
+#endif
+        if (!safe)
         {
             intro.enabled = false;
             enabled = false;
             throw new InvalidOperationException("Unsafe Android preview disabled before playback.");
         }
         video = GetComponent<VideoPlayer>();
+        awakeSeconds = Time.realtimeSinceStartupAsDouble;
+        video.prepareCompleted += Prepared;
+        video.started += PlaybackStarted;
+        video.frameReady += Decoded;
         directory = Path.Combine(Application.persistentDataPath, "quad-d-observation");
         Directory.CreateDirectory(directory);
         intro.OnCompleted.AddListener(Completed);
         WriteReceipt();
     }
+    private void Start() => ScreenCapture.CaptureScreenshot("quad-d-observation/startup-frame.png");
+    private void Prepared(VideoPlayer source) => preparedSeconds = Time.realtimeSinceStartupAsDouble;
+    private void PlaybackStarted(VideoPlayer source) => playbackStartedSeconds = Time.realtimeSinceStartupAsDouble;
+    private void Decoded(VideoPlayer source, long frame)
+    {
+        if (frame >= 0 && decodedSeconds < 0) decodedSeconds = Time.realtimeSinceStartupAsDouble;
+    }
     private void Update()
     {
+        if (picture == null) picture = GetComponentInChildren<UnityEngine.UI.RawImage>(true);
+        if (picture != null && picture.enabled)
+        {
+            if (decodedSeconds < 0) visibleBeforeDecode++;
+            if (visibleSeconds < 0) visibleSeconds = Time.realtimeSinceStartupAsDouble;
+        }
         highest = Math.Max(highest, video.frame);
         if (video.isPlaying) {
             // Observe the listener without inserting a DSP filter on the shared
@@ -78,16 +107,29 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
             captureRenderMode = captureRenderMode, audioSamples = samples, audioPeak = peak,
             videoPlaying = video.isPlaying, audioPlaying = GetComponent<AudioSource>().isPlaying,
             loadedScenes = SceneManager.sceneCount, loginAvailable = Application.CanStreamedLevelBeLoaded("Login"),
-            pauses = pauses, resumes = resumes };
+            pauses = pauses, resumes = resumes, awakeSeconds = awakeSeconds, preparedSeconds = preparedSeconds,
+            playbackStartedSeconds = playbackStartedSeconds, firstDecodedSeconds = decodedSeconds,
+            firstVisibleSeconds = visibleSeconds, visibleBeforeDecode = visibleBeforeDecode };
         File.WriteAllText(Path.Combine(directory, "observation.json"), JsonUtility.ToJson(value, true));
     }
-    private void OnDestroy() { if (intro != null) intro.OnCompleted.RemoveListener(Completed); }
+    private void OnDestroy()
+    {
+        if (intro != null) intro.OnCompleted.RemoveListener(Completed);
+        if (video != null)
+        {
+            video.prepareCompleted -= Prepared;
+            video.started -= PlaybackStarted;
+            video.frameReady -= Decoded;
+        }
+    }
     [Serializable] private class Receipt {
         public string appId, scene, captureRenderMode;
         public long highestFrame, audioSamples;
         public float audioPeak;
         public int completionCount, loadedScenes, pauses, resumes;
         public bool screenshotRequested, videoPlaying, audioPlaying, loginAvailable;
+        public double awakeSeconds, preparedSeconds, playbackStartedSeconds, firstDecodedSeconds, firstVisibleSeconds;
+        public int visibleBeforeDecode;
     }
 #else
     private void Awake()
