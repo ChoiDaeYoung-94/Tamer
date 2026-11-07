@@ -28,6 +28,8 @@ namespace AD
         [SerializeField] private GameObject _loading;
         [SerializeField] private TMPro.TMP_Text _loadingText;
         [SerializeField] private TMPro.TMP_FontAsset _firstEntryFont;
+        private TMPro.TMP_FontAsset AccountUiFont => _firstEntryFont != null ? _firstEntryFont :
+            _loadingText != null ? _loadingText.font : null;
         [SerializeField] private GameObject _retry;
         [Tooltip("재시도 패널에 실패 사유를 표시 (선택 사항, 연결하지 않아도 동작)")]
         [SerializeField] private TMPro.TMP_Text _retryText;
@@ -142,7 +144,7 @@ namespace AD
                     RevivalDeletionGameplayHarness.Identity(RevivalDeletionGameplayHarness.AccountA));
             })) return;
 #endif
-            if (DeletionReceiptBootstrap.TryOpen(transform, _loadingText != null ? _loadingText.font : null, () =>
+            if (DeletionReceiptBootstrap.TryOpen(transform, AccountUiFont, () =>
             {
                 _receiptRecoverySignIn = true;
                 if (_dataOwner != null && _dataOwner.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
@@ -852,7 +854,7 @@ namespace AD
             panel.offsetMin = panel.offsetMax = Vector2.zero;
             panel.gameObject.SetActive(false);
             var view = panel.gameObject.AddComponent<DeletionView>();
-            view.Build(_loadingText != null ? _loadingText.font : null, () =>
+            view.Build(AccountUiFont, () =>
             {
                 panel.gameObject.SetActive(false);
                 if (_retryText != null) _retryText.text = _dataOwner != null && _dataOwner.DeletionInProgress
