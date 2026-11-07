@@ -144,7 +144,8 @@ namespace AD
         {
             SetHealMessage(GoogleAdMobM.HasNoAds ? "체력을 회복할까요?"
                 : GoogleAdMobM.CanRequestAds ? "광고를 시청하고 체력을 회복할까요?"
-                : "지금은 광고 회복을 이용할 수 없습니다.\n게임은 계속할 수 있습니다.");
+                : "광고 회복을 이용할 수 없습니다.\n게임은 계속할 수 있습니다.",
+                GoogleAdMobM.HasNoAds || GoogleAdMobM.CanRequestAds);
             _popupHeal.SetActive(true);
         }
 
@@ -195,7 +196,7 @@ namespace AD
 
         private GoogleAdMobManager GoogleAdMobM => Managers.GoogleAdMobM;
 
-        private void SetHealMessage(string message)
+        private void SetHealMessage(string message, bool canHeal)
         {
             if (_healMessage == null && _popupHeal != null)
                 foreach (var text in _popupHeal.GetComponentsInChildren<TMP_Text>(true))
@@ -208,8 +209,15 @@ namespace AD
             _healMessage.text = message;
             foreach (var button in _popupHeal.GetComponentsInChildren<UnityEngine.UI.Button>(true))
             {
-                string caption = button.name == "Btn_ok" ? "회복" : button.name == "Btn_cancel" ? "돌아가기" : null;
+                bool healAction = button.name == "Btn_ok";
+                string caption = healAction ? canHeal ? "회복" : "이용 불가" : button.name == "Btn_cancel" ? "돌아가기" : null;
                 if (caption == null) continue;
+                if (healAction)
+                {
+                    button.interactable = canHeal;
+                    var image = button.targetGraphic as UnityEngine.UI.Image;
+                    if (image != null) image.color = canHeal ? new Color32(237, 191, 100, 255) : new Color32(50, 80, 70, 255);
+                }
                 foreach (var label in button.GetComponentsInChildren<TMP_Text>(true))
                 {
                     if (_healMessage.font != null)
@@ -217,6 +225,7 @@ namespace AD
                         label.font = _healMessage.font;
                         label.fontSharedMaterial = _healMessage.fontSharedMaterial;
                     }
+                    if (healAction) label.color = canHeal ? new Color32(18, 39, 36, 255) : new Color32(246, 241, 221, 255);
                     label.text = caption;
                 }
             }
@@ -263,10 +272,11 @@ namespace AD
             {
                 if (outcome == RewardedAdOutcome.Rewarded || this == null) return;
                 SetHealMessage(outcome == RewardedAdOutcome.PolicyBlocked
-                    ? "지금은 광고 회복을 이용할 수 없습니다.\n게임은 계속할 수 있습니다."
+                    ? "광고 회복을 이용할 수 없습니다.\n게임은 계속할 수 있습니다."
                     : outcome == RewardedAdOutcome.Cancelled
                         ? "광고를 닫았습니다.\n게임은 계속할 수 있습니다."
-                        : "광고가 아직 준비되지 않았습니다.\n잠시 후 다시 시도해 주세요.");
+                        : "광고가 아직 준비되지 않았습니다.\n잠시 후 다시 시도해 주세요.",
+                    GoogleAdMobM.HasNoAds || GoogleAdMobM.CanRequestAds);
                 _popupHeal.SetActive(true);
             });
         }

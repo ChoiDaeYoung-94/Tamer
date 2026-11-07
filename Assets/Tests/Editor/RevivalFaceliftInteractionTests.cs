@@ -126,6 +126,49 @@ public class RevivalFaceliftInteractionTests
     }
 
     [Test]
+    public void UnavailableHealingBlocksTheActionButKeepsBackAndRestoresAvailableInput()
+    {
+        var scene = EditorSceneManager.NewPreviewScene();
+        var root = new GameObject("Healing UI fixture");
+        SceneManager.MoveGameObjectToScene(root, scene);
+        try
+        {
+            var owner = new GameObject("Inactive presentation owner"); owner.transform.SetParent(root.transform, false); owner.SetActive(false);
+            var popup = owner.AddComponent(Find("AD.PopupManager"));
+            var panel = new GameObject("Healing panel", typeof(RectTransform)); panel.transform.SetParent(root.transform, false);
+            var textType = Find("TMPro.TextMeshProUGUI");
+            var bodyObject = new GameObject("TMP_content", typeof(RectTransform)); bodyObject.transform.SetParent(panel.transform, false);
+            var body = bodyObject.AddComponent(textType);
+            var font = UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Fonts/DungGeunMo SDF.asset", Find("TMPro.TMP_FontAsset"));
+            Assert.That(font, Is.Not.Null); textType.GetProperty("font").SetValue(body, font);
+            textType.GetProperty("fontSharedMaterial").SetValue(body, UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Branding/DungGeunMo-Facelift.mat"));
+            var buttonType = Find("UnityEngine.UI.Button");
+            Component Button(string name)
+            {
+                var go = new GameObject(name, typeof(RectTransform)); go.transform.SetParent(panel.transform, false);
+                var button = go.AddComponent(buttonType);
+                var label = new GameObject("Caption", typeof(RectTransform)); label.transform.SetParent(go.transform, false); label.AddComponent(textType);
+                return button;
+            }
+            var heal = Button("Btn_ok"); var back = Button("Btn_cancel"); int heals = 0, backs = 0;
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(heal)).AddListener(() => heals++);
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(back)).AddListener(() => backs++);
+            popup.GetType().GetField("_popupHeal", Members).SetValue(popup, panel);
+            var render = popup.GetType().GetMethod("SetHealMessage", Members);
+            var pointer = Activator.CreateInstance(Find("UnityEngine.EventSystems.PointerEventData"), new object[] { null });
+            var click = buttonType.GetMethod("OnPointerClick");
+            render.Invoke(popup, new object[] { "Unavailable", false });
+            click.Invoke(heal, new[] { pointer }); click.Invoke(back, new[] { pointer });
+            Assert.That(heals, Is.Zero, "An unavailable action must not accept a pointer click.");
+            Assert.That(backs, Is.EqualTo(1), "Returning to gameplay must remain available.");
+            render.Invoke(popup, new object[] { "Available", true });
+            click.Invoke(heal, new[] { pointer });
+            Assert.That(heals, Is.EqualTo(1), "A later available or No Ads prompt must restore the same action.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(root); EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
+    [Test]
     public void BlockingOwnerPreservesTheCompletedResultForRetry()
     {
         WithPopups((shop, popup, info, result, newer) => {

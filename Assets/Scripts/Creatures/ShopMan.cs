@@ -24,7 +24,7 @@ public class ShopMan : MonoBehaviour
     private const string _successBuyMessage = "구매를 완료했습니다.";
     private const string _failedBuyMessage = "골드가 부족하거나 지금은 구매할 수 없는 상품입니다.";
     private const string _confirmAllyMessage = "이 동료를 구매할까요?";
-    private const string _unavailableAllyMessage = "구매를 마치지 못했습니다. 다른 구매를 시도하기 전에 기존 계정으로 다시 로그인해 상태를 확인해 주세요.";
+    private const string _unavailableAllyMessage = "구매를 마치지 못했습니다.\n다시 구매하기 전에 기존 계정으로\n로그인해 구매 상태를 확인해 주세요.";
 
     public string _currentItemsText = string.Empty;
     public List<string> CurrentItemsList = new List<string>();
