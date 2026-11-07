@@ -83,6 +83,7 @@ namespace AD
         private TMPro.TMP_Text _signupMessage;
         private UnityEngine.UI.Button _signupOfferButton;
         private UnityEngine.UI.Button _signupConfirmButton;
+        private GameObject _receiptOnlyPanel;
         private readonly LoginGuestEntryGate _firstEntry = new LoginGuestEntryGate();
         // Survives Login scene recreation after an uncertain PlayerPrefs write.
         private static readonly LoginGuestIdentityPreparation GuestIdentities = new LoginGuestIdentityPreparation();
@@ -175,13 +176,32 @@ namespace AD
         {
             _receiptRecoverySignIn = true;
             _googleSignup.Revoke(); _signupCandidateIdentity = null;
-            if (_loading != null) _loading.SetActive(true); // Keep the existing status text visible; this panel has no sign-in action.
+            if (_loading != null) _loading.SetActive(false);
             if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
             if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_retry != null) _retry.SetActive(false);
             const string message = "게임 데이터 복구가 필요합니다. 기존 삭제 요청의 접수 기록만 확인할 수 있습니다. 기기 처리를 마친 뒤 앱을 다시 시작해 주세요. 로그인이나 새 계정 생성은 시작하지 않습니다.";
             SetAccountText(_loadingText, message);
             SetAccountText(_retryText, message);
+            if (_receiptOnlyPanel == null)
+            {
+                var panel = DeletionView.Rect("ReceiptOnlyStatus", transform);
+                panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
+                panel.offsetMin = panel.offsetMax = Vector2.zero;
+                panel.gameObject.AddComponent<UnityEngine.UI.Image>().color = new Color32(18, 39, 36, 255);
+                var content = DeletionView.Rect("Content", panel);
+                content.anchorMin = new Vector2(.1f, .25f); content.anchorMax = new Vector2(.9f, .75f);
+                content.offsetMin = content.offsetMax = Vector2.zero;
+                var layout = content.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+                layout.spacing = 32; layout.childControlWidth = layout.childControlHeight = true;
+                layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
+                DeletionView.Label("Title", content, "계정 복구 안내", AccountUiFont, 42, 80);
+                var status = DeletionView.Label("Message", content, message, AccountUiFont, 32, 240);
+                status.GetComponent<UnityEngine.UI.LayoutElement>().flexibleHeight = 1;
+                _receiptOnlyPanel = panel.gameObject;
+            }
+            _receiptOnlyPanel.transform.SetAsLastSibling();
+            _receiptOnlyPanel.SetActive(true); // Informational only: no sign-in, retry or new-account action.
         }
 
         private void OnDestroy()
@@ -1284,6 +1304,7 @@ namespace AD
 
         private void ShowLoading(string message)
         {
+            if (_receiptOnlyPanel != null) _receiptOnlyPanel.SetActive(false);
             if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_retry != null) _retry.SetActive(false);
             if (_loading != null) _loading.SetActive(true);
@@ -1300,6 +1321,7 @@ namespace AD
             _operations.ResetForRetry();
             LogStep($"재시도 패널 노출 -> {message}");
 
+            if (_receiptOnlyPanel != null) _receiptOnlyPanel.SetActive(false);
             if (_loading != null) _loading.SetActive(false);
             if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
             if (_retry != null) _retry.SetActive(true);
@@ -1424,7 +1446,29 @@ namespace AD
         private void ShowNicknamePanel()
         {
             SetAccountText(_loadingText, "닉네임을 정해 주세요.");
-            if (_nicknamePanel != null) _nicknamePanel.SetActive(true);
+            if (_loading != null) _loading.SetActive(false);
+            if (_nicknamePanel != null)
+            {
+                foreach (var label in _nicknamePanel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                    SetAccountText(label, label.text);
+                var title = _nicknamePanel.transform.Find("TMP_Content");
+                if (title != null) SetAccountText(title.GetComponent<TMPro.TMP_Text>(), "닉네임을 정해 주세요.");
+                var input = _nicknamePanel.GetComponentInChildren<TMPro.TMP_InputField>(true);
+                if (input != null && input.placeholder is TMPro.TMP_Text placeholder)
+                    SetAccountText(placeholder, "닉네임을 입력하세요");
+                foreach (var button in _nicknamePanel.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+                    foreach (var label in button.GetComponentsInChildren<TMPro.TMP_Text>(true)) SetAccountText(label, "확인");
+                _nicknamePanel.SetActive(true);
+            }
+            SetNicknameNotice(_nicknameRulePanel, "공백 없이 3~20자로 입력해 주세요.");
+            SetNicknameNotice(_nicknameConflictPanel, "이미 사용 중인 닉네임입니다.");
+        }
+
+        private void SetNicknameNotice(GameObject panel, string message)
+        {
+            if (panel == null) return;
+            foreach (var label in panel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                SetAccountText(label, label.GetComponentInParent<UnityEngine.UI.Button>(true) != null ? "확인" : message);
         }
 
         public void ClickedOK() => AD.Managers.SoundM.UI_Ok();
