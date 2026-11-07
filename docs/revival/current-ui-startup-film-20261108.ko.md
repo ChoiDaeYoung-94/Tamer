@@ -22,4 +22,6 @@
 
 이번 Player 로그에도 기존 개발 연결 소켓 진단3줄과 Ellipsis 경고1개가 있습니다. 새 Exception/FATAL/Intro 실패 표시는 없으며 이를 로그 전체 오류0이나 Player 글꼴 원인 해결로 보고하지 않습니다.
 
+보존된 같은 APK의 data.unity3d를 [UnityPy 읽기 API](https://github.com/K0lb3/UnityPy)1.25.4/C typetree reader 비활성으로 추가 확인했습니다. MonoBehaviour1,249개 이름 조회 오류0, DungGeunMo SDF 객체1개에서 원본138개 문자 테이블의 개수 prefix/연속2212바이트와 U+2026·glyph15135 tuple이 각각1회 일치했습니다. 원본 테이블의 APK 포함 근거이며 실제 runtime lookup/경고 원인 해결을 뜻하지 않습니다. 전체 structured typetree 파싱은 ValueError로 실패했고 이 한계도 유지합니다. 읽기 도구는 비공개 격리 폴더에만 설치했으며 제품/프로젝트 패키지·공용SDK/JDK·원APK/글꼴 변경0입니다.
+
 원시 영상/OS 홈 화면/전체 로그는 공개 저장소에 추가하지 않았습니다. 이번 문서에는 제품 코드나 SDK 변경이 없습니다.
