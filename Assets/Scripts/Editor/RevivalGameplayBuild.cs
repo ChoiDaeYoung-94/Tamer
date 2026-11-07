@@ -85,12 +85,15 @@ public static class RevivalGameplayBuild
     {
         public int callbackOrder => 100;
         public static bool SupportsIdentity(string identity) =>
+            identity == RevivalGameplayIsolation.ApplicationId ||
             identity == RevivalGameplayIsolation.PlayerRestoreApplicationId ||
             identity == RevivalGameplayIsolation.AgeChoiceApplicationId ||
             identity == RevivalGameplayIsolation.SessionApplicationId ||
             identity == RevivalGameplayIsolation.InventoryRestoreApplicationId ||
             identity == RevivalGameplayIsolation.ShopPurchaseApplicationId ||
             identity == RevivalGameplayIsolation.FaceliftUiApplicationId ||
+            identity == RevivalGameplayIsolation.FaceliftCharacterUiApplicationId ||
+            identity == RevivalGameplayIsolation.FaceliftIntroLoginApplicationId ||
             identity == RevivalGameplayIsolation.DeletionGameplayApplicationId ||
             identity == RevivalGameplayIsolation.PrivacyProductUiApplicationId ||
             identity == RevivalDeletionTrialHarness.ApplicationId ||
@@ -143,7 +146,9 @@ public static class RevivalGameplayBuild
             var scenes = (characterUi ? new[] { "Login", "SetCharacter", "Main", "Game", "NextScene" } : new[] { "Login", "Main", "Game", "NextScene" })
                 .Select(name => "Assets/Scenes/" + name + ".unity").ToArray();
             if (scenes.Any(path => !File.Exists(path))) throw new BuildFailedException("Original scene missing.");
-            File.WriteAllText(Manifest, (playerRestore || ageChoice || session || inventoryRestore || shopPurchase || deletionGameplay) ? PlayerRestoreManifest(File.ReadAllText(Manifest)) : OfflineManifest(File.ReadAllText(Manifest)));
+            // PHOTO and the basic gameplay fixture also contain synthetic saves.
+            // Keep every variant built here out of cloud backup/device transfer.
+            File.WriteAllText(Manifest, PlayerRestoreManifest(File.ReadAllText(Manifest)));
             AssetDatabase.ImportAsset(Manifest, ImportAssetOptions.ForceUpdate);
             var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(AdsSettings));
             settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
@@ -177,6 +182,8 @@ public static class RevivalGameplayBuild
             var report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Gameplay build failed.");
             Debug.Log("GAMEPLAY_BUILD_OK originalScenes=" + scenes.Length + " offline=true");
+            Debug.Log("GAMEPLAY_BUILD_SUMMARY result=" + report.summary.result +
+                " errors=" + report.summary.totalErrors + " warnings=" + report.summary.totalWarnings);
             code = 0;
         }
         catch (Exception error) { Debug.LogException(error); }
