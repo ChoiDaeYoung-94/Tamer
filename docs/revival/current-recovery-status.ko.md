@@ -2,6 +2,8 @@
 
 ## 11월7일 오후 최신 — 실물 연결·LD 인트로·빈 숫자키보드 확인
 
+[실물폰 정상 Play 설치](normal-play-physical-install-20261107.ko.md)도 code31/1.0.5·ARM64·Play 출처/분할4개와 서명·원AAB native6개 바이트 일치를 확인했습니다. 게임은 stopped=true/notLaunched=true로 보존했고 실제 인증/나이/운영 기능은 미실행입니다. 생성 base min32와 원본 AAB min25를 직접 구분했으며 지원 하한 변경0입니다. Console 신규 조회와 운영32 제공의 근거로 확대하지 않습니다.
+
 [오프라인 백업 차단](offline-gameplay-backup-20261107.ko.md)은 확대 EditMode48/48, PHOTO ARM64 APK1회/정적 gate와 실물 빈 입력·숫자IME 표시/숨김을 확인했습니다. 원래 controller의 출력 보호 가드 중단은 실패로 보존하고 추가 빌드 없이 원본7146/키/JDK·공유 옵션을 정확 복구했습니다. 나이 제출·실제 인증0입니다.
 
 [실물 인트로→로그인](intro-login-physical-arm64-20261107.ko.md)도 정상 재생/오류 callback 모사/정지 모사 세 경로가 각 새 PID에서 원래 Login을 거쳐 Main 메모리 fixture에 도달했습니다. 목적지 영상/오디오 정지·완료1회/광고차단/IAP unavailable을 확인했습니다. 실제 계정·서버 저장/NoAds·정책 통신·16KB 검증은 아닙니다.
