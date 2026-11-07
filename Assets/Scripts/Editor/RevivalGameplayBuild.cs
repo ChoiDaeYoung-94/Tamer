@@ -180,6 +180,8 @@ public static class RevivalGameplayBuild
             var report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Gameplay build failed.");
             Debug.Log("GAMEPLAY_BUILD_OK originalScenes=" + scenes.Length + " offline=true");
+            Debug.Log("GAMEPLAY_BUILD_SUMMARY result=" + report.summary.result +
+                " errors=" + report.summary.totalErrors + " warnings=" + report.summary.totalWarnings);
             code = 0;
         }
         catch (Exception error) { Debug.LogException(error); }
