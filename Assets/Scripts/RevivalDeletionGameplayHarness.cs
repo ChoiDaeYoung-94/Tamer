@@ -190,8 +190,11 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             !panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Any(label => label.text.Contains("Please check your connection")));
         Canvas.ForceUpdateCanvases();
         body.ForceMeshUpdate();
-        Require(!body.isTextOverflowing && Mathf.Approximately(body.fontSize, 30));
-        Mark("LOGIN_RETRY_MESSAGE_PASS bodyCount=1 caption=KoreanRetry loadingHidden=true obsoleteNetworkText=absent fontSize=30 overflow=false programmaticObservation=true");
+        Require(!body.isTextOverflowing && body.enableAutoSizing && body.fontSizeMin >= 30 &&
+            body.fontSize >= body.fontSizeMin - .1f && body.fontSize <= body.fontSizeMax + .1f && body.fontSizeMax <= 38);
+        Mark("LOGIN_RETRY_MESSAGE_PASS bodyCount=1 caption=KoreanRetry loadingHidden=true obsoleteNetworkText=absent fontSize="
+            + body.fontSize.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " minimum30=true overflow=false programmaticObservation=true");
         _paused = true;
         Mark("ORIGINAL_LOGIN_PAUSE retryVisible=true automaticAuth=0 reads=0 writes=0 pid=" + Pid);
     }
