@@ -28,6 +28,8 @@ namespace AD
         [SerializeField] private GameObject _loading;
         [SerializeField] private TMPro.TMP_Text _loadingText;
         [SerializeField] private TMPro.TMP_FontAsset _firstEntryFont;
+        private TMPro.TMP_FontAsset AccountUiFont => _firstEntryFont != null ? _firstEntryFont :
+            _loadingText != null ? _loadingText.font : null;
         [SerializeField] private GameObject _retry;
         [Tooltip("재시도 패널에 실패 사유를 표시 (선택 사항, 연결하지 않아도 동작)")]
         [SerializeField] private TMPro.TMP_Text _retryText;
@@ -142,7 +144,7 @@ namespace AD
                     RevivalDeletionGameplayHarness.Identity(RevivalDeletionGameplayHarness.AccountA));
             })) return;
 #endif
-            if (DeletionReceiptBootstrap.TryOpen(transform, _loadingText != null ? _loadingText.font : null, () =>
+            if (DeletionReceiptBootstrap.TryOpen(transform, AccountUiFont, () =>
             {
                 _receiptRecoverySignIn = true;
                 if (_dataOwner != null && _dataOwner.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
@@ -852,12 +854,12 @@ namespace AD
             panel.offsetMin = panel.offsetMax = Vector2.zero;
             panel.gameObject.SetActive(false);
             var view = panel.gameObject.AddComponent<DeletionView>();
-            view.Build(_loadingText != null ? _loadingText.font : null, () =>
+            view.Build(AccountUiFont, () =>
             {
                 panel.gameObject.SetActive(false);
                 if (_retryText != null) _retryText.text = _dataOwner != null && _dataOwner.DeletionInProgress
-                    ? "Deletion submission is unresolved. Open account deletion for details or contact doeud1410@gmail.com. No request will be resent."
-                    : "Sign in explicitly to continue.";
+                    ? "삭제 요청의 접수 여부가 미확인 상태입니다. 계정 삭제 화면에서 확인하거나 doeud1410@gmail.com으로 문의해 주세요. 요청을 다시 전송하지 않습니다."
+                    : "계속하려면 직접 로그인해 주세요.";
                 if (_retry != null) _retry.SetActive(true);
             });
             panel.gameObject.AddComponent<DeletionPresenter>().Bind(view);

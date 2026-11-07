@@ -32,20 +32,20 @@ namespace AD
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
-            Label("Title", content, "Account & privacy", font, 42, 70);
+            Label("Title", content, "계정 및 개인정보", font, 42, 70);
             Message = Label("Status", content, "", font, 30, 210);
             var space = Message.gameObject.GetComponent<UnityEngine.UI.LayoutElement>();
             space.flexibleHeight = 1;
-            RequestButton = Button("Request", content, "Request account deletion", font);
-            ConfirmButton = Button("Confirm", content, "Confirm deletion request", font);
-            SessionConfirmButton = Button("SessionConfirm", content, "Confirm current game session", font);
-            RefreshButton = Button("Refresh", content, "Check request status", font);
-            CancelButton = Button("CancelRequest", content, "Cancel deletion request", font);
-            RetryButton = Button("Retry", content, "Retry", font);
-            ReauthenticateButton = Button("Reauthenticate", content, "Check current session again", font);
-            ContactButton = Button("ContactDeletionSupport", content, "Contact about account deletion", font);
+            RequestButton = Button("Request", content, "계정 삭제 요청", font);
+            ConfirmButton = Button("Confirm", content, "삭제 요청 확정", font);
+            SessionConfirmButton = Button("SessionConfirm", content, "현재 게임 계정 확인", font);
+            RefreshButton = Button("Refresh", content, "요청 상태 확인", font);
+            CancelButton = Button("CancelRequest", content, "삭제 요청 취소", font);
+            RetryButton = Button("Retry", content, "다시 시도", font);
+            ReauthenticateButton = Button("Reauthenticate", content, "현재 세션 다시 확인", font);
+            ContactButton = Button("ContactDeletionSupport", content, "계정 삭제 문의", font);
             ContactButton.onClick.AddListener(() => Application.OpenURL("mailto:" + CloudScriptDeletionClient.SupportEmail + "?subject=Monster%20Tamer%20account%20deletion"));
-            CloseButton = Button("Close", content, "Back to settings", font);
+            CloseButton = Button("Close", content, "설정으로 돌아가기", font);
             CloseButton.onClick.AddListener(() =>
             {
                 if (ExitOnClose) Application.Quit();
