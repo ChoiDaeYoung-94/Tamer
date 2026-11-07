@@ -2,6 +2,8 @@
 
 ## 11월7일 오후 최신 — 실물 연결·LD 인트로·빈 숫자키보드 확인
 
+[원래 연령 화면의 촬영 가림 보완](age-input-physical-render-20261107.ko.md)도 PHOTO 전용4줄 변경/새 ARM64 APK1회와 실물 빈 제목·설명·숫자IME 표시/숨김을 통과했습니다. 기존 시험 앱은 삭제 없이 업데이트해 UID/저장 경로/최초 설치 시각을 유지했고, 나이·인증0/로그 수집·대기 상태를 보존했습니다. 실제 캡처2장은 편집 없이 공개 근거에 추가했습니다. PR504는 부모503 위의 Draft이며 운영31은 미실행으로 유지합니다.
+
 [실물폰 정상 Play 설치](normal-play-physical-install-20261107.ko.md)도 code31/1.0.5·ARM64·Play 출처/분할4개와 서명·원AAB native6개 바이트 일치를 확인했습니다. 게임은 stopped=true/notLaunched=true로 보존했고 실제 인증/나이/운영 기능은 미실행입니다. 생성 base min32와 원본 AAB min25를 직접 구분했으며 지원 하한 변경0입니다. Console 신규 조회와 운영32 제공의 근거로 확대하지 않습니다.
 
 [오프라인 백업 차단](offline-gameplay-backup-20261107.ko.md)은 확대 EditMode48/48, PHOTO ARM64 APK1회/정적 gate와 실물 빈 입력·숫자IME 표시/숨김을 확인했습니다. 원래 controller의 출력 보호 가드 중단은 실패로 보존하고 추가 빌드 없이 원본7146/키/JDK·공유 옵션을 정확 복구했습니다. 나이 제출·실제 인증0입니다.
