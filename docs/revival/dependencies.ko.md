@@ -19,6 +19,7 @@
 10월29일에는 Keystore Helper의 코드2개·README와 MiniJSON1개의 로컬 bytes를 고정 공개 원문 및 기존 manifest SHA에 대조했습니다. [개별4파일 근거](asset-source-evidence-20261029.ko.md)를 연결하되 실제 원본/manifest·GUID·비공개 분류를 바꾸지 않았습니다. SafeArea는 공급자 후보만 좁혔고 취득/버전은 미확인입니다. #92의 나머지 구매 권한·비공개 아카이브 운영 후속은 유지합니다.
 별도 [LiberationSans 내부 식별](liberation-font-identity-20261029.ko.md)은 TTF/동반 OFL문서2개의 manifest 일치와 내부2.00.1/OFL1.1 표기 연결입니다. upstream byte 동일한 앞선4파일에 합쳐6개 원문 동일성 완료로 세지 않고, Avalon·EmojiOne·전체 TMP 허가는 분리합니다.
 10월30일에는 EmojiOne4파일을 현재 해석된 builtin uGUI2.0.0 TMP 자료에, Avalon2폰트와2meta를 고정 PlayFab 공식 원문에 byte 대조했습니다. [대상8파일과 권한의 구분](font-emoji-source-evidence-20261030.ko.md)을 연결합니다. 개별 출처 동일성 근거이며 별도 EmojiOne/Avalon 허가·전체 TMP/유료 에셋 권한 완료가 아니므로 원본·manifest·비공개 분류를 유지합니다.
+11월7일에는 기존 공개 한글 `DungGeunMo.ttf`의 내부1.301 식별·7,354,268bytes/SHA와 작성자 TTF ZIP의 바이트 동일성을 확인하고 [작성자 배포/사용권 표기](dung-font-source-20261107.ko.md)를 연결했습니다. 폰트 교체·기존 manifest/GUID·비공개 복원 분류 변경은 없습니다. 이 TTF의 확인은 다른 폰트/유료 에셋의 개별 권한과 구분합니다.
 PlayFab SDK는 고정 공식 배포물로 갱신했으며 기존 GUID와 중립 서비스 설정을 보존한다. Editor Extensions 전체가 공식 배포 태그와 동일하다고 주장하지 않는다.
 
 ## 복원

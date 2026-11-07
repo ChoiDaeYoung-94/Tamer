@@ -180,18 +180,21 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         var body = (TMPro.TMP_Text)typeof(AD.Login).GetField("_retryText", fields).GetValue(login);
         var loading = (GameObject)typeof(AD.Login).GetField("_loading", fields).GetValue(login);
         var button = panel.GetComponentInChildren<UnityEngine.UI.Button>(true);
-        const string message = "Deletion request accepted. Sign in explicitly to continue.";
+        const string message = "삭제 요청이 접수되었습니다. 계속하려면 직접 로그인해 주세요.";
         Require(body != null && body.text == message && body.transform.parent == panel.transform &&
             body.name == "TMP_Contents" && panel.transform.Find("RetryMessage") == null &&
             loading != null && !loading.activeSelf && button != null &&
             !body.transform.IsChildOf(button.transform) &&
-            button.GetComponentsInChildren<TMPro.TMP_Text>(true).Single().text == "Retry" &&
+            button.GetComponentsInChildren<TMPro.TMP_Text>(true).Single().text == "다시 시도" &&
             panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Count(label => label.text == message) == 1 &&
             !panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Any(label => label.text.Contains("Please check your connection")));
         Canvas.ForceUpdateCanvases();
         body.ForceMeshUpdate();
-        Require(!body.isTextOverflowing && Mathf.Approximately(body.fontSize, 30));
-        Mark("LOGIN_RETRY_MESSAGE_PASS bodyCount=1 caption=Retry loadingHidden=true obsoleteNetworkText=absent fontSize=30 overflow=false programmaticObservation=true");
+        Require(!body.isTextOverflowing && body.enableAutoSizing && body.fontSizeMin >= 30 &&
+            body.fontSize >= body.fontSizeMin - .1f && body.fontSize <= body.fontSizeMax + .1f && body.fontSizeMax <= 38);
+        Mark("LOGIN_RETRY_MESSAGE_PASS bodyCount=1 caption=KoreanRetry loadingHidden=true obsoleteNetworkText=absent fontSize="
+            + body.fontSize.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " minimum30=true overflow=false programmaticObservation=true");
         _paused = true;
         Mark("ORIGINAL_LOGIN_PAUSE retryVisible=true automaticAuth=0 reads=0 writes=0 pid=" + Pid);
     }
