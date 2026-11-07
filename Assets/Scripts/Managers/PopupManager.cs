@@ -142,19 +142,10 @@ namespace AD
 
         public void PopupHeal()
         {
-            if (_healMessage == null)
-            {
-                // Reuse the existing prompt without changing prefab GUIDs or button labels.
-                foreach (var text in _popupHeal.GetComponentsInChildren<TMP_Text>(true))
-                    if (text.text == "Would you like to watch an ad to heal your HP?")
-                    {
-                        _healMessage = text;
-                        break;
-                    }
-            }
-            SetHealMessage(GoogleAdMobM.HasNoAds ? "Restore your HP?"
-                : GoogleAdMobM.CanRequestAds ? "Would you like to watch an ad to heal your HP?"
-                : "Ad healing is currently unavailable. You can keep playing.");
+            SetHealMessage(GoogleAdMobM.HasNoAds ? "체력을 회복할까요?"
+                : GoogleAdMobM.CanRequestAds ? "광고를 시청하고 체력을 회복할까요?"
+                : "광고 회복을 이용할 수 없습니다.\n게임은 계속할 수 있습니다.",
+                GoogleAdMobM.HasNoAds || GoogleAdMobM.CanRequestAds);
             _popupHeal.SetActive(true);
         }
 
@@ -205,9 +196,39 @@ namespace AD
 
         private GoogleAdMobManager GoogleAdMobM => Managers.GoogleAdMobM;
 
-        private void SetHealMessage(string message)
+        private void SetHealMessage(string message, bool canHeal)
         {
-            if (_healMessage != null) _healMessage.text = message;
+            if (_healMessage == null && _popupHeal != null)
+                foreach (var text in _popupHeal.GetComponentsInChildren<TMP_Text>(true))
+                    if (text.name == "TMP_content" || text.text == "Would you like to watch an ad to heal your HP?")
+                    {
+                        _healMessage = text;
+                        break;
+                    }
+            if (_healMessage == null) return;
+            _healMessage.text = message;
+            foreach (var button in _popupHeal.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+            {
+                bool healAction = button.name == "Btn_ok";
+                string caption = healAction ? canHeal ? "회복" : "이용 불가" : button.name == "Btn_cancel" ? "돌아가기" : null;
+                if (caption == null) continue;
+                if (healAction)
+                {
+                    button.interactable = canHeal;
+                    var image = button.targetGraphic as UnityEngine.UI.Image;
+                    if (image != null) image.color = canHeal ? new Color32(237, 191, 100, 255) : new Color32(50, 80, 70, 255);
+                }
+                foreach (var label in button.GetComponentsInChildren<TMP_Text>(true))
+                {
+                    if (_healMessage.font != null)
+                    {
+                        label.font = _healMessage.font;
+                        label.fontSharedMaterial = _healMessage.fontSharedMaterial;
+                    }
+                    if (healAction) label.color = canHeal ? new Color32(18, 39, 36, 255) : new Color32(246, 241, 221, 255);
+                    label.text = caption;
+                }
+            }
         }
 
         public void PopupGameOver() => _popupGameOver.SetActive(true);
@@ -251,10 +272,11 @@ namespace AD
             {
                 if (outcome == RewardedAdOutcome.Rewarded || this == null) return;
                 SetHealMessage(outcome == RewardedAdOutcome.PolicyBlocked
-                    ? "Ad healing is currently unavailable. You can keep playing."
+                    ? "광고 회복을 이용할 수 없습니다.\n게임은 계속할 수 있습니다."
                     : outcome == RewardedAdOutcome.Cancelled
-                        ? "Ad closed. You can keep playing."
-                        : "Ad is not ready. Please try again shortly.");
+                        ? "광고를 닫았습니다.\n게임은 계속할 수 있습니다."
+                        : "광고가 아직 준비되지 않았습니다.\n잠시 후 다시 시도해 주세요.",
+                    GoogleAdMobM.HasNoAds || GoogleAdMobM.CanRequestAds);
                 _popupHeal.SetActive(true);
             });
         }
