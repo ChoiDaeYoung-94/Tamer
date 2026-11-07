@@ -392,7 +392,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
                     System.Reflection.BindingFlags.NonPublic).GetValue(Managers.PopupM) as HashSet<GameObject>;
                 Require(_errors == 0 && blockers != null && blockers.Contains(view.gameObject) && !view.ConfirmButton.gameObject.activeSelf &&
                     !view.RequestButton.gameObject.activeSelf && view.CloseButton.interactable &&
-                    view.Message.text.Contains("Your deletion request was accepted."));
+                    view.Message.text.Contains("삭제 요청이 접수되었습니다."));
                 _state.Phase = "accepted";
                 _state.CloudAHash = HashFile(Cloud(AccountA));
                 RequireAcceptedDisk();
