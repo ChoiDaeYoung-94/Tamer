@@ -101,6 +101,51 @@ public class RevivalGameplayIsolationTests
         }
     }
 
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true)]
+    [TestCase("com.AeDeong.MonsterTamer", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay.extra", false)]
+    [TestCase(null, false)]
+    public void Revival_OfflineGameplayBackupRulesRequireExactFixtureIdentity(string identity, bool expected)
+    {
+        var rules = Runtime("RevivalGameplayBuild+PlayerRestoreBackupRules");
+        Assert.That(rules.GetMethod("SupportsIdentity").Invoke(null, new object[] { identity }), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void Revival_OfflineGameplayGradleCallbackWritesCloudAndDeviceTransferExclusions()
+    {
+        var target = UnityEditor.Build.NamedBuildTarget.Android;
+        string originalId = UnityEditor.PlayerSettings.GetApplicationIdentifier(target);
+        string temporary = Path.Combine(Path.GetTempPath(), "TamerOfflineBackup-" + Guid.NewGuid().ToString("N"));
+        Assert.That(Directory.Exists(temporary), Is.False);
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            UnityEditor.PlayerSettings.SetApplicationIdentifier(target, "com.AeDeong.MonsterTamer.revival.gameplay");
+            var type = Runtime("RevivalGameplayBuild+PlayerRestoreBackupRules");
+            type.GetMethod("OnPostGenerateGradleAndroidProject").Invoke(Activator.CreateInstance(type), new object[] { temporary });
+            string file = Path.Combine(temporary, "src/main/res/xml/tamer_playerrestore_rules.xml");
+            var rules = XDocument.Load(file);
+            foreach (string mode in new[] { "cloud-backup", "device-transfer" })
+            {
+                var excluded = rules.Root.Element(mode).Elements("exclude").ToArray();
+                Assert.That(excluded.Length, Is.EqualTo(9));
+                Assert.That(excluded.All(e => (string)e.Attribute("path") == "."), Is.True);
+                Assert.That(excluded.Any(e => (string)e.Attribute("domain") == "sharedpref"), Is.True);
+            }
+        }
+        finally
+        {
+            UnityEditor.PlayerSettings.SetApplicationIdentifier(target, originalId);
+            string full = Path.GetFullPath(temporary);
+            string parent = Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (!string.Equals(Path.GetDirectoryName(full), parent, StringComparison.OrdinalIgnoreCase) ||
+                !Path.GetFileName(full).StartsWith("TamerOfflineBackup-", StringComparison.Ordinal))
+                throw new InvalidOperationException("Only this test's direct temporary directory can be removed.");
+            if (Directory.Exists(full)) Directory.Delete(full, true);
+        }
+    }
+
     [TestCase(1)]
     [TestCase(2)]
     public void Revival_RestoredPlayerValuesReachHudAndPopup(int step)
