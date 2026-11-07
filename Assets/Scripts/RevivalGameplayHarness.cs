@@ -861,6 +861,10 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     {
 #if TAMER_GAMEPLAY_PHOTO
         if (_photoMode) return;
+#if TAMER_GAMEPLAY_HARNESS && !TAMER_AGE_CHOICE
+        // Keep the original age modal visible without selecting or dismissing it.
+        if (OriginalAgeModalOwnsInput()) return;
+#endif
 #endif
 #if TAMER_AGE_CHOICE
         GUI.depth = -1000;
