@@ -1008,13 +1008,13 @@ public sealed class RevivalCharacterDeviceProbe : UnityEngine.MonoBehaviour
                 topHit=top,interactable=button.IsInteractable(),eligible=top&&inside&&button.IsInteractable()&&!moving&&!saving&&UnityEngine.Time.timeScale>0});
         }
         var state=new State{nonce=nonce,scene=scene,width=UnityEngine.Screen.width,height=UnityEngine.Screen.height,
-            accountGeneration=AD.Managers.DataM.AccountGeneration,moving=moving,saving=saving,reads=AD.RevivalGameplayIsolation.Reads,writes=AD.RevivalGameplayIsolation.Writes,
+            accountGeneration=AD.Managers.DataM.AccountGeneration,observedFrame=UnityEngine.Time.frameCount,moving=moving,saving=saving,reads=AD.RevivalGameplayIsolation.Reads,writes=AD.RevivalGameplayIsolation.Writes,
             avatar=UnityEngine.Mathf.Approximately(male.position.x,0)?"a":UnityEngine.Mathf.Approximately(female.position.x,0)?"b":"transition",buttons=records.ToArray()};
         string json=UnityEngine.JsonUtility.ToJson(state);if(json!=last){UnityEngine.Debug.Log("CHARACTER_DEVICE_STATE "+json);last=json;}
         seen=true;
     }
     [System.Serializable] private sealed class ButtonState{public string name;public int tapX,tapY,left,top,width,height;public bool topHit,interactable,eligible;}
-    [System.Serializable] private sealed class State{public string nonce,scene,avatar;public int width,height,accountGeneration,reads,writes;public bool moving,saving;public ButtonState[] buttons;}
+    [System.Serializable] private sealed class State{public string nonce,scene,avatar;public int width,height,accountGeneration,observedFrame,reads,writes;public bool moving,saving;public ButtonState[] buttons;}
     [System.Serializable] private sealed class Exit{public string nonce,scene;public int writes;}
 }
 #endif
