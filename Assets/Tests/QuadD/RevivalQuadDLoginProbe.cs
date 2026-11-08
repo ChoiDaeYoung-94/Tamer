@@ -1,6 +1,7 @@
 #if UNITY_EDITOR || TAMER_QUAD_D_LOGIN_HARNESS
 using System;
 using System.Collections;
+using System.Linq;
 using System.Reflection;
 using AD;
 using UnityEngine;
@@ -20,6 +21,47 @@ public sealed class RevivalQuadDLoginProbe : MonoBehaviour
     private VideoPlayer video;
     private AudioSource audio;
     private QuadD.QuadDIntro intro;
+    private FontWarningObserver fontWarningObserver;
+
+    // Offline-only diagnostics: retain the original warning and inspect serialized
+    // character records without HasCharacter/TryAddCharacters or lookup creation.
+    private sealed class FontWarningObserver : ILogHandler
+    {
+        internal readonly ILogHandler Original;
+        private bool captured;
+        internal FontWarningObserver(ILogHandler original) { Original = original; }
+        public void LogException(Exception exception, UnityEngine.Object context) => Original.LogException(exception, context);
+        public void LogFormat(LogType type, UnityEngine.Object context, string format, params object[] args)
+        {
+            Original.LogFormat(type, context, format, args);
+            if (captured || type != LogType.Warning) return;
+            string message;
+            try { message = string.Format(format, args); } catch { return; }
+            if (!message.Contains("character used for Ellipsis")) return;
+            captured = true;
+            try
+            {
+                var label = context as TMPro.TMP_Text;
+                var font = label == null ? null : label.font;
+                var character = font == null ? null : font.characterTable.FirstOrDefault(item => item.unicode == 8230);
+                Original.LogFormat(LogType.Log, context,
+                    "INTRO_FONT_OBSERVATION object={0} font={1} characters={2} glyphs={3} ellipsisRecord={4} textAssetLinked={5} glyphLinked={6} style={7} weight={8} overflowAtWarning={9}",
+                    label == null ? "unavailable" : label.name,
+                    font == null ? "unavailable" : font.name,
+                    font == null ? -1 : font.characterTable.Count,
+                    font == null ? -1 : font.glyphTable.Count,
+                    character != null, character != null && character.textAsset != null,
+                    character != null && character.glyph != null,
+                    label == null ? "unavailable" : label.fontStyle.ToString(),
+                    label == null ? "unavailable" : label.fontWeight.ToString(),
+                    label == null ? "unavailable" : label.overflowMode.ToString());
+            }
+            catch (Exception exception)
+            {
+                Original.LogFormat(LogType.Log, null, "INTRO_FONT_OBSERVATION unavailable type={0}", exception.GetType().Name);
+            }
+        }
+    }
 
 #if TAMER_QUAD_D_LOGIN_HARNESS
 #if !TAMER_REVIVAL_SMOKE || !TAMER_GAMEPLAY_HARNESS || !TAMER_SHOP_HARNESS || !TAMER_SHOP_UI || !TAMER_FACELIFT_UI_HARNESS
@@ -48,11 +90,22 @@ public sealed class RevivalQuadDLoginProbe : MonoBehaviour
 #endif
         if (mode != "natural" && mode != "decoder-error" && mode != "stalled-playback")
             throw new InvalidOperationException("Unknown isolated intro probe mode.");
+        if (!Application.isEditor && Debug.isDebugBuild &&
+            Application.identifier == RevivalGameplayIsolation.FaceliftIntroLoginApplicationId)
+        {
+            fontWarningObserver = new FontWarningObserver(Debug.unityLogger.logHandler);
+            Debug.unityLogger.logHandler = fontWarningObserver;
+        }
         RuntimeSceneManager.sceneLoaded += SceneLoaded;
         StartCoroutine(ObserveResult());
     }
 
-    private void OnDestroy() => RuntimeSceneManager.sceneLoaded -= SceneLoaded;
+    private void OnDestroy()
+    {
+        RuntimeSceneManager.sceneLoaded -= SceneLoaded;
+        if (fontWarningObserver != null && ReferenceEquals(Debug.unityLogger.logHandler, fontWarningObserver))
+            Debug.unityLogger.logHandler = fontWarningObserver.Original;
+    }
 
     private void SceneLoaded(Scene scene, LoadSceneMode loadMode)
     {
