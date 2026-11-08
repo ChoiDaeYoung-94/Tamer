@@ -859,6 +859,11 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 
     private void OnGUI()
     {
+#if TAMER_GAMEPLAY_HARNESS && TAMER_CHARACTER_UI && !UNITY_EDITOR
+        // Keep diagnostics in logcat while the exact offline character preview owns the screen.
+        if (Debug.isDebugBuild && Application.identifier == RevivalGameplayIsolation.FaceliftCharacterUiApplicationId)
+            return;
+#endif
 #if TAMER_GAMEPLAY_PHOTO
         if (_photoMode) return;
 #if TAMER_GAMEPLAY_HARNESS && !TAMER_AGE_CHOICE
@@ -1016,5 +1021,31 @@ public sealed class RevivalCharacterDeviceProbe : UnityEngine.MonoBehaviour
     [System.Serializable] private sealed class ButtonState{public string name;public int tapX,tapY,left,top,width,height;public bool topHit,interactable,eligible;}
     [System.Serializable] private sealed class State{public string nonce,scene,avatar;public int width,height,accountGeneration,observedFrame,reads,writes;public bool moving,saving;public ButtonState[] buttons;}
     [System.Serializable] private sealed class Exit{public string nonce,scene;public int writes;}
+}
+#endif
+
+
+#if TAMER_GAMEPLAY_HARNESS && TAMER_CHARACTER_UI && !UNITY_EDITOR
+// Presentation-only: the development log popup otherwise overlaps the original right arrow.
+// Logger/callbacks remain alive. No listener, avatar, age, authentication or save is invoked.
+public sealed class RevivalCharacterPreviewOverlayMask : UnityEngine.MonoBehaviour
+{
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Boot()
+    {
+        if (UnityEngine.Application.isEditor || !UnityEngine.Debug.isDebugBuild ||
+            UnityEngine.Application.identifier != AD.RevivalGameplayIsolation.FaceliftCharacterUiApplicationId)
+            throw new System.InvalidOperationException("Exact offline character debug application required.");
+        var root = new UnityEngine.GameObject("Offline character preview diagnostic presentation");
+        UnityEngine.Object.DontDestroyOnLoad(root);
+        root.AddComponent<RevivalCharacterPreviewOverlayMask>();
+    }
+
+    private void LateUpdate()
+    {
+        var console = IngameDebugConsole.DebugLogManager.Instance;
+        if (console != null && console.PopupEnabled)
+            console.PopupEnabled = false;
+    }
 }
 #endif
