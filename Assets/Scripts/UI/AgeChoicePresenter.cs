@@ -13,7 +13,7 @@ namespace AD
         private GameObject _modal;
         private TMP_Text _message;
         private TMP_InputField _ageInput;
-        private const string Instructions = "연령에 맞는 광고 및 개인정보 설정을 위해 나이를 입력해 주세요.\n연령 구간만 이 기기에 저장합니다. 입력한 나이와 생년월일은 저장하지 않습니다.\n설정에서 언제든 변경할 수 있습니다.";
+        private const string Instructions = "광고 및 개인정보 설정을 위해\n현재 나이를 입력해 주세요.\n연령 구간만 이 기기에 저장하며,\n나이와 생년월일은 저장하지 않습니다.\n설정에서 언제든 변경할 수 있습니다.";
         private float _previousTimeScale;
         private int _scene;
         private bool _open;
