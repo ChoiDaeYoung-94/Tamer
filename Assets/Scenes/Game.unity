@@ -5426,7 +5426,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 156, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1815814296
 MonoBehaviour:
@@ -5448,10 +5448,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: close
+  m_text: "\uB2EB\uAE30"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
-  m_sharedMaterial: {fileID: 7106525651853217677, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 5a68d0caf69c6d94ab355dc7f43a0c6e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
