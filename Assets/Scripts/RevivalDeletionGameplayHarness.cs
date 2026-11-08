@@ -428,7 +428,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
                     ShopMan.Instance.CurrentItemsList.Count == 0 && !Player.Instance.SimpleSword.activeSelf &&
                     !Player.Instance.MasterSword.activeSelf && !Player.Instance.Simpleshield.activeSelf && !Player.Instance.Mastershield.activeSelf &&
                     File.Exists(Inventory(AccountC)) && !File.Exists(Inventory(AccountA)) && _writes == 0 && _submissions == 0 &&
-                    gold != null && gold.text == "Gold - 41" && nickname != null && nickname.text == "FreshFixtureC");
+                    gold != null && gold.text == "골드 · 41" && nickname != null && nickname.text == "FreshFixtureC");
                 Mark("PHASE2_C_PLAYER_SHOP_SNAPSHOT_PASS owner=C currentInventory=empty playerCollection=0 equipped=0 allies=0 shopOwned=0 models=off gold=41 HUD=matched foreignB=preserved legacy=preserved automaticAuth=0 explicitRetry=1 networkCalls=0 errors=0; open original shop manually for visible-item observation");
             }
             _mainObserved = true;

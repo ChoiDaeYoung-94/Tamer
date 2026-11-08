@@ -204,11 +204,15 @@ public class RevivalGameplayIsolationTests
             canvas.GetType().GetMethod("DataSettings", fields).Invoke(canvas, null);
             string Text(string name) => (string)labels[name].GetType().GetProperty("text").GetValue(labels[name]);
             Assert.That(Text("_playerNickNameText"), Is.EqualTo(values["NickName"]));
-            Assert.That(Text("_popupNickNameText"), Is.EqualTo("NickName - " + values["NickName"]));
-            Assert.That(Text("_goldText"), Is.EqualTo("Gold - " + values["Gold"]));
-            Assert.That(Text("_popupGoldText"), Is.EqualTo("Gold - " + values["Gold"]));
-            foreach (string stat in new[] { "Power", "AttackSpeed", "MoveSpeed" })
-                Assert.That(Text("_popup" + stat + "Text"), Is.EqualTo(stat + " - " + values[stat]));
+            Assert.That(Text("_popupNickNameText"), Is.EqualTo("닉네임 · " + values["NickName"]));
+            Assert.That(Text("_goldText"), Is.EqualTo("골드 · " + values["Gold"]));
+            Assert.That(Text("_popupGoldText"), Is.EqualTo("골드 · " + values["Gold"]));
+            var captions = new System.Collections.Generic.Dictionary<string, string>
+            {
+                { "Power", "공격력" }, { "AttackSpeed", "공격 속도" }, { "MoveSpeed", "이동 속도" }
+            };
+            foreach (var stat in captions)
+                Assert.That(Text("_popup" + stat.Key + "Text"), Is.EqualTo(stat.Value + " · " + values[stat.Key]));
             Assert.That(Text("_playerHpText"), Is.EqualTo("100 / 100"));
         }
         finally

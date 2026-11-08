@@ -517,7 +517,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             " power=" + player.Power.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " attack=" + player.AttackSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " move=" + player.MoveSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
-            " hudGoldMatches=" + (goldLabel != null && goldLabel.text == "Gold - " + player.Gold) +
+            " hudGoldMatches=" + (goldLabel != null && goldLabel.text == "골드 · " + player.Gold) +
             " errors=" + _errors + " totalErrors=" + _totalErrors;
         if (text == _lastShopObservation) return;
         _lastShopObservation = text;
@@ -748,7 +748,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             }
             var canvas = PlayerUICanvas.Instance;
             string Label(string field) => ((TMPro.TMP_Text)typeof(PlayerUICanvas).GetField(field, flags).GetValue(canvas)).text;
-            if (Label("_playerNickNameText") != expected["NickName"] || Label("_goldText") != "Gold - 235" ||
+            if (Label("_playerNickNameText") != expected["NickName"] || Label("_goldText") != "골드 · 235" ||
                 Label("_captureCapacityText") != "2 / " + player.MaxCaptureCapacity)
                 throw new InvalidOperationException("HUD mismatch");
             if (_errors != 0 || Managers.GoogleAdMobM.CanRequestAds || Managers.IAPM.Status != IAPStatus.Unavailable)
