@@ -1233,7 +1233,7 @@ MonoBehaviour:
   m_enableAutoSizing: 1
   m_fontSizeMin: 28.800001
   m_fontSizeMax: 36
-  m_fontStyle: 1
+  m_fontStyle: 0
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -1983,10 +1983,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: OK
+  m_text: "\uD655\uC778"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 5a68d0caf69c6d94ab355dc7f43a0c6e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2122,8 +2122,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Gold - 10000
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 5a68d0caf69c6d94ab355dc7f43a0c6e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2969,10 +2969,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: PLAYER
+  m_text: "\uD50C\uB808\uC774\uC5B4"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 5a68d0caf69c6d94ab355dc7f43a0c6e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3002,7 +3002,7 @@ MonoBehaviour:
   m_enableAutoSizing: 1
   m_fontSizeMin: 41.600002
   m_fontSizeMax: 52
-  m_fontStyle: 1
+  m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -3096,6 +3096,18 @@ MonoBehaviour:
   ConformX: 1
   ConformY: 1
   Logging: 0
+--- !u!114 &3674181022461250205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 109900469071059086}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a20485eebe9345e0974b3b31e9f31d1d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::AD.FaceliftSafeArea
 --- !u!1 &109900469205996681
 GameObject:
   m_ObjectHideFlags: 0
@@ -4017,10 +4029,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Capture
+  m_text: "\uD3EC\uD68D"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 5a68d0caf69c6d94ab355dc7f43a0c6e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4419,10 +4431,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: COMPANIONS
+  m_text: "\uB3D9\uB8CC"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 6b62d0bbc19501141b40b8d32a134954, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 5a68d0caf69c6d94ab355dc7f43a0c6e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -4491,15 +4503,3 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!114 &3674181022461250205
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 109900469071059086}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a20485eebe9345e0974b3b31e9f31d1d, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::AD.FaceliftSafeArea
