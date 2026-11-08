@@ -25,15 +25,15 @@ namespace AD
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
-            Label("Title", "게임 시작", font, 48, 100, content);
-            _status = DeletionView.Label("Status", content, "", font, 30, 130);
+            Label("Title", "게임 시작", font, 54, 100, content);
+            _status = DeletionView.Label("Status", content, "", font, 34, 130);
             _status.GetComponent<UnityEngine.UI.LayoutElement>().minWidth = 0;
             _status.GetComponent<UnityEngine.UI.LayoutElement>().preferredWidth = 0;
             _status.gameObject.SetActive(false);
-            Label("Message", "Google 없이도 게임을 이용할 수 있습니다.\n"
-                + "손님 선택 시 서버 저장용 게임 계정이 생성됩니다.\n"
-                + "앱 삭제·기기 변경 뒤에는\n게임 진행·구매 권한 복구가 제한될 수 있습니다.\n\n"
-                + "기존 Google 계정은 ‘Google로 계속’을 선택하세요.", font, 32, 450, content);
+            Label("Message", "Google 없이도 시작할 수 있습니다.\n"
+                + "손님 선택 시 서버에\n게임 계정이 생성됩니다.\n\n"
+                + "앱 삭제·기기 변경 뒤에는\n게임 진행과 구매 권한의 복구가\n제한될 수 있습니다.\n\n"
+                + "기존 Google 계정은\n‘Google로 계속’을 선택해 주세요.", font, 38, 450, content);
             GoogleButton = Button("ContinueGoogle", "Google로 계속", font, content, google);
             GuestButton = Button("StartGuest", "Google 없이 시작", font, content, guest);
         }
@@ -64,7 +64,8 @@ namespace AD
         {
             var button = DeletionView.Button(name, parent, text, font);
             var size = button.GetComponent<UnityEngine.UI.LayoutElement>();
-            size.minHeight = size.preferredHeight = 110;
+            size.minHeight = size.preferredHeight = 148;
+            button.GetComponentInChildren<TMP_Text>(true).fontSize = 40;
             button.navigation = new UnityEngine.UI.Navigation { mode = UnityEngine.UI.Navigation.Mode.None };
             button.onClick.AddListener(() => action?.Invoke());
             return button;
