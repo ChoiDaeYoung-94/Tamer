@@ -18,6 +18,7 @@ public static class RevivalGuestEntryUiBuild
     public const string PlainOutput = "Build/revival/Tamer-guest-empty-1102.apk";
     public const string X86Output = "Build/revival/Tamer-guest-entry-ui-x86-1102.apk";
     public const string FreshOutputRoot = "Build/revival/fresh-guest-x86";
+    public const string FreshArm64OutputRoot = "Build/revival/fresh-guest-arm64";
     public const string PlainApplicationId = "com.AeDeong.MonsterTamer.revival.guestempty1102";
     private const string Manifest = "Assets/Plugins/Android/AndroidManifest.xml";
     private const string AdsSettings = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
@@ -28,14 +29,17 @@ public static class RevivalGuestEntryUiBuild
     public static bool PlainSceneBuild { get; private set; }
     public static bool X86Build { get; private set; }
     public static bool FreshX86Build { get; private set; }
-    public static string ExpectedApplicationId => FreshX86Build ? RevivalGuestEntryUiHarness.FreshX86ApplicationId : X86Build ? RevivalGuestEntryUiHarness.X86ApplicationId
+    public static bool FreshArm64Build { get; private set; }
+    public static string ExpectedApplicationId => FreshArm64Build ? RevivalGuestEntryUiHarness.FreshArm64ApplicationId
+        : FreshX86Build ? RevivalGuestEntryUiHarness.FreshX86ApplicationId : X86Build ? RevivalGuestEntryUiHarness.X86ApplicationId
         : PlainSceneBuild ? PlainApplicationId
         : FullEngineBuild ? RevivalGuestEntryUiHarness.FullEngineApplicationId
         : ReleaseEngineBuild ? RevivalGuestEntryUiHarness.ReleaseApplicationId : RevivalGuestEntryUiHarness.ApplicationId;
 
     public static bool IsFixtureId(string id) => id == RevivalGuestEntryUiHarness.ApplicationId ||
         id == RevivalGuestEntryUiHarness.ReleaseApplicationId || id == RevivalGuestEntryUiHarness.FullEngineApplicationId ||
-        id == PlainApplicationId || id == RevivalGuestEntryUiHarness.X86ApplicationId || id == RevivalGuestEntryUiHarness.FreshX86ApplicationId;
+        id == PlainApplicationId || id == RevivalGuestEntryUiHarness.X86ApplicationId || id == RevivalGuestEntryUiHarness.FreshX86ApplicationId ||
+        id == RevivalGuestEntryUiHarness.FreshArm64ApplicationId;
 
     public static bool AllowsGlobalDefines(string defines) => !string.IsNullOrEmpty(defines)
         ? !defines.Split(';').Any(s => s.Trim().StartsWith("TAMER_", StringComparison.Ordinal)) : true;
@@ -46,17 +50,23 @@ public static class RevivalGuestEntryUiBuild
     public static void BuildPlainAndroid() => Build(true, true, true);
     public static void BuildX86Android() => Build(true, true, false, true);
     public static void BuildFreshX86Android() => Build(true, true, false, true, true);
+    public static void BuildFreshArm64Android() => Build(true, true, false, false, false, true);
 
-    private static void Build(bool releaseEngine, bool fullEngine = false, bool plainScene = false, bool x86 = false, bool freshX86 = false)
+    private static void Build(bool releaseEngine, bool fullEngine = false, bool plainScene = false, bool x86 = false, bool freshX86 = false, bool freshArm64 = false)
     {
         if (fullEngine && !releaseEngine) throw new BuildFailedException("Full-engine diagnostic uses the release engine only.");
         if (plainScene && !fullEngine) throw new BuildFailedException("Plain-scene diagnostic preserves the same full release engine.");
         if (x86 && (!releaseEngine || !fullEngine || plainScene))
             throw new BuildFailedException("The separate x86 diagnostic requires its full release guest fixture.");
         if (freshX86 && !x86) throw new BuildFailedException("Fresh output is restricted to the exact x86 guest profile.");
-        string output = freshX86 ? Path.Combine(FreshOutputRoot, Guid.NewGuid().ToString("N"), "Tamer-guest-entry-ui-x86.apk")
+        if (freshArm64 && (!releaseEngine || !fullEngine || plainScene || x86 || freshX86))
+            throw new BuildFailedException("Fresh ARM64 output requires its exact full release guest profile.");
+        bool fresh = freshX86 || freshArm64;
+        string output = freshArm64 ? Path.Combine(FreshArm64OutputRoot, Guid.NewGuid().ToString("N"), "Tamer-guest-entry-ui-arm64.apk")
+            : freshX86 ? Path.Combine(FreshOutputRoot, Guid.NewGuid().ToString("N"), "Tamer-guest-entry-ui-x86.apk")
             : x86 ? X86Output : plainScene ? PlainOutput : fullEngine ? FullEngineOutput : releaseEngine ? ReleaseOutput : Output;
-        string applicationId = freshX86 ? RevivalGuestEntryUiHarness.FreshX86ApplicationId : x86 ? RevivalGuestEntryUiHarness.X86ApplicationId : plainScene ? PlainApplicationId
+        string applicationId = freshArm64 ? RevivalGuestEntryUiHarness.FreshArm64ApplicationId
+            : freshX86 ? RevivalGuestEntryUiHarness.FreshX86ApplicationId : x86 ? RevivalGuestEntryUiHarness.X86ApplicationId : plainScene ? PlainApplicationId
             : fullEngine ? RevivalGuestEntryUiHarness.FullEngineApplicationId
             : releaseEngine ? RevivalGuestEntryUiHarness.ReleaseApplicationId
             : RevivalGuestEntryUiHarness.ApplicationId;
@@ -72,9 +82,9 @@ public static class RevivalGuestEntryUiBuild
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         int code = 1;
         bool freshOutputCreated = false;
-        FreshReceipt receipt = freshX86 ? new FreshReceipt {
+        FreshReceipt receipt = fresh ? new FreshReceipt {
             result = "Prepared", applicationId = applicationId,
-            artifact = Path.GetFullPath(output), abi = "x86_64"
+            artifact = Path.GetFullPath(output), abi = freshArm64 ? "arm64-v8a" : "x86_64"
         } : null;
         try
         {
@@ -85,7 +95,7 @@ public static class RevivalGuestEntryUiBuild
                 !AllowsGlobalDefines(PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android)))
                 throw new BuildFailedException("Dedicated Android build and no global Tamer symbols required.");
             if (File.Exists(output) || Directory.Exists(output) ||
-                (freshX86 && Directory.Exists(Path.GetDirectoryName(output))))
+                (fresh && Directory.Exists(Path.GetDirectoryName(output))))
                 throw new BuildFailedException("Preserve existing guest UI artifact.");
             var catalog = JsonUtility.FromJson<CatalogFlags>(File.ReadAllText("Assets/Resources/IAPProductCatalog.json"));
             if (catalog == null || catalog.enableCodelessAutoInitialization || catalog.enableUnityGamingServicesAutoInitialization)
@@ -113,12 +123,13 @@ public static class RevivalGuestEntryUiBuild
             }
             X86Build = x86;
             FreshX86Build = freshX86;
+            FreshArm64Build = freshArm64;
             FullEngineBuild = fullEngine;
             PlainSceneBuild = plainScene;
             ReleaseEngineBuild = releaseEngine;
             BuildActive = true;
             Directory.CreateDirectory(Path.GetDirectoryName(output));
-            freshOutputCreated = freshX86;
+            freshOutputCreated = fresh;
             if (receipt != null) {
                 receipt.result = "Started";
                 WriteFreshReceipt(output, receipt);
@@ -154,6 +165,7 @@ public static class RevivalGuestEntryUiBuild
             PlainSceneBuild = false;
             X86Build = false;
             FreshX86Build = false;
+            FreshArm64Build = false;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, oldId);
             PlayerSettings.productName = oldName;
             PlayerSettings.Android.useCustomKeystore = oldKey;
