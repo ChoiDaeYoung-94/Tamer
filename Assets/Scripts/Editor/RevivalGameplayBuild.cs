@@ -99,7 +99,8 @@ public static class RevivalGameplayBuild
             identity == RevivalDeletionTrialHarness.ApplicationId ||
             identity == RevivalDeletionTrialHarness.OnlineApplicationId ||
             identity == RevivalQuadDAndroidProbe.ApplicationId ||
-            identity == RevivalQuadDAndroidProbe.X86ApplicationId;
+            identity == RevivalQuadDAndroidProbe.X86ApplicationId ||
+            identity == RevivalQuadDAndroidProbe.ReleaseApplicationId;
         public void OnPostGenerateGradleAndroidProject(string path)
         {
             string identity = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
