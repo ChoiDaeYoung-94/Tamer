@@ -17,6 +17,7 @@ public class RevivalGuestEntryHarnessTests
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102", true, true, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102", false, false, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102", false, true, false, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1110x86", false, true, true, false)]
     public void Revival_GuestUiPrefsRequireTheDedicatedAndroidDevelopmentSandbox(
         string package, bool editor, bool development, bool android, bool expected)
     {
@@ -40,6 +41,10 @@ public class RevivalGuestEntryHarnessTests
     [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1102", false, false, true, false)]
     [TestCase("com.AeDeong.MonsterTamer", false, false, true, false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", false, false, true, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1110x86", false, false, true, true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1110x86", false, true, true, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1110x86", true, false, true, false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.guestentry1110x86", false, false, false, false)]
     public void Revival_GuestUiReleaseEngineRequiresItsSeparateAndroidSandbox(
         string package, bool editor, bool development, bool android, bool expected)
     {
