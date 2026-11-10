@@ -13,6 +13,7 @@ public static class RevivalFaceliftBuild
     private static string requestDirectory;
     private static bool characterPreview;
     private static bool introLoginPreview;
+    private static bool x86IntroPreview;
     private static string ApplicationId => introLoginPreview ? RevivalGameplayIsolation.FaceliftIntroLoginApplicationId : characterPreview
         ? RevivalGameplayIsolation.FaceliftCharacterUiApplicationId : RevivalGameplayIsolation.FaceliftUiApplicationId;
     public static readonly string[] Scenes = { "Assets/Scenes/Login.unity", "Assets/Scenes/SetCharacter.unity",
@@ -38,12 +39,19 @@ public static class RevivalFaceliftBuild
     public static object RequestBuild() => Request(false, false);
     public static object RequestCharacterBuild() => Request(true, false);
     public static object RequestIntroLoginBuild() => Request(false, true);
+    public static object RequestX86IntroLoginBuild() => Request(false, true, true);
 
-    private static object Request(bool character, bool introLogin)
+    public static bool IsSafeRequestedArchitecture(bool character, bool introLogin, bool x86, AndroidArchitecture architecture)
+        => !(character && introLogin) && (!x86 || (introLogin && !character)) &&
+           architecture == (x86 ? AndroidArchitecture.X86_64 : AndroidArchitecture.ARM64);
+
+    private static object Request(bool character, bool introLogin, bool x86 = false)
     {
         if (requestDirectory != null || BuildPipeline.isBuildingPlayer)
             throw new BuildFailedException("A facelift build has already been requested in this Editor.");
         RevivalBuild.ValidateBaseline();
+        if (!IsSafeRequestedArchitecture(character, introLogin, x86, x86 ? AndroidArchitecture.X86_64 : AndroidArchitecture.ARM64))
+            throw new BuildFailedException("x86_64 is restricted to the existing offline Intro/Login fixture.");
         RevivalBuild.RequireSavedScenes();
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
             throw new BuildFailedException("Android Edit Mode required.");
@@ -55,35 +63,44 @@ public static class RevivalFaceliftBuild
             throw new BuildFailedException("IAP/UGS automatic initialization must remain disabled.");
         characterPreview = character;
         introLoginPreview = introLogin;
+        x86IntroPreview = x86;
         requestDirectory = Path.GetFullPath(Path.Combine(".revival-local/facelift-1029/android", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(requestDirectory);
         File.WriteAllText(Path.Combine(requestDirectory, "build-status.json"), "{\"result\":\"Requested\"}");
         File.WriteAllText(".revival-local/facelift-1029/android/latest-build.txt", requestDirectory);
         EditorApplication.delayCall += Build;
-        return new { requestedOnce = true, directory = requestDirectory, applicationId = ApplicationId, characterPreview, introLoginPreview };
+        return new { requestedOnce = true, directory = requestDirectory, applicationId = ApplicationId, characterPreview, introLoginPreview, abi = x86IntroPreview ? "x86_64" : "arm64-v8a" };
     }
 
     private static void Build()
     {
         const string settingsPath = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
         const string adsManifestPath = "Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml";
-        var files = new[] { settingsPath, settingsPath + ".meta", adsManifestPath, adsManifestPath + ".meta" };
+        const string templatePath = "Assets/Plugins/Android/mainTemplate.gradle";
+        var files = new[] { settingsPath, settingsPath + ".meta", adsManifestPath, adsManifestPath + ".meta", templatePath, templatePath + ".meta" };
         var originals = files.ToDictionary(p => p, File.ReadAllBytes);
         string oldId = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
         bool oldKey = PlayerSettings.Android.useCustomKeystore;
         string oldAlias = PlayerSettings.Android.keyaliasName;
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
+        var oldArchitecture = PlayerSettings.Android.targetArchitectures;
         var result = new Receipt { result = "Started", applicationId = ApplicationId,
-            unity = Application.unityVersion, scenes = SelectedScenes };
+            unity = Application.unityVersion, scenes = SelectedScenes, abi = x86IntroPreview ? "x86_64" : "arm64-v8a" };
         try
         {
             using (var manifest = new RevivalAdHarnessBuild.IsolatedManifestScope(RevivalGameplayBuild.PlayerRestoreManifest))
             {
+                if (x86IntroPreview)
+                    File.WriteAllBytes(templatePath, System.Text.Encoding.UTF8.GetBytes(
+                        RevivalQuadDIntroBuild.X86Template(System.Text.Encoding.UTF8.GetString(originals[templatePath]))));
                 var settings = new SerializedObject(AssetDatabase.LoadMainAssetAtPath(settingsPath));
                 settings.FindProperty("adMobAndroidAppId").stringValue = "ca-app-pub-3940256099942544~3347511713";
                 settings.ApplyModifiedPropertiesWithoutUndo();
                 PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, ApplicationId);
+                if (x86IntroPreview) PlayerSettings.Android.targetArchitectures = AndroidArchitecture.X86_64;
+                if (!IsSafeRequestedArchitecture(characterPreview, introLoginPreview, x86IntroPreview, PlayerSettings.Android.targetArchitectures))
+                    throw new BuildFailedException("Exact offline preview architecture required.");
                 PlayerSettings.Android.useCustomKeystore = false;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
                 EditorUserBuildSettings.buildAppBundle = false;
@@ -121,6 +138,7 @@ public static class RevivalFaceliftBuild
                 PlayerSettings.Android.useCustomKeystore = oldKey;
                 PlayerSettings.Android.keyaliasName = oldAlias;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, oldBackend);
+                PlayerSettings.Android.targetArchitectures = oldArchitecture;
                 EditorUserBuildSettings.buildAppBundle = oldBundle;
                 AssetDatabase.SaveAssets();
             }
@@ -135,5 +153,5 @@ public static class RevivalFaceliftBuild
         }
     }
     [Serializable] private class CatalogFlags { public bool enableCodelessAutoInitialization; public bool enableUnityGamingServicesAutoInitialization; }
-    [Serializable] private class Receipt { public string result, applicationId, unity; public string[] scenes; public int errors; public bool originalFilesRestored; }
+    [Serializable] private class Receipt { public string result, applicationId, unity, abi; public string[] scenes; public int errors; public bool originalFilesRestored; }
 }
