@@ -1,6 +1,8 @@
 """Small synthetic fixtures only; no real runtime/key/config/approval inputs."""
 import argparse
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
+import ctypes
+from ctypes import wintypes
 from datetime import datetime, timedelta, timezone
 import hashlib
 import io
@@ -15,6 +17,42 @@ from unittest.mock import patch
 
 SOURCE = Path(__file__).resolve().parent.parent
 NOW = datetime(2030, 1, 1, tzinfo=timezone.utc)
+
+
+@contextmanager
+def broad_synthetic_output(path):
+    """Make only this fresh empty fixture broad, then restore its original DACL.
+
+    Evidence may itself inherit a private owner/SYSTEM ACL. The negative test
+    must deliberately supply a broad directory instead of depending on that host.
+    """
+    path=path.resolve()
+    if not path.is_relative_to(EVIDENCE.resolve()) or path.name!='output' or any(path.iterdir()):
+        raise ValueError('Fresh empty synthetic output required')
+    adv=ctypes.WinDLL('advapi32',use_last_error=True);kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    adv.GetFileSecurityW.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,ctypes.c_void_p,wintypes.DWORD,ctypes.POINTER(wintypes.DWORD)]
+    adv.SetFileSecurityW.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,ctypes.c_void_p]
+    adv.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,ctypes.POINTER(ctypes.c_void_p),ctypes.POINTER(wintypes.DWORD)]
+    adv.GetSecurityDescriptorControl.argtypes=[ctypes.c_void_p,ctypes.POINTER(wintypes.WORD),ctypes.POINTER(wintypes.DWORD)]
+    kernel.LocalFree.argtypes=[ctypes.c_void_p]
+    size=wintypes.DWORD();adv.GetFileSecurityW(str(path),4,None,0,ctypes.byref(size))
+    if not 1<=size.value<=1024*1024:raise OSError('SyntheticDaclSize')
+    original=ctypes.create_string_buffer(size.value)
+    if not adv.GetFileSecurityW(str(path),4,original,size,ctypes.byref(size)):raise ctypes.WinError(ctypes.get_last_error())
+    control=wintypes.WORD();revision=wintypes.DWORD()
+    if not adv.GetSecurityDescriptorControl(original,ctypes.byref(control),ctypes.byref(revision)):raise ctypes.WinError(ctypes.get_last_error())
+    broad=ctypes.c_void_p()
+    if not adv.ConvertStringSecurityDescriptorToSecurityDescriptorW('D:P(A;;FA;;;WD)',1,ctypes.byref(broad),None):raise ctypes.WinError(ctypes.get_last_error())
+    changed=False
+    try:
+        if not adv.SetFileSecurityW(str(path),4|0x80000000,broad):raise ctypes.WinError(ctypes.get_last_error())
+        changed=True
+        yield
+    finally:
+        try:
+            if changed and not adv.SetFileSecurityW(str(path),4|(0x80000000 if control.value&0x1000 else 0x20000000),original):
+                raise ctypes.WinError(ctypes.get_last_error())
+        finally:kernel.LocalFree(broad)
 
 
 def load(path, name):
@@ -211,10 +249,32 @@ class Fixture:
         self.review_path.write_bytes(PREP.encoded(self.review))
         self.request['sourceReviewSha256'] = PREP.sha(self.review_path.read_bytes())
 
-    def prepare(self):
+    def external_profile(self):
+        private=self.folder/'private';private.mkdir()
+        self.external_key=private/'synthetic-upload.p12'
+        self.external_key.write_bytes(b'SYNTHETIC ENCRYPTED STORE ONLY')
+        self.activation_path=private/'activation.json'
+        self.activation={'schema':1,'applicationId':'com.AeDeong.MonsterTamer','status':'active',
+            'certificateSha256':self.request['certificateSha256'],'playAppSigningCertificateSha256':'9'*64,
+            'observedUtc':NOW.isoformat(),'validFromUtc':(NOW-timedelta(days=1)).isoformat(),
+            'source':'user_current_console'}
+        self.activation_path.write_bytes(PREP.encoded(self.activation))
+        self.profile={'schema':1,'profile':'external_pkcs12_upload','storeType':'PKCS12',
+            'keystore':str(self.external_key),'allowedRoot':str(private),
+            'keystoreSha256':PREP.sha(self.external_key.read_bytes()),'alias':'synthetic-upload',
+            'certificateSha256':self.request['certificateSha256'],'playAppSigningCertificateSha256':'9'*64,
+            'activationEvidence':str(self.activation_path),'activationEvidenceSha256':PREP.sha(self.activation_path.read_bytes())}
+        self.plan.update(schema=3,signingProfile=self.profile)
+        self.request['alias']=self.profile['alias'];self.rewrite_plan()
+
+    def rewrite_activation(self):
+        self.activation_path.write_bytes(PREP.encoded(self.activation))
+        self.profile['activationEvidenceSha256']=PREP.sha(self.activation_path.read_bytes());self.rewrite_plan()
+
+    def prepare(self, now_utc=None):
         # Any accidental process, claim, challenge or producer execution fails.
         with patch('subprocess.Popen', side_effect=AssertionError('ProcessForbidden')):
-            return self.prep.prepare_binding(self.request, collector=self.collector, now_utc=lambda: NOW)
+            return self.prep.prepare_binding(self.request, collector=self.collector, now_utc=now_utc or (lambda: NOW))
 
 
 class PrepareTests(unittest.TestCase):
@@ -243,6 +303,41 @@ class PrepareTests(unittest.TestCase):
         self.assertFalse(any(name in p['path'] for p in value['pins'] for name in ('Assets\\', 'ProjectSettings\\', 'Packages\\')))
         self.assertFalse(any((f.run / name).exists() for name in (BRIDGE.CLAIM, BRIDGE.SIGNING, BRIDGE.RESULT)))
         self.assertEqual(set(p.name for p in f.out.iterdir()), {PREP.BINDING_NAME, PREP.MANIFEST_NAME})
+
+    def test_external_profile_prepares_exact_binding_two_and_both_keys_without_execution(self):
+        f=self.fixture;f.external_profile();result=f.prepare()
+        self.assertTrue(result['metadataPrepared']);self.assertFalse(result['actualBuildExecuted'])
+        binding=json.loads((f.out/PREP.BINDING_NAME).read_bytes())
+        self.assertEqual(binding['schema'],2);self.assertEqual(binding['signingProfile'],f.profile)
+        paths={pin['path'] for pin in binding['pins']}
+        for path in (f.key,f.external_key,f.activation_path,f.root/'tools/revival/signing_profile.py'):
+            self.assertIn(str(path),paths)
+        self.assertFalse(any((f.run/name).exists() for name in (BRIDGE.CLAIM,BRIDGE.SIGNING,BRIDGE.RESULT)))
+
+    def test_external_processing_rejects_before_encrypted_key_collection(self):
+        f=self.fixture;f.external_profile();f.activation['status']='processing';f.rewrite_activation()
+        self.reject();self.assertNotIn(('private',str(f.external_key)),f.events)
+
+    def test_external_request_alias_cannot_override_reviewed_profile(self):
+        f=self.fixture;f.external_profile();f.request['alias']='different-upload'
+        self.reject();self.assertNotIn(('private',str(f.external_key)),f.events)
+
+    def test_external_hardlinked_key_is_rejected(self):
+        f=self.fixture;f.external_profile();os.link(f.external_key,f.external_key.with_name('same.p12'))
+        self.reject()
+
+    def test_external_hardlinked_activation_is_rejected(self):
+        f=self.fixture;f.external_profile();os.link(f.activation_path,f.activation_path.with_name('same.json'))
+        self.reject()
+
+    def test_external_evidence_expiring_during_collect_rejects_before_outputs(self):
+        f=self.fixture;f.external_profile();f.activation['observedUtc']=(NOW-timedelta(hours=24,seconds=-1)).isoformat();f.rewrite_activation()
+        current=[NOW]
+        def hook(collector,phase):
+            if phase=='recheck':current[0]=NOW+timedelta(seconds=2)
+        f.phase_hook=hook
+        with self.assertRaises(ValueError):f.prepare(now_utc=lambda:current[0])
+        self.assertFalse((f.out/PREP.BINDING_NAME).exists())
 
     def test_explicit_internal_dual_abi_approved_plan_prepares_without_execution(self):
         f = self.fixture
@@ -480,7 +575,8 @@ class PrepareTests(unittest.TestCase):
             f.prep.WindowsMetadata().require_private(msvcrt.get_osfhandle(handle.descriptor))
         RealAcl.bootstrap_private = rejected
         f.collector = RealAcl
-        self.reject()
+        with broad_synthetic_output(f.out):
+            self.reject()
         self.assertEqual(f.events, [])
 
     def test_exact_pin_scope_rejects_missing_extra_duplicate_and_case_alias(self):

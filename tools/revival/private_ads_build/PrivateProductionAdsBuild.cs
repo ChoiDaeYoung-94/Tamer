@@ -96,8 +96,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             string profile; string[] abis;
             var selectedArchitectures = ReadArchitectures(out profile, out abis);
             var existingKey = Required("TAMER_PRIVATE_ADS_KEYSTORE");
-            if (!Path.IsPathRooted(existingKey) || Hash(File.ReadAllBytes(existingKey)) !=
-                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256")) throw Rejected();
+            if (!MatchesSigningKeystore(Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
+                existingKey,existingKey,Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256"),
+                SelectedSigningProfile(),Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_KEYSTORE_ROOT"))) throw Rejected();
             EditorUserBuildSettings.buildAppBundle = !approvedPrivacy;
             EditorUserBuildSettings.development = false;
             EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
@@ -384,10 +385,54 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         var resource = AssetDatabase.LoadAssetAtPath<TextAsset>(ResourcePath);
         if (resource == null || Hash(resource.bytes) != snapshot.ResourceHash ||
             PlayerSettings.Android.keyaliasName != Required("TAMER_PRIVATE_ADS_KEY_ALIAS") ||
-            !MatchesApprovedKeystore(Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
+            !MatchesSigningKeystore(Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
                 PlayerSettings.Android.keystoreName, Required("TAMER_PRIVATE_ADS_KEYSTORE"),
-                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256"))) throw Rejected();
+                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256"),SelectedSigningProfile(),
+                Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_KEYSTORE_ROOT"))) throw Rejected();
     }
+      private static string SelectedSigningProfile()
+      { return Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_SIGNING_PROFILE") ?? "legacy_jks"; }
+
+      private static bool CanonicalLocalKeyPath(string path)
+      {
+          if (Path.DirectorySeparatorChar!='\\' || !IsFullyQualifiedKeystorePath(path)) return false;
+          var value=path.Replace('\\','/');
+          if (value.Length<4 || value[1]!=':' || value[2]!='/' || value.Substring(3).IndexOf(':')>=0) return false;
+          foreach (var part in value.Substring(3).Split('/'))
+          {
+              if (part.Length==0 || part=="." || part==".." || part.EndsWith(".") || part.EndsWith(" ") ||
+                  System.Text.RegularExpressions.Regex.IsMatch(part,@"\A(?i:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?\z")) return false;
+              foreach (var c in part) if (char.IsControl(c) || "<>\"|?*".IndexOf(c)>=0) return false;
+          }
+          return true;
+      }
+
+      private static bool MatchesSigningKeystore(string projectRoot,string reported,string expected,
+          string expectedHash,string profile,string allowedRoot)
+      {
+          if (profile=="legacy_jks") return MatchesApprovedKeystore(projectRoot,reported,expected,expectedHash);
+          if (profile!="external_pkcs12_upload") return false;
+          try
+          {
+              if (!CanonicalLocalKeyPath(projectRoot) || !CanonicalLocalKeyPath(expected) ||
+                  !CanonicalLocalKeyPath(allowedRoot) || string.IsNullOrEmpty(reported) ||
+                  !System.Text.RegularExpressions.Regex.IsMatch(expectedHash??"",@"\A[0-9a-f]{64}\z")) return false;
+              var comparison=StringComparison.OrdinalIgnoreCase;
+              var root=Path.GetFullPath(projectRoot).TrimEnd('\\','/');
+              var allowed=Path.GetFullPath(allowedRoot).TrimEnd('\\','/');
+              var original=Path.GetFullPath(expected);
+              if (allowed.Substring(3).Replace('\\','/').Split('/').Length<2 ||
+                  !string.Equals(Path.GetDirectoryName(original),allowed,comparison) ||
+                  allowed.StartsWith(root+Path.DirectorySeparatorChar,comparison) || string.Equals(allowed,root,comparison) ||
+                  root.StartsWith(allowed+Path.DirectorySeparatorChar,comparison) ||
+                  !(string.Equals(Path.GetExtension(original),".p12",comparison)||string.Equals(Path.GetExtension(original),".pfx",comparison))) return false;
+              bool rooted=Path.IsPathRooted(reported);
+              if (rooted && !IsFullyQualifiedKeystorePath(reported)) return false;
+              var selected=Path.GetFullPath(rooted?reported:Path.Combine(root,reported));
+              return string.Equals(selected,original,comparison) && Hash(File.ReadAllBytes(original))==expectedHash;
+          }
+          catch {return false;}
+      }
     // Unity returns a project-relative display path even after an absolute setter.
     // Only the reviewed original project key may match; never infer a dedicated location.
     private static bool MatchesApprovedKeystore(string projectRoot, string reported,

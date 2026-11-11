@@ -27,7 +27,7 @@ producer = base = require_private = None
 SECRET_NAMES = ('TAMER_KEYSTORE_PASS', 'TAMER_KEYALIAS_PASS')
 SOURCES = ('private_ads_producer.py', 'private_ads_build.py', 'private_ads_approved.py',
            'private_ads_evidence.py', 'validate_private_ads_preparation.py',
-           'windows_owned_files.py')
+           'windows_owned_files.py', 'signing_profile.py')
 OWN_SOURCES = ('OwnedChild.cs', 'SigningLauncher.cs', 'OperatingKeyPreflight.java',
                'producer_bridge.py', 'Invoke-SigningLauncher.ps1', 'EditorOwnership.ps1')
 CLAIM = 'launcher-attempt.private.json'
@@ -82,7 +82,11 @@ def binding(path, expected_sha):
                 'python', 'git', 'powershell', 'java', 'classDirectory', 'bridge',
                 'deadlineUtc', 'minimumStartBudgetSeconds', 'producerTimeoutSeconds',
                 'runtimeFiles', 'absentRuntimeFiles', 'pins'}
-    if set(value) != required or value['schema'] != 1:
+    schema=value.get('schema')
+    if type(schema) is not int or schema not in (1,2):
+        raise ValueError('Launcher binding schema rejected')
+    if schema==2:required.add('signingProfile')
+    if set(value) != required:
         raise ValueError('Launcher binding schema rejected')
     if value['currentUploadCertificateReviewed'] is not True or value['existingKeyOwnershipReviewed'] is not True:
         raise ValueError('Independent certificate/ownership review required')
@@ -99,7 +103,7 @@ def load_helpers(value):
     global producer, base, require_private
     pins = {str(Path(p['path'])): p for p in value['pins']}
     for name in ('windows_owned_files', 'private_ads_evidence', 'validate_private_ads_preparation',
-                 'private_ads_build', 'private_ads_approved', 'private_ads_producer'):
+                 'private_ads_build', 'private_ads_approved', 'signing_profile', 'private_ads_producer'):
         path = regular(HELPERS / (name + '.py'))
         raw = path.read_bytes()
         if str(path) not in pins or sha(raw) != pins[str(path)]['sha256']:
@@ -166,7 +170,9 @@ def immutable_pin_paths(root, plan, value):
     """Exact persistent read scope shared by metadata preparation and the gate."""
     immutable = {str(root / p) for p in plan['before']
                  if not p.startswith(('Assets/', 'ProjectSettings/', 'Packages/'))}
-    return immutable | {str(Path(value['plan'])), str(Path(value['sourceReview'])),
+    selected=producer.profiles.select(plan)
+    external={str(Path(selected.keystore)),str(Path(plan['signingProfile']['activationEvidence']))} if selected.external else set()
+    return immutable | external | {str(Path(value['plan'])), str(Path(value['sourceReview'])),
         str(Path(plan['config'])), str(root / 'src/AeDeong.keystore'), str(Path(value['certificate'])),
         value['python'], value['git'], value['powershell'], value['java'],
         str(Path(value['classDirectory']) / 'OperatingKeyPreflight.class'),
@@ -205,6 +211,15 @@ def check(value, attempt, *, claim=False):
     key = regular(root / producer.KEY)  # Never challenge an external copy.
     if sha(key.read_bytes()) != plan['before'][producer.KEY]['sha256']:
         raise ValueError('Original key changed')
+    selected=producer.profiles.select(plan)
+    if selected.external:
+        if (value.get('schema')!=2 or
+                producer.encoded(value.get('signingProfile'))!=producer.encoded(plan['signingProfile']) or
+                value['alias']!=selected.alias or value['certificateSha256']!=selected.certificate_sha256):
+            raise ValueError('Exact external signing profile binding required')
+        producer.external_signing_bindings(plan)
+    elif value.get('schema',1)!=1 or 'signingProfile' in value:
+        raise ValueError('Legacy signing binding cannot select another profile')
     cert = regular(value['certificate'])
     if sha(cert.read_bytes()) != value['certificateSha256']:
         raise ValueError('Current upload certificate changed')
@@ -283,7 +298,7 @@ def passwords(stream):
             item[:] = b'\0' * len(item)
 
 
-def challenge(value, secret):
+def challenge(value, secret, plan=None):
     """One actual Java challenge inside the native owner's non-breakaway Job.
 
     Direct bridge run cannot mint an existing-key receipt from a mere password
@@ -292,7 +307,13 @@ def challenge(value, secret):
     command = [value['java'], '-XX:-UsePerfData', '-XX:+DisableAttachMechanism',
                '-XX:ErrorFile=NUL', '-XX:-CreateCoredumpOnCrash', '-cp',
                value['classDirectory'], 'OperatingKeyPreflight']
-    frame = bytearray(struct.pack('>I', 0x544B5031))
+    if plan is None:
+        if value.get('schema',1)!=1:
+            raise ValueError('Exact plan required for the PKCS12 challenge')
+        key_path=Path(value['checkout'])/producer.KEY;magic=0x544B5031
+    else:
+        selected=producer.profiles.select(plan);key_path=Path(selected.keystore);magic=selected.worker_magic
+    frame = bytearray(struct.pack('>I', magic))
     captured = [bytearray(), bytearray()]
     failure = []
     done = [False, False, False]
@@ -322,7 +343,7 @@ def challenge(value, secret):
         finally:
             done[2] = True
     try:
-        for path, limit in ((Path(value['checkout']) / producer.KEY, 16 * 1024 * 1024),
+        for path, limit in ((key_path, 16 * 1024 * 1024),
                             (Path(value['certificate']), 1024 * 1024)):
             if not 1 <= path.stat().st_size <= limit:
                 raise ValueError('Challenge input bound')
@@ -417,7 +438,7 @@ def execute(value, attempt, stream, state=None):
     secret = passwords(stream)
     try:
         state['phase'] = 'challenge'
-        challenge(value, secret)
+        challenge(value, secret, plan)
         # Recheck actual HEAD/clean/plan/source/config/tool/inventory after the
         # challenge. No signing receipt or producer env exists before this.
         state['phase'] = 'recheck'
@@ -428,6 +449,11 @@ def execute(value, attempt, stream, state=None):
                    'alias': value['alias'], 'certificateSha256': value['certificateSha256'],
                    'existingReleaseKeyVerified': True, 'sourceHead': value['head'],
                    'planSha256': value['planSha256']}
+        selected=producer.profiles.select(plan)
+        if selected.external:
+            receipt.update(schema=2,keystore=selected.keystore,keystoreSha256=selected.keystore_sha256,
+                signingProfile=producer.profiles.EXTERNAL,storeType='PKCS12',
+                activationEvidenceSha256=plan['signingProfile']['activationEvidenceSha256'])
         # A direct run has now performed the same actual challenge. Independent
         # ownership/current certificate/source review were prerequisites.
         state['phase'] = 'receipt'

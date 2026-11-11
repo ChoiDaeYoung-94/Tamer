@@ -1,5 +1,7 @@
 # 단일 입력 서명 launcher
 
+외부 PKCS12 업로드 키의 명시 프로필과 부모 경로 잠금은 [구현·검증 범위](../../../docs/revival/external-upload-signing-20261111.ko.md)를 따릅니다. 기본 legacy JKS 경로는 유지하며, 새 프로필은 현재 활성 Console 인증서 근거와 실제 독립 검토가 있는 새 계획에서만 선택합니다. 처리 중·예약된 키를 시간 경과만으로 활성화됐다고 간주하지 않습니다.
+
 2026-11-03 내부 두 ABI 후보의 명시 프로필은 [구현·검증 기록](../../../docs/revival/candidate32-abi-tools-20261103.ko.md)을 따릅니다. producer 준비 시 기본 `--abi-profile arm64`를 유지하며 승인된 다음 내부 후보에만 `--abi-profile internal_dual64`를 지정합니다. 기존 `approved_adult_release` 광고 계약·이 launcher의 검증/키 입력 경로는 유지합니다. AAB 검사에도 동일 프로필을 명시해야 하며 이전 계획은 새 ABI 계약을 포함한 새 소스맵/HEAD로 다시 준비합니다. 이 설정 자체는 내부 제공·심사·프로덕션 승인이 아닙니다.
 
 검토된 `approved_adult_release` producer용 Windows 연결입니다. 기본 호출은
@@ -24,7 +26,7 @@ plan에 고정한 Hub JDK를 선택하는지와 `java.exe` SHA를 확인합니�
    동일 handle에서 snapshot→SHA→JSON 순서로 읽습니다. reparse·hardlink와
    비공개 ACL을 확인하고 ancestor/source handle을 계속 보유한 채 검토된 C#만
    컴파일합니다. 암호는 이 metadata에 없습니다.
-3. C#는 원본 `src/AeDeong.keystore`, 현재 DER, immutable producer/helper 도구,
+3. C#는 원본 `src/AeDeong.keystore`와 선택된 프로필의 외부 키/활성 증거, 현재 DER, immutable producer/helper 도구,
    config/plan/source review와 Python runtime의 identity/ACL/SHA를 잠급니다.
    Assets/ProjectSettings/Packages의 예정 쓰기 대상은 장기 파일 잠금에서
    제외하며 producer의 inventory 재검사를 유지합니다.
@@ -93,7 +95,7 @@ Job 종료는 파일 원복이 아닙니다. producer journal/actual delta/snaps
 build HEAD**로 새 plan/source-review를 만들고 기존 독립 근거의 정확한 대상을 확인해야 합니다.
 예전 helper의 15필드 binding이나 과거 PASS를 새 binding으로 재사용하지 않습니다.
 
-`LauncherBinding`/`producer_bridge.binding()`이 동일한 schema 1 필드를 요구합니다.
+`LauncherBinding`/`producer_bridge.binding()`은 legacy schema1과 외부 PKCS12 schema2를 구분합니다. schema2만 폐쇄된 `signingProfile` 필드를 추가하며 계획의 프로필과 정확히 같아야 합니다.
 주요 필드는 checkout/head/branch, plan·SHA, sourceReview·SHA, certificate·SHA/alias,
 `currentUploadCertificateReviewed`, `existingKeyOwnershipReviewed`, python/git/powershell/
 java/classDirectory/bridge, deadlineUtc/minimumStartBudgetSeconds(최소600)/
@@ -104,8 +106,7 @@ producerTimeoutSeconds, runtimeFiles/absentRuntimeFiles, pins입니다.
 각 pin은 canonical absolute `path`, SHA-256, Windows handle identity
 `volume:indexHigh:indexLow:sizeHigh:sizeLow:writeHigh:writeLow`(각8자리 hex),
 Owner|Group|Access SDDL을 갖습니다. gate가 요구하는 exact immutable scope와
-일치해야 합니다. key는 checkout 원본으로 고정되며 external copy 결과를 전용하지
-않습니다. source manifest에는 아래6개 source의 SHA만 넣고 exact bytes SHA를 별도로
+일치해야 합니다. legacy key는 checkout 원본으로 고정됩니다. 외부 프로필은 checkout 밖의 명시된 private root 바로 아래 PKCS12 파일과 현재 활성 증거를 추가로 잠그며 원본 key도 보존합니다. 부모 디렉터리는 `FILE_LIST_DIRECTORY`를 포함하는 핸들을 유지해 이름 변경을 막고, 새 자식 파일 생성은 허용합니다. source manifest에는 아래6개 source의 SHA만 넣고 exact bytes SHA를 별도로
 검토합니다: `OwnedChild.cs`, `SigningLauncher.cs`, `OperatingKeyPreflight.java`,
 `producer_bridge.py`, `Invoke-SigningLauncher.ps1`, `EditorOwnership.ps1`.
 

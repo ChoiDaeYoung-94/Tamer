@@ -45,7 +45,9 @@ class LockedFile:
             raise ValueError("Directory writes are not supported")
         # Directory locks exclude write/delete handles to the directory itself;
         # they do not prevent normal creation of new children.
-        access = 0x80 if directory else 0x80000000 | (0x10000 if deletable else 0)  # attributes / optional DELETE
+        # Attribute-only directory handles do not enforce rename sharing on
+        # Windows. FILE_LIST_DIRECTORY makes the no-delete share effective.
+        access = 0x81 if directory else 0x80000000 | (0x10000 if deletable else 0)
         if writable: access |= 0x40000000  # GENERIC_WRITE; same verified file handle
         share = 0x1  # no FILE_SHARE_WRITE or FILE_SHARE_DELETE
         handle = self.kernel.CreateFileW(str(path), access, share, None, 3,

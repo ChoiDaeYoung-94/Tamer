@@ -5,6 +5,7 @@ and must bind exact bytes; creating a plan never promotes producer readiness.
 """
 import argparse
 from contextlib import ExitStack
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -13,6 +14,7 @@ import subprocess
 import uuid
 
 import private_ads_build as base
+import signing_profile as profiles
 from validate_private_ads_preparation import read_contract, unique_object
 from windows_owned_files import LockedFile, locked_directories, verified_files
 from private_ads_evidence import create_private_directory, require_private
@@ -149,10 +151,12 @@ def resource_bytes(config, root):
 
 
 def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_manifest=None,
-                 mode='disabled_candidate', abi_profile='arm64'):
+                 mode='disabled_candidate', abi_profile='arm64', signing_profile=None):
     """No subprocess or Assets write; caller supplies the read-only preflight result."""
     if mode not in MODES:
         raise ValueError('Producer mode rejected')
+    if signing_profile is not None:
+        profiles.select({'schema':3,'checkout':str(root),'signingProfile':signing_profile})
     abi = base.abi_contract(abi_profile, mode)
     preflight_key = {'disabled_candidate': 'disabledPreparationValid', 'approved_adult_release': 'approvedSourceContractValid', 'privacy_only_adult': 'approvedPrivacySourceContractValid'}[mode]
     if preflight_result.get(preflight_key) is not True:
@@ -210,6 +214,8 @@ def prepare_plan(root, config, head, version, *, branch, preflight_result, tool_
             'resourceSha256': owned[resource]['sha256'], 'before': before, 'owned': owned, 'installedTools': tools,
             'producerPrepared': False, 'binaryVerified': False, 'distributable': False}
     plan.update(abi)
+    if signing_profile is not None:
+        plan.update(schema=3,signingProfile=dict(signing_profile))
     file = run / 'plan.private.json'
     write_new(file, encoded(plan))
     return {'plan': str(file), 'planSha256': base.digest(file.read_bytes()),
@@ -222,11 +228,14 @@ def load_plan(root, path, reviewed_sha):
     if not path.is_relative_to(root / '.revival-local') or base.digest(path.read_bytes()) != reviewed_sha:
         raise ValueError('Exact private plan review required')
     plan = read_json(path)
-    if (plan.get('schema') != 2 or type(plan.get('receiptModeVersion')) is not int or plan['receiptModeVersion'] != 1 or
+    if (type(plan.get('schema')) is not int or plan['schema'] not in (2,3) or
+            type(plan.get('receiptModeVersion')) is not int or
+            plan['receiptModeVersion'] != 1 or
             plan.get('mode') not in MODES or
             plan.get('checkout') != str(root) or plan.get('producerPrepared') is not False or
             plan.get('binaryVerified') is not False or plan.get('distributable') is not False):
         raise ValueError('Candidate plan rejected')
+    profiles.select(plan)
     base.validate_abi_contract(plan)
     if base.safe_path(root, plan['run']) != path.parent:
         raise ValueError('Run path mismatch')
@@ -286,11 +295,49 @@ def require_source_review(root, plan, review):
         raise ValueError('Implemented exact source review required')
 
 
+def external_signing_bindings(plan):
+    """Read-only, private, regular inputs; execution retains their exact handles."""
+    selected=profiles.select(plan)
+    if not selected.external:
+        return {}
+    profile=plan['signingProfile'];evidence=Path(profile['activationEvidence'])
+    key=Path(selected.keystore);bindings={}
+    # Activation is checked before touching the encrypted external key.
+    for path, expected in ((evidence,profile['activationEvidenceSha256']),
+                           (key,selected.keystore_sha256)):
+        require_private(path.parent);require_private(path)
+        with locked_directories([path.parent]), LockedFile(path,deletable=False) as handle:
+            if os.fstat(handle.stream.fileno()).st_nlink!=1:
+                raise ValueError('External signing input hardlink rejected')
+            identity=base.identity(path);handle.verify(identity,expected)
+            if path==evidence:
+                profiles.require_activation(read_json(path),selected,
+                    expected_play_signer=selected.play_signer_sha256,
+                    now=datetime.now(timezone.utc))
+            bindings[path]=(identity,expected)
+    return bindings
+
+
 def require_signing(root, plan, signing):
     """Externally verified existing release key; passwords live only in child env."""
     signing = read_json(base.safe_path(root, Path(signing).relative_to(root)))
+    selected=profiles.select(plan)
     expected = {'schema', 'keystore', 'keystoreSha256', 'alias', 'certificateSha256',
                 'existingReleaseKeyVerified', 'sourceHead', 'planSha256'}
+    if selected.external:
+        expected |= {'signingProfile','storeType','activationEvidenceSha256'}
+        if (set(signing)!=expected or type(signing.get('schema')) is not int or signing['schema']!=2 or
+                signing['keystore']!=selected.keystore or signing['keystoreSha256']!=selected.keystore_sha256 or
+                signing['alias']!=selected.alias or signing['certificateSha256']!=selected.certificate_sha256 or
+                signing['signingProfile']!=profiles.EXTERNAL or signing['storeType']!='PKCS12' or
+                signing['activationEvidenceSha256']!=plan['signingProfile']['activationEvidenceSha256'] or
+                signing['existingReleaseKeyVerified'] is not True or signing['sourceHead']!=plan['head'] or
+                signing['planSha256']!=plan['_reviewedSha256'] or
+                not os.environ.get('TAMER_KEYSTORE_PASS') or
+                os.environ.get('TAMER_KEYSTORE_PASS')!=os.environ.get('TAMER_KEYALIAS_PASS')):
+            raise ValueError('Verified activated PKCS12 upload signing binding required')
+        external_signing_bindings(plan)
+        return signing
     if (set(signing) != expected or signing['schema'] != 1 or signing['keystore'] != KEY or
             signing['existingReleaseKeyVerified'] is not True or signing['sourceHead'] != plan['head'] or
             signing['planSha256'] != plan['_reviewedSha256'] or KEY not in plan['before'] or
@@ -383,6 +430,8 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
     require_source_review(root, plan, source_review)
     plan['_reviewedSha256'] = reviewed_sha
     sign = require_signing(root, plan, signing)
+    selected_signing=profiles.select(plan)
+    external_inputs=external_signing_bindings(plan);bindings.update(external_inputs)
     with ExitStack() as tool_check:
         pin_installed_tools(tool_check, plan['installedTools'])
     java_sha = installed_java_binding(plan['installedTools'])
@@ -421,8 +470,10 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
                    TAMER_PRIVATE_ADS_EDITOR_SHA256=plan['installedTools']['files'][plan['installedTools']['editorExecutable']]['sha256'],
                    TAMER_PRIVATE_ADS_JAVA_SHA256=java_sha,
                    TAMER_PRIVATE_ADS_SETTINGS_RECEIPT=str(run / 'settings-restoration.json'),
-                   TAMER_PRIVATE_ADS_KEYSTORE=str(base.safe_path(root, KEY)),
+                   TAMER_PRIVATE_ADS_KEYSTORE=selected_signing.keystore if selected_signing.external else str(base.safe_path(root, KEY)),
                    TAMER_PRIVATE_ADS_KEYSTORE_SHA256=sign['keystoreSha256'],
+                   TAMER_PRIVATE_ADS_SIGNING_PROFILE=selected_signing.profile,
+                   TAMER_PRIVATE_ADS_KEYSTORE_ROOT=plan['signingProfile']['allowedRoot'] if selected_signing.external else '',
                    TAMER_PRIVATE_ADS_KEY_ALIAS=sign['alias'])
         if playfab is not None:
             env['TAMER_PRIVATE_ADS_PLAYFAB_TITLE'] = playfab[0]
@@ -439,9 +490,12 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
         if inventory(root, config) != expected or base.git(root, 'diff', '--name-only', 'HEAD'):
             raise ValueError('Prelaunch protected inventory changed')
         immutable = [p for p in plan['before'] if not p.startswith(('Assets/', 'ProjectSettings/', 'Packages/'))]
-        with locked_directories([base.safe_path(root, p).parent for p in immutable]), ExitStack() as stack:
+        with locked_directories([base.safe_path(root, p).parent for p in immutable]+
+                                [p.parent for p in bindings]), ExitStack() as stack:
             for path, expected in bindings.items():
                 handle = stack.enter_context(LockedFile(path, deletable=False))
+                if path in external_inputs and os.fstat(handle.stream.fileno()).st_nlink!=1:
+                    raise ValueError('External signing input hardlink rejected')
                 handle.verify(*expected)
             pin_installed_tools(stack, plan['installedTools'])
             for p in immutable:
@@ -571,6 +625,7 @@ def main():
     parser.add_argument('--mode', choices=MODES, default='disabled_candidate')
     parser.add_argument('--abi-profile', choices=base.ABI_PROFILES, default='arm64')
     parser.add_argument('--signing', type=Path)
+    parser.add_argument('--external-signing-profile', type=Path)
     parser.add_argument('--allow-unity-build', action='store_true')
     parser.add_argument('--recovery', type=Path)
     parser.add_argument('--reviewed-recovery-sha256')
@@ -580,6 +635,8 @@ def main():
             raise ValueError('Absolute paths required')
         base.safe_path(args.checkout, '.')
         root = args.checkout.resolve()
+        if args.external_signing_profile and args.action!='prepare':
+            raise ValueError('External profile belongs to exact plan preparation only')
         if args.action == 'prepare':
             if args.mode in ('approved_adult_release', 'privacy_only_adult'):
                 from private_ads_approved import preflight_approved
@@ -588,7 +645,8 @@ def main():
                 pre = base.preflight(root, args.config, args.expected_head, args.editor_version)
             result = prepare_plan(root, args.config, args.expected_head, args.editor_version,
                                   branch=base.git(root, 'branch', '--show-current'), preflight_result=pre,
-                                  tool_manifest=args.tool_manifest, mode=args.mode, abi_profile=args.abi_profile)
+                tool_manifest=args.tool_manifest, mode=args.mode, abi_profile=args.abi_profile,
+                signing_profile=read_json(args.external_signing_profile) if args.external_signing_profile else None)
         elif args.action == 'build-once':
             result = base.execute(root, args.config, args.expected_head, args.editor_version,
                                   plan=args.plan, reviewed_sha256=args.reviewed_plan_sha256,
