@@ -93,6 +93,9 @@ namespace AD
         /// </summary>
         public void DisablePop()
         {
+            // The dead player must use the result confirmation to leave combat.
+            // Back must not hide that only clear recovery action.
+            if (IsOpen(_popupGameOver)) return;
             AD.Managers.SoundM.UI_Click();
 
             if (IsException)
@@ -152,7 +155,7 @@ namespace AD
         public void RequestClosePopup(GameObject target)
         {
             if (Managers.Instance != null && Managers.SoundM != null) Managers.SoundM.UI_Click();
-            if (IsException) return;
+            if (IsException || target == _popupGameOver) return;
             ClosePopup(target);
         }
 
@@ -237,7 +240,19 @@ namespace AD
             }
         }
 
-        public void PopupGameOver() => _popupGameOver.SetActive(true);
+        public void PopupGameOver()
+        {
+            var panel = _popupGameOver.transform.Find("Popup_gameOver") as RectTransform;
+            if (panel != null)
+            {
+                // This legacy animation ends at a third of the facelift card size.
+                // Keep the shared card dimensions and a readable confirmation.
+                var animation = panel.GetComponent<Animator>();
+                if (animation != null) animation.enabled = false;
+                panel.localScale = Vector3.one;
+            }
+            _popupGameOver.SetActive(true);
+        }
 
         public void PopupSetting()
         {
