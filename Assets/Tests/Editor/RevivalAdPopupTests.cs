@@ -136,8 +136,8 @@ public class RevivalAdPopupTests
         AssertStack();
     }
 
-    [TestCase(0f)]
-    [TestCase(0.3333333f)]
+    [TestCase(0f, TestName = "Revival_GameOverShowsFullSizeCardFromZeroScale")]
+    [TestCase(0.3333333f, TestName = "Revival_GameOverShowsFullSizeCardFromShrunkenScale")]
     public void Revival_GameOverShowsFullSizeCardWithoutChangingOtherAnimations(float legacyScale)
     {
         var popup = CreateGameOver();

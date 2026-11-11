@@ -245,8 +245,7 @@ namespace AD
             var panel = _popupGameOver.transform.Find("Popup_gameOver") as RectTransform;
             if (panel != null)
             {
-                // This legacy animation ends at a third of the facelift card size.
-                // Keep the shared card dimensions and a readable confirmation.
+                // Show the result at its full card size, independent of legacy scale animation.
                 var animation = panel.GetComponent<Animator>();
                 if (animation != null) animation.enabled = false;
                 panel.localScale = Vector3.one;
