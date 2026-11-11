@@ -12,7 +12,14 @@ public static class RevivalQuadDIntroBuild
 {
     private static string requestDirectory;
     private static bool x86Preview;
+    private static bool releasePreview;
+    private static string ApplicationId => releasePreview ? RevivalQuadDAndroidProbe.ReleaseApplicationId :
+        x86Preview ? RevivalQuadDAndroidProbe.X86ApplicationId : RevivalQuadDAndroidProbe.ApplicationId;
     public static string PreviewManifest(string original)
+        => PreviewManifestWithLabel(original, "Tamer Intro Check");
+    public static string ReleasePreviewManifest(string original)
+        => PreviewManifestWithLabel(original, "Tamer Intro Release");
+    private static string PreviewManifestWithLabel(string original, string label)
     {
         var document = System.Xml.Linq.XDocument.Parse(RevivalGameplayBuild.PlayerRestoreManifest(original));
         System.Xml.Linq.XNamespace android = "http://schemas.android.com/apk/res/android";
@@ -21,7 +28,7 @@ public static class RevivalQuadDIntroBuild
         // activity so localized app_name resources cannot hide this fixture.
         var entry = app.Elements("activity").Single(node =>
             (string)node.Attribute(android + "name") == "com.unity3d.player.UnityPlayerActivity");
-        entry.SetAttributeValue(android + "label", "Tamer Intro Check");
+        entry.SetAttributeValue(android + "label", label);
         return document.ToString();
     }
     public static string X86Template(string original)
@@ -33,11 +40,21 @@ public static class RevivalQuadDIntroBuild
     }
     public static object RequestBuild() => RequestBuildForAbi(false);
     public static object RequestX86Build() => RequestBuildForAbi(true);
-    private static object RequestBuildForAbi(bool x86)
+    public static object RequestReleaseBuild() => RequestBuildForAbi(false, true);
+
+    public static bool IsSafeReleaseConfiguration(string appId, bool development, bool customKey,
+        bool appBundle, bool x86, AndroidArchitecture architecture, string[] defines) =>
+        appId == RevivalQuadDAndroidProbe.ReleaseApplicationId && !development && !customKey &&
+        !appBundle && !x86 && architecture == AndroidArchitecture.ARM64 && defines != null &&
+        defines.OrderBy(x => x).SequenceEqual(new[] { "TAMER_REVIVAL_SMOKE",
+            "TAMER_QUAD_D_INTRO_HARNESS", "TAMER_QUAD_D_RELEASE_HARNESS" }.OrderBy(x => x));
+
+    private static object RequestBuildForAbi(bool x86, bool release = false)
     {
         if (requestDirectory != null || BuildPipeline.isBuildingPlayer)
             throw new BuildFailedException("An intro build has already been requested in this Editor.");
         RevivalBuild.ValidateBaseline();
+        if (release && x86) throw new BuildFailedException("Release preview requires exact ARM64.");
         RevivalBuild.RequireSavedScenes();
         if (EditorApplication.isPlayingOrWillChangePlaymode || EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
             throw new BuildFailedException("Android Edit Mode required.");
@@ -59,13 +76,14 @@ public static class RevivalQuadDIntroBuild
             !System.Text.RegularExpressions.Regex.IsMatch(catalog, "\"enableUnityGamingServicesAutoInitialization\"\\s*:\\s*false"))
             throw new BuildFailedException("IAP/UGS automatic initialization must remain disabled.");
         x86Preview = x86;
+        releasePreview = release;
         requestDirectory = Path.GetFullPath(Path.Combine(".revival-local/quad-d-intro/android", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(requestDirectory);
         File.WriteAllText(Path.Combine(requestDirectory, "build-status.json"), "{\"result\":\"Requested\"}");
         File.WriteAllText(".revival-local/quad-d-intro/android/latest-build.txt", requestDirectory);
         EditorApplication.delayCall += Build;
         return new { requestedOnce = true, directory = requestDirectory,
-            applicationId = x86Preview ? RevivalQuadDAndroidProbe.X86ApplicationId : RevivalQuadDAndroidProbe.ApplicationId,
+            applicationId = ApplicationId, releaseEngine = releasePreview,
             abi = x86Preview ? "x86_64" : "arm64-v8a" };
     }
 
@@ -84,13 +102,15 @@ public static class RevivalQuadDIntroBuild
         bool oldBundle = EditorUserBuildSettings.buildAppBundle;
         var oldBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android);
         var oldArchitecture = PlayerSettings.Android.targetArchitectures;
-        string applicationId = x86Preview ? RevivalQuadDAndroidProbe.X86ApplicationId : RevivalQuadDAndroidProbe.ApplicationId;
+        string applicationId = ApplicationId;
         var result = new Receipt { result = "Started", applicationId = applicationId,
+            releaseEngine = releasePreview,
             abi = x86Preview ? "x86_64" : "arm64-v8a",
             unity = Application.unityVersion, scene = RevivalQuadDAndroidProbe.ScenePath };
         try
         {
-            using (var manifest = new RevivalAdHarnessBuild.IsolatedManifestScope(PreviewManifest))
+            using (var manifest = new RevivalAdHarnessBuild.IsolatedManifestScope(
+                releasePreview ? (Func<string, string>)ReleasePreviewManifest : PreviewManifest))
             {
                 if (x86Preview)
                     File.WriteAllBytes(templatePath, System.Text.Encoding.UTF8.GetBytes(
@@ -104,6 +124,17 @@ public static class RevivalQuadDIntroBuild
                 PlayerSettings.Android.useCustomKeystore = false;
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
                 EditorUserBuildSettings.buildAppBundle = false;
+                BuildOptions options = BuildOptions.CompressWithLz4;
+                if (!releasePreview) options |= BuildOptions.Development;
+                string[] defines = releasePreview
+                    ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_QUAD_D_INTRO_HARNESS", "TAMER_QUAD_D_RELEASE_HARNESS" }
+                    : x86Preview
+                        ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_QUAD_D_INTRO_HARNESS", "TAMER_QUAD_D_INTRO_X86_HARNESS" }
+                        : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_QUAD_D_INTRO_HARNESS" };
+                if (releasePreview && !IsSafeReleaseConfiguration(applicationId,
+                    (options & BuildOptions.Development) != 0, PlayerSettings.Android.useCustomKeystore,
+                    EditorUserBuildSettings.buildAppBundle, x86Preview, PlayerSettings.Android.targetArchitectures, defines))
+                    throw new BuildFailedException("Unsafe release intro preview configuration.");
                 AssetDatabase.SaveAssets();
                 File.WriteAllText(Path.Combine(requestDirectory, "build-status.json"), JsonUtility.ToJson(result, true));
                 BuildReport report;
@@ -111,12 +142,10 @@ public static class RevivalQuadDIntroBuild
                     report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                         scenes = new[] { RevivalQuadDAndroidProbe.ScenePath }, target = BuildTarget.Android,
                         targetGroup = BuildTargetGroup.Android, locationPathName = Path.Combine(requestDirectory, "intro-preview.apk"),
-                        options = BuildOptions.Development | BuildOptions.CompressWithLz4,
-                        extraScriptingDefines = x86Preview
-                            ? new[] { "TAMER_REVIVAL_SMOKE", "TAMER_QUAD_D_INTRO_HARNESS", "TAMER_QUAD_D_INTRO_X86_HARNESS" }
-                            : new[] { "TAMER_REVIVAL_SMOKE", "TAMER_QUAD_D_INTRO_HARNESS" }
+                        options = options, extraScriptingDefines = defines
                     });
-                result.result = report.summary.result.ToString(); result.errors = report.summary.totalErrors;
+                result.result = report.summary.result == BuildResult.Succeeded ? "BuiltAwaitingRestore" : report.summary.result.ToString();
+                result.errors = report.summary.totalErrors;
                 result.bytes = report.summary.totalSize.ToString();
                 if (report.summary.result != BuildResult.Succeeded) throw new BuildFailedException("Isolated intro build failed.");
             }
@@ -140,6 +169,7 @@ public static class RevivalQuadDIntroBuild
                 AssetDatabase.ImportAsset(adsManifestPath, ImportAssetOptions.ForceSynchronousImport);
                 result.originalFilesRestored = originals.All(p => File.ReadAllBytes(p.Key).SequenceEqual(p.Value));
                 if (!result.originalFilesRestored) result.result = "RestorationFailed";
+                else if (result.result == "BuiltAwaitingRestore") result.result = "Succeeded";
                 File.WriteAllText(Path.Combine(requestDirectory, "build-status.json"), JsonUtility.ToJson(result, true));
             }
         }
@@ -147,6 +177,6 @@ public static class RevivalQuadDIntroBuild
     [Serializable] private class Receipt {
         public string result, applicationId, unity, scene, bytes, abi;
         public int errors;
-        public bool originalFilesRestored;
+        public bool originalFilesRestored, releaseEngine;
     }
 }

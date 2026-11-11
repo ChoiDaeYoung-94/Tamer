@@ -13,6 +13,71 @@ using UnityEngine.Video;
 
 public class RevivalQuadDIntroTests
 {
+    [Test]
+    public void ReleaseVideoPreviewRequiresItsOwnAndroidIdentityAndSingleOfflineScene()
+    {
+        var type = Type.GetType("RevivalQuadDAndroidProbe, Assembly-CSharp", true);
+        var method = type.GetMethod("SafeReleaseScope", BindingFlags.Public | BindingFlags.Static);
+        string app = (string)type.GetField("ReleaseApplicationId").GetRawConstantValue();
+        string scene = (string)type.GetField("ScenePath").GetRawConstantValue();
+        string destination = (string)type.GetField("Destination").GetRawConstantValue();
+        Func<string, string, int, bool, string, bool, bool, bool, bool> safe = (a, s, n, login, d, editor, dev, android) =>
+            (bool)method.Invoke(null, new object[] { a, s, n, login, d, editor, dev, android });
+        Assert.That(safe(app, scene, 1, false, destination, false, false, true), Is.True);
+        foreach (string id in new[] { "com.AeDeong.MonsterTamer", (string)type.GetField("ApplicationId").GetRawConstantValue(),
+            (string)type.GetField("X86ApplicationId").GetRawConstantValue(), "" })
+            Assert.That(safe(id, scene, 1, false, destination, false, false, true), Is.False);
+        Assert.That(safe(app, "Assets/Scenes/Login.unity", 1, false, destination, false, false, true), Is.False);
+        Assert.That(safe(app, scene, 2, false, destination, false, false, true), Is.False);
+        Assert.That(safe(app, scene, 1, true, destination, false, false, true), Is.False);
+        Assert.That(safe(app, scene, 1, false, "Login", false, false, true), Is.False);
+        Assert.That(safe(app, scene, 1, false, destination, true, false, true), Is.False);
+        Assert.That(safe(app, scene, 1, false, destination, false, true, true), Is.False);
+        Assert.That(safe(app, scene, 1, false, destination, false, false, false), Is.False);
+    }
+
+    [Test]
+    public void ReleaseVideoBuildRejectsOperatingIdentityKeyBundleAndOtherArchitecturesOrSymbols()
+    {
+        var probe = Type.GetType("RevivalQuadDAndroidProbe, Assembly-CSharp", true);
+        var type = Type.GetType("RevivalQuadDIntroBuild, Assembly-CSharp-Editor", true);
+        var method = type.GetMethod("IsSafeReleaseConfiguration", BindingFlags.Public | BindingFlags.Static);
+        string app = (string)probe.GetField("ReleaseApplicationId").GetRawConstantValue();
+        string[] defines = { "TAMER_REVIVAL_SMOKE", "TAMER_QUAD_D_INTRO_HARNESS", "TAMER_QUAD_D_RELEASE_HARNESS" };
+        Func<string, bool, bool, bool, bool, AndroidArchitecture, string[], bool> safe = (a, dev, key, bundle, x86, abi, symbols) =>
+            (bool)method.Invoke(null, new object[] { a, dev, key, bundle, x86, abi, symbols });
+        Assert.That(safe(app, false, false, false, false, AndroidArchitecture.ARM64, defines.Reverse().ToArray()), Is.True);
+        Assert.That(safe("com.AeDeong.MonsterTamer", false, false, false, false, AndroidArchitecture.ARM64, defines), Is.False);
+        Assert.That(safe(app, true, false, false, false, AndroidArchitecture.ARM64, defines), Is.False);
+        Assert.That(safe(app, false, true, false, false, AndroidArchitecture.ARM64, defines), Is.False);
+        Assert.That(safe(app, false, false, true, false, AndroidArchitecture.ARM64, defines), Is.False);
+        Assert.That(safe(app, false, false, false, true, AndroidArchitecture.ARM64, defines), Is.False);
+        foreach (var abi in new[] { AndroidArchitecture.X86_64, AndroidArchitecture.ARMv7,
+            AndroidArchitecture.ARM64 | AndroidArchitecture.X86_64 })
+            Assert.That(safe(app, false, false, false, false, abi, defines), Is.False);
+        foreach (var symbols in new[] { null, Array.Empty<string>(), defines.Take(2).ToArray(),
+            defines.Concat(new[] { defines[0] }).ToArray(), defines.Concat(new[] { "TAMER_GAMEPLAY_HARNESS" }).ToArray(),
+            defines.Concat(new[] { "TAMER_QUAD_D_INTRO_X86_HARNESS" }).ToArray() })
+            Assert.That(safe(app, false, false, false, false, AndroidArchitecture.ARM64, symbols), Is.False);
+    }
+
+    [Test]
+    public void ReleaseVideoLauncherChangesOnlyTheReviewedActivityLabel()
+    {
+        var type = Type.GetType("RevivalQuadDIntroBuild, Assembly-CSharp-Editor", true);
+        string original = System.IO.File.ReadAllText("Assets/Plugins/Android/AndroidManifest.xml");
+        string normal = (string)type.GetMethod("PreviewManifest").Invoke(null, new object[] { original });
+        string release = (string)type.GetMethod("ReleasePreviewManifest").Invoke(null, new object[] { original });
+        var normalXml = XDocument.Parse(normal);
+        var releaseXml = XDocument.Parse(release);
+        XNamespace android = "http://schemas.android.com/apk/res/android";
+        var activity = releaseXml.Root.Element("application").Elements("activity").Single(x =>
+            (string)x.Attribute(android + "name") == "com.unity3d.player.UnityPlayerActivity");
+        Assert.That((string)activity.Attribute(android + "label"), Is.EqualTo("Tamer Intro Release"));
+        activity.SetAttributeValue(android + "label", "Tamer Intro Check");
+        Assert.That(XNode.DeepEquals(normalXml, releaseXml), Is.True);
+    }
+
     private static object InvokeOutput(Component output, string method, params object[] arguments) =>
         output.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(output, arguments);
 
@@ -124,10 +189,12 @@ public class RevivalQuadDIntroTests
 
     [TestCase("com.AeDeong.MonsterTamer.revival.quaddintro")]
     [TestCase("com.AeDeong.MonsterTamer.revival.quaddintro1106x86")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.quaddintro1111release")]
     public void OfflinePreviewDisablesBackupAndRetainsItsBoundaries(string identity)
     {
         var builder = Type.GetType("RevivalQuadDIntroBuild, Assembly-CSharp-Editor", true);
-        var method = builder.GetMethod("PreviewManifest", BindingFlags.Public | BindingFlags.Static);
+        bool release = identity == "com.AeDeong.MonsterTamer.revival.quaddintro1111release";
+        var method = builder.GetMethod(release ? "ReleasePreviewManifest" : "PreviewManifest", BindingFlags.Public | BindingFlags.Static);
         const string original = "<manifest xmlns:android='http://schemas.android.com/apk/res/android'>" +
             "<uses-permission android:name='android.permission.INTERNET'/>" +
             "<application android:label='keep' android:allowBackup='true' android:fullBackupContent='true'>" +
@@ -142,7 +209,7 @@ public class RevivalQuadDIntroTests
         Assert.That((string)app.Attribute(android + "label"), Is.EqualTo("keep"));
         Assert.That(((string)app.Attribute(tools + "replace")).Split(','), Does.Not.Contain("android:label"));
         var entry = app.Elements("activity").Single(n => (string)n.Attribute(android + "name") == "com.unity3d.player.UnityPlayerActivity");
-        Assert.That((string)entry.Attribute(android + "label"), Is.EqualTo("Tamer Intro Check"));
+        Assert.That((string)entry.Attribute(android + "label"), Is.EqualTo(release ? "Tamer Intro Release" : "Tamer Intro Check"));
         Assert.That((string)app.Elements("activity").Single(n => (string)n.Attribute(android + "name") == "UnrelatedActivity").Attribute(android + "label"), Is.EqualTo("keep activity"));
         Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] {
             original.Replace("com.unity3d.player.UnityPlayerActivity", "MissingEntry") }));

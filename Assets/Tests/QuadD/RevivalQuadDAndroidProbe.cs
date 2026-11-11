@@ -10,6 +10,7 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
 {
     public const string ApplicationId = "com.AeDeong.MonsterTamer.revival.quaddintro";
     public const string X86ApplicationId = "com.AeDeong.MonsterTamer.revival.quaddintro1106x86";
+    public const string ReleaseApplicationId = "com.AeDeong.MonsterTamer.revival.quaddintro1111release";
     public const string ScenePath = "Assets/Tests/Scenes/QuadDAndroid/Test.unity";
     public const string Destination = "RevivalQuadDAndroidPreviewNoDestination";
 
@@ -18,6 +19,15 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
 
     public static bool SafeX86Scope(string appId, string scene, int sceneCount, bool loginAvailable, string destination)
         => appId == X86ApplicationId && SafeScope(ApplicationId, scene, sceneCount, loginAvailable, destination);
+
+    public static bool SafeReleaseScope(string appId, string scene, int sceneCount, bool loginAvailable,
+        string destination, bool editor, bool development, bool android) =>
+        appId == ReleaseApplicationId && !editor && !development && android &&
+        SafeScope(ApplicationId, scene, sceneCount, loginAvailable, destination);
+
+#if TAMER_QUAD_D_RELEASE_HARNESS && (!TAMER_REVIVAL_SMOKE || !TAMER_QUAD_D_INTRO_HARNESS || TAMER_QUAD_D_INTRO_X86_HARNESS)
+#error Release intro preview requires the dedicated smoke/intro contract without x86.
+#endif
 
 #if TAMER_QUAD_D_INTRO_HARNESS
     private VideoPlayer video;
@@ -42,6 +52,11 @@ public sealed class RevivalQuadDAndroidProbe : MonoBehaviour
 #if TAMER_QUAD_D_INTRO_X86_HARNESS
         safe = SafeX86Scope(Application.identifier, gameObject.scene.path, SceneManager.sceneCountInBuildSettings,
                 Application.CanStreamedLevelBeLoaded("Login"), intro.NextSceneName);
+#endif
+#if TAMER_QUAD_D_RELEASE_HARNESS
+        safe = SafeReleaseScope(Application.identifier, gameObject.scene.path, SceneManager.sceneCountInBuildSettings,
+            Application.CanStreamedLevelBeLoaded("Login"), intro.NextSceneName,
+            Application.isEditor, Debug.isDebugBuild, Application.platform == RuntimePlatform.Android);
 #endif
         if (!safe)
         {
