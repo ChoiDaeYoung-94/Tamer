@@ -23,4 +23,6 @@ SM-A175N / Android17(API37) / ARM64 / 실제4KB 페이지에서 기존 오프라
 
 ## 남은 검증
 
+후속 LD 확인에서 종료 확인창을 Back으로 닫은 뒤 게임 정지가 남는 경로를 찾았습니다. 이 ARM64 APK의 앞선 검증은 창 표시/닫기까지입니다. [수정과 x86_64 재개 검증](android-back-resume-20261111.ko.md)은 새 소스0fe43f3이며 동일 수정의 ARM64 실행은 후속입니다.
+
 [기존 ARM64 전체 UI/전투 일시정지 결과](physical-full-ui-validation-20261111.ko.md), [LD 상점/전체 UI](full-ui-ld-validation-20261111.ko.md)와 소스·APK를 구분합니다. 최신 LD의 하단 목록/Android Back·전투 일시정지 후속은 남아 있습니다. 실제 Google/손님 서버 계정·저장·No Ads·연령별 SDK 전송/광고·정상 Play 최신 후보·실제16KB·최종 사용자 UI/정책 심사/프로덕션·부모 PR 통합을 이 결과로 완료 처리하지 않습니다.
