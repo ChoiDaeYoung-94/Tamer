@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || TAMER_QUAD_D_LOGIN_HARNESS
+#if UNITY_EDITOR || (TAMER_QUAD_D_LOGIN_HARNESS && !TAMER_FACELIFT_RELEASE_INTRO)
 using System;
 using System.Collections;
 using System.Linq;

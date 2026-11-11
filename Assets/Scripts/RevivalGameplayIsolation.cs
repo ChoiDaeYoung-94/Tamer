@@ -18,6 +18,10 @@ namespace AD
         public const string FaceliftUiApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftui1029";
         public const string FaceliftCharacterUiApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftcharacter1029";
         public const string FaceliftIntroLoginApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftintrologin1029";
+        public const string FaceliftReleaseIntroApplicationId = "com.AeDeong.MonsterTamer.revival.faceliftintro1111release";
+#if TAMER_FACELIFT_RELEASE_INTRO && (!TAMER_REVIVAL_SMOKE || !TAMER_GAMEPLAY_HARNESS || !TAMER_FACELIFT_UI_HARNESS || !TAMER_QUAD_D_LOGIN_HARNESS || TAMER_CHARACTER_UI || TAMER_QUAD_D_SMOKE)
+#error Release facelift must use only its dedicated full offline intro/login profile.
+#endif
 #if TAMER_FACELIFT_UI_HARNESS
 #if !TAMER_GAMEPLAY_HARNESS || !TAMER_SHOP_HARNESS || !TAMER_SHOP_UI
 #error Facelift preview requires the dedicated offline manual shop UI variant.
@@ -26,7 +30,11 @@ namespace AD
 #if TAMER_CHARACTER_UI
 #error Intro/login and character-selection fixtures must stay separate.
 #endif
+#if TAMER_FACELIFT_RELEASE_INTRO
+        public const string ShopPurchaseApplicationId = FaceliftReleaseIntroApplicationId;
+#else
         public const string ShopPurchaseApplicationId = FaceliftIntroLoginApplicationId;
+#endif
 #elif TAMER_CHARACTER_UI
         public const string ShopPurchaseApplicationId = FaceliftCharacterUiApplicationId;
 #else
@@ -88,6 +96,22 @@ namespace AD
         }
 #endif
         public const string AccountId = "revival-offline-gameplay";
+        public static bool AllowsReleaseFaceliftContext(string applicationId, bool editor, bool development, bool android)
+            => applicationId == FaceliftReleaseIntroApplicationId && !editor && !development && android;
+
+        public static bool AllowsReleaseIntroObservation(string applicationId, string scene, int buildSceneCount,
+            bool loginAvailable, bool editor, bool development, bool android)
+            => AllowsReleaseFaceliftContext(applicationId, editor, development, android) &&
+               scene == "Assets/QuadD/Scenes/QuadDIntro.unity" && buildSceneCount == 6 && loginAvailable;
+
+        internal static bool ShopRuntimeAllowed =>
+#if TAMER_FACELIFT_RELEASE_INTRO
+            AllowsReleaseFaceliftContext(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
+                UnityEngine.Debug.isDebugBuild, UnityEngine.Application.platform == UnityEngine.RuntimePlatform.Android);
+#else
+            UnityEngine.Application.identifier == ShopPurchaseApplicationId && !UnityEngine.Application.isEditor &&
+            UnityEngine.Debug.isDebugBuild && UnityEngine.Application.platform == UnityEngine.RuntimePlatform.Android;
+#endif
         public static int Reads { get; private set; }
         public static int Writes { get; private set; }
         public static int BlockedLogins { get; private set; }
@@ -96,7 +120,11 @@ namespace AD
         public static string ReadApplyStage { get; private set; } = "not-started";
 #if TAMER_SHOP_HARNESS
 #if TAMER_QUAD_D_LOGIN_HARNESS
+#if TAMER_FACELIFT_RELEASE_INTRO
+        internal const string ShopFixtureDirectoryName = "RevivalReleaseIntroLoginManualUi";
+#else
         internal const string ShopFixtureDirectoryName = "RevivalIntroLoginManualUi";
+#endif
 #elif TAMER_CHARACTER_UI
         internal const string ShopFixtureDirectoryName = "RevivalCharacterManualUi";
 #elif TAMER_SHOP_UI
@@ -138,7 +166,7 @@ namespace AD
 #elif TAMER_SHOP_HARNESS
             ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
                 UnityEngine.PlayerPrefs.HasKey, ShopPurchaseApplicationId);
-            if (!UnityEngine.Debug.isDebugBuild) throw new InvalidOperationException("Debug shop fixture required.");
+            if (!ShopRuntimeAllowed) throw new InvalidOperationException("Exact offline shop runtime required.");
             string directory = Path.Combine(persistentRoot, ShopFixtureDirectoryName);
 #elif TAMER_INVENTORY_RESTORE
             ValidatePrivatePreferences(UnityEngine.Application.identifier, UnityEngine.Application.isEditor,
@@ -206,7 +234,7 @@ namespace AD
                 // Managers constructs the server before DataManager creates its private path.
                 // First synthetic request runs after initialization has established that path.
                 cloudPath = Path.Combine(Path.GetDirectoryName(SavePath), "SyntheticCloud.json");
-                if (UnityEngine.Application.identifier != ShopPurchaseApplicationId || !UnityEngine.Debug.isDebugBuild ||
+                if (!ShopRuntimeAllowed ||
                     Path.GetFileName(Path.GetDirectoryName(cloudPath)) != ShopFixtureDirectoryName)
                     throw new InvalidOperationException("Dedicated synthetic shop cloud required.");
                 if (!File.Exists(cloudPath) && File.Exists(Path.Combine(Path.GetDirectoryName(cloudPath), "PendingSword.txt")))
