@@ -76,6 +76,75 @@ public class RevivalAdPopupTests
         }
     }
 
+    [TestCase("_popupExit")]
+    [TestCase("_popupLobby")]
+    [TestCase("_popupSetting")]
+    public void Revival_ClosingLastPausePopupResumesGameplay(string field)
+    {
+        var previousScale = Time.timeScale;
+        try
+        {
+            var popup = CreatePopup("Pause owner");
+            popupManagerType.GetField(field, InstanceMembers).SetValue(popupManager, popup);
+            ActivatePopup(popup);
+            Time.timeScale = 0;
+
+            ClosePopup(popup);
+
+            Assert.That(popup.activeSelf, Is.False);
+            Assert.That(Time.timeScale, Is.EqualTo(1), "Closing the last pause owner must allow movement again.");
+            AssertStack();
+        }
+        finally { Time.timeScale = previousScale; }
+    }
+
+    [TestCase("_popupExit", "_popupSetting")]
+    [TestCase("_popupLobby", "_popupSetting")]
+    [TestCase("_popupSetting", "_popupLobby")]
+    public void Revival_ClosingNestedPausePopupKeepsUnderlyingMenuPaused(string topField, string bottomField)
+    {
+        var previousScale = Time.timeScale;
+        try
+        {
+            var bottom = CreatePopup("Underlying pause owner");
+            var top = CreatePopup("Nested confirmation");
+            popupManagerType.GetField(bottomField, InstanceMembers).SetValue(popupManager, bottom);
+            popupManagerType.GetField(topField, InstanceMembers).SetValue(popupManager, top);
+            ActivatePopup(bottom);
+            ActivatePopup(top);
+            Time.timeScale = 0;
+
+            ClosePopup(top);
+            // Serialized cancel buttons can also invoke this legacy callback.
+            Invoke(popupManager, "ClosePopupSetting");
+
+            Assert.That(bottom.activeSelf, Is.True);
+            Assert.That(Time.timeScale, Is.Zero, "Dismissing a confirmation must keep the underlying menu paused.");
+            AssertStack(bottom);
+            ClosePopup(bottom);
+            Assert.That(Time.timeScale, Is.EqualTo(1));
+        }
+        finally { Time.timeScale = previousScale; }
+    }
+
+    [Test]
+    public void Revival_ClosingOrdinaryPopupDoesNotResumeIndependentPause()
+    {
+        var previousScale = Time.timeScale;
+        try
+        {
+            var popup = CreatePopup("Ordinary popup");
+            ActivatePopup(popup);
+            Time.timeScale = 0;
+
+            ClosePopup(popup);
+
+            Assert.That(Time.timeScale, Is.Zero);
+            AssertStack();
+        }
+        finally { Time.timeScale = previousScale; }
+    }
+
     [Test]
     public void Revival_CloseTargetRemovesPopupObjectRegistration()
     {
