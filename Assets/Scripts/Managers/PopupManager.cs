@@ -106,8 +106,7 @@ namespace AD
             {
                 GameObject popup = _popupStack.Pop();
                 AD.DebugLogger.Log("PopupManager", $"_popupStack.Count: {_popupStack.Count} 팝업 스택에서 팝업 제거됨");
-                popup.SetActive(false);
-                if (popup == _popupSetting) ClosePopupSetting();
+                ClosePopup(popup);
             }
             else
             {
@@ -160,9 +159,16 @@ namespace AD
         /// <summary>Close a specific popup without consuming a newer popup above it.</summary>
         public void ClosePopup(GameObject target)
         {
+            bool pausedGameplay = target != null &&
+                (target == _popupSetting || target == _popupExit || target == _popupLobby);
             RemovePopup(target);
             if (target != null) target.SetActive(false);
+            // Android Back and the close button must release the same pause.
+            // A confirmation above settings must leave the underlying menu paused.
+            if (pausedGameplay) ClosePopupSetting();
         }
+
+        private static bool IsOpen(GameObject popup) => popup != null && popup.activeInHierarchy;
 
         // Registration removal must not close another popup or play a click sound.
         public void RemovePopup(GameObject target)
@@ -248,7 +254,11 @@ namespace AD
             _popupSetting.SetActive(true);
         }
 
-        public void ClosePopupSetting() => UnityEngine.Time.timeScale = 1;
+        public void ClosePopupSetting()
+        {
+            if (!IsOpen(_popupSetting) && !IsOpen(_popupExit) && !IsOpen(_popupLobby))
+                UnityEngine.Time.timeScale = 1;
+        }
 
         public void GoLobby()
         {
