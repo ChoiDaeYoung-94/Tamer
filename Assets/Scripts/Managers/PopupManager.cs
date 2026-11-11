@@ -93,6 +93,9 @@ namespace AD
         /// </summary>
         public void DisablePop()
         {
+            // The dead player must use the result confirmation to leave combat.
+            // Back must not hide that only clear recovery action.
+            if (IsOpen(_popupGameOver)) return;
             AD.Managers.SoundM.UI_Click();
 
             if (IsException)
@@ -152,7 +155,7 @@ namespace AD
         public void RequestClosePopup(GameObject target)
         {
             if (Managers.Instance != null && Managers.SoundM != null) Managers.SoundM.UI_Click();
-            if (IsException) return;
+            if (IsException || target == _popupGameOver) return;
             ClosePopup(target);
         }
 
@@ -237,7 +240,18 @@ namespace AD
             }
         }
 
-        public void PopupGameOver() => _popupGameOver.SetActive(true);
+        public void PopupGameOver()
+        {
+            var panel = _popupGameOver.transform.Find("Popup_gameOver") as RectTransform;
+            if (panel != null)
+            {
+                // Show the result at its full card size, independent of legacy scale animation.
+                var animation = panel.GetComponent<Animator>();
+                if (animation != null) animation.enabled = false;
+                panel.localScale = Vector3.one;
+            }
+            _popupGameOver.SetActive(true);
+        }
 
         public void PopupSetting()
         {
@@ -266,7 +280,13 @@ namespace AD
             AD.Managers.GameM.SwitchMainOrGameScene();
         }
 
-        public void GameOver() => AD.Managers.GameM.GameOverGoLobby();
+        public void GameOver()
+        {
+            if (AD.Managers.SceneM == null || AD.Managers.SceneM.IsTransitioning) return;
+            AD.Managers.GameM.GameOverGoLobby();
+            // The explicit confirmation owns cleanup of this persistent modal.
+            ClosePopup(_popupGameOver);
+        }
 
         public void ExitGame() => Application.Quit();
 

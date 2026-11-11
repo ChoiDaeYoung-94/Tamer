@@ -76,6 +76,120 @@ public class RevivalAdPopupTests
         }
     }
 
+    [Test]
+    public void Revival_GameOverCannotBeDismissedByAndroidBack()
+    {
+        var popup = CreateGameOver();
+        ActivatePopup(popup);
+        popupManagerType.GetField("_isException", InstanceMembers).SetValue(popupManager, false);
+
+        // No audio/account services are initialized: ignored Back has no side effects.
+        Invoke(popupManager, "DisablePop");
+        Invoke(popupManager, "DisablePop");
+
+        Assert.That(popup.activeSelf, Is.True);
+        AssertStack(popup);
+    }
+
+    [Test]
+    public void Revival_GameOverRejectsGenericUserCloseButAllowsExplicitCleanup()
+    {
+        var popup = CreateGameOver();
+        ActivatePopup(popup);
+        popupManagerType.GetField("_isException", InstanceMembers).SetValue(popupManager, false);
+
+        Invoke(popup.GetComponent(popupObjectType), "DisablePop");
+        Assert.That(popup.activeSelf, Is.True);
+        AssertStack(popup);
+
+        ClosePopup(popup);
+        Assert.That(popup.activeSelf, Is.False);
+        AssertStack();
+    }
+
+    [Test]
+    public void Revival_GameOverDoesNotPreventScenePopupCleanup()
+    {
+        var bottom = CreatePopup("Existing menu");
+        var popup = CreateGameOver();
+        ActivatePopup(bottom);
+        ActivatePopup(popup);
+
+        Invoke(popupManager, "SetPopup");
+
+        Assert.That(bottom.activeSelf || popup.activeSelf, Is.False);
+        AssertStack();
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Revival_OrdinaryUserCloseStillWorksWithAbsentOrHiddenGameOver(bool hidden)
+    {
+        if (hidden) CreateGameOver();
+        var popup = CreatePopup("Ordinary menu");
+        ActivatePopup(popup);
+        popupManagerType.GetField("_isException", InstanceMembers).SetValue(popupManager, false);
+
+        Invoke(popup.GetComponent(popupObjectType), "DisablePop");
+
+        Assert.That(popup.activeSelf, Is.False);
+        AssertStack();
+    }
+
+    [TestCase(0f, TestName = "Revival_GameOverShowsFullSizeCardFromZeroScale")]
+    [TestCase(0.3333333f, TestName = "Revival_GameOverShowsFullSizeCardFromShrunkenScale")]
+    public void Revival_GameOverShowsFullSizeCardWithoutChangingOtherAnimations(float legacyScale)
+    {
+        var popup = CreateGameOver();
+        var panel = new GameObject("Popup_gameOver", typeof(RectTransform), typeof(Animator));
+        panel.transform.SetParent(popup.transform, false);
+        var rect = (RectTransform)panel.transform;
+        rect.sizeDelta = new Vector2(900, 590);
+        rect.localScale = Vector3.one * legacyScale;
+        var other = new GameObject("Unrelated animation", typeof(Animator));
+        other.transform.SetParent(fixtureRoot.transform, false);
+
+        Invoke(popupManager, "PopupGameOver");
+
+        Assert.That(popup.activeSelf, Is.True);
+        Assert.That(rect.localScale, Is.EqualTo(Vector3.one));
+        Assert.That(rect.rect.size, Is.EqualTo(new Vector2(900, 590)));
+        Assert.That(panel.GetComponent<Animator>().enabled, Is.False);
+        Assert.That(other.GetComponent<Animator>().enabled, Is.True);
+        Assert.That(inactiveManagersRoot.activeInHierarchy, Is.False);
+    }
+
+    [TestCase(false, TestName = "Revival_GameOverConfirmationPreservesDialogWithoutSceneOwner")]
+    [TestCase(true, TestName = "Revival_GameOverConfirmationPreservesDialogDuringTransition")]
+    public void Revival_GameOverConfirmationPreservesRecoveryWhenReturnCannotStart(bool transitioning)
+    {
+        var popup = CreateGameOver();
+        ActivatePopup(popup);
+        if (transitioning)
+        {
+            var sceneType = FindType("AD.SceneManager");
+            var scene = inactiveManagersRoot.AddComponent(sceneType);
+            var managers = singletonField.GetValue(null);
+            managers.GetType().GetField("_sceneM", InstanceMembers).SetValue(managers, scene);
+            sceneType.GetProperty("IsTransitioning").GetSetMethod(true).Invoke(scene, new object[] { true });
+        }
+
+        // No Player or scene UI exists: a refused return must not reach reset,
+        // initialize services, or hide the dead player's only recovery action.
+        Invoke(popupManager, "GameOver");
+
+        Assert.That(popup.activeSelf, Is.True);
+        AssertStack(popup);
+        Assert.That(inactiveManagersRoot.activeInHierarchy, Is.False);
+    }
+
+    private GameObject CreateGameOver()
+    {
+        var popup = CreatePopup("Game over");
+        popupManagerType.GetField("_popupGameOver", InstanceMembers).SetValue(popupManager, popup);
+        return popup;
+    }
+
     [TestCase("_popupExit")]
     [TestCase("_popupLobby")]
     [TestCase("_popupSetting")]
