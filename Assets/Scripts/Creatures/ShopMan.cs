@@ -56,7 +56,33 @@ public class ShopMan : MonoBehaviour
     #region Functions
     private void Init()
     {
+        RefreshDisplayLabels();
         RefreshInventorySession();
+    }
+
+    private void RefreshDisplayLabels()
+    {
+        if (_popupShopUI == null) return;
+        foreach (var label in _popupShopUI.GetComponentsInChildren<TMP_Text>(true))
+        {
+            string caption;
+            switch (label.text?.Replace("\r\n", "\n").Trim())
+            {
+                case "SHOP": caption = "상점"; break;
+                case "GEAR": caption = "장비"; break;
+                case "ALLIES": caption = "동료"; break;
+                case "NO ADS": caption = "광고 제거"; break;
+                case "Remove Ads\nPrice shown in Google Play":
+                    caption = "광고 제거\n가격은 Google Play에서 확인"; break;
+                default: continue;
+            }
+            if (_itemInfoText != null && _itemInfoText.font != null)
+            {
+                label.font = _itemInfoText.font;
+                label.fontSharedMaterial = _itemInfoText.fontSharedMaterial;
+            }
+            label.text = caption;
+        }
     }
 
     public void ClearInventorySession()
@@ -154,8 +180,8 @@ public class ShopMan : MonoBehaviour
     }
 
     private string PurchaseConfirmationMessage() =>
-        (_isEquipmentItem ? "이 장비를 구매할까요?" : _confirmAllyMessage) + "\n" + _currentItemName +
-        "\n가격: " + _currentItemPrice.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + "G";
+        (_isEquipmentItem ? "이 장비를 구매할까요?" : _confirmAllyMessage) + "\n" + Item.DisplayName(_currentItemName) +
+        "\n가격: " + _currentItemPrice.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " 골드";
 
     private void ShowPurchaseResult(string message, bool completed = false)
     {
