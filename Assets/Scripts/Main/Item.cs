@@ -64,7 +64,7 @@ public class Item : MonoBehaviour
         if (_isUnlocked)
         {
             if (_creatureType == AD.GameConstants.Creatures.Player)
-                itemInfo = _itemName;
+                itemInfo = DisplayName(_itemName);
         }
 
         if (_isEquipped)
@@ -80,8 +80,38 @@ public class Item : MonoBehaviour
             : AD.Managers.DataM.ItemData[_itemName] as Dictionary<string, object>;
 
         _itemPrice = dataSource["Price"].ToString();
-        return $"{_itemName}\n가격: {_itemPrice}G";
+        return $"{DisplayName(_itemName)}\n{DisplayPrice(_itemPrice)} 골드";
     }
+
+    // Display captions never replace the identifiers used by inventory, saves or purchases.
+    public static string DisplayName(string itemName)
+    {
+        switch (itemName)
+        {
+            case "SimpleSword": return "기본 검";
+            case "MasterSword": return "달인의 검";
+            case "SimpleShield": return "기본 방패";
+            case "MasterShield": return "달인의 방패";
+            case "Bat": return "박쥐";
+            case "Magma": return "마그마";
+            case "Chest": return "보물상자";
+            case "Crab": return "게";
+            case "RatAssassin": return "암살쥐";
+            case "Spider": return "거미";
+            case "SpiderToxin": return "독거미";
+            case "SpiderKing": return "거미왕";
+            case "LizardWarrior": return "도마뱀 전사";
+            case "Werewolf": return "늑대인간";
+            case "Beholder": return "비홀더";
+            case "FylingDemon": return "날개 악마";
+            default: return itemName;
+        }
+    }
+
+    public static string DisplayPrice(string price) =>
+        int.TryParse(price, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out int value)
+            ? value.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) : price;
 
     public void ChooseItem()
     {
@@ -107,9 +137,9 @@ public class Item : MonoBehaviour
         string prefix = _itemType != AD.GameConstants.Items.None ? "추가 " : "";
 
         string itemInfo = $"상품 정보\n" +
-            $"- {_itemName}\n" +
-            $"- 가격: {_itemPrice}G\n" +
-            $"- {prefix}HP : {dataSource["Hp"]}\n" +
+            $"- {DisplayName(_itemName)}\n" +
+            $"- 가격: {DisplayPrice(_itemPrice)} 골드\n" +
+            $"- {prefix}체력 : {dataSource["Hp"]}\n" +
             $"- {prefix}공격력 : {dataSource["Power"]}\n" +
             $"- {prefix}공격 속도 : {dataSource["AttackSpeed"]}\n" +
             $"- {prefix}이동 속도 : {dataSource["MoveSpeed"]}";
