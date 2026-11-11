@@ -94,6 +94,7 @@ public static class RevivalGameplayBuild
             identity == RevivalGameplayIsolation.FaceliftUiApplicationId ||
             identity == RevivalGameplayIsolation.FaceliftCharacterUiApplicationId ||
             identity == RevivalGameplayIsolation.FaceliftIntroLoginApplicationId ||
+            identity == RevivalGameplayIsolation.FaceliftReleaseIntroApplicationId ||
             identity == RevivalGameplayIsolation.DeletionGameplayApplicationId ||
             identity == RevivalGameplayIsolation.PrivacyProductUiApplicationId ||
             identity == RevivalDeletionTrialHarness.ApplicationId ||

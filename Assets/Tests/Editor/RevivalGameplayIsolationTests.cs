@@ -104,10 +104,12 @@ public class RevivalGameplayIsolationTests
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true)]
     [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029", true)]
     [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029", true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintro1111release", true)]
     [TestCase("com.AeDeong.MonsterTamer", false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay.extra", false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029.extra", false)]
     [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029.extra", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintro1111release.extra", false)]
     [TestCase(null, false)]
     public void Revival_OfflineGameplayBackupRulesRequireExactFixtureIdentity(string identity, bool expected)
     {
@@ -118,6 +120,7 @@ public class RevivalGameplayIsolationTests
     [TestCase("com.AeDeong.MonsterTamer.revival.gameplay")]
     [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029")]
     [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintro1111release")]
     public void Revival_OfflineGameplayGradleCallbackWritesCloudAndDeviceTransferExclusions(string identity)
     {
         var target = UnityEditor.Build.NamedBuildTarget.Android;

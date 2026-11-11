@@ -543,8 +543,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         void Require(bool value) { if (!value) throw new InvalidOperationException(); }
         try
         {
-            Require(Application.identifier == RevivalGameplayIsolation.ShopPurchaseApplicationId && Debug.isDebugBuild &&
-                !Application.isEditor && !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable);
+            Require(RevivalGameplayIsolation.ShopRuntimeAllowed &&
+                !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable);
             var data = Managers.DataM;
             var player = Player.Instance;
             string marker = Path.Combine(Path.GetDirectoryName(RevivalGameplayIsolation.SavePath), "PendingSword.txt");
@@ -1046,6 +1046,144 @@ public sealed class RevivalCharacterPreviewOverlayMask : UnityEngine.MonoBehavio
         var console = IngameDebugConsole.DebugLogManager.Instance;
         if (console != null && console.PopupEnabled)
             console.PopupEnabled = false;
+    }
+}
+#endif
+
+#if TAMER_FACELIFT_RELEASE_INTRO && !UNITY_EDITOR
+// Observes the existing six-scene offline fixture. It never supplies age/auth input.
+public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBehaviour
+{
+    private QuadD.QuadDIntro intro;
+    private UnityEngine.Video.VideoPlayer video;
+    private UnityEngine.UI.RawImage picture;
+    private string directory;
+    private double awakeSeconds, preparedSeconds = -1, startedSeconds = -1, decodedSeconds = -1, visibleSeconds = -1;
+    private double nextWrite;
+    private long highestFrame = -1;
+    private int completions, introScenes, loginScenes, mainScenes, errors, visibleBeforeDecode;
+    private bool isolationReady;
+
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Boot()
+    {
+        if (!AD.RevivalGameplayIsolation.AllowsReleaseFaceliftContext(UnityEngine.Application.identifier,
+            UnityEngine.Application.isEditor, UnityEngine.Debug.isDebugBuild,
+            UnityEngine.Application.platform == UnityEngine.RuntimePlatform.Android))
+            throw new System.InvalidOperationException("Exact offline release full UI application required.");
+        var root = new UnityEngine.GameObject("Offline release intro observation");
+        UnityEngine.Object.DontDestroyOnLoad(root);
+        root.AddComponent<RevivalFaceliftReleaseIntroObservation>();
+    }
+
+    private void Awake()
+    {
+        awakeSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+        directory = System.IO.Path.Combine(UnityEngine.Application.persistentDataPath, "quad-d-observation");
+        System.IO.Directory.CreateDirectory(directory);
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoaded;
+        UnityEngine.Application.logMessageReceived += Logged;
+    }
+
+    private void SceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        if (scene.path == "Assets/QuadD/Scenes/QuadDIntro.unity")
+        {
+            if (introScenes != 0 || !AD.RevivalGameplayIsolation.AllowsReleaseIntroObservation(
+                UnityEngine.Application.identifier, scene.path,
+                UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings,
+                UnityEngine.Application.CanStreamedLevelBeLoaded("Login"), UnityEngine.Application.isEditor,
+                UnityEngine.Debug.isDebugBuild, UnityEngine.Application.platform == UnityEngine.RuntimePlatform.Android))
+                throw new System.InvalidOperationException("Exact six-scene release intro observation required.");
+            introScenes++;
+            intro = UnityEngine.Object.FindFirstObjectByType<QuadD.QuadDIntro>();
+            if (intro == null) throw new System.InvalidOperationException("Canonical intro missing.");
+            video = intro.GetComponent<UnityEngine.Video.VideoPlayer>();
+            if (video == null) throw new System.InvalidOperationException("Canonical video player missing.");
+            video.prepareCompleted += Prepared;
+            video.started += Started;
+            video.frameReady += Decoded;
+            intro.OnCompleted.AddListener(Completed);
+        }
+        else if (scene.name == "Login") loginScenes++;
+        else if (scene.name == "Main") mainScenes++;
+        WriteReceipt();
+    }
+
+    private void Prepared(UnityEngine.Video.VideoPlayer source) => preparedSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+    private void Started(UnityEngine.Video.VideoPlayer source) => startedSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+    private void Decoded(UnityEngine.Video.VideoPlayer source, long frame)
+    {
+        if (source == video && frame >= 0 && decodedSeconds < 0) decodedSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+    }
+    private void Completed() { completions++; WriteReceipt(); }
+    private void Logged(string message, string trace, UnityEngine.LogType type)
+    {
+        if (type == UnityEngine.LogType.Error || type == UnityEngine.LogType.Exception || type == UnityEngine.LogType.Assert) errors++;
+        if (message != null && message.StartsWith("GAMEPLAY_HARNESS ISOLATION_OK", System.StringComparison.Ordinal)) isolationReady = true;
+    }
+    private void LateUpdate()
+    {
+        if (video != null)
+        {
+            highestFrame = System.Math.Max(highestFrame, video.frame);
+            if (picture == null && intro != null) picture = intro.GetComponentInChildren<UnityEngine.UI.RawImage>(true);
+            if (picture != null && picture.enabled)
+            {
+                if (decodedSeconds < 0) visibleBeforeDecode++;
+                if (visibleSeconds < 0) visibleSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+            }
+        }
+        if (UnityEngine.Time.realtimeSinceStartupAsDouble >= nextWrite)
+        {
+            nextWrite = UnityEngine.Time.realtimeSinceStartupAsDouble + .5;
+            WriteReceipt();
+        }
+    }
+    private void WriteReceipt()
+    {
+        if (directory == null) return;
+        bool managersReady = AD.Managers.Instance != null && AD.Managers.DataM != null && AD.Managers.GoogleAdMobM != null;
+        var row = new Observation {
+            appId = UnityEngine.Application.identifier,
+            scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().path,
+            buildSceneCount = UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings,
+            introScenes = introScenes, loginScenes = loginScenes, mainScenes = mainScenes,
+            completionCount = completions, highestFrame = highestFrame, errors = errors,
+            awakeSeconds = awakeSeconds, preparedSeconds = preparedSeconds,
+            playbackStartedSeconds = startedSeconds, firstDecodedSeconds = decodedSeconds,
+            firstVisibleSeconds = visibleSeconds, visibleBeforeDecode = visibleBeforeDecode,
+            videoPlaying = video != null && video.isPlaying,
+            audioPlaying = intro != null && intro.GetComponent<UnityEngine.AudioSource>().isPlaying,
+            isolationReady = isolationReady,
+            dataReady = managersReady && AD.Managers.DataM.IsServerDataReady,
+            adsBlocked = managersReady && !AD.Managers.GoogleAdMobM.CanRequestAds,
+            iapUnavailable = managersReady && AD.Managers.IAPM.Status == AD.IAPStatus.Unavailable };
+        string path = System.IO.Path.Combine(directory, "observation.json");
+        string temporary = System.IO.Path.Combine(directory, "observation.tmp");
+        System.IO.File.WriteAllText(temporary, UnityEngine.JsonUtility.ToJson(row, true));
+        if (System.IO.File.Exists(path)) System.IO.File.Replace(temporary, path, null);
+        else System.IO.File.Move(temporary, path);
+    }
+    private void OnDestroy()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= SceneLoaded;
+        UnityEngine.Application.logMessageReceived -= Logged;
+        if (intro != null) intro.OnCompleted.RemoveListener(Completed);
+        if (video != null)
+        {
+            video.prepareCompleted -= Prepared;
+            video.started -= Started;
+            video.frameReady -= Decoded;
+        }
+    }
+    [System.Serializable] private sealed class Observation
+    {
+        public string appId, scene;
+        public int buildSceneCount, introScenes, loginScenes, mainScenes, completionCount, errors, visibleBeforeDecode;
+        public long highestFrame;
+        public double awakeSeconds, preparedSeconds, playbackStartedSeconds, firstDecodedSeconds, firstVisibleSeconds;
+        public bool videoPlaying, audioPlaying, isolationReady, dataReady, adsBlocked, iapUnavailable;
     }
 }
 #endif
