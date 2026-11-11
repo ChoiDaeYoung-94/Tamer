@@ -1057,11 +1057,14 @@ public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBeh
     private QuadD.QuadDIntro intro;
     private UnityEngine.Video.VideoPlayer video;
     private UnityEngine.UI.RawImage picture;
+    private UnityEngine.Transform preparationIndicator;
     private string directory;
     private double awakeSeconds, preparedSeconds = -1, startedSeconds = -1, decodedSeconds = -1, visibleSeconds = -1;
     private double nextWrite;
     private long highestFrame = -1;
     private int completions, introScenes, loginScenes, mainScenes, errors, visibleBeforeDecode;
+    private int preparationVisibleFrames, preparationWithVideoFrames;
+    private bool preparationHiddenOnCompletion;
     private bool isolationReady;
 
     [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -1100,6 +1103,8 @@ public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBeh
             if (intro == null) throw new System.InvalidOperationException("Canonical intro missing.");
             video = intro.GetComponent<UnityEngine.Video.VideoPlayer>();
             if (video == null) throw new System.InvalidOperationException("Canonical video player missing.");
+            preparationIndicator = intro.transform.Find("Quad D Video Output/Preparation Indicator");
+            if (preparationIndicator == null) throw new System.InvalidOperationException("Preparation feedback missing.");
             video.prepareCompleted += Prepared;
             video.started += Started;
             video.frameReady += Decoded;
@@ -1116,7 +1121,12 @@ public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBeh
     {
         if (source == video && frame >= 0 && decodedSeconds < 0) decodedSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
     }
-    private void Completed() { completions++; WriteReceipt(); }
+    private void Completed()
+    {
+        preparationHiddenOnCompletion = preparationIndicator != null && !preparationIndicator.gameObject.activeSelf;
+        completions++;
+        WriteReceipt();
+    }
     private void Logged(string message, string trace, UnityEngine.LogType type)
     {
         if (type == UnityEngine.LogType.Error || type == UnityEngine.LogType.Exception || type == UnityEngine.LogType.Assert) errors++;
@@ -1128,6 +1138,11 @@ public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBeh
         {
             highestFrame = System.Math.Max(highestFrame, video.frame);
             if (picture == null && intro != null) picture = intro.GetComponentInChildren<UnityEngine.UI.RawImage>(true);
+            if (preparationIndicator != null && preparationIndicator.gameObject.activeInHierarchy)
+            {
+                preparationVisibleFrames++;
+                if (picture != null && picture.enabled) preparationWithVideoFrames++;
+            }
             if (picture != null && picture.enabled)
             {
                 if (decodedSeconds < 0) visibleBeforeDecode++;
@@ -1153,6 +1168,8 @@ public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBeh
             awakeSeconds = awakeSeconds, preparedSeconds = preparedSeconds,
             playbackStartedSeconds = startedSeconds, firstDecodedSeconds = decodedSeconds,
             firstVisibleSeconds = visibleSeconds, visibleBeforeDecode = visibleBeforeDecode,
+            preparationVisibleFrames = preparationVisibleFrames, preparationWithVideoFrames = preparationWithVideoFrames,
+            preparationHiddenOnCompletion = preparationHiddenOnCompletion,
             videoPlaying = video != null && video.isPlaying,
             audioPlaying = intro != null && intro.GetComponent<UnityEngine.AudioSource>().isPlaying,
             isolationReady = isolationReady,
@@ -1181,9 +1198,11 @@ public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBeh
     {
         public string appId, scene;
         public int buildSceneCount, introScenes, loginScenes, mainScenes, completionCount, errors, visibleBeforeDecode;
+        public int preparationVisibleFrames, preparationWithVideoFrames;
         public long highestFrame;
         public double awakeSeconds, preparedSeconds, playbackStartedSeconds, firstDecodedSeconds, firstVisibleSeconds;
         public bool videoPlaying, audioPlaying, isolationReady, dataReady, adsBlocked, iapUnavailable;
+        public bool preparationHiddenOnCompletion;
     }
 }
 #endif

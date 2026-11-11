@@ -117,6 +117,18 @@ public class RevivalQuadDIntroTests
             Assert.That(rect.anchorMax, Is.EqualTo(Vector2.one));
             Assert.That(rect.offsetMin, Is.EqualTo(Vector2.zero));
             Assert.That(rect.offsetMax, Is.EqualTo(Vector2.zero));
+            var indicator = owner.transform.Find("Quad D Video Output/Preparation Indicator");
+            Assert.That(indicator.gameObject.activeSelf, Is.True, "Preparation must offer feedback before a decoded picture exists.");
+            var indicatorRect = indicator.GetComponent<RectTransform>();
+            Assert.That(indicatorRect.anchorMax.x, Is.GreaterThan(indicatorRect.anchorMin.x));
+            Assert.That(indicatorRect.anchorMax.y, Is.GreaterThan(indicatorRect.anchorMin.y));
+            Assert.That(indicator.childCount, Is.EqualTo(3));
+            foreach (Transform child in indicator)
+            {
+                var bar = child.GetComponent(UiType("Image"));
+                Assert.That((bool)bar.GetType().GetProperty("raycastTarget").GetValue(bar), Is.False);
+                Assert.That(((Color)bar.GetType().GetProperty("color").GetValue(bar)).a, Is.GreaterThan(0));
+            }
             InvokeOutput(output, "OnFrameReady", video, -1L);
             InvokeOutput(output, "LateUpdate");
             Assert.That(image.enabled, Is.False);
@@ -136,6 +148,8 @@ public class RevivalQuadDIntroTests
             Assert.That(video.sendFrameReadyEvents, Is.False, "Continuous per-frame events are unnecessary.");
             InvokeOutput(output, "LateUpdate");
             Assert.That(image.enabled, Is.False);
+            Assert.That(owner.transform.Find("Quad D Video Output/Preparation Indicator").gameObject.activeSelf, Is.True,
+                "A frame event without a texture must not remove preparation feedback.");
             Assert.That((Color)image.GetType().GetProperty("color").GetValue(image), Is.EqualTo(Color.white),
                 "The decoded picture must retain its original colours.");
         });
@@ -152,6 +166,7 @@ public class RevivalQuadDIntroTests
             Assert.That(image.enabled, Is.False);
             Assert.That(image.GetType().GetProperty("texture").GetValue(image), Is.Null);
             Assert.That(owner.GetComponentInChildren<Canvas>(true).enabled, Is.False);
+            Assert.That(owner.transform.Find("Quad D Video Output/Preparation Indicator").gameObject.activeSelf, Is.False);
             Assert.That(video.sendFrameReadyEvents, Is.False);
         });
     }
