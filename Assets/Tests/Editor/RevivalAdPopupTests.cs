@@ -159,6 +159,30 @@ public class RevivalAdPopupTests
         Assert.That(inactiveManagersRoot.activeInHierarchy, Is.False);
     }
 
+    [TestCase(false, TestName = "Revival_GameOverConfirmationPreservesDialogWithoutSceneOwner")]
+    [TestCase(true, TestName = "Revival_GameOverConfirmationPreservesDialogDuringTransition")]
+    public void Revival_GameOverConfirmationPreservesRecoveryWhenReturnCannotStart(bool transitioning)
+    {
+        var popup = CreateGameOver();
+        ActivatePopup(popup);
+        if (transitioning)
+        {
+            var sceneType = FindType("AD.SceneManager");
+            var scene = inactiveManagersRoot.AddComponent(sceneType);
+            var managers = singletonField.GetValue(null);
+            managers.GetType().GetField("_sceneM", InstanceMembers).SetValue(managers, scene);
+            sceneType.GetProperty("IsTransitioning").GetSetMethod(true).Invoke(scene, new object[] { true });
+        }
+
+        // No Player or scene UI exists: a refused return must not reach reset,
+        // initialize services, or hide the dead player's only recovery action.
+        Invoke(popupManager, "GameOver");
+
+        Assert.That(popup.activeSelf, Is.True);
+        AssertStack(popup);
+        Assert.That(inactiveManagersRoot.activeInHierarchy, Is.False);
+    }
+
     private GameObject CreateGameOver()
     {
         var popup = CreatePopup("Game over");

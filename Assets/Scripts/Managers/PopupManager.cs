@@ -280,7 +280,13 @@ namespace AD
             AD.Managers.GameM.SwitchMainOrGameScene();
         }
 
-        public void GameOver() => AD.Managers.GameM.GameOverGoLobby();
+        public void GameOver()
+        {
+            if (AD.Managers.SceneM == null || AD.Managers.SceneM.IsTransitioning) return;
+            AD.Managers.GameM.GameOverGoLobby();
+            // The explicit confirmation owns cleanup of this persistent modal.
+            ClosePopup(_popupGameOver);
+        }
 
         public void ExitGame() => Application.Quit();
 
