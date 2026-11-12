@@ -84,9 +84,9 @@ TextMesh:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2228211072097213776}
-  m_Text: 'HUNTING GROUNDS
+  m_Text: '사냥터
 
-    Tap to enter'
+    눌러서 입장'
   m_OffsetZ: 0
   m_CharacterSize: 0.6
   m_LineSpacing: 1.1

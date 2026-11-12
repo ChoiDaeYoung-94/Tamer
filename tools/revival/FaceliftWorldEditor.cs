@@ -103,7 +103,7 @@ public static class FaceliftWorldEditor
             if (sign == null || sign.GetComponent<TextMesh>() == null || sign.Find("GoGameScene").GetComponent<BoxCollider>() == null)
                 throw new InvalidOperationException("Original hunting sign and click collider required.");
             var text = sign.GetComponent<TextMesh>();
-            text.text = "HUNTING GROUNDS\nTap to enter";
+            text.text = "사냥터\n눌러서 입장";
             text.fontSize = 64;
             text.characterSize = .6f;
             text.lineSpacing = 1.1f;
