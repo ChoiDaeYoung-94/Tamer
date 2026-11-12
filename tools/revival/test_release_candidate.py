@@ -139,10 +139,10 @@ class ReleaseCandidateTests(unittest.TestCase):
     Android: DOTWEEN
 ''')
             (root/'ProjectSettings/ProjectVersion.txt').write_text(
-                'm_EditorVersion: 6000.3.25f1\nm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n')
+                'm_EditorVersion: 6000.3.27f2\nm_EditorVersionWithRevision: 6000.3.27f2 (22188f149405)\n')
             (root/'tools/revival').mkdir(parents=True)
             (root/'tools/revival/toolchain.json').write_text(json.dumps(
-                {'unityEditor':'6000.3.25f1','unityEditorRevision':'e1dba0a9aba4'}))
+                {'unityEditor':'6000.3.27f2','unityEditorRevision':'22188f149405'}))
             scenes=root/'ProjectSettings/EditorBuildSettings.asset'
             scenes.write_text('  - enabled: 1\n    path: Assets/Scenes/Login.unity\n')
             (root/'Assets/Resources/IAPProductCatalog.json').write_text(json.dumps({'enableCodelessAutoInitialization':False,'enableUnityGamingServicesAutoInitialization':False}))
@@ -206,19 +206,19 @@ class ReleaseCandidateTests(unittest.TestCase):
             config = root / TOOLCHAIN_CONFIG
             project.parent.mkdir(parents=True)
             config.parent.mkdir(parents=True)
-            expected = 'm_EditorVersion: 6000.3.25f1\nm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n'
-            valid = json.dumps({'unityEditor':'6000.3.25f1', 'unityEditorRevision':'e1dba0a9aba4'})
+            expected = 'm_EditorVersion: 6000.3.27f2\nm_EditorVersionWithRevision: 6000.3.27f2 (22188f149405)\n'
+            valid = json.dumps({'unityEditor':'6000.3.27f2', 'unityEditorRevision':'22188f149405'})
             config.write_text(valid)
             for value in [expected, '\ufeff' + expected.replace('\n', '\r\n')]:
                 project.write_bytes(value.encode('utf-8'))
                 before = project.read_bytes(), config.read_bytes()
                 self.assertTrue(unity_source_pinned(root))
                 self.assertEqual(before, (project.read_bytes(), config.read_bytes()))
-            invalid_projects = [expected.replace('6000.3.25f1', '6000.3.25f10'),
-                '# m_EditorVersion: 6000.3.25f1\nm_EditorVersion: 6000.3.26f1\n',
-                expected.replace('e1dba0a9aba4', '000000000000'),
-                'm_EditorVersion: 6000.3.25f1\n', expected + 'm_EditorVersion: 6000.3.25f1\n',
-                expected + 'm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n']
+            invalid_projects = [expected.replace('6000.3.27f2', '6000.3.27f20'),
+                '# m_EditorVersion: 6000.3.27f2\nm_EditorVersion: 6000.3.26f1\n',
+                expected.replace('22188f149405', '000000000000'),
+                'm_EditorVersion: 6000.3.27f2\n', expected + 'm_EditorVersion: 6000.3.27f2\n',
+                expected + 'm_EditorVersionWithRevision: 6000.3.27f2 (22188f149405)\n']
             for value in invalid_projects:
                 with self.subTest(project=value):
                     project.write_text(value)
@@ -226,9 +226,9 @@ class ReleaseCandidateTests(unittest.TestCase):
                     self.assertFalse(unity_source_pinned(root))
                     self.assertEqual(before, (project.read_bytes(), config.read_bytes()))
             project.write_text(expected)
-            for value in [valid.replace('6000.3.25f1', '6000.3.25f10'),
-                          valid.replace('e1dba0a9aba4', '000000000000'),
-                          '{"unityEditor":"wrong","unityEditor":"6000.3.25f1","unityEditorRevision":"e1dba0a9aba4"}',
+            for value in [valid.replace('6000.3.27f2', '6000.3.27f20'),
+                          valid.replace('22188f149405', '000000000000'),
+                          '{"unityEditor":"wrong","unityEditor":"6000.3.27f2","unityEditorRevision":"22188f149405"}',
                           valid[:-1] + ',"extra":NaN}', '{}', '[]', 'null', '{broken']:
                 with self.subTest(config=value):
                     config.write_text(value)

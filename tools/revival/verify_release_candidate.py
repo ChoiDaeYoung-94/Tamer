@@ -18,8 +18,8 @@ from private_ads_build import ABI_PROFILES, abi_contract
 ROOT = Path(__file__).resolve().parents[2]
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 APP_ID = 'com.AeDeong.MonsterTamer'
-UNITY_VERSION = '6000.3.25f1'
-UNITY_REVISION = 'e1dba0a9aba4'
+UNITY_VERSION = '6000.3.27f2'
+UNITY_REVISION = '22188f149405'
 TOOLCHAIN_CONFIG = 'tools/revival/toolchain.json'
 QUAD_D_INTRO_SCENE = 'Assets/QuadD/Scenes/QuadDIntro.unity'
 QUAD_D_INTRO_COMMIT = '55bf9e4aa48c2f95942f3c2c995f1d55414e97c0'
@@ -346,7 +346,7 @@ def main():
     candidate.add_argument('--upload-cert-sha256',required=True)
     candidate.add_argument('--bundletool',type=Path,default=DEST)
     candidate.add_argument('--abi-profile',choices=ABI_PROFILES,default='arm64')
-    candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
+    candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
     args=parser.parse_args()
     inputs=[ROOT/path for path in SOURCE_INPUTS]+[Path(__file__),ROOT/'tools/revival/VerifyAabSignature.java',
         ROOT/'tools/revival/install_bundletool.py',ROOT/'tools/revival/verify_native_alignment.py',

@@ -15,7 +15,7 @@ public static class PrivateAdsSyntheticBuild
     private const string SettingsPath = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
     public static object Run()
     {
-        if (!Application.isBatchMode || Application.unityVersion != "6000.3.25f1" ||
+        if (!Application.isBatchMode || Application.unityVersion != "6000.3.27f2" ||
             EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android) throw Rejected();
         var blockedNames = new[] { "TAMER_KEYSTORE_PASS", "TAMER_KEYALIAS_PASS", "TAMER_UPLOAD_KEYSTORE_PATH",
             "TAMER_UPLOAD_KEY_ALIAS", "TAMER_UPLOAD_CERT_SHA256", "TAMER_IAP_TEST_KEY_PASSWORD" };
