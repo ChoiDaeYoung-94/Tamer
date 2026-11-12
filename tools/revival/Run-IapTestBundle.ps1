@@ -61,7 +61,7 @@ function Assert-IapExistingSigningDirectory {
 $externalSigning = $PSBoundParameters.ContainsKey('SigningDirectory')
 if ($externalSigning -and $CreateSigningForNewTestApp) { throw 'External signing selection cannot create a new key.' }
 $private = if ($externalSigning) { Assert-IapExistingSigningDirectory -Path $SigningDirectory } else { Join-Path $project '.revival-local/iap-signing' }
-$jdk = 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin'
+$jdk = 'C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin'
 $key = Join-Path $private 'test-upload.jks'
 $passwordFile = Join-Path $private 'password.dpapi'
 $certificate = Join-Path $private 'test-upload.der'
@@ -181,7 +181,7 @@ try {
         $env:TAMER_IAP_TEST_TITLE = $TestTitle
         $env:TAMER_IAP_PRODUCTION_TITLE = $ProductionTitle
         $env:TAMER_IAP_TEST_CATALOG = $Catalog
-        & "$project/tools/.local/unity-cli/1.0.0-beta.8/unity.exe" build $project --editor-path 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Unity.exe' --target Android --execute-method RevivalIapBuild.BuildStoreTestBundle --log-file "$project/Logs/revival/iap-bundle-build.log" --no-tail --non-interactive
+        & "$project/tools/.local/unity-cli/1.0.0-beta.8/unity.exe" build $project --editor-path 'C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Unity.exe' --target Android --execute-method RevivalIapBuild.BuildStoreTestBundle --log-file "$project/Logs/revival/iap-bundle-build.log" --no-tail --non-interactive
         if ($LASTEXITCODE -ne 0) { throw 'IAP test bundle build failed.' }
     }
     if ($reviewedRecovery) { Write-Output 'IAP bundle command finished; actual delta review and source recovery are still required.' }

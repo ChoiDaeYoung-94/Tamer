@@ -311,7 +311,7 @@ class PrivacyProducerTests(unittest.TestCase):
         output = ROOT / ('Logs/revival/privacy-only-build-route-pure-1007-' + uuid.uuid4().hex)
         output.parent.mkdir(parents=True, exist_ok=True)
         create_private_directory(output)
-        editor = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data')
+        editor = Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data')
         api = editor / 'UnityReferenceAssemblies/unity-4.8-api'; managed = editor / 'Managed'
         sources = ['Assets/Scripts/Advertising/PrivatePrivacyReleaseContract.cs', 'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs',
                    'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs', 'Assets/Scripts/Advertising/AdRequestPolicy.cs', 'Assets/Scripts/Advertising/LocalAgeChoice.cs']

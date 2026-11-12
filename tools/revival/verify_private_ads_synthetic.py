@@ -10,7 +10,7 @@ from install_bundletool import DEST, SHA256
 from windows_owned_files import LockedFile, locked_directories
 
 ROOT = Path(__file__).resolve().parents[2]
-JDK = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin')
+JDK = Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin')
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 
 def digest(path):
