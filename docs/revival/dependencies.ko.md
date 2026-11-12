@@ -22,6 +22,8 @@
 11월7일에는 기존 공개 한글 `DungGeunMo.ttf`의 내부1.301 식별·7,354,268bytes/SHA와 작성자 TTF ZIP의 바이트 동일성을 확인하고 [작성자 배포/사용권 표기](dung-font-source-20261107.ko.md)를 연결했습니다. 폰트 교체·기존 manifest/GUID·비공개 복원 분류 변경은 없습니다. 이 TTF의 확인은 다른 폰트/유료 에셋의 개별 권한과 구분합니다.
 PlayFab SDK는 고정 공식 배포물로 갱신했으며 기존 GUID와 중립 서비스 설정을 보존한다. Editor Extensions 전체가 공식 배포 태그와 동일하다고 주장하지 않는다.
 
+11월12일에는 기존 완료 LD 빌드 보고서로 [실제 포함 에셋과 구형 프로필](packed-asset-followup-20261112.ko.md)을 좁혔습니다. private manifest와 겹치는 포함 경로168개는 모두 원본 SHA가 일치하며 구매·이용 권한과 구분합니다. 구형4개 중3개는 이번 APK에 없고 Hovl1개는 Resources에 남아 있습니다. Avalon 이름/로컬 GUID는 이번 PackedAssets에 없으나 전체 권리나 모든 운영 산출물의 미포함을 선언하지 않습니다. 원본/meta·manifest·비공개 분류 변경과 새 Editor/빌드0입니다.
+
 ## 복원
 
 Unity가 이 작업본을 열기 **전에** 실행한다. `--source`는 원본과 같은 상대 경로를 가진
