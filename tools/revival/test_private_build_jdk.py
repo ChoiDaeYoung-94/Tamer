@@ -8,7 +8,7 @@ import unittest
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
-EDITOR = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data')
+EDITOR = Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data')
 
 
 @unittest.skipUnless(sys.platform == 'win32', 'Pinned Windows compiler required')
