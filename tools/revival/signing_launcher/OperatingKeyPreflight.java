@@ -30,11 +30,25 @@ public final class OperatingKeyPreflight {
 
     static void verify(byte[] jks, byte[] der, String alias, char[] store, char[] keyPassword)
             throws Exception {
-        if (jks.length < 8 || jks[0] != (byte)0xfe || jks[1] != (byte)0xed ||
-                jks[2] != (byte)0xfe || jks[3] != (byte)0xed) throw new KeyStoreException();
-        // Non-null password is mandatory: load validates JKS integrity.
-        KeyStore keyStore = KeyStore.getInstance("JKS");
-        keyStore.load(new ByteArrayInputStream(jks), store);
+        verify(jks, der, alias, store, keyPassword, "JKS");
+    }
+
+    static void verify(byte[] data, byte[] der, String alias, char[] store, char[] keyPassword,
+                       String storeType) throws Exception {
+        if ("JKS".equals(storeType)) {
+            if (data.length < 8 || data[0] != (byte)0xfe || data[1] != (byte)0xed ||
+                    data[2] != (byte)0xfe || data[3] != (byte)0xed) throw new KeyStoreException();
+        } else if ("PKCS12".equals(storeType)) {
+            if (data.length < 8 || data[0] != 0x30 || !Arrays.equals(store, keyPassword))
+                throw new KeyStoreException();
+            // JVM-local only: a PKCS12 request must never fall back to the JKS parser.
+            Security.setProperty("keystore.type.compat", "false");
+            if (!"false".equals(Security.getProperty("keystore.type.compat")))
+                throw new KeyStoreException();
+        } else throw new KeyStoreException();
+        // Non-null password is mandatory: load verifies store integrity.
+        KeyStore keyStore = KeyStore.getInstance(storeType);
+        keyStore.load(new ByteArrayInputStream(data), store);
         if (!keyStore.isKeyEntry(alias)) throw new KeyStoreException();
         ByteArrayInputStream certificateInput = new ByteArrayInputStream(der);
         X509Certificate expected = (X509Certificate)CertificateFactory.getInstance("X.509")
@@ -73,15 +87,21 @@ public final class OperatingKeyPreflight {
         boolean verified = false;
         String exceptionType = "";
         try (DataInputStream in = new DataInputStream(System.in)) {
-            if (args.length != 0 || in.readInt() != 0x544b5031) throw new IOException();
+            if (args.length != 0) throw new IOException();
+            int protocol=in.readInt();
+            if (protocol != 0x544b5031 && protocol != 0x544b5032) throw new IOException();
             jks = bytes(in, 16*1024*1024);
             der = bytes(in, 1024*1024);
             aliasBytes = bytes(in, 4096);
             String alias = new String(aliasBytes, StandardCharsets.UTF_8);
             if (alias.isBlank() || alias.indexOf('\0') >= 0) throw new KeyStoreException();
+            if (protocol == 0x544b5032 &&
+                    (!Arrays.equals(alias.getBytes(StandardCharsets.UTF_8), aliasBytes) ||
+                     !alias.matches("[a-z0-9][a-z0-9._-]{0,127}"))) throw new KeyStoreException();
             store = password(in); keyPassword = password(in);
             if (in.read() != -1) throw new IOException();
-            verify(jks, der, alias, store, keyPassword);
+            verify(jks, der, alias, store, keyPassword,
+                    protocol == 0x544b5031 ? "JKS" : "PKCS12");
             verified = true;
         } catch (Throwable failure) {
             exceptionType = failure.getClass().getSimpleName();

@@ -27,7 +27,7 @@ public static class LauncherBootstrapFile {
         return value.Volume+":"+value.IndexHigh+":"+value.IndexLow;
     }
     public static SafeFileHandle Directory(string path) {
-        var handle=CreateFileW(path,0x80,1,IntPtr.Zero,3,0x02200000,IntPtr.Zero);
+        var handle=CreateFileW(path,0x81,1,IntPtr.Zero,3,0x02200000,IntPtr.Zero);
         Info value;
         if(handle.IsInvalid || !GetFileInformationByHandle(handle,out value) || (value.Attributes&0x400)!=0 || (value.Attributes&0x10)==0){handle.Dispose();throw new IOException();}
         return handle;

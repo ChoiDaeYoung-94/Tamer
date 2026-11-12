@@ -7,6 +7,7 @@ Add-Type -AssemblyName System.Drawing
 $paths=@((Join-Path $source 'OwnedChild.cs'),(Join-Path $source 'SigningLauncher.cs'))
 if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'LauncherHarness.cs')){$paths+=Join-Path $PSScriptRoot 'LauncherHarness.cs'}
 if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'AtomicOwnerFixture.cs')){$paths+=Join-Path $PSScriptRoot 'AtomicOwnerFixture.cs'}
+if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'ProfileHarness.cs')){$paths+=Join-Path $PSScriptRoot 'ProfileHarness.cs'}
 $assembly=Join-Path $Evidence 'SigningLauncherSynthetic.dll'
 Add-Type -Path $paths -OutputAssembly $assembly -ReferencedAssemblies @(
     'System.Windows.Forms','System.Windows.Forms.Primitives','System.Private.Windows.Core',

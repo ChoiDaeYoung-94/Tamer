@@ -51,6 +51,26 @@ class WindowsCleanupTests(unittest.TestCase):
         self.assertEqual(replacement.read_bytes(), b'other')
         self.assertTrue(parent.exists())
 
+    def test_empty_directory_handle_alone_blocks_rename(self):
+        parent = self.root / 'empty-owned'
+        parent.mkdir()
+        with LockedFile(parent, directory=True):
+            with self.assertRaises(OSError):
+                parent.rename(self.root / 'empty-moved')
+        self.assertTrue(parent.is_dir())
+        self.assertFalse((self.root / 'empty-moved').exists())
+
+    def test_ancestor_locks_allow_new_children_but_reject_ancestor_rename(self):
+        outer = self.root / 'outer'
+        inner = outer / 'inner'
+        inner.mkdir(parents=True)
+        with locked_directories([inner]):
+            (inner / 'new-child.txt').write_bytes(b'synthetic child')
+            with self.assertRaises(OSError):
+                outer.rename(self.root / 'moved-outer')
+        self.assertEqual((inner / 'new-child.txt').read_bytes(), b'synthetic child')
+        self.assertFalse((self.root / 'moved-outer').exists())
+
     def test_same_bytes_replacement_rejected_before_any_deletion(self):
         file = self.root / 'owned.cs'
         file.write_bytes(b'owned')

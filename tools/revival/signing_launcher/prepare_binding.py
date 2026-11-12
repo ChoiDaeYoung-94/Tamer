@@ -23,7 +23,8 @@ LIMIT = 8 * 1024 * 1024
 BINDING_NAME = 'launcher-binding.private.json'
 MANIFEST_NAME = 'launcher-sources.private.json'
 HELPERS = ('private_ads_producer.py', 'private_ads_build.py', 'private_ads_approved.py',
-           'private_ads_evidence.py', 'validate_private_ads_preparation.py', 'windows_owned_files.py')
+           'private_ads_evidence.py', 'validate_private_ads_preparation.py', 'windows_owned_files.py',
+           'signing_profile.py')
 OWN_SOURCES = ('OwnedChild.cs', 'SigningLauncher.cs', 'OperatingKeyPreflight.java',
                'producer_bridge.py', 'Invoke-SigningLauncher.ps1', 'EditorOwnership.ps1')
 PATH_FIELDS = ('checkout', 'plan', 'sourceReview', 'certificate', 'git', 'powershell',
@@ -242,7 +243,7 @@ class BootstrapFile:
             ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
         kernel.CreateFileW.restype = wintypes.HANDLE
         kernel.CloseHandle.argtypes = [wintypes.HANDLE]
-        handle = kernel.CreateFileW(str(path), 0x20080 if directory else 0x80000000,
+        handle = kernel.CreateFileW(str(path), 0x20081 if directory else 0x80000000,
                                    1, None, 3, 0x02200000, None)
         if handle == ctypes.c_void_p(-1).value:
             raise OSError('BootstrapLock')
@@ -321,10 +322,13 @@ def assemble(request, plan, bridge, runtime, absent, pins):
     """Pure, deterministic assembly; collection and all gates belong to Collector."""
     runtime, absent = exact_paths(runtime), exact_paths(absent)
     value = {name: request[name] for name in BINDING_FIELDS & request.keys()}
-    value.update(schema=1, python=str(Path(sys.executable)),
+    external=bridge.producer.profiles.select(plan).external
+    fields=BINDING_FIELDS|({'signingProfile'} if external else set())
+    value.update(schema=2 if external else 1, python=str(Path(sys.executable)),
         bridge=str(Path(request['checkout']) / 'tools/revival/signing_launcher/producer_bridge.py'),
         runtimeFiles=runtime, absentRuntimeFiles=absent, pins=pins)
-    if set(value) != BINDING_FIELDS or type(value['schema']) is not int:
+    if external:value['signingProfile']=dict(plan['signingProfile'])
+    if set(value) != fields or type(value['schema']) is not int:
         raise ValueError('BindingFields')
     required = bridge.immutable_pin_paths(Path(request['checkout']), plan, value)
     supplied = exact_paths([pin['path'] for pin in pins])
@@ -385,6 +389,7 @@ class Collector:
         self.request, self.now = request, now
         self.stack = ExitStack()
         self.bootstrap_handles, self.handles, self.metadata = {}, {}, {}
+        self.snapshot_hashes, self.snapshot_limits = {}, {}
         self.parents = set()
         self.directory_handles = {}
         self.producer_directories = set()
@@ -408,13 +413,17 @@ class Collector:
             self.bootstrap_handles[str(path)] = self.stack.enter_context(BootstrapFile(path))
         return self.bootstrap_handles[str(path)]
 
-    def snapshot(self, path, expected):
+    def snapshot(self, path, expected, *, limit=LIMIT):
         budget(self.request, self.now())
         handle = self.lock_bootstrap(path)
         handle.stream.seek(0)
-        raw = handle.stream.read(LIMIT + 1)
-        if not 1 <= len(raw) <= LIMIT or sha(raw) != expected:
+        raw = handle.stream.read(limit + 1)
+        if not 1 <= len(raw) <= limit or sha(raw) != expected:
             raise ValueError('SnapshotBinding')
+        key=str(path)
+        if key in self.snapshot_hashes and self.snapshot_hashes[key]!=expected:
+            raise ValueError('SnapshotProvenanceChanged')
+        self.snapshot_hashes[key],self.snapshot_limits[key]=expected,limit
         return raw
 
     def private(self, path):
@@ -431,7 +440,7 @@ class Collector:
         self.plan_raw = self.snapshot(Path(r['plan']), r['planSha256'])
         self.review_raw = self.snapshot(Path(r['sourceReview']), r['sourceReviewSha256'])
         plan, review = strict_json(self.plan_raw), strict_json(self.review_raw)
-        if (type(plan) is not dict or type(plan.get('schema')) is not int or plan['schema'] != 2 or
+        if (type(plan) is not dict or type(plan.get('schema')) is not int or plan['schema'] not in (2,3) or
                 plan.get('mode') != 'approved_adult_release' or
                 plan.get('checkout') != r['checkout'] or plan.get('head') != r['head'] or plan.get('branch') != r['branch'] or
                 type(plan.get('before')) is not dict or type(review) is not dict or
@@ -495,10 +504,24 @@ class Collector:
             raise ValueError('PlanDrift')
         self.producer.require_source_review(root, self.plan, Path(r['sourceReview']))
         self.producer.require_unchanged(root, self.plan)
+        selected=self.producer.profiles.select(self.plan)
+        if selected.external:
+            if r['alias']!=selected.alias or r['certificateSha256']!=selected.certificate_sha256:
+                raise ValueError('ExternalProfileAliasCertificate')
+            self.require_current_activation()
         self.installed()
         if self.producer.KEY not in self.plan['before']:
             raise ValueError('OriginalKeyMissing')
         self.fresh_run()
+
+    def require_current_activation(self):
+        selected=self.producer.profiles.select(self.plan)
+        if selected.external:
+            profile=self.plan['signingProfile'];path=Path(profile['activationEvidence'])
+            self.lock_bootstrap(path);self.private(path.parent);self.private(path)
+            raw=self.snapshot(path,profile['activationEvidenceSha256'])
+            self.producer.profiles.require_activation(strict_json(raw),selected,
+                expected_play_signer=selected.play_signer_sha256,now=self.now())
 
     def installed(self):
         validate_installed_tools(self.plan)
@@ -559,6 +582,11 @@ class Collector:
         self.runtime_paths, self.absent_paths = self.runtime(), self.absent()
         value = dict(r, python=str(Path(sys.executable)), runtimeFiles=self.runtime_paths)
         required = self.bridge.immutable_pin_paths(Path(r['checkout']), self.plan, value)
+        selected=self.producer.profiles.select(self.plan)
+        if selected.external:
+            path=Path(selected.keystore);self.lock_bootstrap(path)
+            self.private(path.parent);self.private(path)
+            self.snapshot(path,selected.keystore_sha256,limit=16*1024*1024)
         paths = exact_paths(required)
         pins = [self.pin(Path(path)) for path in paths]
         # Match metadata collected from the held handles to existing provenance.
@@ -566,6 +594,9 @@ class Collector:
                     for path, item in self.plan['before'].items() if str(Path(r['checkout']) / path) in required}
         expected.update({r['plan']: r['planSha256'], r['sourceReview']: r['sourceReviewSha256'],
                          r['certificate']: r['certificateSha256'], self.plan['config']: self.plan['configSha256']})
+        if selected.external:
+            expected.update({str(Path(selected.keystore)):selected.keystore_sha256,
+                str(Path(self.plan['signingProfile']['activationEvidence'])):self.plan['signingProfile']['activationEvidenceSha256']})
         expected.update({path: item['sha256'] for path, item in self.plan['installedTools']['files'].items()})
         if any(self.metadata[path]['sha256'] != digest for path, digest in expected.items()):
             raise ValueError('ExistingPinBinding')
@@ -575,7 +606,7 @@ class Collector:
         budget(self.request, self.now())
         for path, handle in self.bootstrap_handles.items():
             handle.stream.seek(0)
-            current = handle.stream.read(LIMIT + 1)
+            current = handle.stream.read(self.snapshot_limits[path] + 1)
             if path == self.request['plan']:
                 expected = self.plan_raw
             elif path == self.request['sourceReview']:
@@ -598,6 +629,7 @@ class Collector:
             Path(self.plan['config']), self.request['head'], self.plan['editorVersion'])
         if self.base.git(Path(self.request['checkout']), 'branch', '--show-current') != self.request['branch']:
             raise ValueError('BranchChanged')
+        self.require_current_activation()
         self.fresh_run()
         self.outputs_absent()
 
@@ -625,6 +657,7 @@ class Collector:
         self.private(Path(self.request['outputDirectory']))
         if self.runtime() != self.runtime_paths or self.absent() != self.absent_paths:
             raise ValueError('RuntimeScopeDrift')
+        self.require_current_activation()
         self.fresh_run()
 
 
@@ -635,11 +668,7 @@ def prepare_binding(request, *, collector=None, now_utc=None):
     factory = Collector if collector is None else collector
     with factory(request, now) as collected:
         collected.bootstrap()
-        # Save bootstrap digests once; subsequent reads never redefine them.
-        collected.snapshot_hashes = {}
-        for path, handle in collected.bootstrap_handles.items():
-            handle.stream.seek(0)
-            collected.snapshot_hashes[path] = sha(handle.stream.read(LIMIT + 1))
+        # snapshot() records each independently reviewed digest before reuse.
         collected.approved()
         binding_raw, manifest_raw = collected.collect()
         collected.recheck()
