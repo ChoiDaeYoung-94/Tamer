@@ -105,7 +105,7 @@ public sealed class PrivateAdsSyntheticCallbacks : IPreprocessBuildWithReport,
         if (Environment.GetEnvironmentVariables().Keys.Cast<string>().Any(key =>
             key.StartsWith("TAMER_PRIVATE_ADS_", StringComparison.OrdinalIgnoreCase) ||
             signingNames.Contains(key, StringComparer.OrdinalIgnoreCase))) throw Rejected();
-        if (Application.unityVersion != "6000.3.25f1" || EditorUserBuildSettings.activeScriptCompilationDefines.Any(value =>
+        if (Application.unityVersion != "6000.3.27f2" || EditorUserBuildSettings.activeScriptCompilationDefines.Any(value =>
             value.StartsWith("TAMER_", StringComparison.Ordinal) || value.IndexOf("HARNESS", StringComparison.OrdinalIgnoreCase) >= 0 ||
             value == "DEVELOPMENT_BUILD")) throw Rejected();
         var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);

@@ -97,7 +97,7 @@ public static class RevivalBuild
 
     public static void ValidateBaseline()
     {
-        if (Application.unityVersion != "6000.3.25f1") throw new BuildFailedException("Expected Unity 6000.3.25f1.");
+        if (Application.unityVersion != "6000.3.27f2") throw new BuildFailedException("Expected Unity 6000.3.27f2.");
         foreach (var file in new[] { "Build/AOSSettingAPK.txt", "Build/AOSSettingAAB.txt", "Build/checkedBuilding.txt" })
             if (File.Exists(file)) throw new BuildFailedException("Legacy build marker exists: " + file);
         string toolchain = Path.GetFullPath(Path.Combine(Application.dataPath, "../tools/revival/toolchain.json"));
