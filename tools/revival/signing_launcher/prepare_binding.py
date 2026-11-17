@@ -297,16 +297,22 @@ def startup_files(python):
 
 def validate_installed_tools(plan):
     tools = plan['installedTools']
-    editor = Path('C:/Program Files/Unity/Hub/Editor') / plan['editorVersion'] / 'Editor/Unity.exe'
+    version = plan['editorVersion']
+    if (type(tools) is not dict or set(tools) != {'editorExecutable', 'manifestSha256', 'files'} or
+            type(tools['editorExecutable']) is not str or type(tools['files']) is not dict or
+            type(tools['manifestSha256']) is not str or not re.fullmatch('[0-9a-f]{64}', tools['manifestSha256'])):
+        raise ValueError('InstalledToolsBinding')
+    editor = Path(tools['editorExecutable'])
+    supported_editors = {Path('C:/Program Files/Unity/Hub/Editor') / version / 'Editor/Unity.exe'}
+    if re.fullmatch(r'\d+\.\d+\.\d+f\d+', version):
+        supported_editors.add(Path('C:/Program Files') / f'Unity {version}' / 'Editor/Unity.exe')
+    if editor not in supported_editors or tools['editorExecutable'] != str(editor):
+        raise ValueError('InstalledToolsBinding')
     data = editor.parent / 'Data'
     required = {editor, data / 'Managed/UnityEditor.dll', data / 'netcorerun/netcorerun.exe',
                 data / 'DotNetSdkRoslyn/csc.dll', data / 'il2cpp/build/deploy/il2cpp.exe',
                 data / 'PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe',
                 data / 'PlaybackEngines/AndroidPlayer/NDK/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe'}
-    if (type(tools) is not dict or set(tools) != {'editorExecutable', 'manifestSha256', 'files'} or
-            tools['editorExecutable'] != str(editor) or type(tools['files']) is not dict or
-            type(tools['manifestSha256']) is not str or not re.fullmatch('[0-9a-f]{64}', tools['manifestSha256'])):
-        raise ValueError('InstalledToolsBinding')
     paths = exact_paths(list(tools['files']))
     if not required.issubset({Path(path) for path in paths}):
         raise ValueError('InstalledToolsIncomplete')

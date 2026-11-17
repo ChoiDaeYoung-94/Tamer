@@ -49,9 +49,12 @@ def installed_tool_inventory(manifest_path, version):
     manifest = read_json(manifest_path)
     if set(manifest) != {'schema', 'editorVersion', 'editorExecutable', 'files'} or manifest['schema'] != 1 or manifest['editorVersion'] != version:
         raise ValueError('Installed tool manifest rejected')
-    expected_editor = Path('C:/Program Files/Unity/Hub/Editor') / version / 'Editor/Unity.exe'
-    if Path(manifest['editorExecutable']) != expected_editor or not isinstance(manifest['files'], list):
-        raise ValueError('CLI version selection must bind its installed Hub Editor')
+    expected_editor = Path(manifest['editorExecutable'])
+    supported_editors = {Path('C:/Program Files/Unity/Hub/Editor') / version / 'Editor/Unity.exe'}
+    if re.fullmatch(r'\d+\.\d+\.\d+f\d+', version):
+        supported_editors.add(Path('C:/Program Files') / f'Unity {version}' / 'Editor/Unity.exe')
+    if expected_editor not in supported_editors or not isinstance(manifest['files'], list):
+        raise ValueError('Bind the exact installed Hub or standalone Unity Editor')
     data = expected_editor.parent / 'Data'
     required = {expected_editor, data / 'Managed/UnityEditor.dll',
                 data / 'netcorerun/netcorerun.exe', data / 'DotNetSdkRoslyn/csc.dll',
@@ -81,7 +84,7 @@ def pin_installed_tools(stack, tools):
 
 
 def installed_java_binding(tools):
-    """Bind the Java used by the Editor getter to the same reviewed Hub binary."""
+    """Bind the Java used by the Editor getter to the reviewed Editor installation."""
     java = str(Path(tools['editorExecutable']).parent /
                'Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe')
     item = tools['files'].get(java)
@@ -481,7 +484,7 @@ def build_once(root, config, head, version, plan_path, reviewed_sha, source_revi
         # Never let credentials go to CLI output/receipt; C# consumes execution-only env.
         command = [str(base.safe_path(root, CLI)), 'build', str(root), '--target', 'Android',
                    '--execute-method', build_entry(plan['mode']), '--output-path',
-                   env['TAMER_PRIVATE_ADS_OUTPUT'], '--editor-version', version,
+                   env['TAMER_PRIVATE_ADS_OUTPUT'], '--editor-path', plan['installedTools']['editorExecutable'],
                    '--log-file', str(run / 'editor.private.log'), '--no-tail', '--non-interactive',
                    '--allow-dirty-build']
         base.require_editor_closed(root)
