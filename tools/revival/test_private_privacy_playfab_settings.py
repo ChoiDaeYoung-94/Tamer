@@ -11,7 +11,7 @@ import uuid
 import private_ads_producer as producer
 
 ROOT = Path(__file__).resolve().parents[2]
-EDITOR = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data')
+EDITOR = Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data')
 
 
 class PrivacyPlayFabSettingsChecks(unittest.TestCase):

@@ -667,7 +667,12 @@ class PureTests(unittest.TestCase):
                 with self.assertRaises(ValueError): PREP.validate_installed_tools({'editorVersion': 'synthetic', 'installedTools': tools})
 
     def test_installed_tools_exact_required_binaries_and_types(self):
-        editor = Path('C:/Program Files/Unity/Hub/Editor/synthetic/Editor/Unity.exe')
+        version = '6000.3.27f2'
+        self.assert_installed_tool_layout(version, Path('C:/Program Files/Unity/Hub/Editor') / version)
+        self.assert_installed_tool_layout(version, Path('C:/Program Files') / f'Unity {version}')
+
+    def assert_installed_tool_layout(self, version, install_root):
+        editor = install_root / 'Editor/Unity.exe'
         data = editor.parent / 'Data'
         paths = [editor, data / 'Managed/UnityEditor.dll', data / 'netcorerun/netcorerun.exe',
             data / 'DotNetSdkRoslyn/csc.dll', data / 'il2cpp/build/deploy/il2cpp.exe',
@@ -675,8 +680,10 @@ class PureTests(unittest.TestCase):
             data / 'PlaybackEngines/AndroidPlayer/NDK/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe']
         tools = {'editorExecutable': str(editor), 'manifestSha256': 'a' * 64,
                  'files': {str(path): {'identity': [1, 2], 'sha256': 'b' * 64} for path in paths}}
-        plan = {'editorVersion': 'synthetic', 'installedTools': tools}
+        plan = {'editorVersion': version, 'installedTools': tools}
         PREP.validate_installed_tools(plan)
+        with self.assertRaises(ValueError):
+            PREP.validate_installed_tools(dict(plan, editorVersion='6000.3.25f1'))
         removed = tools['files'].pop(str(paths[-1]))
         with self.assertRaises(ValueError): PREP.validate_installed_tools(plan)
         tools['files'][str(paths[-1])] = removed

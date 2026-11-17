@@ -523,13 +523,15 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     }
     private static PlayerPlanRejectedException PlanRejected(string code)
     { return new PlayerPlanRejectedException(code); }
-    // Narrow metadata exception observed by the approved SHA-256 probe on this version.
+    // Narrow exception for metadata observed in the Player API on these Editor versions.
     // Configured Android symbols still use ForbiddenDefine without this exception.
     // This recognizes a name, not its provenance or final binary safety.
     private static bool ForbiddenPlayerDefine(string value)
     {
         if (string.IsNullOrEmpty(value)) return true;
-        if (string.Equals(Application.unityVersion, "6000.3.25f1", StringComparison.Ordinal) &&
+        var unityVersion = Application.unityVersion;
+        if ((string.Equals(unityVersion, "6000.3.25f1", StringComparison.Ordinal) ||
+             string.Equals(unityVersion, "6000.3.27f2", StringComparison.Ordinal)) &&
             string.Equals(value, "ENABLE_MARSHALLING_TESTS", StringComparison.Ordinal)) return false;
         return ForbiddenDefine(value);
     }
