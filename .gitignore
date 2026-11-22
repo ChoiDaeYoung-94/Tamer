@@ -110,3 +110,9 @@ crashlytics-build.properties
 # Temporary, local-only IAP build configuration
 /Assets/Resources/RevivalIapLocal.json
 /Assets/Resources/RevivalIapLocal.json.meta
+
+# Local signing material
+*.keystore
+*.jks
+*.p12
+*.pfx
