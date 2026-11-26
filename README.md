@@ -8,7 +8,7 @@
 
 몬스터와 함께 대륙을 탐험하는 사냥꾼이 되어 보세요. 필드에서 만난 몬스터는 전투 상대가 되기도 하고, 포획 후 함께 싸우는 동료가 되기도 합니다.
 
-**[▶ 기존 플레이 영상 보기](https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd)** · **[Google Play 페이지 열기](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)** · [개발 시작하기](docs/development.ko.md)
+**[▶ 기존 플레이 영상 보기](https://github.com/user-attachments/assets/243e5193-5e8f-4966-8b98-c724b62767dd)** · **[Google Play 페이지 열기](https://play.google.com/store/apps/details?id=com.AeDeong.MonsterTamer)** · [개발 시작하기](docs/development.ko.md) · [제3자 저작권 고지](docs/third-party-notices.ko.md)
 
 **[앱 삭제 후에도 계정 및 관련 데이터 삭제 요청하기](docs/account-deletion.ko.md)** — Monster Tamer 이용자는 기존 문의 이메일로 삭제를 요청할 수 있습니다.
 
