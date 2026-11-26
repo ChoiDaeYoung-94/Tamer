@@ -1,0 +1,27 @@
+# 최신 전체 UI APK의 실물 시작 녹화 — 2026-11-08
+
+기존 독립 인트로 probe의 녹화와 별개로, 이미 설치한 최신 전체 UI 오프라인 APK를 홈 화면에서 새 프로세스로1회 실행해 시작 화면을 확인했습니다. 이 APK는 Quad D 첫 프레임 보완과 개인정보·로그인·구매/회복 UI를 포함합니다. 새 빌드/설치·사용자 인증/나이 입력·운영키·데이터 초기화는0입니다.
+
+실제 APK 소스는 `d7b40883f9dca382372a9f4d5fe44cbaf46b60f4`,152,878,881바이트/SHA-256 `f501a732b2338ad0097f710a05943a46863cd27f587d811998b62eafe236ad09`입니다. 별도 debug ID `com.AeDeong.MonsterTamer.revival.faceliftintrologin1029`, min25/target36·ARM64·오프라인/가상 계정·메모리 저장입니다. 시작 전 설치된 base APK의 SHA를 이 파일과 직접 대조했습니다. 버전코드32는 격리 프로필 고정값이며 새 운영 후보 번호가 아닙니다.
+
+## 녹화와 화면 관측
+
+기기는 SM-N986N/Android13·API33·ARM64·4KB페이지입니다. 20초 무음 screenrecord는1,695,607바이트/SHA-256 `dcfca69b183479c5d84f4d9a1ba4baffb4b87849426c018ac5e7670c6acef9e9`,920프레임/PTS0~19.963089초입니다. PyAV16 디코딩과 장면별 원본 이미지를 비공개 보존했습니다.
+
+- 각 프레임을320×180 RGB로 정규화하고 모든 채널245이상 픽셀 비율을 확인했습니다. 화면 전체95% 초과 흰 후보0, 중앙10%폭×60%높이95% 초과 흰 후보0입니다.
+- 전체 장면 모음을 직접 확인했습니다. 홈→어두운 준비 화면→Quad D 영상→게임 로그인 화면→가상 Main/원래 빈 나이 모달 순서가 보이며 밝은 전체 화면 전환은 보이지 않았습니다.
+- 장면 표본에서 영상 PTS 약2.6초에 Quad D 심볼, 약6.6초에 로그인 화면, 약10초에 나이 모달이 보입니다. 영상은 앱 실행 요청 약0.5초 전에 시작했고 PTS는 OS입력/Unity Awake의 정확한 기준이 아닙니다. 따라서 이 숫자를 정확한 실행 지연이나 모든 기기의 시작 시간으로 사용하지 않습니다. 어두운 초기 준비 구간이 남아 있어 인트로가 즉시 표시된다고 안내하지 않습니다.
+
+새 PID22827의 관측은 `intro=1 / login=1 / completions=1 / highestFrame=100 / stoppedAtDestination=True / blockedLogins=1 / memoryReads=2 / scene=Main / serverReady=True / adsBlocked=True / iap=Unavailable`입니다. serverReady와 reads는 이 격리 앱의 메모리 gateway이며 실제 운영 서버 로그인/저장 성공을 뜻하지 않습니다. 영상은 무음이고 목적지 오디오 정지는 앱 관측값으로 확인했습니다.
+
+## 보존과 반환
+
+실행 범위 actual17:47:29.986448UTC/new17:53:29.986448/full17:56:29.986448, 전체 실제 반환17:47:58.196573UTC입니다. 공유 ADB의 실행파일/SHA·PID/생성시각·5037 listener를 매 호출 전 대조했습니다. 종료 뒤 해당 시험 앱 stop/Home, UID/저장경로/최초설치 시각과 운영 앱31의 stopped/notLaunched 사용자 상태·두 공용 종료 옵션 원본·동일 서버 세대를 확인했습니다. Editor/소유 세션·자원 예약은0입니다. 녹화 임시 파일은 로컬 원본/SHA를 대조해 보존한 뒤 그 소유 파일1개만 기기에서 제거했습니다.
+
+실제 계정/서버 진행·No Ads/구매·연령별 SDK/식별자/통신·16KB/Android16은 미검증입니다. 같은 APK의 앞선 자연 시작은 [구매·회복 UI 검증](shop-heal-ui-korean-20261107.ko.md)에 있으며, 이번920프레임을 기존 독립 probe648/LD343프레임과 하나의 동일 조건 시험으로 합산하지 않습니다. 기존 서명32 AAB는 소스5178b8e로 이 첫 프레임/최근 UI를 포함하지 않습니다. 최종 서명·정상 Play 전달판의 시작과 사용자 마지막 UI 검토는 남아 있습니다.
+
+이번 Player 로그에도 기존 개발 연결 소켓 진단3줄과 Ellipsis 경고1개가 있습니다. 새 Exception/FATAL/Intro 실패 표시는 없으며 이를 로그 전체 오류0이나 Player 글꼴 원인 해결로 보고하지 않습니다.
+
+보존된 같은 APK의 data.unity3d를 [UnityPy 읽기 API](https://github.com/K0lb3/UnityPy)1.25.4/C typetree reader 비활성으로 추가 확인했습니다. MonoBehaviour1,249개 이름 조회 오류0, DungGeunMo SDF 객체1개에서 원본138개 문자 테이블의 개수 prefix/연속2212바이트와 U+2026·glyph15135 tuple이 각각1회 일치했습니다. 원본 테이블의 APK 포함 근거이며 실제 runtime lookup/경고 원인 해결을 뜻하지 않습니다. 전체 structured typetree 파싱은 ValueError로 실패했고 이 한계도 유지합니다. 읽기 도구는 비공개 격리 폴더에만 설치했으며 제품/프로젝트 패키지·공용SDK/JDK·원APK/글꼴 변경0입니다.
+
+원시 영상/OS 홈 화면/전체 로그는 공개 저장소에 추가하지 않았습니다. 이번 문서에는 제품 코드나 SDK 변경이 없습니다.

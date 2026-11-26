@@ -27,6 +27,11 @@ namespace AD
         [Header("--- UI Elements ---")]
         [SerializeField] private GameObject _loading;
         [SerializeField] private TMPro.TMP_Text _loadingText;
+        [SerializeField] private TMPro.TMP_FontAsset _firstEntryFont;
+        private TMPro.TMP_FontAsset AccountUiFont => _firstEntryFont != null ? _firstEntryFont :
+            _loadingText != null ? _loadingText.font : null;
+        private Material AccountUiMaterial => _nicknameInput != null && _nicknameInput.font == AccountUiFont
+            ? _nicknameInput.fontSharedMaterial : null;
         [SerializeField] private GameObject _retry;
         [Tooltip("재시도 패널에 실패 사유를 표시 (선택 사항, 연결하지 않아도 동작)")]
         [SerializeField] private TMPro.TMP_Text _retryText;
@@ -41,11 +46,11 @@ namespace AD
 
 
         // Previous Google identity is a continuity hint, never authentication proof.
-        private const string PrefsKeyGpgsId = "AD_LastGpgsId";
+        private const string PrefsKeyGpgsId = LoginGuestIdentityPreparation.GoogleIdKey;
         // GPGS를 전혀 사용할 수 없는 환경에서 사용하는 단말 고유 id
-        private const string PrefsKeyCustomId = "AD_CustomId";
+        private const string PrefsKeyCustomId = LoginGuestIdentityPreparation.CustomIdKey;
         // 이 단말이 어떤 방식으로 계정을 만들었는지 (계정이 갈라지는 것을 방지)
-        private const string PrefsKeyLoginMode = "AD_LoginMode";
+        private const string PrefsKeyLoginMode = LoginGuestIdentityPreparation.ModeKey;
         private const string PrefsKeyGoogleSignupPending = "AD_GoogleSignupPending";
 
         private const string LoginModeGpgs = "gpgs";
@@ -80,6 +85,12 @@ namespace AD
         private TMPro.TMP_Text _signupMessage;
         private UnityEngine.UI.Button _signupOfferButton;
         private UnityEngine.UI.Button _signupConfirmButton;
+        private GameObject _receiptOnlyPanel;
+        private readonly LoginGuestEntryGate _firstEntry = new LoginGuestEntryGate();
+        // Survives Login scene recreation after an uncertain PlayerPrefs write.
+        private static readonly LoginGuestIdentityPreparation GuestIdentities = new LoginGuestIdentityPreparation();
+        private InitialAccountChoiceView _firstEntryView;
+        private string _pendingFirstEntryRetry;
 
         private bool CapturedLoginSessionCurrent() => _loginCaptured && _dataOwner != null
             && !_dataOwner.ReceiptOnly && !_dataOwner.DeletionInProgress
@@ -136,14 +147,14 @@ namespace AD
                     RevivalDeletionGameplayHarness.Identity(RevivalDeletionGameplayHarness.AccountA));
             })) return;
 #endif
-            if (DeletionReceiptBootstrap.TryOpen(transform, _loadingText != null ? _loadingText.font : null, () =>
+            if (DeletionReceiptBootstrap.TryOpen(transform, AccountUiFont, () =>
             {
                 _receiptRecoverySignIn = true;
                 if (_dataOwner != null && _dataOwner.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
                 if (_loading != null) _loading.SetActive(false);
                 if (_retry != null) _retry.SetActive(true);
                 EnsureRetryMessage();
-                if (_retryText != null) _retryText.text = "Receipt checking has stopped. Sign in explicitly to an existing account to check its request. No new account will be created.";
+                SetAccountText(_retryText, "접수 기록 확인을 중단했습니다. 기존 계정으로 직접 로그인해 해당 요청을 확인할 수 있습니다. 새 계정은 만들지 않습니다.");
             }))
             {
                 _receiptRecoverySignIn = true;
@@ -154,30 +165,52 @@ namespace AD
             if (_dataOwner == null || _dataOwner.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
             if (PlayerPrefs.GetInt(AD.DataManager.DeletionLoginPauseKey, 0) != 0)
             {
-                ShowRetry("Deletion request accepted. Sign in explicitly to continue.");
+                ShowRetry("삭제 요청이 접수되었습니다. 계속하려면 직접 로그인해 주세요.");
 #if TAMER_DELETION_GAMEPLAY
                 RevivalDeletionGameplayHarness.ObserveOriginalPause(_retry != null && _retry.activeSelf);
 #endif
                 return;
             }
-            StartLogin();
+            if (!TryShowFirstEntryChoice()) StartLogin();
         }
 
         private void ShowReceiptOnlyBlocked()
         {
             _receiptRecoverySignIn = true;
             _googleSignup.Revoke(); _signupCandidateIdentity = null;
-            if (_loading != null) _loading.SetActive(true); // Keep the existing status text visible; this panel has no sign-in action.
+            if (_loading != null) _loading.SetActive(false);
             if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
             if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_retry != null) _retry.SetActive(false);
-            const string message = "Game data needs recovery. Only an existing deletion receipt can be checked. Restart after local handling; no sign-in or new account will be started.";
-            if (_loadingText != null) _loadingText.text = message;
-            if (_retryText != null) _retryText.text = message;
+            const string message = "게임 데이터 복구가 필요합니다. 기존 삭제 요청의 접수 기록만 확인할 수 있습니다. 기기 처리를 마친 뒤 앱을 다시 시작해 주세요. 로그인이나 새 계정 생성은 시작하지 않습니다.";
+            SetAccountText(_loadingText, message);
+            SetAccountText(_retryText, message);
+            if (_receiptOnlyPanel == null)
+            {
+                var panel = DeletionView.Rect("ReceiptOnlyStatus", transform);
+                panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
+                panel.offsetMin = panel.offsetMax = Vector2.zero;
+                panel.gameObject.AddComponent<UnityEngine.UI.Image>().color = new Color32(18, 39, 36, 255);
+                var content = DeletionView.Rect("Content", panel);
+                content.anchorMin = new Vector2(.1f, .25f); content.anchorMax = new Vector2(.9f, .75f);
+                content.offsetMin = content.offsetMax = Vector2.zero;
+                var layout = content.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+                layout.spacing = 32; layout.childControlWidth = layout.childControlHeight = true;
+                layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
+                DeletionView.Label("Title", content, "계정 복구 안내", AccountUiFont, 42, 80);
+                var status = DeletionView.Label("Message", content, message, AccountUiFont, 32, 240);
+                status.GetComponent<UnityEngine.UI.LayoutElement>().flexibleHeight = 1;
+                _receiptOnlyPanel = panel.gameObject;
+            }
+            foreach (var label in _receiptOnlyPanel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                SetAccountText(label, label.text);
+            _receiptOnlyPanel.transform.SetAsLastSibling();
+            _receiptOnlyPanel.SetActive(true); // Informational only: no sign-in, retry or new-account action.
         }
 
         private void OnDestroy()
         {
+            _firstEntry.Revoke();
             _googleSignup.Revoke();
             _cts?.Cancel();
             if (CapturedLoginSessionCurrent() && !_operations.HasEnteredScene)
@@ -193,13 +226,11 @@ namespace AD
         private void StartLogin()
         {
             if (_accountDeleted) return;
+            if (_dataOwner == null || !ReferenceEquals(_dataOwner, Managers.DataM)) return;
             if (AD.Managers.DataM == null || AD.Managers.DataM.ReceiptOnly) { ShowReceiptOnlyBlocked(); return; }
             if (AD.Managers.DataM != null && AD.Managers.DataM.DeletionInProgress) return;
 #if (TAMER_GAMEPLAY_HARNESS || TAMER_IAP_HARNESS) && !TAMER_DELETION_GAMEPLAY
             return;
-#endif
-#if !TAMER_DELETION_GAMEPLAY
-            ActivateNativeGoogle();
 #endif
             if (_cts == null || _cts.IsCancellationRequested || !_operations.TryBeginLogin())
             {
@@ -209,6 +240,8 @@ namespace AD
 
             AD.Managers.DataM.SuspendAccountSession();
             CaptureLoginSession();
+            _firstEntry.Revoke();
+            if (_firstEntryView != null) _firstEntryView.gameObject.SetActive(false);
             _signupCandidateIdentity = null;
             _googleSignup.Revoke();
             RunLoginAsync(_cts.Token).Forget();
@@ -239,15 +272,16 @@ namespace AD
         private async UniTask RunLoginAsync(CancellationToken token, bool signup = false)
         {
             _diagnosticPhase = "Network";
-            ShowLoading("LogIn...");
-            _loginFailureMessage = "Sign-in failed. Please try again.";
+            ShowLoading("로그인 중...");
+            _loginFailureMessage = "로그인하지 못했습니다. 다시 시도해 주세요.";
 
             try
             {
+                ApplyLoginPrivacyDefaults();
 #if !TAMER_DELETION_GAMEPLAY
                 if (!await WaitForNetworkAsync(token))
                 {
-                    ShowRetry("Please check your network connection.");
+                    ShowRetry("인터넷 연결을 확인한 뒤 다시 시도해 주세요.");
                     return;
                 }
 #endif
@@ -261,7 +295,7 @@ namespace AD
                 loggedIn = LoginCurrent() && AD.Managers.DataM.PlayFabId == syntheticAccount;
 #elif UNITY_EDITOR
                 loggedIn = false;
-                _loginFailureMessage = "Use the isolated test harness in the Editor.";
+                _loginFailureMessage = "Editor에서는 격리된 시험 경로를 사용해 주세요.";
 #elif UNITY_ANDROID
                 loggedIn = signup ? await LoginWithGoogleSignupAsync(token) : await LoginOnAndroidAsync(token);
 #else
@@ -307,7 +341,26 @@ namespace AD
             finally
             {
                 _operations.EndOperation();
+                // Retry is reported inside the operation. Re-offer only after its
+                // completion, when the first-entry gate can safely accept a choice.
+                var firstEntryRetry = _pendingFirstEntryRetry;
+                _pendingFirstEntryRetry = null;
+                if (firstEntryRetry != null && _firstEntryView != null)
+                    TryShowFirstEntryChoice(firstEntryRetry);
             }
+        }
+
+        // Login precedes the age screen. Optional SDK reporting can otherwise
+        // read Android ID after login, including a newly prepared CustomID.
+        // Keep account authentication and gameplay requests unchanged.
+        private static void ApplyLoginPrivacyDefaults()
+        {
+#if !UNITY_EDITOR && !TAMER_DELETION_GAMEPLAY
+            PlayFabSettings.DisableDeviceInfo = true;
+            PlayFabSettings.DisableFocusTimeCollection = true;
+            if (!PlayFabSettings.DisableDeviceInfo || !PlayFabSettings.DisableFocusTimeCollection)
+                throw new InvalidOperationException("Optional login reporting could not be disabled.");
+#endif
         }
 
         /// <summary>
@@ -333,6 +386,14 @@ namespace AD
         {
             string cachedGpgsId = PlayerPrefs.GetString(PrefsKeyGpgsId, string.Empty);
             string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
+            string customId = PlayerPrefs.GetString(PrefsKeyCustomId, string.Empty);
+            if (!LoginGuestIdentityPreparation.IsConsistent(mode, customId) || GuestIdentities.HasUncertainWrites ||
+                (LoginGuestIdentityPreparation.IsGuestIdentity(customId) &&
+                    (!string.IsNullOrEmpty(cachedGpgsId) || PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending))))
+            {
+                _loginFailureMessage = "손님 계정 설정을 안전하게 저장하지 못했습니다. 앱을 다시 시작한 뒤 시도해 주세요. 새 계정 생성은 요청하지 않았습니다.";
+                return false;
+            }
             if (mode == "device" && !string.IsNullOrEmpty(cachedGpgsId))
             {
                 LogStep("Google login: ConflictingSavedMode");
@@ -350,10 +411,11 @@ namespace AD
                 HasLocalProgress(), mode, cachedGpgsId))
             {
                 LogStep("Google login: LocalOwnershipUnverified");
-                _loginFailureMessage = "Account ownership could not be verified. Contact support to recover your existing account.";
+                _loginFailureMessage = "계정 소유자를 확인하지 못했습니다. 기존 계정 복구를 위해 지원팀에 문의해 주세요.";
                 return false;
             }
 
+            ActivateNativeGoogle(); // Saved device/custom users and unchosen first entry never call managed PGS.
             string authenticatedId = await AuthenticateGooglePlayAsync(token);
             if (LoginCancelled(token))
             {
@@ -366,22 +428,24 @@ namespace AD
                 && selectedId == null)
             {
                 LogStep("Google Play account differs from the saved account; retry with the original account.");
-                _loginFailureMessage = "Sign in with your original Google Play account.";
+                _loginFailureMessage = "이전에 사용한 Google Play 계정으로 로그인해 주세요.";
                 return false;
             }
 
             if (string.IsNullOrEmpty(selectedId))
             {
                 LogStep("Google login: MissingSelectedIdentity");
-                _loginFailureMessage = "Google Play sign-in is required. Retry with your original account.";
+                _loginFailureMessage = _firstEntryView != null && HasEligibleFirstEntryState()
+                    ? "Google 로그인에 연결하지 못했습니다.\n다시 선택해 주세요."
+                    : "Google Play 로그인이 필요합니다. 이전에 사용한 계정으로 다시 시도해 주세요.";
                 return false;
             }
             _selectedGpgsId = selectedId;
             if (PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending)
                 && PlayerPrefs.GetString(PrefsKeyGoogleSignupPending, string.Empty) != GoogleSignupBinding(selectedId))
             {
-                _loginFailureMessage = "An earlier account creation is awaiting confirmation for another profile. "
-                    + "Use that original profile or contact " + CloudScriptDeletionClient.SupportEmail + ".";
+                _loginFailureMessage = "다른 프로필에서 시작한 계정 생성 요청의 확인이 남아 있습니다. "
+                    + "당시 프로필을 사용하거나 지원팀에 문의해 주세요: " + CloudScriptDeletionClient.SupportEmail + ".";
                 LogStep("Google signup: PendingIdentityMismatch");
                 return false;
             }
@@ -403,14 +467,14 @@ namespace AD
         private async UniTask<string> AuthenticateGooglePlayAsync(CancellationToken token)
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
-            ShowLoading("LogIn...");
+            ShowLoading("로그인 중...");
             SignInStatus status = await RequestGpgsSignInAsync(manual: false, token);
 
             if (status != SignInStatus.Success && !LoginCancelled(token))
             {
                 // 자동 로그인 실패 -> 계정 선택 UI를 띄워 사용자가 직접 로그인하도록 한다
                 LogStep($"GPGS 자동 로그인 실패({status}) -> 수동 로그인 시도");
-                ShowLoading("Sign in to Google Play...");
+                ShowLoading("Google Play에 로그인 중...");
                 status = await RequestGpgsSignInAsync(manual: true, token);
             }
 
@@ -481,17 +545,20 @@ namespace AD
             // Restored device/custom modes must not create accounts in the private trial.
             if (AD.Advertising.PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial)
             {
-                _loginFailureMessage = "This privacy check requires your existing Google Play account.";
+                _loginFailureMessage = "이번 개인정보 검사에는 기존 Google Play 계정이 필요합니다.";
                 return false;
             }
 #endif
-            ShowLoading("LogIn...");
+            ShowLoading("로그인 중...");
             string mode = PlayerPrefs.GetString(PrefsKeyLoginMode, string.Empty);
             string customId = PlayerPrefs.GetString(PrefsKeyCustomId, string.Empty);
             string deviceId = null;
 #if UNITY_ANDROID && !UNITY_EDITOR
-            deviceId = SystemInfo.deviceUniqueIdentifier;
-            if (deviceId == SystemInfo.unsupportedIdentifier) deviceId = null;
+            if (mode != LoginModeCustom && mode != "custom-pending")
+            {
+                deviceId = SystemInfo.deviceUniqueIdentifier;
+                if (deviceId == SystemInfo.unsupportedIdentifier) deviceId = null;
+            }
 #endif
             string selectedMode = LoginContinuityPolicy.SelectDeviceMode(mode,
                 !string.IsNullOrEmpty(customId), !string.IsNullOrEmpty(deviceId));
@@ -571,7 +638,7 @@ namespace AD
         private async UniTask<bool> LoginWithNativeGoogleAsync(CancellationToken token)
         {
             _diagnosticPhase = "ServerCode";
-            _loginFailureMessage = "Google Play account is not linked or sign-in is unavailable. Retry or contact support for account recovery.";
+            _loginFailureMessage = "Google Play 계정이 연결되지 않았거나 로그인할 수 없습니다. 다시 시도하거나 기존 계정 복구를 위해 지원팀에 문의해 주세요.";
 #if UNITY_ANDROID && !UNITY_EDITOR
             string code = await RequestGoogleServerCodeAsync(token);
             if (LoginCancelled(token) || string.IsNullOrWhiteSpace(code))
@@ -598,9 +665,9 @@ namespace AD
                     login.Result != null, login.Result != null && login.Result.NewlyCreated));
                 if (login.Error != null && login.Error.Error == PlayFabErrorCode.AccountNotFound)
                 {
-                    _loginFailureMessage = "No existing game account was found linked to the selected Google Play Games profile. "
-                        + "Use your original profile or contact " + CloudScriptDeletionClient.SupportEmail
-                        + " for account recovery. No new account has been created.";
+                    _loginFailureMessage = "선택한 Google Play Games 프로필에 연결된 기존 게임 계정을 찾지 못했습니다. "
+                        + "이전에 사용한 프로필로 로그인하거나 계정 복구를 위해 문의해 주세요: " + CloudScriptDeletionClient.SupportEmail
+                        + ". 새 계정은 생성하지 않았습니다.";
                     if (CanOfferGoogleSignup()) _signupCandidateIdentity = _selectedGpgsId;
                 }
                 NoteLoginError(login.Error);
@@ -609,7 +676,7 @@ namespace AD
             if (!LoginContinuityPolicy.MatchesKnownPlayFabAccount(_dataOwner.PlayFabId, login.Result.PlayFabId))
             {
                 LogStep("Google login: OwnerMismatch");
-                _loginFailureMessage = "The linked account differs from your saved account. Contact support for account recovery.";
+                _loginFailureMessage = "연결된 계정이 기기에 저장된 기존 계정과 다릅니다. 기존 계정 복구를 위해 지원팀에 문의해 주세요.";
                 return false;
             }
             // BeginAccountSession rejects an existing local owner mismatch before
@@ -682,8 +749,8 @@ namespace AD
             {
                 LogStep("Google signup: " + DescribeGoogleLoginOutcome(login.IsTimeout, login.Error,
                     login.Result != null, login.Result != null && login.Result.NewlyCreated));
-                _loginFailureMessage = "Account creation could not be confirmed. Sign in again to check your account or contact "
-                    + CloudScriptDeletionClient.SupportEmail + ". No further account creation will be attempted.";
+                _loginFailureMessage = "계정 생성 결과를 확인하지 못했습니다. 다시 로그인해 계정을 확인하거나 지원팀에 문의해 주세요: "
+                    + CloudScriptDeletionClient.SupportEmail + ". 추가 계정 생성은 시도하지 않습니다.";
                 NoteLoginError(login.Error);
                 return false;
             }
@@ -746,7 +813,7 @@ namespace AD
             catch (Exception)
             {
                 LogStep("ServerCode: RequestException");
-                _loginFailureMessage = "Google Play server sign-in is not configured or unavailable. Contact support.";
+                _loginFailureMessage = "Google Play 서버 로그인을 사용할 수 없습니다. 지원팀에 문의해 주세요.";
                 return null;
             }
             finally { callback.Expire(); }
@@ -784,7 +851,7 @@ namespace AD
             }
 
             LogStep($"PlayFab 로그인 성공 (method: {method}, newAccount: {isNewAccount})");
-            ShowLoading("Success!!");
+            ShowLoading("로그인 완료!");
         }
 
         private void ShowDeletionRecovery()
@@ -811,12 +878,12 @@ namespace AD
             panel.offsetMin = panel.offsetMax = Vector2.zero;
             panel.gameObject.SetActive(false);
             var view = panel.gameObject.AddComponent<DeletionView>();
-            view.Build(_loadingText != null ? _loadingText.font : null, () =>
+            view.Build(AccountUiFont, () =>
             {
                 panel.gameObject.SetActive(false);
-                if (_retryText != null) _retryText.text = _dataOwner != null && _dataOwner.DeletionInProgress
-                    ? "Deletion submission is unresolved. Open account deletion for details or contact doeud1410@gmail.com. No request will be resent."
-                    : "Sign in explicitly to continue.";
+                if (_retryText != null) SetAccountText(_retryText, _dataOwner != null && _dataOwner.DeletionInProgress
+                    ? "삭제 요청의 접수 여부가 미확인 상태입니다. 계정 삭제 화면에서 확인하거나 doeud1410@gmail.com으로 문의해 주세요. 요청을 다시 전송하지 않습니다."
+                    : "계속하려면 직접 로그인해 주세요.");
                 if (_retry != null) _retry.SetActive(true);
             });
             panel.gameObject.AddComponent<DeletionPresenter>().Bind(view);
@@ -835,7 +902,7 @@ namespace AD
         private async UniTask ResolveProfileAsync(CancellationToken token)
         {
             if (!LoginCurrent()) return;
-            ShowLoading("Check Data...");
+            ShowLoading("데이터 확인 중...");
 
             var profile = await CallWithRetryAsync<GetPlayerProfileResult>(
                 (onOk, onError) => PlayFabClientAPI.GetPlayerProfile(new GetPlayerProfileRequest
@@ -851,7 +918,7 @@ namespace AD
 
             if (!profile.IsSuccess)
             {
-                ShowRetry("Could not load your profile. Please try again.");
+                ShowRetry("프로필을 불러오지 못했습니다. 다시 시도해 주세요.");
                 return;
             }
 
@@ -902,7 +969,7 @@ namespace AD
                 if (!update.IsSuccess)
                 {
                     if (update.IsTimeout || (update.Error != null && IsTransient(update.Error)))
-                        ShowRetry("Network error. Please try again.");
+                        ShowRetry("연결 오류가 발생했습니다. 다시 시도해 주세요.");
                     else if (_nicknameConflictPanel != null)
                         _nicknameConflictPanel.SetActive(true);
                     return;
@@ -911,7 +978,7 @@ namespace AD
                 if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
                 if (_nicknameRulePanel != null) _nicknameRulePanel.SetActive(false);
                 if (_nicknameConflictPanel != null) _nicknameConflictPanel.SetActive(false);
-                ShowLoading("Save NickName...");
+                ShowLoading("닉네임 저장 중...");
                 AD.Managers.ServerM.SetData(new Dictionary<string, string> { { "NickName", name } }, false, false);
                 if (!await WaitForServerAsync(token)) return;
                 await GoNextAsync(token);
@@ -919,7 +986,7 @@ namespace AD
             catch (OperationCanceledException) { }
             catch (Exception)
             {
-                if (!LoginCancelled(token)) ShowRetry("Could not save your profile. Please try again.");
+                if (!LoginCancelled(token)) ShowRetry("프로필을 저장하지 못했습니다. 다시 시도해 주세요.");
             }
             finally { _operations.EndOperation(); }
         }
@@ -931,7 +998,7 @@ namespace AD
         private async UniTask GoNextAsync(CancellationToken token)
         {
             if (!LoginCurrent()) return;
-            ShowLoading("Check Data...");
+            ShowLoading("데이터 확인 중...");
             AD.Managers.DataM.UpdatePlayerData();
             if (!await WaitForServerAsync(token) || !LoginCurrent() || !_operations.TryEnterScene()) return;
 
@@ -961,7 +1028,7 @@ namespace AD
             if (!completed || server.HasFailed)
             {
                 LogStep(!completed ? "Initial server read: Timeout" : "Initial server read: Failed");
-                ShowRetry("Could not load your saved progress. Please try again.");
+                ShowRetry("저장된 진행도를 불러오지 못했습니다. 다시 시도해 주세요.");
                 return false;
             }
             LogStep("Initial server read: Completed");
@@ -1168,32 +1235,114 @@ namespace AD
 
         #region UI
 
+        private bool CanOfferFirstEntry() => !_operations.IsRunning && HasEligibleFirstEntryState();
+
+        private bool HasEligibleFirstEntryState() => _dataOwner != null && ReferenceEquals(_dataOwner, Managers.DataM) &&
+            !_accountDeleted && !GuestIdentities.HasUncertainWrites && _cts != null && !_cts.IsCancellationRequested &&
+            LoginGuestEntryPolicy.CanOffer(_dataOwner.HasKnownAccount, HasLocalProgress(),
+                PlayerPrefs.GetString(PrefsKeyLoginMode, ""), PlayerPrefs.GetString(PrefsKeyGpgsId, ""),
+                PlayerPrefs.GetString(PrefsKeyCustomId, ""), _dataOwner.DeletionInProgress,
+                PlayerPrefs.GetInt(DataManager.DeletionLoginPauseKey, 0) != 0, _receiptRecoverySignIn,
+                PlayerPrefs.HasKey(PrefsKeyGoogleSignupPending), !AD.Advertising.PrivatePrivacyReleaseContract.IsPrivatePrivacyTrial);
+
+        private bool TryShowFirstEntryChoice(string status = null)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR && !TAMER_DELETION_GAMEPLAY && !TAMER_GAMEPLAY_HARNESS && !TAMER_IAP_HARNESS
+            if (Application.identifier != "com.AeDeong.MonsterTamer" || Debug.isDebugBuild) return false;
+            if (!CanOfferFirstEntry()) return false;
+            var owner = _dataOwner;
+            int generation = owner.AccountGeneration;
+            int deletionEpoch = owner.DeletionEpoch;
+            if (!_firstEntry.Offer(owner, generation, deletionEpoch, true)) return false;
+            long version = _firstEntry.Version;
+            if (_firstEntryView == null)
+            {
+                var panel = DeletionView.Rect("InitialAccountChoice", transform);
+                panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
+                panel.offsetMin = panel.offsetMax = Vector2.zero;
+                _firstEntryView = panel.gameObject.AddComponent<InitialAccountChoiceView>();
+                _firstEntryView.Build(_firstEntryFont != null ? _firstEntryFont :
+                    (_loadingText != null ? _loadingText.font : null), null, null);
+            }
+            _firstEntryView.SetChoices(() => ChooseFirstEntry(false, owner, generation, deletionEpoch, version),
+                () => ChooseFirstEntry(true, owner, generation, deletionEpoch, version));
+            _firstEntryView.SetStatus(status);
+            if (_loading != null) _loading.SetActive(false);
+            if (_retry != null) _retry.SetActive(false);
+            if (_signupPanel != null) _signupPanel.SetActive(false);
+            _firstEntryView.transform.SetAsLastSibling();
+            _firstEntryView.gameObject.SetActive(true);
+            return true;
+#else
+            return false;
+#endif
+        }
+
+        private void ChooseFirstEntry(bool guest, DataManager owner, int generation, int deletionEpoch, long version)
+        {
+            if (_dataOwner == null || !ReferenceEquals(owner, _dataOwner) ||
+                !_firstEntry.TryChoose(Managers.DataM, _dataOwner.AccountGeneration,
+                    _dataOwner.DeletionEpoch, version, CanOfferFirstEntry())) return;
+            if (_firstEntryView != null) _firstEntryView.gameObject.SetActive(false);
+            if (guest && !GuestIdentities.TryPrepare(key => PlayerPrefs.GetString(key, ""),
+                PlayerPrefs.SetString, PlayerPrefs.Save, LoginGuestIdentityPreparation.NewIdentity,
+                () => _dataOwner != null && ReferenceEquals(_dataOwner, Managers.DataM) &&
+                    _dataOwner.AccountGeneration == generation && _dataOwner.DeletionEpoch == deletionEpoch &&
+                    !_dataOwner.HasKnownAccount && !HasLocalProgress() && !_dataOwner.DeletionInProgress &&
+                    PlayerPrefs.GetInt(DataManager.DeletionLoginPauseKey, 0) == 0 && !_receiptRecoverySignIn))
+            {
+                _loginFailureMessage = "손님 계정 설정을 저장하지 못했습니다. 앱을 다시 시작한 뒤 시도해 주세요. 계정 생성 요청은 보내지 않았습니다.";
+                ShowRetry(_loginFailureMessage);
+                return;
+            }
+            StartLogin();
+        }
+
+        private void SetAccountText(TMPro.TMP_Text label, string message)
+        {
+            if (label == null) return;
+            var font = AccountUiFont;
+            var material = AccountUiMaterial;
+            if (font != null && label.font != font) label.font = font;
+            if (font != null && material != null && label.fontSharedMaterial != material)
+                label.fontSharedMaterial = material;
+            label.text = message;
+        }
+
         private void ShowLoading(string message)
         {
+            if (_receiptOnlyPanel != null) _receiptOnlyPanel.SetActive(false);
             if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_retry != null) _retry.SetActive(false);
             if (_loading != null) _loading.SetActive(true);
-            if (_loadingText != null) _loadingText.text = message;
+            SetAccountText(_loadingText, message);
         }
 
         private void ShowRetry(string message)
         {
             if (_loginCaptured && !LoginCurrent()) return;
+            _pendingFirstEntryRetry = null;
             if (_accountDeleted) message = _loginFailureMessage;
             AD.Managers.DataM.SuspendAccountSession();
             if (_loginCaptured) _loginGeneration = _dataOwner.AccountGeneration;
             _operations.ResetForRetry();
             LogStep($"재시도 패널 노출 -> {message}");
 
+            if (_receiptOnlyPanel != null) _receiptOnlyPanel.SetActive(false);
             if (_loading != null) _loading.SetActive(false);
             if (_nicknamePanel != null) _nicknamePanel.SetActive(false);
             if (_retry != null) _retry.SetActive(true);
             EnsureRetryMessage();
             if (_accountDeleted) ShowDeletedAccountNotice();
-            if (_retryText != null) _retryText.text = message;
+            SetAccountText(_retryText, message);
             if (_signupPanel != null) _signupPanel.SetActive(false);
             if (_googleSignup.Offer(_signupCandidateIdentity, _loginGeneration, _loginDeletionEpoch,
                 CanOfferGoogleSignup())) ShowGoogleSignupChoice();
+            else if (_firstEntryView != null)
+            {
+                if (_operations.IsRunning) _pendingFirstEntryRetry = message;
+                else TryShowFirstEntryChoice(message);
+            }
         }
 
         private void ShowGoogleSignupChoice()
@@ -1204,41 +1353,44 @@ namespace AD
                 var panel = DeletionView.Rect("GoogleSignupChoice", transform);
                 panel.anchorMin = Vector2.zero; panel.anchorMax = Vector2.one;
                 panel.offsetMin = panel.offsetMax = Vector2.zero;
-                panel.gameObject.AddComponent<UnityEngine.UI.Image>().color = new Color(.055f, .065f, .085f, 1);
+                panel.gameObject.AddComponent<UnityEngine.UI.Image>().color = new Color32(18, 39, 36, 255);
                 var content = DeletionView.Rect("Content", panel);
                 content.anchorMin = new Vector2(.1f, .15f); content.anchorMax = new Vector2(.9f, .85f);
                 content.offsetMin = content.offsetMax = Vector2.zero;
                 var layout = content.gameObject.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
                 layout.spacing = 24; layout.childControlWidth = layout.childControlHeight = true;
                 layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
-                var font = _loadingText != null ? _loadingText.font : null;
-                DeletionView.Label("Title", content, "Your game account", font, 42, 80);
+                var font = AccountUiFont;
+                DeletionView.Label("Title", content, "게임 계정", font, 42, 80);
                 _signupMessage = DeletionView.Label("Message", content, "", font, 32, 300);
                 _signupMessage.GetComponent<UnityEngine.UI.LayoutElement>().flexibleHeight = 1;
-                _signupOfferButton = DeletionView.Button("StartNewGame", content, "Start a new game", font);
+                _signupOfferButton = DeletionView.Button("StartNewGame", content, "새 게임 시작", font);
                 _signupOfferButton.onClick.AddListener(() =>
                 {
                     if (_operations.IsRunning || !CanOfferGoogleSignup()) return;
-                    _signupMessage.text = "Create a new game account for the selected Google Play Games profile? "
-                        + "This starts with empty progress and does not recover earlier progress or purchases. "
-                        + "To recover your earlier account, cancel and contact " + CloudScriptDeletionClient.SupportEmail + ".";
+                    _signupMessage.text = "선택한 Google Play Games 프로필로 새 게임 계정을 만들까요?\n"
+                        + "진행도 없이 새로 시작하며 기존 진행도나 구매 권한을 복구하지 않습니다.\n"
+                        + "기존 계정을 복구하려면 취소한 뒤 지원팀에 문의해 주세요: " + CloudScriptDeletionClient.SupportEmail + ".";
                     _signupOfferButton.gameObject.SetActive(false);
                     _signupConfirmButton.gameObject.SetActive(true);
                 });
-                _signupConfirmButton = DeletionView.Button("ConfirmNewGame", content, "Create new game account", font);
+                _signupConfirmButton = DeletionView.Button("ConfirmNewGame", content, "새 게임 계정 만들기", font);
                 _signupConfirmButton.onClick.AddListener(ConfirmGoogleSignup);
-                var cancel = DeletionView.Button("CancelNewGame", content, "Back to sign-in", font);
+                var cancel = DeletionView.Button("CancelNewGame", content, "로그인 화면으로", font);
                 cancel.onClick.AddListener(() =>
                 {
                     _googleSignup.Revoke(); _signupCandidateIdentity = null;
                     _signupPanel.SetActive(false);
+                    if (_firstEntryView != null) TryShowFirstEntryChoice();
                 });
                 _signupPanel = panel.gameObject;
             }
             _signupMessage.text = _loginFailureMessage
-                + " If you want to start with empty progress, choose Start a new game.";
+                + "\n\n빈 진행도로 시작하려면 ‘새 게임 시작’을 선택하세요.";
             _signupOfferButton.gameObject.SetActive(true);
             _signupConfirmButton.gameObject.SetActive(false);
+            foreach (var label in _signupPanel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                SetAccountText(label, label.text);
             _signupPanel.SetActive(true);
         }
 
@@ -1260,13 +1412,18 @@ namespace AD
         {
             if (error == null || error.Error != PlayFabErrorCode.AccountDeleted) return;
             _accountDeleted = true;
-            _loginFailureMessage = "This game account is being deleted or has been deleted. Do not retry or create another account. Contact "
-                + CloudScriptDeletionClient.SupportEmail + " for help.";
+            _loginFailureMessage = "이 게임 계정은 삭제 중이거나 삭제된 상태입니다. 다시 시도하거나 새 계정을 만들지 마세요. "
+                + CloudScriptDeletionClient.SupportEmail + "로 문의해 주세요.";
         }
 
         private void EnsureRetryMessage()
         {
-            if (_retry == null || _retryText != null) return;
+            if (_retry == null) return;
+            if (!_accountDeleted)
+                foreach (var button in _retry.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+                    foreach (var caption in button.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                        SetAccountText(caption, "다시 시도");
+            if (_retryText != null) return;
             // Reuse the prefab's message, never the Retry button caption.
             var existing = _retry.transform.Find("TMP_Contents");
             if (existing != null) _retryText = existing.GetComponent<TMPro.TMP_Text>();
@@ -1276,7 +1433,7 @@ namespace AD
             rect.anchorMax = new Vector2(.9f, .95f);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
             var label = rect.gameObject.AddComponent<TMPro.TextMeshProUGUI>();
-            if (_loadingText != null) label.font = _loadingText.font;
+            if (AccountUiFont != null) label.font = AccountUiFont;
             label.fontSize = 30;
             label.color = Color.white;
             label.alignment = TMPro.TextAlignmentOptions.Center;
@@ -1289,12 +1446,12 @@ namespace AD
         {
             if (_retry == null) return;
             EnsureRetryMessage();
-            _retryText.text = _loginFailureMessage;
+            SetAccountText(_retryText, _loginFailureMessage);
 
             var contact = _retry.GetComponentInChildren<UnityEngine.UI.Button>(true);
             if (contact == null || _accountDeletedContactBound) return;
             foreach (var caption in contact.GetComponentsInChildren<TMPro.TMP_Text>(true))
-                caption.text = "Contact support";
+                SetAccountText(caption, "지원팀 문의");
             contact.onClick.AddListener(() => Application.OpenURL("mailto:" + CloudScriptDeletionClient.SupportEmail
                 + "?subject=Monster%20Tamer%20account%20deletion"));
             _accountDeletedContactBound = true;
@@ -1302,8 +1459,36 @@ namespace AD
 
         private void ShowNicknamePanel()
         {
-            if (_loadingText != null) _loadingText.text = "Set NickName...";
-            if (_nicknamePanel != null) _nicknamePanel.SetActive(true);
+            SetAccountText(_loadingText, "닉네임을 정해 주세요.");
+            if (_loading != null) _loading.SetActive(false);
+            if (_nicknamePanel != null)
+            {
+                foreach (var label in _nicknamePanel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                    SetAccountText(label, label.text);
+                var title = _nicknamePanel.transform.Find("TMP_Content");
+                if (title != null) SetAccountText(title.GetComponent<TMPro.TMP_Text>(), "닉네임을 정해 주세요.");
+                var input = _nicknamePanel.GetComponentInChildren<TMPro.TMP_InputField>(true);
+                if (input != null && input.placeholder is TMPro.TMP_Text placeholder)
+                    SetAccountText(placeholder, "닉네임을 입력하세요");
+                foreach (var button in _nicknamePanel.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+                    foreach (var label in button.GetComponentsInChildren<TMPro.TMP_Text>(true)) SetAccountText(label, "확인");
+                _nicknamePanel.SetActive(true);
+            }
+            SetNicknameNotice(_nicknameRulePanel, "공백 없이 3~20자로 입력해 주세요.");
+            SetNicknameNotice(_nicknameConflictPanel, "이미 사용 중인 닉네임입니다.");
+        }
+
+        private void SetNicknameNotice(GameObject panel, string message)
+        {
+            if (panel == null) return;
+            var background = panel.GetComponent<UnityEngine.UI.Image>();
+            if (background != null)
+            {
+                background.sprite = null;
+                background.color = new Color32(18, 39, 36, 255);
+            }
+            foreach (var label in panel.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                SetAccountText(label, label.GetComponentInParent<UnityEngine.UI.Button>(true) != null ? "확인" : message);
         }
 
         public void ClickedOK() => AD.Managers.SoundM.UI_Ok();

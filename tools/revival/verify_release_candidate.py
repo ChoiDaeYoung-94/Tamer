@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import struct
 import subprocess
 import zipfile
 from pathlib import Path
@@ -12,13 +13,20 @@ from xml.etree import ElementTree as ET
 from install_bundletool import DEST, SHA256
 from verify_native_alignment import inspect_elf
 from windows_owned_files import LockedFile, locked_directories
+from private_ads_build import ABI_PROFILES, abi_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 APP_ID = 'com.AeDeong.MonsterTamer'
-UNITY_VERSION = '6000.3.25f1'
-UNITY_REVISION = 'e1dba0a9aba4'
+UNITY_VERSION = '6000.3.27f2'
+UNITY_REVISION = '22188f149405'
 TOOLCHAIN_CONFIG = 'tools/revival/toolchain.json'
+QUAD_D_INTRO_SCENE = 'Assets/QuadD/Scenes/QuadDIntro.unity'
+QUAD_D_INTRO_COMMIT = '55bf9e4aa48c2f95942f3c2c995f1d55414e97c0'
+QUAD_D_INTRO_PACKAGE = ('https://github.com/ChoiDaeYoung-94/ChoiDaeYoung-94.git'
+                        '?path=/unity/com.quadd.intro#' + QUAD_D_INTRO_COMMIT)
+QUAD_D_INTRO_SCRIPT_GUID = '1d401bfd5913e2a4fafd9c58a0c4be34'
+QUAD_D_CANVAS_SCRIPT_GUID = '882f2ac2f8e5245449cbcaf6ea133299'
 UNVERIFIED = ['Play Console active upload certificate and highest published version code',
               'Production account continuity, changed-progress writes, purchase restore and receipt authority',
               'Privacy/deletion endpoint, retention decisions and published declarations',
@@ -30,7 +38,101 @@ PIPELINE_GENERATED_RESOURCES = ['Assets/Settings/Pipeline/Resources/RuntimePipel
                                 'Assets/Settings/Pipeline/Resources/RuntimePipelineBuildInfo.asset']
 SOURCE_INPUTS = ['ProjectSettings/ProjectSettings.asset', 'ProjectSettings/ProjectVersion.txt',
                  'ProjectSettings/EditorBuildSettings.asset', 'Assets/Resources/IAPProductCatalog.json',
-                 TOOLCHAIN_CONFIG, PIPELINE_RUNTIME_CONFIG, *PIPELINE_GENERATED_RESOURCES]
+                 TOOLCHAIN_CONFIG, PIPELINE_RUNTIME_CONFIG, *PIPELINE_GENERATED_RESOURCES,
+                 'Packages/manifest.json', 'Packages/packages-lock.json',
+                 QUAD_D_INTRO_SCENE, QUAD_D_INTRO_SCENE + '.meta',
+                 'Assets/QuadD/QuadDIntroCanvasOutput.cs', 'Assets/QuadD/QuadDIntroCanvasOutput.cs.meta',
+                 'Assets/Scripts/Managers/Sub/RuntimeInitialize.cs']
+
+GUEST_UI_METADATA = 'base/assets/bin/Data/Managed/Metadata/global-metadata.dat'
+GUEST_UI_INITIALIZERS = 'base/assets/bin/Data/RuntimeInitializeOnLoads.json'
+GUEST_UI_DIAGNOSTIC_MARKERS = (b'RevivalGuestEntryUiHarness', b'GUEST_ENTRY_UI_BOOT phase=',
+                               b'GUEST_ENTRY_UI phase=')
+
+
+def inspect_guest_ui_exclusion(aab):
+    """Reject the offline UI/auth fixture in the actual Unity release payload.
+
+    This checks a bounded metadata/header and initializer list, not the validity
+    of every IL2CPP table or the behavior of the operating login/SDKs.
+    """
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate runtime initialization field')
+            result[key] = value
+        return result
+
+    def reject_constant(_):
+        raise ValueError('Non-JSON runtime initialization value')
+
+    with zipfile.ZipFile(aab) as archive:
+        names = archive.namelist()
+        if len(names) != len(set(names)):
+            raise ValueError('Duplicate AAB ZIP entries')
+        payloads = []
+        for path, limit in ((GUEST_UI_METADATA, 64 * 1024 * 1024),
+                            (GUEST_UI_INITIALIZERS, 4 * 1024 * 1024)):
+            if path not in names or not 0 < archive.getinfo(path).file_size <= limit:
+                raise ValueError('Required bounded Unity runtime payload missing or oversized')
+            payloads.append(archive.read(path))
+    metadata, raw_initializers = payloads
+    if len(metadata) < 8 or struct.unpack_from('<II', metadata) != (0xfab11baf, 39):
+        raise ValueError('Expected reviewed Unity IL2CPP metadata header/version')
+    if any(marker in metadata for marker in GUEST_UI_DIAGNOSTIC_MARKERS):
+        raise ValueError('Guest UI diagnostic code is present in the release payload')
+    initializers = json.loads(raw_initializers.decode('utf-8-sig'), object_pairs_hook=unique,
+                              parse_constant=reject_constant)
+    if (type(initializers) is not dict or set(initializers) != {'root'}
+            or type(initializers['root']) is not list):
+        raise ValueError('Invalid Unity runtime initialization list')
+    for entry in initializers['root']:
+        if (type(entry) is not dict or not isinstance(entry.get('className'), str)
+                or not isinstance(entry.get('methodName'), str)):
+            raise ValueError('Invalid Unity runtime initialization entry')
+        if entry['className'].rsplit('.', 1)[-1] == 'RevivalGuestEntryUiHarness':
+            raise ValueError('Guest UI diagnostic initializer is present in the release payload')
+    return dict(guestUiDiagnosticAbsent=True, metadataVersion=39,
+                metadataSha256=hashlib.sha256(metadata).hexdigest(),
+                initializerSha256=hashlib.sha256(raw_initializers).hexdigest(),
+                initializerCount=len(initializers['root']), operatingRuntimeVerified=False)
+
+
+def approved_entry_flow(root, scenes, settings):
+    """Accept the legacy entry or the pinned intro -> Login flow, without preview scenes."""
+    login = 'Assets/Scenes/Login.unity'
+    if (not scenes or len(scenes) != len(set(scenes)) or scenes.count(login) != 1
+            or any(path.startswith('Assets/Tests/') or 'harness' in path.lower() for path in scenes)):
+        return False
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate intro package setting')
+            result[key] = value
+        return result
+    try:
+        manifest_path = root / 'Packages/manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8-sig'), object_pairs_hook=unique) if manifest_path.exists() else {}
+        package = manifest.get('dependencies', {}).get('com.quadd.intro')
+        if scenes[0] == login:
+            return package is None and QUAD_D_INTRO_SCENE not in scenes
+        if scenes[:2] != [QUAD_D_INTRO_SCENE, login] or package != QUAD_D_INTRO_PACKAGE:
+            return False
+        lock = json.loads((root / 'Packages/packages-lock.json').read_text(encoding='utf-8-sig'), object_pairs_hook=unique)
+        pinned = lock['dependencies']['com.quadd.intro']
+        scene = (root / QUAD_D_INTRO_SCENE).read_text(encoding='utf-8-sig')
+        scripts = re.findall(r'^  m_Script: \{fileID: 11500000, guid: ([0-9a-f]{32}), type: 3\}$', scene, re.M)
+        destinations = re.findall(r'^  nextSceneName:[ \t]*([^\r\n]*)$', scene, re.M)
+        return (pinned.get('source') == 'git' and pinned.get('depth') == 0
+                and pinned.get('hash') == QUAD_D_INTRO_COMMIT and pinned.get('version') == QUAD_D_INTRO_PACKAGE
+                and scripts.count(QUAD_D_INTRO_SCRIPT_GUID) == 1 and destinations == ['Login']
+                and scripts.count(QUAD_D_CANVAS_SCRIPT_GUID) == 1
+                and re.search(r'^  m_ShowUnitySplashScreen: 0\r?$', settings, re.M) is not None
+                and re.search(r'^  m_SplashScreenLogos: \[\]\r?$', settings, re.M) is not None)
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError, AttributeError):
+        return False
 
 
 def unity_source_pinned(root):
@@ -97,23 +199,34 @@ def ensure_output_safe(output, inputs):
         raise ValueError('Output already exists; select a new private report path')
 
 
-def inspect_bundle_libraries(aab):
+def inspect_bundle_libraries(aab, expected_abis=('arm64-v8a',)):
+    expected_abis = tuple(expected_abis)
+    if expected_abis not in (('arm64-v8a',), ('arm64-v8a', 'x86_64')):
+        raise ValueError('Exact reviewed ABI set required')
+    machines = {'arm64-v8a': 183, 'x86_64': 62}
+    observed = {abi: set() for abi in expected_abis}
     libraries=[]
     with zipfile.ZipFile(aab) as archive:
         names=archive.namelist()
         if len(names)!=len(set(names)): raise ValueError('Duplicate AAB ZIP entries')
         for name in names:
             if not name.endswith('.so'): continue
-            if not re.fullmatch(r'[^/]+/lib/arm64-v8a/[^/]+\.so',name):
+            match = re.fullmatch(r'([^/]+)/lib/([^/]+)/([^/]+\.so)', name)
+            if not match or match[2] not in expected_abis:
                 raise ValueError('Unexpected native library path or ABI')
+            abi = match[2]
             result=inspect_elf(archive.read(name))
-            if result['machine'] != 183 or result['bits'] != 64 or result['byteOrder'] != 'little':
-                raise ValueError('Native ELF does not match little-endian ARM64')
-            libraries.append(dict(path=name,loadPassed=result['passed'],relroPassed=result['relroChecksPassed'],
+            if result['machine'] != machines[abi] or result['bits'] != 64 or result['byteOrder'] != 'little':
+                raise ValueError('Native ELF does not match the reviewed little-endian ABI')
+            observed[abi].add((match[1], match[3]))
+            libraries.append(dict(path=name,abi=abi,loadPassed=result['passed'],relroPassed=result['relroChecksPassed'],
                                   relroPresent=result['relroPresent'],relroErrors=result['relroErrors'],
                                   relroLayoutPassed=result['relroLayoutChecksPassed'],
                                   relroLayoutErrors=result['relroLayoutErrors']))
-    if not libraries: raise ValueError('No ARM64 native libraries')
+    if any(not entries for entries in observed.values()):
+        raise ValueError('Required ABI native libraries missing')
+    if any(entries != observed[expected_abis[0]] for entries in observed.values()):
+        raise ValueError('Native library module/name sets differ across ABIs')
     return libraries
 
 
@@ -152,7 +265,7 @@ def source_checks(root):
         'il2cpp': android_value('scriptingBackend') == '1',
         'noGlobalHarnessDefines': not any(d.startswith('TAMER_') for d in defines),
         'iapAutoInitExplicitlyDisabled': catalog.get('enableCodelessAutoInitialization') is False and catalog.get('enableUnityGamingServicesAutoInitialization') is False,
-        'loginFirstScene': bool(scenes) and scenes[0].strip() == 'Assets/Scenes/Login.unity',
+        'approvedEntryFlow': approved_entry_flow(root, [path.strip() for path in scenes], settings),
         'noLegacyBuildMarkers': not any((root/'Build'/name).exists() for name in ('AOSSettingAPK.txt','AOSSettingAAB.txt','checkedBuilding.txt')),
         'pipelineRuntimeDisabled': pipeline_runtime_disabled(root),
         'noStagedPipelineResources': no_staged_pipeline_resources(root),
@@ -176,13 +289,14 @@ def validate_manifest(xml, version_code, published_max):
     return {'versionCode':version_code,'minSdk':25,'targetSdk':36,'debuggable':False,'testOnly':False}
 
 
-def candidate_checks(aab, version_code, published_max, certificate, bundletool, java):
+def candidate_checks(aab, version_code, published_max, certificate, bundletool, java, *, abi_profile='arm64'):
     """Bind path-based tool reads to held Windows file objects for this inspection.
 
     Only bundletool has a known digest pin. Holding Java and the signature source
     prevents their replacement during inspection; it does not authenticate a full
     JDK, its dependencies, or provide an ACL boundary against administrators.
     """
+    abi = abi_contract(abi_profile, 'disabled_candidate')
     if not re.fullmatch(r'[0-9a-fA-F]{64}', certificate):
         raise ValueError('Expected certificate SHA-256, not a keystore or password')
     # Preserve path components for the directory locks' reparse checks instead of
@@ -205,12 +319,15 @@ def candidate_checks(aab, version_code, published_max, certificate, bundletool, 
         metadata = validate_manifest(manifest,version_code,published_max)
         signature=json.loads(run([java,signature_source,aab,'--release-cert-sha256',certificate]))
         held[aab].stream.seek(0)
-        libraries=inspect_bundle_libraries(held[aab].stream)
+        libraries=inspect_bundle_libraries(held[aab].stream, abi['expectedAbis'])
+        held[aab].stream.seek(0)
+        runtime_isolation=inspect_guest_ui_exclusion(held[aab].stream)
         for path, handle in held.items():
             verify_locked_input(path, handle, hashes[path])
-        return dict(schema=2,mode='aab',artifactSha256=hashes[aab],manifest=metadata,signature=signature,
-                    libraries=libraries,artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries),
-                    artifactCheckScope='AAB bundle validation, base manifest, payload signature, ARM64 ELF LOAD and conservative RELRO layout; raw end-modulo remains diagnostic',
+        return dict(schema=2,mode='aab',**abi,artifactSha256=hashes[aab],manifest=metadata,signature=signature,
+                    libraries=libraries,managedRuntimeIsolation=runtime_isolation,
+                    artifactChecksPassed=all(x['loadPassed'] and x['relroLayoutPassed'] for x in libraries) and runtime_isolation['guestUiDiagnosticAbsent'],
+                    artifactCheckScope='AAB bundle validation, base manifest, payload signature, guest UI diagnostic exclusion, exact reviewed ABI set and ELF LOAD/conservative RELRO layout; raw end-modulo remains diagnostic',
                     deliveredApkZipAlignmentVerified=False, arm64NativeRuntimeVerified=False,
                     productionBinary16KBVerified=False,
                     releaseReady=False,unverified=UNVERIFIED,
@@ -228,13 +345,15 @@ def main():
     candidate.add_argument('--published-max-code',type=int,required=True)
     candidate.add_argument('--upload-cert-sha256',required=True)
     candidate.add_argument('--bundletool',type=Path,default=DEST)
-    candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
+    candidate.add_argument('--abi-profile',choices=ABI_PROFILES,default='arm64')
+    candidate.add_argument('--java',type=Path,default=Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe'))
     args=parser.parse_args()
     inputs=[ROOT/path for path in SOURCE_INPUTS]+[Path(__file__),ROOT/'tools/revival/VerifyAabSignature.java',
-        ROOT/'tools/revival/install_bundletool.py',ROOT/'tools/revival/verify_native_alignment.py']
+        ROOT/'tools/revival/install_bundletool.py',ROOT/'tools/revival/verify_native_alignment.py',
+        ROOT/'tools/revival/private_ads_build.py']
     if args.mode=='aab': inputs += [args.aab,args.bundletool,args.java]
     ensure_output_safe(args.output,inputs)
-    result=source_checks(ROOT) if args.mode=='source' else candidate_checks(args.aab,args.version_code,args.published_max_code,args.upload_cert_sha256,args.bundletool,args.java)
+    result=source_checks(ROOT) if args.mode=='source' else candidate_checks(args.aab,args.version_code,args.published_max_code,args.upload_cert_sha256,args.bundletool,args.java,abi_profile=args.abi_profile)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     # Exclusive creation also preserves evidence created after the preflight check.
     with args.output.open('x',encoding='utf-8') as report:

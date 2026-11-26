@@ -10,7 +10,7 @@ namespace AD
             if (settings == null || settings.transform.Find("AccountPrivacyEntry") != null) return;
             var template = settings.GetComponentInChildren<TMP_Text>(true);
             var font = template != null ? template.font : null;
-            var button = DeletionView.Button("AccountPrivacyEntry", settings.transform, "Account & privacy", font);
+            var button = DeletionView.Button("AccountPrivacyEntry", settings.transform, "계정 및 개인정보", font);
             var rect = (RectTransform)button.transform;
             rect.anchorMin = new Vector2(.15f, .5f);
             rect.anchorMax = new Vector2(.85f, .5f);

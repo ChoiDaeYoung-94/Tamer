@@ -70,11 +70,11 @@ def main():
         review.write_text('{"syntheticFixtureOnly":true}')
         head = 'a' * 40
         plan_sha = bridge.sha(plan_path.read_bytes())
-        plan = {'checkout': str(root), 'run': run.relative_to(root).as_posix(),
+        plan = {'schema':2,'checkout': str(root), 'run': run.relative_to(root).as_posix(),
                 'before': {bridge.producer.KEY: {'sha256': bridge.sha(key.read_bytes())}},
                 'config': str(config), 'editorVersion': 'synthetic-only', 'head': head,
                 '_reviewedSha256': plan_sha}
-        value = {'checkout': str(root), 'certificate': str(cert), 'alias': 'synthetic-rsa',
+        value = {'schema':1,'checkout': str(root), 'certificate': str(cert), 'alias': 'synthetic-rsa',
                  'java': java, 'classDirectory': classes, 'head': head, 'planSha256': plan_sha,
                  'certificateSha256': bridge.sha(cert.read_bytes()), 'plan': str(plan_path),
                  'sourceReview': str(review)}

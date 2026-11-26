@@ -631,7 +631,7 @@ public class RevivalGameplaySessionTests
             Assert.That(Get(f.Player, "_gold"), Is.EqualTo(100));
             Assert.That(f.Uploads, Is.Empty);
             var text = Get(hud, "_goldText");
-            Assert.That(text.GetType().GetProperty("text").GetValue(text), Is.EqualTo("Gold - 100"));
+            Assert.That(text.GetType().GetProperty("text").GetValue(text), Is.EqualTo("골드 · 100"));
             Assert.That(f.Ready, Is.True);
         }
     }

@@ -178,12 +178,16 @@ public class Player : Creature
     {
         if (Input.GetMouseButtonDown(0))
         {
-            RaycastHit hit;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out hit))
+            Collider target = WorldPromptTarget(ray);
+#if TAMER_FACELIFT_UI_HARNESS
+            if (Physics.Raycast(ray, out var firstHit))
+                Debug.Log("FACELIFT_WORLD_TOUCH first=" + firstHit.collider.name + " firstTrigger=" + firstHit.collider.isTrigger +
+                    " selected=" + (target == null ? "none" : target.name) + " selectedTag=" + (target == null ? "none" : target.tag));
+#endif
+            if (target != null)
             {
-                switch (hit.collider.tag)
+                switch (target.tag)
                 {
                     case "GoogleAdMob":
                         AD.Managers.SoundM.UI_Click();
@@ -198,6 +202,12 @@ public class Player : Creature
             }
         }
     }
+
+    // Visible world prompts use dedicated UI hit volumes. Movement boundaries and
+    // character colliders must not intercept these UI taps from the follow camera.
+    private static Collider WorldPromptTarget(Ray ray)
+        => Time.timeScale > 0 && Physics.Raycast(ray, out var hit, Mathf.Infinity, LayerMask.GetMask("UI"), QueryTriggerInteraction.Collide)
+            ? hit.collider : null;
 
     #endregion
 

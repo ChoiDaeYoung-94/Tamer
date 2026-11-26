@@ -23,6 +23,19 @@ public sealed class LauncherPin {
     public string Identity {get;set;}
     public string Sddl {get;set;}
 }
+public sealed class LauncherSigningProfile {
+    public int Schema {get;set;}
+    public string Profile {get;set;}
+    public string StoreType {get;set;}
+    public string Keystore {get;set;}
+    public string AllowedRoot {get;set;}
+    public string KeystoreSha256 {get;set;}
+    public string Alias {get;set;}
+    public string CertificateSha256 {get;set;}
+    public string PlayAppSigningCertificateSha256 {get;set;}
+    public string ActivationEvidence {get;set;}
+    public string ActivationEvidenceSha256 {get;set;}
+}
 public sealed class LauncherBinding {
     public int Schema {get;set;}
     public string Checkout {get;set;}
@@ -49,6 +62,8 @@ public sealed class LauncherBinding {
     public string[] RuntimeFiles {get;set;}
     public string[] AbsentRuntimeFiles {get;set;}
     public LauncherPin[] Pins {get;set;}
+    [JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)]
+    public LauncherSigningProfile SigningProfile {get;set;}
 }
 public sealed class LauncherResult {
     public string Status {get;set;}
@@ -73,6 +88,18 @@ public static class LauncherFiles {
         public uint WriteLow,WriteHigh,Volume,SizeHigh,SizeLow,Links,IndexHigh,IndexLow;
     }
     [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetFileInformationByHandle(SafeFileHandle file,out NativeInfo info);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]
+    static extern SafeFileHandle CreateFileW(string path,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
+    public static SafeFileHandle Directory(string path) {
+        Regular(path,true);
+        var handle=CreateFileW(path,0x81,1,IntPtr.Zero,3,0x02200000,IntPtr.Zero);
+        try {
+            NativeInfo info;
+            if(handle.IsInvalid || !GetFileInformationByHandle(handle,out info) || (info.Attributes&0x410)!=0x10)
+                throw new IOException();
+            return handle;
+        } catch {handle.Dispose();throw;}
+    }
     public static bool IsLocalAbsolutePath(string path) {
         if(String.IsNullOrWhiteSpace(path) || path.IndexOf('\0')>=0)return false;
         string value=path.Replace('\\','/');
@@ -292,19 +319,56 @@ public static class SigningLauncher {
         if(b.MinimumStartBudgetSeconds<600 || b.ProducerTimeoutSeconds<1 || b.ProducerTimeoutSeconds>86400 ||
             (b.DeadlineUtc-DateTimeOffset.UtcNow).TotalSeconds<b.MinimumStartBudgetSeconds)throw new TimeoutException();
     }
+    static bool ProfilePath(string path) {
+        if(!LauncherFiles.IsLocalAbsolutePath(path))return false;
+        string value=path.Replace('\\','/');
+        if(value.Substring(3).IndexOf(':')>=0)return false;
+        foreach(string part in value.Substring(3).Split('/')) {
+            if(part.Length==0 || part=="." || part==".." || part.EndsWith(".") || part.EndsWith(" ") ||
+                Regex.IsMatch(part,@"\A(?i:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?\z"))return false;
+            foreach(char c in part)if(Char.IsControl(c) || "<>\"|?*".IndexOf(c)>=0)return false;
+        }
+        return true;
+    }
+    internal static bool ExternalSigning(LauncherBinding b) {
+        if(b==null)throw new SecurityException();
+        if(b.Schema==1) {
+            if(b.SigningProfile!=null)throw new SecurityException();
+            return false;
+        }
+        var p=b.SigningProfile;
+        if(b.Schema!=2 || p==null || p.Schema!=1 || p.Profile!="external_pkcs12_upload" || p.StoreType!="PKCS12" ||
+            p.Alias!=b.Alias || p.CertificateSha256!=b.CertificateSha256 ||
+            !Regex.IsMatch(p.Alias??"",@"\A[a-z0-9][a-z0-9._-]{0,127}\z") ||
+            !ProfilePath(b.Checkout) || !ProfilePath(p.Keystore) || !ProfilePath(p.AllowedRoot) || !ProfilePath(p.ActivationEvidence))
+            throw new SecurityException();
+        foreach(string hash in new[]{p.KeystoreSha256,p.CertificateSha256,p.PlayAppSigningCertificateSha256,p.ActivationEvidenceSha256})
+            if(!Regex.IsMatch(hash??"",@"\A[0-9a-f]{64}\z"))throw new SecurityException();
+        string root=Path.GetFullPath(b.Checkout).TrimEnd('\\','/');
+        string allowed=Path.GetFullPath(p.AllowedRoot).TrimEnd('\\','/');
+        string key=Path.GetFullPath(p.Keystore);var compare=StringComparison.OrdinalIgnoreCase;
+        if(allowed.Substring(3).Replace('\\','/').Split('/').Length<2 ||
+            !String.Equals(Path.GetDirectoryName(key),allowed,compare) ||
+            allowed.StartsWith(root+Path.DirectorySeparatorChar,compare) || String.Equals(allowed,root,compare) ||
+            root.StartsWith(allowed+Path.DirectorySeparatorChar,compare) ||
+            !(String.Equals(Path.GetExtension(key),".p12",compare)||String.Equals(Path.GetExtension(key),".pfx",compare)) ||
+            p.PlayAppSigningCertificateSha256==p.CertificateSha256)throw new SecurityException();
+        return true;
+    }
     static char[][] Prompt(LauncherBinding b) {
         using(var form=new Form())using(var store=new TextBox())using(var alias=new TextBox())
         using(var ok=new Button())using(var cancel=new Button())using(var tick=new System.Windows.Forms.Timer()) {
-            form.Text="Tamer 검토된 빌드 — 기존 암호 직접 입력";form.ClientSize=new Size(610,235);
+            bool external=b.Schema==2;int shift=external?55:0;
+            form.Text=external?"Tamer 검토된 빌드 — 새 업로드 키 암호 직접 입력":"Tamer 검토된 빌드 — 기존 암호 직접 입력";form.ClientSize=new Size(610,235+shift);
             form.StartPosition=FormStartPosition.CenterScreen;form.FormBorderStyle=FormBorderStyle.FixedDialog;
             form.MaximizeBox=false;form.MinimizeBox=false;
-            var info=new Label{Text="기존 키를 검사한 뒤 검토된 빌드를 한 번 실행합니다. 두 암호를 직접 입력해 주세요.",Location=new Point(18,15),Size=new Size(575,45)};
-            store.SetBounds(220,72,365,27);alias.SetBounds(220,117,365,27);
+            var info=new Label{Text=external?"새 PKCS12 업로드 키를 검사한 뒤 검토된 빌드를 한 번 실행합니다. 두 칸에 같은 새 암호를 입력해 주세요.\nAlias: "+b.Alias+"\nSHA-256: "+b.CertificateSha256:"기존 키를 검사한 뒤 검토된 빌드를 한 번 실행합니다. 두 암호를 직접 입력해 주세요.",Location=new Point(18,15),Size=new Size(575,45+shift)};
+            store.SetBounds(220,72+shift,365,27);alias.SetBounds(220,117+shift,365,27);
             foreach(var box in new[]{store,alias}){box.UseSystemPasswordChar=true;box.MaxLength=1024;box.ShortcutsEnabled=false;}
-            var first=new Label{Text="기존 저장소 비밀번호",Location=new Point(18,76),AutoSize=true};
-            var second=new Label{Text="기존 키(alias) 비밀번호",Location=new Point(18,121),AutoSize=true};
-            ok.Text="검사 후 빌드";ok.SetBounds(350,178,115,32);ok.DialogResult=DialogResult.OK;
-            cancel.Text="취소";cancel.SetBounds(475,178,110,32);cancel.DialogResult=DialogResult.Cancel;
+            var first=new Label{Text=external?"새 저장소 비밀번호":"기존 저장소 비밀번호",Location=new Point(18,76+shift),AutoSize=true};
+            var second=new Label{Text=external?"새 키(alias) 비밀번호":"기존 키(alias) 비밀번호",Location=new Point(18,121+shift),AutoSize=true};
+            ok.Text="검사 후 빌드";ok.SetBounds(350,178+shift,115,32);ok.DialogResult=DialogResult.OK;
+            cancel.Text="취소";cancel.SetBounds(475,178+shift,110,32);cancel.DialogResult=DialogResult.Cancel;
             form.AcceptButton=ok;form.CancelButton=cancel;form.Controls.AddRange(new Control[]{info,first,second,store,alias,ok,cancel});
             bool timedOut=false;
             tick.Interval=250;tick.Tick+=(sender,e)=>{try{Budget(b);}catch(TimeoutException){timedOut=true;form.DialogResult=DialogResult.Cancel;form.Close();}};tick.Start();
@@ -394,7 +458,7 @@ public static class SigningLauncher {
         }
     }
     public static string Run(string bindingPath,string bindingSha256,bool allowReviewedBuild) {
-        var pins=new List<LockedLauncherPin>();FileStream bound=null;bool producerStarted=false;
+        var pins=new List<LockedLauncherPin>();var directories=new List<SafeFileHandle>();FileStream bound=null;bool producerStarted=false;
         LauncherResult result=null;
         try {
             if(!allowReviewedBuild || Thread.CurrentThread.GetApartmentState()!=ApartmentState.STA)throw new SecurityException();
@@ -402,10 +466,24 @@ public static class SigningLauncher {
             if(!Regex.IsMatch(bindingSha256??"","\\A[0-9a-f]{64}\\z") || LauncherFiles.Hash(bound)!=bindingSha256)throw new SecurityException();
             byte[] raw=LauncherFiles.Snapshot(bound,8*1024*1024);LauncherBinding b;
             try{b=JsonSerializer.Deserialize<LauncherBinding>(raw,Options);}finally{Array.Clear(raw,0,raw.Length);}
-            if(b==null || b.Schema!=1 || !b.CurrentUploadCertificateReviewed || !b.ExistingKeyOwnershipReviewed ||
+            if(b==null || !b.CurrentUploadCertificateReviewed || !b.ExistingKeyOwnershipReviewed ||
                 b.Pins==null || b.Pins.Length<1 || b.RuntimeFiles==null || b.RuntimeFiles.Length<1 || b.AbsentRuntimeFiles==null)throw new SecurityException();
+            bool external=ExternalSigning(b);
             Budget(b);var paths=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if(external) {
+                var parents=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach(string path in new[]{b.SigningProfile.Keystore,b.SigningProfile.ActivationEvidence}) {
+                    var ancestors=new List<string>();string cursor=Path.GetDirectoryName(Path.GetFullPath(path));
+                    while(!String.IsNullOrEmpty(cursor)){ancestors.Insert(0,cursor);cursor=Path.GetDirectoryName(cursor);}
+                    foreach(string parent in ancestors)if(parents.Add(parent))directories.Add(LauncherFiles.Directory(parent));
+                }
+            }
             foreach(var pin in b.Pins){if(!paths.Add(Path.GetFullPath(pin.Path)))throw new SecurityException();pins.Add(new LockedLauncherPin(pin));}
+            if(external) {
+                if(Find(pins,b.SigningProfile.Keystore).Pin.Sha256!=b.SigningProfile.KeystoreSha256 ||
+                    Find(pins,b.SigningProfile.ActivationEvidence).Pin.Sha256!=b.SigningProfile.ActivationEvidenceSha256)
+                    throw new SecurityException();
+            }
             // No bridge/Java execution before executable + source files have been pinned.
             foreach(string path in new[]{b.Python,b.Git,b.Powershell,b.Java,b.Bridge,
                 Path.Combine(b.ClassDirectory,"OperatingKeyPreflight.class"),b.Plan,b.SourceReview,b.Certificate,
@@ -416,7 +494,7 @@ public static class SigningLauncher {
             foreach(string name in new[]{"OwnedChild.cs","SigningLauncher.cs","OperatingKeyPreflight.java","producer_bridge.py","Invoke-SigningLauncher.ps1","EditorOwnership.ps1"})
                 Find(pins,Path.Combine(launcherRoot,name));
             foreach(string name in new[]{"private_ads_producer.py","private_ads_build.py","private_ads_approved.py",
-                "private_ads_evidence.py","validate_private_ads_preparation.py","windows_owned_files.py"})
+                "private_ads_evidence.py","validate_private_ads_preparation.py","windows_owned_files.py","signing_profile.py"})
                 Find(pins,Path.Combine(b.Checkout,"tools","revival",name));
             string attempt=Guid.NewGuid().ToString("N");bool claimed=false;
             result=LauncherSession.Run(()=>{
@@ -426,7 +504,7 @@ public static class SigningLauncher {
             },()=>Prompt(b),secret=>
                 Progress(cancel=>Produce(b,bindingPath,bindingSha256,attempt,secret,cancel,()=>producerStarted=true)),()=>Budget(b));
         }catch(Exception failure){result=new LauncherResult{Status=failure is OperationCanceledException?"cancelled":"failed",Phase="preflight",ExceptionType=failure.GetType().Name,ProducerInvoked=false,ActualBuildExecuted=false};}
-        finally{for(int i=pins.Count-1;i>=0;i--)pins[i].Dispose();if(bound!=null)bound.Dispose();}
+        finally{for(int i=pins.Count-1;i>=0;i--)pins[i].Dispose();for(int i=directories.Count-1;i>=0;i--)directories[i].Dispose();if(bound!=null)bound.Dispose();}
         CompleteOwnership(result,producerStarted);
         return JsonSerializer.Serialize(result,Options);
     }

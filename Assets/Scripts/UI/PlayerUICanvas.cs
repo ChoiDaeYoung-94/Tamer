@@ -96,7 +96,7 @@ public class PlayerUICanvas : MonoBehaviour
     public void UpdatePlayerInfo()
     {
         _captureCapacityText.text = $"{Player.Instance.GetCurMonsterCount()} / {Player.Instance.MaxCaptureCapacity}";
-        _goldText.text = $"Gold - {Player.Instance.Gold}";
+        _goldText.text = $"골드 · {Player.Instance.Gold}";
 
         float maxHP = Player.Instance.ItmeAdditionalHp > Player.Instance.OriginalHP ? Player.Instance.ItmeAdditionalHp : Player.Instance.OriginalHP;
         _playerHpText.text = $"{Player.Instance.Hp} / {maxHP}";
@@ -110,18 +110,18 @@ public class PlayerUICanvas : MonoBehaviour
     /// </summary>
     private void UpdatePopPlayerInfo()
     {
-        _popupNickNameText.text = $"NickName - {AD.Managers.DataM.LocalPlayerData["NickName"]}";
-        _popupCaptureCapacityText.text = $"CaptureCapacity - {Player.Instance.GetCurMonsterCount()} / {Player.Instance.MaxCaptureCapacity}";
-        _popupGoldText.text = $"Gold - {Player.Instance.Gold}";
+        _popupNickNameText.text = $"닉네임 · {AD.Managers.DataM.LocalPlayerData["NickName"]}";
+        _popupCaptureCapacityText.text = $"동료 수 · {Player.Instance.GetCurMonsterCount()} / {Player.Instance.MaxCaptureCapacity}";
+        _popupGoldText.text = $"골드 · {Player.Instance.Gold}";
 
-        _popupPowerText.text = GetPlayerStat(Player.Instance.Power, Player.Instance.BuffPower, "Power");
-        _popupAttackSpeedText.text = GetPlayerStat(Player.Instance.AttackSpeed, Player.Instance.BuffAttackSpeed, "AttackSpeed");
-        _popupMoveSpeedText.text = GetPlayerStat(Player.Instance.MoveSpeed, Player.Instance.BuffMoveSpeed, "MoveSpeed");
+        _popupPowerText.text = GetPlayerStat(Player.Instance.Power, Player.Instance.BuffPower, "공격력");
+        _popupAttackSpeedText.text = GetPlayerStat(Player.Instance.AttackSpeed, Player.Instance.BuffAttackSpeed, "공격 속도");
+        _popupMoveSpeedText.text = GetPlayerStat(Player.Instance.MoveSpeed, Player.Instance.BuffMoveSpeed, "이동 속도");
     }
 
     private string GetPlayerStat(float normalStat, float buffStat, string stat)
     {
-        return _isBuffActive ? $"{stat} - {buffStat}" : $"{stat} - {normalStat}";
+        return _isBuffActive ? $"{stat} · {buffStat}" : $"{stat} · {normalStat}";
     }
 
     #endregion

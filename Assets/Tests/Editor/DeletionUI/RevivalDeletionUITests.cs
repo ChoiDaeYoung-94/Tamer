@@ -36,7 +36,8 @@ public class RevivalDeletionUITests
         panel.transform.SetParent(root.transform, false);
         panel.SetActive(false);
         view = panel.AddComponent(Find("AD.DeletionView"));
-        Call(view, "Build", null, (Action)(() => panel.SetActive(false)));
+        var font = UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Fonts/DungGeunMo SDF.asset", Find("TMPro.TMP_FontAsset"));
+        Call(view, "Build", font, (Action)(() => panel.SetActive(false)));
         presenter = panel.AddComponent(Find("AD.DeletionPresenter"));
         Call(presenter, "Bind", view);
         panel.SetActive(true);
@@ -81,11 +82,11 @@ public class RevivalDeletionUITests
 
     [Test] public void Revival_DeletionUnavailableExplainsDisabledRequestAndNeverCompletes()
     {
-        StringAssert.Contains("currently unavailable", Message);
+        StringAssert.Contains("현재 앱에서 계정 삭제를 요청할 수 없습니다", Message);
         Assert.That(Button("Request").interactable, Is.False);
         Click("Request");
         Assert.That(Button("Confirm").gameObject.activeSelf, Is.False);
-        StringAssert.DoesNotContain("completed", Message);
+        StringAssert.DoesNotContain("삭제가 완료되었습니다", Message);
     }
 
     [UnityTest] public IEnumerator Revival_DeletionButtonsFollowReauthenticationConfirmationAndServerStatus()
@@ -93,7 +94,7 @@ public class RevivalDeletionUITests
         var gateway = new Fake { PendingAuth = new TaskCompletionSource<DeletionAuthorization>() };
         var flow = Configure(gateway);
         Click("Request");
-        StringAssert.Contains("Identity verification", Message);
+        StringAssert.Contains("본인 확인이 필요합니다", Message);
         Click("Request");
         Assert.That(gateway.AuthCalls, Is.EqualTo(1));
         gateway.PendingAuth.SetResult(new DeletionAuthorization("synthetic-account", "test-proof"));
@@ -101,15 +102,15 @@ public class RevivalDeletionUITests
         Render();
         Assert.That(Button("Confirm").gameObject.activeSelf, Is.True);
         Click("Confirm");
-        StringAssert.Contains("not complete", Message);
+        StringAssert.Contains("아직 완료되지 않았습니다", Message);
         gateway.Next = DeletionState.Processing;
         Click("Refresh");
-        StringAssert.Contains("Completion has not been confirmed", Message);
+        StringAssert.Contains("삭제 완료는 아직 확인되지 않았습니다", Message);
         gateway.Next = DeletionState.Completed;
         Click("Refresh");
         Assert.That(flow.State, Is.EqualTo(DeletionState.Completed));
-        StringAssert.Contains("Test deletion completed", Message);
-        StringAssert.Contains("No real account data was deleted", Message);
+        StringAssert.Contains("시험용 삭제가 완료되었습니다", Message);
+        StringAssert.Contains("실제 계정 데이터는 삭제하지 않았습니다", Message);
     }
 
     [TestCase("Confirm")]
@@ -133,14 +134,14 @@ public class RevivalDeletionUITests
         yield return null; yield return null;
         Call(presenter, "OnEnable"); Render();
         Assert.That(gateway.RequestCalls, Is.Zero);
-        StringAssert.Contains("currently unavailable", Message);
+        StringAssert.Contains("현재 앱에서 계정 삭제를 요청할 수 없습니다", Message);
     }
 
     [Test] public void Revival_DeletionMissingCompletionEvidenceDoesNotShowSuccess()
     {
         var gateway = new Fake(); Configure(gateway); Click("Request"); Click("Confirm");
         gateway.Next = DeletionState.Completed; gateway.Evidence = null; Click("Refresh");
-        StringAssert.DoesNotContain("Test deletion completed", Message);
+        StringAssert.DoesNotContain("시험용 삭제가 완료되었습니다", Message);
         Assert.That(Button("Retry").gameObject.activeSelf, Is.True);
     }
 
@@ -236,8 +237,8 @@ public class RevivalDeletionUITests
             Assert.False(Button(name).gameObject.activeSelf, name);
         Assert.True(Button("Contact").gameObject.activeSelf);
         StringAssert.Contains("doeud1410@gmail.com", Message);
-        StringAssert.Contains("We could not confirm whether", Message);
-        StringAssert.DoesNotContain("Your deletion request was accepted.", Message);
+        StringAssert.Contains("삭제 요청의 접수 여부를 확인하지 못했습니다", Message);
+        StringAssert.DoesNotContain("삭제 요청이 접수되었습니다.", Message);
         Assert.AreEqual(1, calls);
     }
 
@@ -269,11 +270,11 @@ public class RevivalDeletionUITests
             factory.SetValue(null, (Func<DeletionFlow>)(() => flow));
             Assert.DoesNotThrow(() => Call(presenter, "OnEnable"));
             Assert.DoesNotThrow(Render);
-            StringAssert.Contains("Your deletion request was accepted.", Message);
+            StringAssert.Contains("삭제 요청이 접수되었습니다.", Message);
             Assert.True((bool)Property(view, "ExitOnClose"));
             var closeLabel = Button("Close").GetComponentsInChildren<Component>(true)
                 .First(component => component.GetType().FullName == "TMPro.TextMeshProUGUI");
-            Assert.AreEqual("Exit game", Property(closeLabel, "text"));
+            Assert.AreEqual("게임 종료", Property(closeLabel, "text"));
             foreach (var name in new[] { "Request", "Confirm", "SessionConfirm", "Refresh", "Cancel", "Retry", "Reauthenticate" })
                 Assert.False(Button(name).gameObject.activeSelf, name);
             Assert.True(Button("Contact").interactable);

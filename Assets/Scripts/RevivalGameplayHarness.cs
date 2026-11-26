@@ -70,6 +70,24 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         _photoRestoreDeadline = Time.realtimeSinceStartup + 1;
         if (++_photoRestoreTaps >= 3) SetPhotoMode(false);
     }
+
+    private void OpenOriginalShopForPhoto()
+    {
+        if (_busy || !Ready("Main") || !RevivalGameplayIsolation.AllowsCaptureAssist) return;
+        var shop = ShopMan.Instance;
+        if (shop == null) { Mark("PHOTO_SHOP_UNAVAILABLE owner=missing"); return; }
+        // Mirror the original proximity trigger's panel activation, without moving
+        // the player or changing the shop, inventory, currency, or purchase state.
+        var field = typeof(ShopMan).GetField("_popupShopUI",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var panel = field?.GetValue(shop) as GameObject;
+        if (panel == null || panel.scene.handle != shop.gameObject.scene.handle ||
+            panel.scene.handle != UnitySceneManager.GetActiveScene().handle)
+        { Mark("PHOTO_SHOP_UNAVAILABLE original-panel=missing-or-stale"); return; }
+        panel.SetActive(true);
+        Mark(panel.activeInHierarchy ? "PHOTO_SHOP_OPEN original-panel-only" : "PHOTO_SHOP_UNAVAILABLE inactive-parent");
+        if (panel.activeInHierarchy) SetPhotoMode(true);
+    }
 #endif
 
     // Observe the real gameplay state; never set HP, spawn enemies, or grant captures.
@@ -377,6 +395,13 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
     private IEnumerator Start()
     {
         yield return null;
+#if TAMER_QUAD_D_LOGIN_HARNESS
+        // The canonical video entry precedes Login's Managers. Wait only in this
+        // offline variant; ordinary fixtures retain their original bootstrap check.
+        float loginDeadline = Time.realtimeSinceStartup + 18;
+        while ((Managers.Instance == null || RevivalGameplayIsolation.BlockedLogins != 1) &&
+            Time.realtimeSinceStartup < loginDeadline) yield return null;
+#endif
         _originalManagers = Managers.Instance;
         if (_originalManagers == null || RevivalGameplayIsolation.BlockedLogins != 1)
         { Mark("FAIL bootstrap/login guard"); yield break; }
@@ -492,7 +517,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             " power=" + player.Power.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " attack=" + player.AttackSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
             " move=" + player.MoveSpeed.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
-            " hudGoldMatches=" + (goldLabel != null && goldLabel.text == "Gold - " + player.Gold) +
+            " hudGoldMatches=" + (goldLabel != null && goldLabel.text == "골드 · " + player.Gold) +
             " errors=" + _errors + " totalErrors=" + _totalErrors;
         if (text == _lastShopObservation) return;
         _lastShopObservation = text;
@@ -518,8 +543,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         void Require(bool value) { if (!value) throw new InvalidOperationException(); }
         try
         {
-            Require(Application.identifier == RevivalGameplayIsolation.ShopPurchaseApplicationId && Debug.isDebugBuild &&
-                !Application.isEditor && !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable);
+            Require(RevivalGameplayIsolation.ShopRuntimeAllowed &&
+                !Managers.GoogleAdMobM.CanRequestAds && Managers.IAPM.Status == IAPStatus.Unavailable);
             var data = Managers.DataM;
             var player = Player.Instance;
             string marker = Path.Combine(Path.GetDirectoryName(RevivalGameplayIsolation.SavePath), "PendingSword.txt");
@@ -723,7 +748,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
             }
             var canvas = PlayerUICanvas.Instance;
             string Label(string field) => ((TMPro.TMP_Text)typeof(PlayerUICanvas).GetField(field, flags).GetValue(canvas)).text;
-            if (Label("_playerNickNameText") != expected["NickName"] || Label("_goldText") != "Gold - 235" ||
+            if (Label("_playerNickNameText") != expected["NickName"] || Label("_goldText") != "골드 · 235" ||
                 Label("_captureCapacityText") != "2 / " + player.MaxCaptureCapacity)
                 throw new InvalidOperationException("HUD mismatch");
             if (_errors != 0 || Managers.GoogleAdMobM.CanRequestAds || Managers.IAPM.Status != IAPStatus.Unavailable)
@@ -834,8 +859,17 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
 
     private void OnGUI()
     {
+#if TAMER_GAMEPLAY_HARNESS && TAMER_CHARACTER_UI && !UNITY_EDITOR
+        // Keep diagnostics in logcat while the exact offline character preview owns the screen.
+        if (Debug.isDebugBuild && Application.identifier == RevivalGameplayIsolation.FaceliftCharacterUiApplicationId)
+            return;
+#endif
 #if TAMER_GAMEPLAY_PHOTO
         if (_photoMode) return;
+#if TAMER_GAMEPLAY_HARNESS && !TAMER_AGE_CHOICE
+        // Keep the original age modal visible without selecting or dismissing it.
+        if (OriginalAgeModalOwnsInput()) return;
+#endif
 #endif
 #if TAMER_AGE_CHOICE
         GUI.depth = -1000;
@@ -847,7 +881,7 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUI.matrix = Matrix4x4.Scale(new Vector3(Screen.width / 1000f, Screen.width / 1000f, 1));
         GUILayout.BeginArea(new Rect(15, 15, 970,
 #if TAMER_GAMEPLAY_PHOTO
-            420
+            480
 #else
             350
 #endif
@@ -879,6 +913,8 @@ public sealed class RevivalGameplayHarness : MonoBehaviour
         GUI.enabled = true;
 #endif
 #if TAMER_GAMEPLAY_PHOTO
+        GUI.enabled = !_busy && Ready("Main") && RevivalGameplayIsolation.AllowsCaptureAssist;
+        if (GUILayout.Button("Open original shop (photo UI only)", GUILayout.Height(45))) OpenOriginalShopForPhoto();
         GUI.enabled = !_busy && (Ready("Main") || Ready("Game")) && RevivalGameplayIsolation.AllowsCaptureAssist;
         if (GUILayout.Button("Hide diagnostics for photo (restore: triple-tap top-left corner)", GUILayout.Height(55)))
             SetPhotoMode(true);
@@ -920,6 +956,253 @@ public sealed class RevivalGameplayReadyBudget
         if (double.IsNaN(elapsedSeconds) || double.IsInfinity(elapsedSeconds) || elapsedSeconds < 0)
             throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
         if (!ageQuestionOwnsInput) ActiveSeconds += elapsedSeconds;
+    }
+}
+#endif
+
+#if TAMER_GAMEPLAY_HARNESS && TAMER_CHARACTER_UI && !UNITY_EDITOR
+// Passive diagnostics for the existing offline character profile only.
+// This class never invokes a listener, chooses an avatar, edits age or writes a save.
+public sealed class RevivalCharacterDeviceProbe : UnityEngine.MonoBehaviour
+{
+    private readonly string nonce=System.Guid.NewGuid().ToString("N");
+    private float next;
+    private string last;
+    private bool seen;
+    private const System.Reflection.BindingFlags Fields=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Boot()
+    {
+        if(UnityEngine.Application.isEditor||!UnityEngine.Debug.isDebugBuild||UnityEngine.Application.identifier!=AD.RevivalGameplayIsolation.FaceliftCharacterUiApplicationId)
+            throw new System.InvalidOperationException("Exact offline character debug application required.");
+        var root=new UnityEngine.GameObject("Passive offline character device observation");
+        UnityEngine.Object.DontDestroyOnLoad(root);root.AddComponent<RevivalCharacterDeviceProbe>();
+    }
+    private static T Field<T>(object value,string name)=>(T)value.GetType().GetField(name,Fields).GetValue(value);
+    private void LateUpdate()
+    {
+        if(UnityEngine.Time.unscaledTime<next)return;next=UnityEngine.Time.unscaledTime+.2f;
+        string scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if(scene!="SetCharacter")
+        {
+            if(seen){seen=false;last=null;UnityEngine.Debug.Log("CHARACTER_DEVICE_EXIT "+UnityEngine.JsonUtility.ToJson(new Exit{nonce=nonce,scene=scene,writes=AD.RevivalGameplayIsolation.Writes}));}
+            return;
+        }
+        if(AD.Managers.Instance==null||AD.Managers.DataM==null||AD.Managers.GoogleAdMobM==null||
+            AD.Managers.DataM.PlayFabId!=AD.RevivalGameplayIsolation.AccountId||!AD.Managers.DataM.IsServerDataReady||
+            AD.RevivalGameplayIsolation.BlockedLogins!=1||AD.Managers.GoogleAdMobM.CanRequestAds)return;
+        var selection=UnityEngine.Object.FindFirstObjectByType<CanvasSelectCharacter>();
+        var system=UnityEngine.EventSystems.EventSystem.current;if(selection==null||system==null)return;
+        var male=Field<UnityEngine.Transform>(selection,"_trMale");var female=Field<UnityEngine.Transform>(selection,"_trFemale");
+        bool moving=Field<bool>(selection,"_isMoving"),saving=Field<bool>(selection,"_isSaving");
+        var buttons=selection.GetComponentsInChildren<UnityEngine.UI.Button>();
+        var records=new System.Collections.Generic.List<ButtonState>();
+        foreach(string name in new[]{"ButtonLeft","ButtonRight","ButtonPlay"})
+        {
+            var matches=System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(buttons,b=>b.name==name));if(matches.Length!=1)return;
+            var button=matches[0];var canvas=button.GetComponentInParent<UnityEngine.Canvas>();if(canvas==null)return;
+            var camera=canvas.renderMode==UnityEngine.RenderMode.ScreenSpaceOverlay?null:canvas.worldCamera;
+            var corners=new UnityEngine.Vector3[4];((UnityEngine.RectTransform)button.transform).GetWorldCorners(corners);
+            var min=UnityEngine.RectTransformUtility.WorldToScreenPoint(camera,corners[0]);var max=UnityEngine.RectTransformUtility.WorldToScreenPoint(camera,corners[2]);
+            var center=(min+max)*.5f;var hits=new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+            system.RaycastAll(new UnityEngine.EventSystems.PointerEventData(system){position=center},hits);
+            bool top=hits.Count>0&&hits[0].gameObject.GetComponentInParent<UnityEngine.UI.Button>()==button;
+            bool inside=min.x>=0&&min.y>=0&&max.x<=UnityEngine.Screen.width&&max.y<=UnityEngine.Screen.height&&max.x-min.x>=44&&max.y-min.y>=44;
+            records.Add(new ButtonState{name=name,tapX=UnityEngine.Mathf.RoundToInt(center.x),tapY=UnityEngine.Screen.height-UnityEngine.Mathf.RoundToInt(center.y),
+                left=UnityEngine.Mathf.FloorToInt(min.x),top=UnityEngine.Screen.height-UnityEngine.Mathf.CeilToInt(max.y),width=UnityEngine.Mathf.FloorToInt(max.x-min.x),height=UnityEngine.Mathf.FloorToInt(max.y-min.y),
+                topHit=top,interactable=button.IsInteractable(),eligible=top&&inside&&button.IsInteractable()&&!moving&&!saving&&UnityEngine.Time.timeScale>0});
+        }
+        var state=new State{nonce=nonce,scene=scene,width=UnityEngine.Screen.width,height=UnityEngine.Screen.height,
+            accountGeneration=AD.Managers.DataM.AccountGeneration,observedFrame=UnityEngine.Time.frameCount,moving=moving,saving=saving,reads=AD.RevivalGameplayIsolation.Reads,writes=AD.RevivalGameplayIsolation.Writes,
+            avatar=UnityEngine.Mathf.Approximately(male.position.x,0)?"a":UnityEngine.Mathf.Approximately(female.position.x,0)?"b":"transition",buttons=records.ToArray()};
+        string json=UnityEngine.JsonUtility.ToJson(state);if(json!=last){UnityEngine.Debug.Log("CHARACTER_DEVICE_STATE "+json);last=json;}
+        seen=true;
+    }
+    [System.Serializable] private sealed class ButtonState{public string name;public int tapX,tapY,left,top,width,height;public bool topHit,interactable,eligible;}
+    [System.Serializable] private sealed class State{public string nonce,scene,avatar;public int width,height,accountGeneration,observedFrame,reads,writes;public bool moving,saving;public ButtonState[] buttons;}
+    [System.Serializable] private sealed class Exit{public string nonce,scene;public int writes;}
+}
+#endif
+
+
+#if TAMER_GAMEPLAY_HARNESS && TAMER_CHARACTER_UI && !UNITY_EDITOR
+// Presentation-only: the development log popup otherwise overlaps the original right arrow.
+// Logger/callbacks remain alive. No listener, avatar, age, authentication or save is invoked.
+public sealed class RevivalCharacterPreviewOverlayMask : UnityEngine.MonoBehaviour
+{
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Boot()
+    {
+        if (UnityEngine.Application.isEditor || !UnityEngine.Debug.isDebugBuild ||
+            UnityEngine.Application.identifier != AD.RevivalGameplayIsolation.FaceliftCharacterUiApplicationId)
+            throw new System.InvalidOperationException("Exact offline character debug application required.");
+        var root = new UnityEngine.GameObject("Offline character preview diagnostic presentation");
+        UnityEngine.Object.DontDestroyOnLoad(root);
+        root.AddComponent<RevivalCharacterPreviewOverlayMask>();
+    }
+
+    private void LateUpdate()
+    {
+        var console = IngameDebugConsole.DebugLogManager.Instance;
+        if (console != null && console.PopupEnabled)
+            console.PopupEnabled = false;
+    }
+}
+#endif
+
+#if TAMER_FACELIFT_RELEASE_INTRO && !UNITY_EDITOR
+// Observes the existing six-scene offline fixture. It never supplies age/auth input.
+public sealed class RevivalFaceliftReleaseIntroObservation : UnityEngine.MonoBehaviour
+{
+    private QuadD.QuadDIntro intro;
+    private UnityEngine.Video.VideoPlayer video;
+    private UnityEngine.UI.RawImage picture;
+    private UnityEngine.Transform preparationIndicator;
+    private string directory;
+    private double awakeSeconds, preparedSeconds = -1, startedSeconds = -1, decodedSeconds = -1, visibleSeconds = -1;
+    private double nextWrite;
+    private long highestFrame = -1;
+    private int completions, introScenes, loginScenes, mainScenes, errors, visibleBeforeDecode;
+    private int preparationVisibleFrames, preparationWithVideoFrames;
+    private bool preparationHiddenOnCompletion;
+    private bool isolationReady;
+
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Boot()
+    {
+        if (!AD.RevivalGameplayIsolation.AllowsReleaseFaceliftContext(UnityEngine.Application.identifier,
+            UnityEngine.Application.isEditor, UnityEngine.Debug.isDebugBuild,
+            UnityEngine.Application.platform == UnityEngine.RuntimePlatform.Android))
+            throw new System.InvalidOperationException("Exact offline release full UI application required.");
+        var root = new UnityEngine.GameObject("Offline release intro observation");
+        UnityEngine.Object.DontDestroyOnLoad(root);
+        root.AddComponent<RevivalFaceliftReleaseIntroObservation>();
+    }
+
+    private void Awake()
+    {
+        awakeSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+        directory = System.IO.Path.Combine(UnityEngine.Application.persistentDataPath, "quad-d-observation");
+        System.IO.Directory.CreateDirectory(directory);
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoaded;
+        UnityEngine.Application.logMessageReceived += Logged;
+    }
+
+    private void SceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        if (scene.path == "Assets/QuadD/Scenes/QuadDIntro.unity")
+        {
+            if (introScenes != 0 || !AD.RevivalGameplayIsolation.AllowsReleaseIntroObservation(
+                UnityEngine.Application.identifier, scene.path,
+                UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings,
+                UnityEngine.Application.CanStreamedLevelBeLoaded("Login"), UnityEngine.Application.isEditor,
+                UnityEngine.Debug.isDebugBuild, UnityEngine.Application.platform == UnityEngine.RuntimePlatform.Android))
+                throw new System.InvalidOperationException("Exact six-scene release intro observation required.");
+            introScenes++;
+            intro = UnityEngine.Object.FindFirstObjectByType<QuadD.QuadDIntro>();
+            if (intro == null) throw new System.InvalidOperationException("Canonical intro missing.");
+            video = intro.GetComponent<UnityEngine.Video.VideoPlayer>();
+            if (video == null) throw new System.InvalidOperationException("Canonical video player missing.");
+            preparationIndicator = intro.transform.Find("Quad D Video Output/Preparation Indicator");
+            if (preparationIndicator == null) throw new System.InvalidOperationException("Preparation feedback missing.");
+            video.prepareCompleted += Prepared;
+            video.started += Started;
+            video.frameReady += Decoded;
+            intro.OnCompleted.AddListener(Completed);
+        }
+        else if (scene.name == "Login") loginScenes++;
+        else if (scene.name == "Main") mainScenes++;
+        WriteReceipt();
+    }
+
+    private void Prepared(UnityEngine.Video.VideoPlayer source) => preparedSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+    private void Started(UnityEngine.Video.VideoPlayer source) => startedSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+    private void Decoded(UnityEngine.Video.VideoPlayer source, long frame)
+    {
+        if (source == video && frame >= 0 && decodedSeconds < 0) decodedSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+    }
+    private void Completed()
+    {
+        preparationHiddenOnCompletion = preparationIndicator != null && !preparationIndicator.gameObject.activeSelf;
+        completions++;
+        WriteReceipt();
+    }
+    private void Logged(string message, string trace, UnityEngine.LogType type)
+    {
+        if (type == UnityEngine.LogType.Error || type == UnityEngine.LogType.Exception || type == UnityEngine.LogType.Assert) errors++;
+        if (message != null && message.StartsWith("GAMEPLAY_HARNESS ISOLATION_OK", System.StringComparison.Ordinal)) isolationReady = true;
+    }
+    private void LateUpdate()
+    {
+        if (video != null)
+        {
+            highestFrame = System.Math.Max(highestFrame, video.frame);
+            if (picture == null && intro != null) picture = intro.GetComponentInChildren<UnityEngine.UI.RawImage>(true);
+            if (preparationIndicator != null && preparationIndicator.gameObject.activeInHierarchy)
+            {
+                preparationVisibleFrames++;
+                if (picture != null && picture.enabled) preparationWithVideoFrames++;
+            }
+            if (picture != null && picture.enabled)
+            {
+                if (decodedSeconds < 0) visibleBeforeDecode++;
+                if (visibleSeconds < 0) visibleSeconds = UnityEngine.Time.realtimeSinceStartupAsDouble;
+            }
+        }
+        if (UnityEngine.Time.realtimeSinceStartupAsDouble >= nextWrite)
+        {
+            nextWrite = UnityEngine.Time.realtimeSinceStartupAsDouble + .5;
+            WriteReceipt();
+        }
+    }
+    private void WriteReceipt()
+    {
+        if (directory == null) return;
+        bool managersReady = AD.Managers.Instance != null && AD.Managers.DataM != null && AD.Managers.GoogleAdMobM != null;
+        var row = new Observation {
+            appId = UnityEngine.Application.identifier,
+            scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().path,
+            buildSceneCount = UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings,
+            introScenes = introScenes, loginScenes = loginScenes, mainScenes = mainScenes,
+            completionCount = completions, highestFrame = highestFrame, errors = errors,
+            awakeSeconds = awakeSeconds, preparedSeconds = preparedSeconds,
+            playbackStartedSeconds = startedSeconds, firstDecodedSeconds = decodedSeconds,
+            firstVisibleSeconds = visibleSeconds, visibleBeforeDecode = visibleBeforeDecode,
+            preparationVisibleFrames = preparationVisibleFrames, preparationWithVideoFrames = preparationWithVideoFrames,
+            preparationHiddenOnCompletion = preparationHiddenOnCompletion,
+            videoPlaying = video != null && video.isPlaying,
+            audioPlaying = intro != null && intro.GetComponent<UnityEngine.AudioSource>().isPlaying,
+            isolationReady = isolationReady,
+            dataReady = managersReady && AD.Managers.DataM.IsServerDataReady,
+            adsBlocked = managersReady && !AD.Managers.GoogleAdMobM.CanRequestAds,
+            iapUnavailable = managersReady && AD.Managers.IAPM.Status == AD.IAPStatus.Unavailable };
+        string path = System.IO.Path.Combine(directory, "observation.json");
+        string temporary = System.IO.Path.Combine(directory, "observation.tmp");
+        System.IO.File.WriteAllText(temporary, UnityEngine.JsonUtility.ToJson(row, true));
+        if (System.IO.File.Exists(path)) System.IO.File.Replace(temporary, path, null);
+        else System.IO.File.Move(temporary, path);
+    }
+    private void OnDestroy()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= SceneLoaded;
+        UnityEngine.Application.logMessageReceived -= Logged;
+        if (intro != null) intro.OnCompleted.RemoveListener(Completed);
+        if (video != null)
+        {
+            video.prepareCompleted -= Prepared;
+            video.started -= Started;
+            video.frameReady -= Decoded;
+        }
+    }
+    [System.Serializable] private sealed class Observation
+    {
+        public string appId, scene;
+        public int buildSceneCount, introScenes, loginScenes, mainScenes, completionCount, errors, visibleBeforeDecode;
+        public int preparationVisibleFrames, preparationWithVideoFrames;
+        public long highestFrame;
+        public double awakeSeconds, preparedSeconds, playbackStartedSeconds, firstDecodedSeconds, firstVisibleSeconds;
+        public bool videoPlaying, audioPlaying, isolationReady, dataReady, adsBlocked, iapUnavailable;
+        public bool preparationHiddenOnCompletion;
     }
 }
 #endif

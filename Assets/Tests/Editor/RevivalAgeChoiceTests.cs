@@ -4,6 +4,37 @@ using NUnit.Framework;
 
 public class RevivalAgeChoiceTests
 {
+    [TestCase("0", AgeChoice.Under13)]
+    [TestCase("12", AgeChoice.Under13)]
+    [TestCase("13", AgeChoice.From13To15)]
+    [TestCase("15", AgeChoice.From13To15)]
+    [TestCase("16", AgeChoice.From16To17)]
+    [TestCase("17", AgeChoice.From16To17)]
+    [TestCase("18", AgeChoice.Adult)]
+    [TestCase("99", AgeChoice.Adult)]
+    [TestCase("100", AgeChoice.Adult)]
+    public void Revival_FreeAgeEntryPreservesTreatmentBoundariesWithoutSavingExactAge(
+        string input, AgeChoice expected)
+    {
+        Assert.That(LocalAgeChoice.TryParseAgeInput(input, out var bucket), Is.True);
+        Assert.That(bucket, Is.EqualTo(expected));
+        string saved = null;
+        var choice = new LocalAgeChoice(() => null, s => saved = s);
+        Assert.That(choice.Select(bucket), Is.True);
+        Assert.That(saved, Is.EqualTo(LocalAgeChoice.Encode(expected)));
+        Assert.That(AgeTreatmentPolicy.IsReviewed(choice.Value), Is.EqualTo(expected == AgeChoice.Adult));
+    }
+
+    [TestCase(null)] [TestCase("")] [TestCase(" ")] [TestCase("-1")]
+    [TestCase("+18")] [TestCase("18.0")] [TestCase("2008")]
+    [TestCase("18 ")] [TestCase("１８")] [TestCase("2147483648")]
+    public void Revival_InvalidAgeInputNeverBecomesAnAdultDefault(string input)
+    {
+        Assert.That(LocalAgeChoice.TryParseAgeInput(input, out var bucket), Is.False);
+        Assert.That(bucket, Is.EqualTo(AgeChoice.Unknown));
+        Assert.That(AgeTreatmentPolicy.IsReviewed(bucket), Is.False);
+    }
+
     [TestCase(AgeChoice.Under13)]
     [TestCase(AgeChoice.From13To15)]
     [TestCase(AgeChoice.From16To17)]

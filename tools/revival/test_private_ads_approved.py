@@ -311,7 +311,7 @@ class PrivacyProducerTests(unittest.TestCase):
         output = ROOT / ('Logs/revival/privacy-only-build-route-pure-1007-' + uuid.uuid4().hex)
         output.parent.mkdir(parents=True, exist_ok=True)
         create_private_directory(output)
-        editor = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data')
+        editor = Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data')
         api = editor / 'UnityReferenceAssemblies/unity-4.8-api'; managed = editor / 'Managed'
         sources = ['Assets/Scripts/Advertising/PrivatePrivacyReleaseContract.cs', 'Assets/Scripts/Advertising/PrivateAdsReleaseContract.cs',
                    'Assets/Scripts/Advertising/AgeTreatmentPolicy.cs', 'Assets/Scripts/Advertising/AdRequestPolicy.cs', 'Assets/Scripts/Advertising/LocalAgeChoice.cs']
@@ -338,6 +338,7 @@ namespace GooglePlayGames.Editor {
 }''')
         refs = [api / name for name in ('mscorlib.dll', 'System.dll', 'System.Core.dll', 'System.Xml.dll')]
         refs += list(managed.glob('Unity*.dll')) + list((managed / 'UnityEngine').glob('*.dll'))
+        refs += [editor / 'PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll']
         refs += [ROOT / 'Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.dll', api / 'Facades/netstandard.dll']
         args = ['-nologo', '-langversion:9.0', '-target:library', '-define:UNITY_EDITOR', '-out:"' + str(output / 'template.dll') + '"']
         args += ['-r:"' + str(p) + '"' for p in refs] + ['"' + str(ROOT / p) + '"' for p in sources] + ['"' + str(stub) + '"']

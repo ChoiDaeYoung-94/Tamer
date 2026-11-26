@@ -4,11 +4,12 @@ import hashlib
 import tempfile
 import json
 import os
+import struct
 import sys
 import zipfile
 from unittest.mock import patch
 from pathlib import Path
-from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, candidate_checks, main, PIPELINE_RUNTIME_CONFIG
+from verify_release_candidate import validate_manifest, source_checks, ensure_output_safe, inspect_bundle_libraries, inspect_guest_ui_exclusion, candidate_checks, main, PIPELINE_RUNTIME_CONFIG, GUEST_UI_METADATA, GUEST_UI_INITIALIZERS, GUEST_UI_DIAGNOSTIC_MARKERS
 from test_verify_native_alignment import elf_fixture
 
 
@@ -41,10 +42,69 @@ class ReleaseCandidateTests(unittest.TestCase):
             yield bundletool, java, source
 
     @staticmethod
+    def synthetic_runtime(archive):
+        archive.writestr(GUEST_UI_METADATA, struct.pack('<II', 0xfab11baf, 39) + b'synthetic game metadata')
+        archive.writestr(GUEST_UI_INITIALIZERS, '{"root":[]}')
+
+    @staticmethod
     def synthetic_aab(path, segments=None):
         path.parent.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(path, 'w') as archive:
             archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture(segments or [dict(memsz=4096)]))
+            ReleaseCandidateTests.synthetic_runtime(archive)
+
+    def test_guest_ui_exclusion_accepts_product_names_but_rejects_each_fixture_marker(self):
+        import io
+        for marker in (b'LoginGuestIdentityPreparation InitialAccountChoiceView', *GUEST_UI_DIAGNOSTIC_MARKERS):
+            with self.subTest(marker=marker):
+                stream=io.BytesIO()
+                with zipfile.ZipFile(stream, 'w') as archive:
+                    archive.writestr(GUEST_UI_METADATA, struct.pack('<II', 0xfab11baf, 39) + marker)
+                    archive.writestr(GUEST_UI_INITIALIZERS, '{"root":[]}')
+                stream.seek(0)
+                if marker in GUEST_UI_DIAGNOSTIC_MARKERS:
+                    with self.assertRaisesRegex(ValueError, 'diagnostic code'):
+                        inspect_guest_ui_exclusion(stream)
+                else:
+                    result=inspect_guest_ui_exclusion(stream)
+                    self.assertTrue(result['guestUiDiagnosticAbsent'])
+                    self.assertFalse(result['operatingRuntimeVerified'])
+
+    def test_guest_ui_exclusion_rejects_bad_or_missing_runtime_payloads(self):
+        import io
+        cases=[(None, b'{"root":[]}'), (b'wrong metadata', b'{"root":[]}'),
+               (struct.pack('<II', 0xfab11baf, 38), b'{"root":[]}'),
+               (struct.pack('<II', 0xfab11baf, 39), None),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[],"root":[]}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[{}]}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":null}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":NaN}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[{"className":1,"methodName":"Start"}]}'),
+               (struct.pack('<II', 0xfab11baf, 39), b'{"root":[{"className":"RevivalGuestEntryUiHarness","methodName":"TraceManagedStartup"}]}')]
+        for metadata, initializers in cases:
+            with self.subTest(metadata=metadata, initializers=initializers):
+                stream=io.BytesIO()
+                with zipfile.ZipFile(stream, 'w') as archive:
+                    if metadata is not None:archive.writestr(GUEST_UI_METADATA, metadata)
+                    if initializers is not None:archive.writestr(GUEST_UI_INITIALIZERS, initializers)
+                stream.seek(0)
+                with self.assertRaises(ValueError):inspect_guest_ui_exclusion(stream)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
+    def test_candidate_rejects_fixture_even_when_manifest_signature_and_native_pass(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder).resolve()
+            artifact=root/'diagnostic.aab'
+            with zipfile.ZipFile(artifact,'w') as archive:
+                archive.writestr('base/lib/arm64-v8a/test.so',elf_fixture([dict(memsz=4096)]))
+                archive.writestr(GUEST_UI_METADATA,struct.pack('<II',0xfab11baf,39)+b'RevivalGuestEntryUiHarness')
+                archive.writestr(GUEST_UI_INITIALIZERS,'{"root":[]}')
+            before=artifact.read_bytes()
+            with self.synthetic_tools(root) as (bundletool,java,_), \
+                    patch('verify_release_candidate.subprocess.check_output',side_effect=['',self.manifest,'{}']):
+                with self.assertRaisesRegex(ValueError,'diagnostic code'):
+                    candidate_checks(artifact,27,26,'0'*64,bundletool,java)
+            self.assertEqual(before,artifact.read_bytes())
 
     def test_reviewed_candidate_manifest(self):
         self.assertEqual(validate_manifest(self.manifest,27,26)['versionCode'],27)
@@ -79,10 +139,10 @@ class ReleaseCandidateTests(unittest.TestCase):
     Android: DOTWEEN
 ''')
             (root/'ProjectSettings/ProjectVersion.txt').write_text(
-                'm_EditorVersion: 6000.3.25f1\nm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n')
+                'm_EditorVersion: 6000.3.27f2\nm_EditorVersionWithRevision: 6000.3.27f2 (22188f149405)\n')
             (root/'tools/revival').mkdir(parents=True)
             (root/'tools/revival/toolchain.json').write_text(json.dumps(
-                {'unityEditor':'6000.3.25f1','unityEditorRevision':'e1dba0a9aba4'}))
+                {'unityEditor':'6000.3.27f2','unityEditorRevision':'22188f149405'}))
             scenes=root/'ProjectSettings/EditorBuildSettings.asset'
             scenes.write_text('  - enabled: 1\n    path: Assets/Scenes/Login.unity\n')
             (root/'Assets/Resources/IAPProductCatalog.json').write_text(json.dumps({'enableCodelessAutoInitialization':False,'enableUnityGamingServicesAutoInitialization':False}))
@@ -99,7 +159,44 @@ class ReleaseCandidateTests(unittest.TestCase):
             settings.write_text(settings.read_text().replace('DOTWEEN','DOTWEEN;TAMER_GAMEPLAY_HARNESS'))
             self.assertFalse(source_checks(root)['checks']['noGlobalHarnessDefines'])
             scenes.write_text('  - enabled: 0\n    path: Assets/Scenes/Login.unity\n  - enabled: 1\n    path: Assets/Scenes/Main.unity\n')
-            self.assertFalse(source_checks(root)['checks']['loginFirstScene'])
+            self.assertFalse(source_checks(root)['checks']['approvedEntryFlow'])
+
+    def test_intro_entry_requires_the_pinned_package_login_destination_and_no_old_splash(self):
+        from verify_release_candidate import approved_entry_flow, QUAD_D_INTRO_SCENE, QUAD_D_INTRO_PACKAGE, QUAD_D_INTRO_COMMIT
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root/'Packages').mkdir()
+            scene = root/QUAD_D_INTRO_SCENE
+            scene.parent.mkdir(parents=True)
+            scene.write_text('  m_Script: {fileID: 11500000, guid: 1d401bfd5913e2a4fafd9c58a0c4be34, type: 3}\n  nextSceneName: Login\n'
+                             '  m_Script: {fileID: 11500000, guid: 882f2ac2f8e5245449cbcaf6ea133299, type: 3}\n')
+            original = scene.read_bytes()
+            manifest = root/'Packages/manifest.json'
+            manifest.write_text(json.dumps({'dependencies': {'com.quadd.intro': QUAD_D_INTRO_PACKAGE}}))
+            lock = root/'Packages/packages-lock.json'
+            pin = {'source':'git', 'depth':0, 'hash':QUAD_D_INTRO_COMMIT, 'version':QUAD_D_INTRO_PACKAGE}
+            lock.write_text(json.dumps({'dependencies': {'com.quadd.intro': pin}}))
+            scenes = [QUAD_D_INTRO_SCENE, 'Assets/Scenes/Login.unity', 'Assets/Scenes/Main.unity']
+            settings = '  m_ShowUnitySplashScreen: 0\n  m_SplashScreenLogos: []\n'
+            self.assertTrue(approved_entry_flow(root, scenes, settings))
+            for invalid in [scenes[1:], scenes[::-1], scenes+['Assets/Tests/Scenes/QuadD/Test.unity'], scenes+[scenes[0]]]:
+                self.assertFalse(approved_entry_flow(root, invalid, settings))
+            self.assertFalse(approved_entry_flow(root, scenes, settings.replace('Screen: 0', 'Screen: 1')))
+            self.assertFalse(approved_entry_flow(root, scenes, settings.replace('Logos: []', 'Logos: [{}]')))
+            for invalid in ['Other', '']:
+                scene.write_text(original.decode().replace('nextSceneName: Login', 'nextSceneName: '+invalid))
+                self.assertFalse(approved_entry_flow(root, scenes, settings))
+            scene.write_bytes(original)
+            scene.write_text(original.decode().replace('882f2ac2f8e5245449cbcaf6ea133299', '0'*32))
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
+            scene.write_bytes(original)
+            lock.write_text(json.dumps({'dependencies': {'com.quadd.intro': dict(pin, hash='0'*40)}}))
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
+            lock.write_text(json.dumps({'dependencies': {'com.quadd.intro': pin}}))
+            manifest.write_text(json.dumps({'dependencies': {'com.quadd.intro': QUAD_D_INTRO_PACKAGE.replace(QUAD_D_INTRO_COMMIT, 'main')}}))
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
+            manifest.write_text('{"dependencies":{"com.quadd.intro":"wrong","com.quadd.intro":'+json.dumps(QUAD_D_INTRO_PACKAGE)+'}}')
+            self.assertFalse(approved_entry_flow(root, scenes, settings))
 
     def test_exact_unity_version_revision_and_toolchain_are_required_without_writes(self):
         from verify_release_candidate import unity_source_pinned, TOOLCHAIN_CONFIG, SOURCE_INPUTS
@@ -109,19 +206,19 @@ class ReleaseCandidateTests(unittest.TestCase):
             config = root / TOOLCHAIN_CONFIG
             project.parent.mkdir(parents=True)
             config.parent.mkdir(parents=True)
-            expected = 'm_EditorVersion: 6000.3.25f1\nm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n'
-            valid = json.dumps({'unityEditor':'6000.3.25f1', 'unityEditorRevision':'e1dba0a9aba4'})
+            expected = 'm_EditorVersion: 6000.3.27f2\nm_EditorVersionWithRevision: 6000.3.27f2 (22188f149405)\n'
+            valid = json.dumps({'unityEditor':'6000.3.27f2', 'unityEditorRevision':'22188f149405'})
             config.write_text(valid)
             for value in [expected, '\ufeff' + expected.replace('\n', '\r\n')]:
                 project.write_bytes(value.encode('utf-8'))
                 before = project.read_bytes(), config.read_bytes()
                 self.assertTrue(unity_source_pinned(root))
                 self.assertEqual(before, (project.read_bytes(), config.read_bytes()))
-            invalid_projects = [expected.replace('6000.3.25f1', '6000.3.25f10'),
-                '# m_EditorVersion: 6000.3.25f1\nm_EditorVersion: 6000.3.26f1\n',
-                expected.replace('e1dba0a9aba4', '000000000000'),
-                'm_EditorVersion: 6000.3.25f1\n', expected + 'm_EditorVersion: 6000.3.25f1\n',
-                expected + 'm_EditorVersionWithRevision: 6000.3.25f1 (e1dba0a9aba4)\n']
+            invalid_projects = [expected.replace('6000.3.27f2', '6000.3.27f20'),
+                '# m_EditorVersion: 6000.3.27f2\nm_EditorVersion: 6000.3.26f1\n',
+                expected.replace('22188f149405', '000000000000'),
+                'm_EditorVersion: 6000.3.27f2\n', expected + 'm_EditorVersion: 6000.3.27f2\n',
+                expected + 'm_EditorVersionWithRevision: 6000.3.27f2 (22188f149405)\n']
             for value in invalid_projects:
                 with self.subTest(project=value):
                     project.write_text(value)
@@ -129,9 +226,9 @@ class ReleaseCandidateTests(unittest.TestCase):
                     self.assertFalse(unity_source_pinned(root))
                     self.assertEqual(before, (project.read_bytes(), config.read_bytes()))
             project.write_text(expected)
-            for value in [valid.replace('6000.3.25f1', '6000.3.25f10'),
-                          valid.replace('e1dba0a9aba4', '000000000000'),
-                          '{"unityEditor":"wrong","unityEditor":"6000.3.25f1","unityEditorRevision":"e1dba0a9aba4"}',
+            for value in [valid.replace('6000.3.27f2', '6000.3.27f20'),
+                          valid.replace('22188f149405', '000000000000'),
+                          '{"unityEditor":"wrong","unityEditor":"6000.3.27f2","unityEditorRevision":"22188f149405"}',
                           valid[:-1] + ',"extra":NaN}', '{}', '[]', 'null', '{broken']:
                 with self.subTest(config=value):
                     config.write_text(value)
@@ -258,6 +355,55 @@ class ReleaseCandidateTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'little-endian'):
                         inspect_bundle_libraries(artifact)
 
+    def test_exact_dual_abi_requires_matching_modules_names_and_elf_machines(self):
+        arm = ('base/lib/arm64-v8a/test.so', elf_fixture())
+        x86 = ('base/lib/x86_64/test.so', elf_fixture(machine=62))
+        cases = [([arm, x86], True), ([arm], False), ([x86], False),
+                 ([arm, (x86[0], arm[1])], False),
+                 ([arm, ('base/lib/x86_64/other.so', x86[1])], False),
+                 ([arm, ('feature/lib/x86_64/test.so', x86[1])], False),
+                 ([arm, x86, ('base/lib/armeabi-v7a/test.so', elf_fixture(bits=32))], False),
+                 ([arm, (x86[0], elf_fixture(machine=62, endian='>'))], False),
+                 ([arm, (x86[0], elf_fixture(machine=3, bits=32))], False)]
+        with tempfile.TemporaryDirectory() as folder:
+            artifact = Path(folder) / 'synthetic.aab'
+            for entries, accepted in cases:
+                with self.subTest(paths=[name for name, _ in entries]):
+                    with zipfile.ZipFile(artifact, 'w') as archive:
+                        for name, raw in entries:
+                            archive.writestr(name, raw)
+                    if accepted:
+                        result = inspect_bundle_libraries(artifact, ['arm64-v8a', 'x86_64'])
+                        self.assertEqual({entry['abi'] for entry in result}, {'arm64-v8a', 'x86_64'})
+                        with self.assertRaises(ValueError):
+                            inspect_bundle_libraries(artifact)  # ARM64 remains the default.
+                    else:
+                        with self.assertRaises(ValueError):
+                            inspect_bundle_libraries(artifact, ['arm64-v8a', 'x86_64'])
+            for abis in [[], ['x86_64'], ['x86_64', 'arm64-v8a'], ['arm64-v8a', 'arm64-v8a']]:
+                with self.subTest(abis=abis), self.assertRaises(ValueError):
+                    inspect_bundle_libraries(artifact, abis)
+
+    def test_candidate_dual_profile_requires_explicit_selection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            artifact = root / 'candidate.aab'
+            with zipfile.ZipFile(artifact, 'w') as archive:
+                archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture())
+                archive.writestr('base/lib/x86_64/test.so', elf_fixture(machine=62))
+                self.synthetic_runtime(archive)
+            with self.synthetic_tools(root) as (bundletool, java, _):
+                with patch('verify_release_candidate.subprocess.check_output', side_effect=['', self.manifest, '{}']):
+                    result = candidate_checks(artifact, 27, 26, '0'*64, bundletool, java,
+                                              abi_profile='internal_dual64')
+                self.assertTrue(result['artifactChecksPassed'])
+                self.assertFalse(result['releaseReady'])
+                self.assertFalse(result['arm64NativeRuntimeVerified'])
+                self.assertEqual(result['expectedAbis'], ['arm64-v8a', 'x86_64'])
+                with patch('verify_release_candidate.subprocess.check_output', side_effect=['', self.manifest, '{}']):
+                    with self.assertRaises(ValueError):
+                        candidate_checks(artifact, 27, 26, '0'*64, bundletool, java)
+
     @unittest.skipUnless(os.name == 'nt', 'Windows handle semantics required')
     def test_candidate_accepts_absent_relro_but_keeps_present_end_and_load_blockers(self):
         cases = [([dict(memsz=4096)], True, False),
@@ -271,6 +417,7 @@ class ReleaseCandidateTests(unittest.TestCase):
                 with self.subTest(segments=segments):
                     with zipfile.ZipFile(artifact,'w') as archive:
                         archive.writestr('base/lib/arm64-v8a/test.so',elf_fixture(segments))
+                        self.synthetic_runtime(archive)
                     with self.synthetic_tools(Path(folder).resolve()) as (bundletool, java, _), \
                          patch('verify_release_candidate.subprocess.check_output',
                                side_effect=['',self.manifest,'{}']):
@@ -296,6 +443,7 @@ class ReleaseCandidateTests(unittest.TestCase):
                 archive.writestr('base/lib/arm64-v8a/test.so', elf_fixture([
                     dict(memsz=4096), dict(offset=512, vaddr=512, memsz=512),
                     dict(kind=0x6474E552, memsz=4096)]))
+                self.synthetic_runtime(archive)
             with self.synthetic_tools(Path(folder).resolve()) as (bundletool, java, _), \
                     patch('verify_release_candidate.subprocess.check_output',
                           side_effect=['', self.manifest, '{}']):
@@ -336,9 +484,9 @@ class ReleaseCandidateTests(unittest.TestCase):
             def command(*args, **kwargs):
                 blocked_changes('command')
                 return next(outputs)
-            def native(stream):
+            def native(stream, expected_abis):
                 self.assertFalse(isinstance(stream, (str, Path)))
-                result = inspect_bundle_libraries(stream)
+                result = inspect_bundle_libraries(stream, expected_abis)
                 blocked_changes('after-native')
                 return result
 

@@ -57,7 +57,7 @@ public class CanvasSelectCharacter : MonoBehaviour
         var safeArea = transform.Find("PanelSafeArea");
         if (safeArea == null || safeArea.Find("AccountPrivacyEntry") != null) return;
         var font = GetComponentInChildren<TMP_Text>(true)?.font;
-        var button = AD.DeletionView.Button("AccountPrivacyEntry", safeArea, "Account & privacy", font);
+        var button = AD.DeletionView.Button("AccountPrivacyEntry", safeArea, "계정 및 개인정보", font);
         var rect = (RectTransform)button.transform;
         rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0);
         rect.anchoredPosition = new Vector2(0, 320);

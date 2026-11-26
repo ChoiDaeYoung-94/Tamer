@@ -1,0 +1,214 @@
+using System;
+using System.Linq;
+using System.Reflection;
+using NUnit.Framework;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class RevivalFaceliftInteractionTests
+{
+    private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    private static Type Find(string name) => AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(name)).First(t => t != null);
+
+    [TestCase("GoGameScene")]
+    [TestCase("GoogleAdMob")]
+    public void InvisibleMovementBoundaryDoesNotInterceptTheUiPrompt(string tag)
+    {
+        var root = new GameObject("Revival world prompt fixture");
+        root.transform.position = new Vector3(15000, 15000, 15000);
+        try {
+            int uiLayer = LayerMask.NameToLayer("UI"); Assert.That(uiLayer, Is.GreaterThanOrEqualTo(0));
+            var wall = new GameObject("Walls"); wall.transform.SetParent(root.transform, false);
+            wall.transform.localPosition = new Vector3(0, 0, 2); var boundary = wall.AddComponent<BoxCollider>();
+            var sign = new GameObject("FaceliftClickTarget"); sign.transform.SetParent(root.transform, false);
+            sign.transform.localPosition = new Vector3(0, 0, 4); sign.tag = tag; sign.layer = uiLayer;
+            var target = sign.AddComponent<BoxCollider>(); target.isTrigger = true;
+            Physics.SyncTransforms(); var ray = new Ray(root.transform.position, Vector3.forward);
+            Assert.That(Physics.Raycast(ray, out var original, 10), Is.True);
+            Assert.That(original.collider, Is.SameAs(boundary), "Reproduce the real device's invisible boundary hit.");
+            Assert.That(Select(ray), Is.SameAs(target));
+        } finally { UnityEngine.Object.DestroyImmediate(root); Physics.SyncTransforms(); }
+    }
+
+    [Test]
+    public void OrdinaryWorldCollidersDoNotBecomeUiActions()
+    {
+        var root = new GameObject("Revival non-UI hit fixture");
+        root.transform.position = new Vector3(15000, 15000, 15000); root.tag = "GoGameScene";
+        try {
+            root.AddComponent<BoxCollider>().isTrigger = true; Physics.SyncTransforms();
+            Assert.That(Select(new Ray(root.transform.position - Vector3.forward * 2, Vector3.forward)), Is.Null);
+        } finally { UnityEngine.Object.DestroyImmediate(root); Physics.SyncTransforms(); }
+    }
+
+    private static Collider Select(Ray ray) => (Collider)Find("Player")
+        .GetMethod("WorldPromptTarget", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { ray });
+
+    [Test]
+    public void PausedUiDoesNotActivateAWorldPromptBehindIt()
+    {
+        var root = new GameObject("Revival paused prompt fixture");
+        root.transform.position = new Vector3(15000, 15000, 15000); root.layer = LayerMask.NameToLayer("UI"); root.tag = "GoGameScene";
+        float originalTime = Time.timeScale;
+        try {
+            var collider = root.AddComponent<BoxCollider>(); collider.isTrigger = true; Physics.SyncTransforms();
+            var ray = new Ray(root.transform.position - Vector3.forward * 2, Vector3.forward);
+            Time.timeScale = 1; Assert.That(Select(ray), Is.SameAs(collider));
+            Time.timeScale = 0; Assert.That(Select(ray), Is.Null);
+        } finally { Time.timeScale = originalTime; UnityEngine.Object.DestroyImmediate(root); Physics.SyncTransforms(); }
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void DismissingResultReturnsCompletedPurchasesToListAndKeepsFailureDetails(bool completed)
+    {
+        WithPopups((shop, popup, info, result, newer) => {
+            var label = new GameObject("Result label", typeof(RectTransform));
+            label.transform.SetParent(result.transform, false);
+            var text = label.AddComponent(Find("TMPro.TextMeshProUGUI"));
+            shop.GetType().GetField("_afterBuyText", Members).SetValue(shop, text);
+            shop.GetType().GetMethod("ShowPurchaseResult", Members).Invoke(shop, new object[] { "Observed result", completed });
+            Assert.That((bool)shop.GetType().GetMethod("DismissPurchaseResult", Members).Invoke(shop, null), Is.True);
+            Assert.That(result.activeSelf, Is.False);
+            Assert.That(info.activeSelf, Is.EqualTo(!completed));
+            Assert.That(newer.activeSelf, Is.True, "Closing these exact panels must preserve a newer popup.");
+        });
+    }
+
+    [Test]
+    public void PendingPurchaseRequiresTheExplicitButtonButCompletedResultCanUseTheBackdrop()
+    {
+        var scene = EditorSceneManager.NewPreviewScene();
+        var owner = new GameObject("Inactive shop presentation owner");
+        owner.SetActive(false);
+        SceneManager.MoveGameObjectToScene(owner, scene);
+        var panel = new GameObject("Purchase result backdrop", typeof(RectTransform));
+        SceneManager.MoveGameObjectToScene(panel, scene);
+        try
+        {
+            var shop = owner.AddComponent(Find("ShopMan"));
+            var buttonType = Find("UnityEngine.UI.Button");
+            var backdrop = panel.AddComponent(buttonType);
+            var confirmObject = new GameObject("Explicit confirm", typeof(RectTransform));
+            confirmObject.transform.SetParent(panel.transform, false);
+            var confirm = confirmObject.AddComponent(buttonType);
+            var labelObject = new GameObject("Result text", typeof(RectTransform));
+            labelObject.transform.SetParent(panel.transform, false);
+            var label = labelObject.AddComponent(Find("TMPro.TextMeshProUGUI"));
+            int backdropClicks = 0, confirmClicks = 0;
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(backdrop))
+                .AddListener(() => backdropClicks++);
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(confirm))
+                .AddListener(() => confirmClicks++);
+            var pointer = Activator.CreateInstance(Find("UnityEngine.EventSystems.PointerEventData"), new object[] { null });
+            var click = buttonType.GetMethod("OnPointerClick");
+            shop.GetType().GetField("_afterBuyPanel", Members).SetValue(shop, panel);
+            shop.GetType().GetField("_afterBuyText", Members).SetValue(shop, label);
+            shop.GetType().GetField("_purchasePending", Members).SetValue(shop, true);
+            shop.GetType().GetMethod("ShowPurchaseResult", Members).Invoke(shop, new object[] { "Pending confirmation", false });
+            click.Invoke(backdrop, new[] { pointer });
+            click.Invoke(confirm, new[] { pointer });
+            Assert.That(backdropClicks, Is.Zero, "Touching the background must never confirm a pending purchase.");
+            Assert.That(confirmClicks, Is.EqualTo(1), "The explicit confirmation button must remain usable.");
+
+            shop.GetType().GetField("_purchasePending", Members).SetValue(shop, false);
+            shop.GetType().GetMethod("ShowPurchaseResult", Members).Invoke(shop, new object[] { "Completed result", true });
+            click.Invoke(backdrop, new[] { pointer });
+            Assert.That(backdropClicks, Is.EqualTo(1), "A completed result must retain backdrop dismissal.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(owner);
+            UnityEngine.Object.DestroyImmediate(panel);
+            EditorSceneManager.ClosePreviewScene(scene);
+        }
+    }
+
+    [Test]
+    public void UnavailableHealingBlocksTheActionButKeepsBackAndRestoresAvailableInput()
+    {
+        var scene = EditorSceneManager.NewPreviewScene();
+        var root = new GameObject("Healing UI fixture");
+        SceneManager.MoveGameObjectToScene(root, scene);
+        try
+        {
+            var owner = new GameObject("Inactive presentation owner"); owner.transform.SetParent(root.transform, false); owner.SetActive(false);
+            var popup = owner.AddComponent(Find("AD.PopupManager"));
+            var panel = new GameObject("Healing panel", typeof(RectTransform)); panel.transform.SetParent(root.transform, false);
+            var textType = Find("TMPro.TextMeshProUGUI");
+            var bodyObject = new GameObject("TMP_content", typeof(RectTransform)); bodyObject.transform.SetParent(panel.transform, false);
+            var body = bodyObject.AddComponent(textType);
+            var font = UnityEditor.AssetDatabase.LoadAssetAtPath("Assets/Fonts/DungGeunMo SDF.asset", Find("TMPro.TMP_FontAsset"));
+            Assert.That(font, Is.Not.Null); textType.GetProperty("font").SetValue(body, font);
+            textType.GetProperty("fontSharedMaterial").SetValue(body, UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Branding/DungGeunMo-Facelift.mat"));
+            var buttonType = Find("UnityEngine.UI.Button");
+            Component Button(string name)
+            {
+                var go = new GameObject(name, typeof(RectTransform)); go.transform.SetParent(panel.transform, false);
+                var button = go.AddComponent(buttonType);
+                var label = new GameObject("Caption", typeof(RectTransform)); label.transform.SetParent(go.transform, false); label.AddComponent(textType);
+                return button;
+            }
+            var heal = Button("Btn_ok"); var back = Button("Btn_cancel"); int heals = 0, backs = 0;
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(heal)).AddListener(() => heals++);
+            ((UnityEngine.Events.UnityEvent)buttonType.GetProperty("onClick").GetValue(back)).AddListener(() => backs++);
+            popup.GetType().GetField("_popupHeal", Members).SetValue(popup, panel);
+            var render = popup.GetType().GetMethod("SetHealMessage", Members);
+            var pointer = Activator.CreateInstance(Find("UnityEngine.EventSystems.PointerEventData"), new object[] { null });
+            var click = buttonType.GetMethod("OnPointerClick");
+            render.Invoke(popup, new object[] { "Unavailable", false });
+            click.Invoke(heal, new[] { pointer }); click.Invoke(back, new[] { pointer });
+            Assert.That(heals, Is.Zero, "An unavailable action must not accept a pointer click.");
+            Assert.That(backs, Is.EqualTo(1), "Returning to gameplay must remain available.");
+            render.Invoke(popup, new object[] { "Available", true });
+            click.Invoke(heal, new[] { pointer });
+            Assert.That(heals, Is.EqualTo(1), "A later available or No Ads prompt must restore the same action.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(root); EditorSceneManager.ClosePreviewScene(scene); }
+    }
+
+    [Test]
+    public void BlockingOwnerPreservesTheCompletedResultForRetry()
+    {
+        WithPopups((shop, popup, info, result, newer) => {
+            shop.GetType().GetField("_closeItemInfoOnResult", Members).SetValue(shop, true);
+            popup.GetType().GetMethod("SetException").Invoke(popup, null);
+            Assert.That((bool)shop.GetType().GetMethod("DismissPurchaseResult", Members).Invoke(shop, null), Is.False);
+            Assert.That(result.activeSelf && info.activeSelf && newer.activeSelf, Is.True);
+            Assert.That(shop.GetType().GetField("_closeItemInfoOnResult", Members).GetValue(shop), Is.True);
+            popup.GetType().GetMethod("ReleaseException").Invoke(popup, null);
+            Assert.That((bool)shop.GetType().GetMethod("DismissPurchaseResult", Members).Invoke(shop, null), Is.True);
+            Assert.That(result.activeSelf || info.activeSelf, Is.False);
+        });
+    }
+
+    private static void WithPopups(Action<Component, Component, GameObject, GameObject, GameObject> check)
+    {
+        var managersType = Find("AD.Managers");
+        var singleton = managersType.GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
+        var previous = singleton.GetValue(null);
+        var scene = EditorSceneManager.NewPreviewScene();
+        var root = new GameObject("Revival result UI fixture"); SceneManager.MoveGameObjectToScene(root, scene);
+        try {
+            var popup = root.AddComponent(Find("AD.PopupManager"));
+            var bridge = new GameObject("Inactive Managers"); bridge.transform.SetParent(root.transform, false); bridge.SetActive(false);
+            var managers = bridge.AddComponent(managersType); managersType.GetField("_popupM", Members).SetValue(managers, popup);
+            singleton.SetValue(null, managers); popup.GetType().GetMethod("ReleaseException").Invoke(popup, null);
+            var shopOwner = new GameObject("Inactive shop"); shopOwner.transform.SetParent(root.transform, false); shopOwner.SetActive(false);
+            var shop = shopOwner.AddComponent(Find("ShopMan"));
+            GameObject Panel(string name) {
+                var panel = new GameObject(name); panel.transform.SetParent(root.transform, false);
+                popup.GetType().GetMethod("EnablePop").Invoke(popup, new object[] { panel }); return panel;
+            }
+            var info = Panel("Info"); var result = Panel("Result"); var newer = Panel("Newer popup");
+            shop.GetType().GetField("_itemInfoPanel", Members).SetValue(shop, info);
+            shop.GetType().GetField("_afterBuyPanel", Members).SetValue(shop, result);
+            check(shop, popup, info, result, newer);
+        } finally {
+            UnityEngine.Object.DestroyImmediate(root);
+            EditorSceneManager.ClosePreviewScene(scene);
+            singleton.SetValue(null, previous);
+        }
+    }
+}

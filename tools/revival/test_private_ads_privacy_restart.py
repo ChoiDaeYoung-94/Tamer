@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
-EDITOR = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data')
+EDITOR = Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data')
 
 
 def run(output, context_only=False, native_context_only=False, required_owner_reopen_only=False):

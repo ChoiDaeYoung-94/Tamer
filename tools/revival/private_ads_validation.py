@@ -21,7 +21,7 @@ HOOK = 'Assets/Scripts/Editor/RevivalPrivateAdsValidation'
 FIXTURE = 'Assets/RevivalPrivateAdsSynthetic'
 CLI = ROOT / 'tools/.local/unity-cli/1.0.0-beta.8/unity.exe'
 CLI_SHA = 'f2b2571cd5e9d9975be3cab0b7e3931a9f6193c42c2a491f7c30d72861349993'
-JDK = Path('C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin')
+JDK = Path('C:/Program Files/Unity/Hub/Editor/6000.3.27f2/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin')
 BLOCKED = {'TAMER_KEYSTORE_PASS', 'TAMER_KEYALIAS_PASS', 'TAMER_UPLOAD_KEYSTORE_PATH',
            'TAMER_UPLOAD_KEY_ALIAS', 'TAMER_UPLOAD_CERT_SHA256', 'TAMER_IAP_TEST_KEY_PASSWORD'}
 MODES = {
@@ -85,7 +85,7 @@ def require_clean(head):
         raise ValueError('Clean expected HEAD required')
     if sha(CLI.read_bytes()) != CLI_SHA:
         raise ValueError('CLI changed')
-    if '6000.3.25f1 (e1dba0a9aba4)' not in (ROOT / 'ProjectSettings/ProjectVersion.txt').read_text():
+    if '6000.3.27f2 (22188f149405)' not in (ROOT / 'ProjectSettings/ProjectVersion.txt').read_text():
         raise ValueError('Unity pin mismatch')
 
 def prepare(mode, head):
@@ -124,7 +124,7 @@ def prepare(mode, head):
     entry_file = probe if mode == 'registration' else ROOT / 'tools/revival/private_ads_build/PrivateAdsSyntheticInvoke.cs'
     sources[entry_file.relative_to(ROOT).as_posix()] = sha(entry_file.read_bytes())
     create(run / 'Entry.cs', entry_file.read_bytes())
-    command = [str(CLI), 'run', str(ROOT), '--editor-version', '6000.3.25f1', '--command', 'run_script',
+    command = [str(CLI), 'run', str(ROOT), '--editor-version', '6000.3.27f2', '--command', 'run_script',
                '--timeout', '1800' if mode == 'synthetic' else '900', '--non-interactive', '--format', 'json', '--',
                '--file', str(run / 'Entry.cs'), '--mode', 'ephemeral', '--timeout_ms', '1500000' if mode == 'synthetic' else '30000', '--entry',
                'PrivateAdsRegistrationProbe.Inspect' if mode == 'registration' else 'PrivateAdsSyntheticInvoke.Run']
@@ -152,7 +152,7 @@ def run_once(run):
         if safe_path(ROOT, relative).exists() or sha((run / item['backup']).read_bytes()) != item['sha256']:
             raise ValueError('Stage collision or bytes changed')
     if manifest['mode'] not in MODES: raise ValueError('Unknown mode')
-    expected_command = [str(CLI), 'run', str(ROOT), '--editor-version', '6000.3.25f1', '--command', 'run_script',
+    expected_command = [str(CLI), 'run', str(ROOT), '--editor-version', '6000.3.27f2', '--command', 'run_script',
         '--timeout', '1800' if manifest['mode'] == 'synthetic' else '900', '--non-interactive', '--format', 'json', '--',
         '--file', str(run / 'Entry.cs'), '--mode', 'ephemeral', '--timeout_ms', '1500000' if manifest['mode'] == 'synthetic' else '30000', '--entry',
         'PrivateAdsRegistrationProbe.Inspect' if manifest['mode'] == 'registration' else 'PrivateAdsSyntheticInvoke.Run']

@@ -101,6 +101,60 @@ public class RevivalGameplayIsolationTests
         }
     }
 
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay", true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029", true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029", true)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintro1111release", true)]
+    [TestCase("com.AeDeong.MonsterTamer", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay.extra", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029.extra", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029.extra", false)]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintro1111release.extra", false)]
+    [TestCase(null, false)]
+    public void Revival_OfflineGameplayBackupRulesRequireExactFixtureIdentity(string identity, bool expected)
+    {
+        var rules = Runtime("RevivalGameplayBuild+PlayerRestoreBackupRules");
+        Assert.That(rules.GetMethod("SupportsIdentity").Invoke(null, new object[] { identity }), Is.EqualTo(expected));
+    }
+
+    [TestCase("com.AeDeong.MonsterTamer.revival.gameplay")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftcharacter1029")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintrologin1029")]
+    [TestCase("com.AeDeong.MonsterTamer.revival.faceliftintro1111release")]
+    public void Revival_OfflineGameplayGradleCallbackWritesCloudAndDeviceTransferExclusions(string identity)
+    {
+        var target = UnityEditor.Build.NamedBuildTarget.Android;
+        string originalId = UnityEditor.PlayerSettings.GetApplicationIdentifier(target);
+        string temporary = Path.Combine(Path.GetTempPath(), "TamerOfflineBackup-" + Guid.NewGuid().ToString("N"));
+        Assert.That(Directory.Exists(temporary), Is.False);
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            UnityEditor.PlayerSettings.SetApplicationIdentifier(target, identity);
+            var type = Runtime("RevivalGameplayBuild+PlayerRestoreBackupRules");
+            type.GetMethod("OnPostGenerateGradleAndroidProject").Invoke(Activator.CreateInstance(type), new object[] { temporary });
+            string file = Path.Combine(temporary, "src/main/res/xml/tamer_playerrestore_rules.xml");
+            var rules = XDocument.Load(file);
+            foreach (string mode in new[] { "cloud-backup", "device-transfer" })
+            {
+                var excluded = rules.Root.Element(mode).Elements("exclude").ToArray();
+                Assert.That(excluded.Length, Is.EqualTo(9));
+                Assert.That(excluded.All(e => (string)e.Attribute("path") == "."), Is.True);
+                Assert.That(excluded.Any(e => (string)e.Attribute("domain") == "sharedpref"), Is.True);
+            }
+        }
+        finally
+        {
+            UnityEditor.PlayerSettings.SetApplicationIdentifier(target, originalId);
+            string full = Path.GetFullPath(temporary);
+            string parent = Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (!string.Equals(Path.GetDirectoryName(full), parent, StringComparison.OrdinalIgnoreCase) ||
+                !Path.GetFileName(full).StartsWith("TamerOfflineBackup-", StringComparison.Ordinal))
+                throw new InvalidOperationException("Only this test's direct temporary directory can be removed.");
+            if (Directory.Exists(full)) Directory.Delete(full, true);
+        }
+    }
+
     [TestCase(1)]
     [TestCase(2)]
     public void Revival_RestoredPlayerValuesReachHudAndPopup(int step)
@@ -153,11 +207,15 @@ public class RevivalGameplayIsolationTests
             canvas.GetType().GetMethod("DataSettings", fields).Invoke(canvas, null);
             string Text(string name) => (string)labels[name].GetType().GetProperty("text").GetValue(labels[name]);
             Assert.That(Text("_playerNickNameText"), Is.EqualTo(values["NickName"]));
-            Assert.That(Text("_popupNickNameText"), Is.EqualTo("NickName - " + values["NickName"]));
-            Assert.That(Text("_goldText"), Is.EqualTo("Gold - " + values["Gold"]));
-            Assert.That(Text("_popupGoldText"), Is.EqualTo("Gold - " + values["Gold"]));
-            foreach (string stat in new[] { "Power", "AttackSpeed", "MoveSpeed" })
-                Assert.That(Text("_popup" + stat + "Text"), Is.EqualTo(stat + " - " + values[stat]));
+            Assert.That(Text("_popupNickNameText"), Is.EqualTo("닉네임 · " + values["NickName"]));
+            Assert.That(Text("_goldText"), Is.EqualTo("골드 · " + values["Gold"]));
+            Assert.That(Text("_popupGoldText"), Is.EqualTo("골드 · " + values["Gold"]));
+            var captions = new System.Collections.Generic.Dictionary<string, string>
+            {
+                { "Power", "공격력" }, { "AttackSpeed", "공격 속도" }, { "MoveSpeed", "이동 속도" }
+            };
+            foreach (var stat in captions)
+                Assert.That(Text("_popup" + stat.Key + "Text"), Is.EqualTo(stat.Value + " · " + values[stat.Key]));
             Assert.That(Text("_playerHpText"), Is.EqualTo("100 / 100"));
         }
         finally

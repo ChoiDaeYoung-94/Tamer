@@ -223,8 +223,8 @@ public class RevivalLoginContinuityTests
             var support = (string)RuntimeType("CloudScriptDeletionClient")
                 .GetField("SupportEmail").GetRawConstantValue();
             Assert.That(message, Does.Contain(support));
-            Assert.That(message, Does.Contain("Do not retry or create another account"));
-            Assert.That(textType.GetProperty("text").GetValue(captionText), Is.EqualTo("Contact support"));
+            Assert.That(message, Does.Contain("다시 시도하거나 새 계정을 만들지 마세요"));
+            Assert.That(textType.GetProperty("text").GetValue(captionText), Is.EqualTo("지원팀 문의"));
             Assert.DoesNotThrow(() => Call(login, "RetryConnection"));
         }
         finally { UnityEngine.Object.DestroyImmediate(root); }

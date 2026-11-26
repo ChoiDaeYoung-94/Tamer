@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.quadd.intro": "https://github.com/ChoiDaeYoung-94/ChoiDaeYoung-94.git?path=/unity/com.quadd.intro#55bf9e4aa48c2f95942f3c2c995f1d55414e97c0",
     "com.unity.2d.spriteshape": "13.0.0",
     "com.unity.ai.navigation": "2.0.14",
     "com.unity.burst": "1.8.30",

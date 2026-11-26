@@ -30,7 +30,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     {
         public readonly string ConfigPath, ConfigHash, Output, Receipt, Defines, PlayerCompilationPlan, RunId, SourceHead, ResourceHash;
         public readonly string AppId, RewardedUnit;
-        public readonly string[] Scenes;
+        public readonly string AbiProfile;
+        public readonly string[] Scenes, ExpectedAbis;
+        public readonly AndroidArchitecture TargetArchitectures;
         public Snapshot(string root)
         {
             RunId = Required("TAMER_PRIVATE_ADS_RUN_ID");
@@ -42,6 +44,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             Output = Required("TAMER_PRIVATE_ADS_OUTPUT");
             Receipt = Required("TAMER_PRIVATE_ADS_RECEIPT");
             ResourceHash = Required("TAMER_PRIVATE_ADS_RESOURCE_SHA256");
+            string profile; string[] abis;
+            TargetArchitectures = ReadArchitectures(out profile, out abis);
+            AbiProfile = profile; ExpectedAbis = abis;
             var raw = File.ReadAllBytes(ConfigPath);
             if (Hash(raw) != ConfigHash) throw Rejected();
             if (approvedProduction || approvedPrivacy)
@@ -88,14 +93,17 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
 
         public void Apply()
         {
+            string profile; string[] abis;
+            var selectedArchitectures = ReadArchitectures(out profile, out abis);
             var existingKey = Required("TAMER_PRIVATE_ADS_KEYSTORE");
-            if (!Path.IsPathRooted(existingKey) || Hash(File.ReadAllBytes(existingKey)) !=
-                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256")) throw Rejected();
+            if (!MatchesSigningKeystore(Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
+                existingKey,existingKey,Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256"),
+                SelectedSigningProfile(),Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_KEYSTORE_ROOT"))) throw Rejected();
             EditorUserBuildSettings.buildAppBundle = !approvedPrivacy;
             EditorUserBuildSettings.development = false;
             EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
-            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.targetArchitectures = selectedArchitectures;
             PlayerSettings.Android.useCustomKeystore = true;
             PlayerSettings.Android.keystoreName = existingKey;
             PlayerSettings.Android.keyaliasName = Required("TAMER_PRIVATE_ADS_KEY_ALIAS");
@@ -177,6 +185,11 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             if (!string.Equals(Path.GetFullPath(editor), Path.GetFullPath(Required("TAMER_PRIVATE_ADS_EDITOR")),
                     StringComparison.OrdinalIgnoreCase) || Hash(File.ReadAllBytes(editor)) !=
                     Required("TAMER_PRIVATE_ADS_EDITOR_SHA256")) throw Rejected();
+            // External Tools preferences are shared across projects. Read the actual
+            // selection and reject a different copy, even if its java.exe is identical.
+            // Never repair or temporarily change another project's JDK preference here.
+            failureStage = "D14";
+            CheckAndroidJdk();
             failureStage = "D04";
             using (var settings = new SettingsScope())
             {
@@ -230,6 +243,8 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
             receipt.buildSceneValueMatched = true; receipt.compiledEditorGatesDisabled = !approved && !privacy;
             receipt.binaryVerified = false; receipt.distributable = false;
             receipt.mode = Mode; receipt.approvedBuildContractMatched = approved;
+            receipt.abiProfileVersion = 1; receipt.abiProfile = snapshot.AbiProfile;
+            receipt.expectedAbis = snapshot.ExpectedAbis;
             failureStage = "D11";
             using (var file = new FileStream(snapshot.Receipt, FileMode.CreateNew, FileAccess.Write))
             using (var writer = new StreamWriter(file)) writer.Write(JsonUtility.ToJson(receipt, true));
@@ -239,6 +254,29 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         catch { throw new BuildFailedException("Private preparation rejected (" + failureStage + "). Output is not distributable."); }
         // Emit only fixed stage/plan codes, never the original exception or private values.
         finally { snapshot = null; approvedProduction = approvedPrivacy = false; }
+    }
+
+    private static void CheckAndroidJdk()
+    {
+        if (!MatchesApprovedJdk(Required("TAMER_PRIVATE_ADS_EDITOR"),
+                UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath,
+                Required("TAMER_PRIVATE_ADS_JAVA_SHA256"))) throw Rejected();
+    }
+    private static bool MatchesApprovedJdk(string editor, string selectedRoot, string expectedHash)
+    {
+        try
+        {
+            if (!IsFullyQualifiedKeystorePath(editor) || !IsFullyQualifiedKeystorePath(selectedRoot) ||
+                string.IsNullOrWhiteSpace(expectedHash)) return false;
+            var expected = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(editor),
+                "Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/java.exe"));
+            var selected = Path.GetFullPath(Path.Combine(selectedRoot, "bin/java.exe"));
+            var comparison = Path.DirectorySeparatorChar == '\\'
+                ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return string.Equals(expected, selected, comparison) &&
+                Hash(File.ReadAllBytes(expected)) == expectedHash;
+        }
+        catch { return false; }
     }
 
     private static void ValidatePlayFabSettings(string expectedTitle, string expectedSettingsHash)
@@ -313,12 +351,14 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     }
     private static void CheckSnapshot()
     {
+        CheckAndroidJdk();
         if (snapshot == null || Hash(File.ReadAllBytes(snapshot.ConfigPath)) != snapshot.ConfigHash ||
             Hash(File.ReadAllBytes(ResourcePath)) != snapshot.ResourceHash ||
             EditorUserBuildSettings.buildAppBundle == approvedPrivacy || EditorUserBuildSettings.development ||
             EditorUserBuildSettings.exportAsGoogleAndroidProject ||
             PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) != ScriptingImplementation.IL2CPP ||
-            PlayerSettings.Android.targetArchitectures != AndroidArchitecture.ARM64 ||
+            PlayerSettings.Android.targetArchitectures != snapshot.TargetArchitectures ||
+            !AbiEnvironmentMatches() ||
             !PlayerSettings.Android.useCustomKeystore ||
             (AgeTreatmentPolicy.PrivacySdkEnvironmentReviewed != approvedPrivacy) ||
             (!approvedProduction && !approvedPrivacy && (AdRequestPolicy.ProductionAdsEnabled || AgeTreatmentPolicy.RegionalConsentReviewed ||
@@ -345,10 +385,54 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
         var resource = AssetDatabase.LoadAssetAtPath<TextAsset>(ResourcePath);
         if (resource == null || Hash(resource.bytes) != snapshot.ResourceHash ||
             PlayerSettings.Android.keyaliasName != Required("TAMER_PRIVATE_ADS_KEY_ALIAS") ||
-            !MatchesApprovedKeystore(Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
+            !MatchesSigningKeystore(Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
                 PlayerSettings.Android.keystoreName, Required("TAMER_PRIVATE_ADS_KEYSTORE"),
-                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256"))) throw Rejected();
+                Required("TAMER_PRIVATE_ADS_KEYSTORE_SHA256"),SelectedSigningProfile(),
+                Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_KEYSTORE_ROOT"))) throw Rejected();
     }
+      private static string SelectedSigningProfile()
+      { return Environment.GetEnvironmentVariable("TAMER_PRIVATE_ADS_SIGNING_PROFILE") ?? "legacy_jks"; }
+
+      private static bool CanonicalLocalKeyPath(string path)
+      {
+          if (Path.DirectorySeparatorChar!='\\' || !IsFullyQualifiedKeystorePath(path)) return false;
+          var value=path.Replace('\\','/');
+          if (value.Length<4 || value[1]!=':' || value[2]!='/' || value.Substring(3).IndexOf(':')>=0) return false;
+          foreach (var part in value.Substring(3).Split('/'))
+          {
+              if (part.Length==0 || part=="." || part==".." || part.EndsWith(".") || part.EndsWith(" ") ||
+                  System.Text.RegularExpressions.Regex.IsMatch(part,@"\A(?i:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?\z")) return false;
+              foreach (var c in part) if (char.IsControl(c) || "<>\"|?*".IndexOf(c)>=0) return false;
+          }
+          return true;
+      }
+
+      private static bool MatchesSigningKeystore(string projectRoot,string reported,string expected,
+          string expectedHash,string profile,string allowedRoot)
+      {
+          if (profile=="legacy_jks") return MatchesApprovedKeystore(projectRoot,reported,expected,expectedHash);
+          if (profile!="external_pkcs12_upload") return false;
+          try
+          {
+              if (!CanonicalLocalKeyPath(projectRoot) || !CanonicalLocalKeyPath(expected) ||
+                  !CanonicalLocalKeyPath(allowedRoot) || string.IsNullOrEmpty(reported) ||
+                  !System.Text.RegularExpressions.Regex.IsMatch(expectedHash??"",@"\A[0-9a-f]{64}\z")) return false;
+              var comparison=StringComparison.OrdinalIgnoreCase;
+              var root=Path.GetFullPath(projectRoot).TrimEnd('\\','/');
+              var allowed=Path.GetFullPath(allowedRoot).TrimEnd('\\','/');
+              var original=Path.GetFullPath(expected);
+              if (allowed.Substring(3).Replace('\\','/').Split('/').Length<2 ||
+                  !string.Equals(Path.GetDirectoryName(original),allowed,comparison) ||
+                  allowed.StartsWith(root+Path.DirectorySeparatorChar,comparison) || string.Equals(allowed,root,comparison) ||
+                  root.StartsWith(allowed+Path.DirectorySeparatorChar,comparison) ||
+                  !(string.Equals(Path.GetExtension(original),".p12",comparison)||string.Equals(Path.GetExtension(original),".pfx",comparison))) return false;
+              bool rooted=Path.IsPathRooted(reported);
+              if (rooted && !IsFullyQualifiedKeystorePath(reported)) return false;
+              var selected=Path.GetFullPath(rooted?reported:Path.Combine(root,reported));
+              return string.Equals(selected,original,comparison) && Hash(File.ReadAllBytes(original))==expectedHash;
+          }
+          catch {return false;}
+      }
     // Unity returns a project-relative display path even after an absolute setter.
     // Only the reviewed original project key may match; never infer a dedicated location.
     private static bool MatchesApprovedKeystore(string projectRoot, string reported,
@@ -439,13 +523,15 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     }
     private static PlayerPlanRejectedException PlanRejected(string code)
     { return new PlayerPlanRejectedException(code); }
-    // Narrow metadata exception observed by the approved SHA-256 probe on this version.
+    // Narrow exception for metadata observed in the Player API on these Editor versions.
     // Configured Android symbols still use ForbiddenDefine without this exception.
     // This recognizes a name, not its provenance or final binary safety.
     private static bool ForbiddenPlayerDefine(string value)
     {
         if (string.IsNullOrEmpty(value)) return true;
-        if (string.Equals(Application.unityVersion, "6000.3.25f1", StringComparison.Ordinal) &&
+        var unityVersion = Application.unityVersion;
+        if ((string.Equals(unityVersion, "6000.3.25f1", StringComparison.Ordinal) ||
+             string.Equals(unityVersion, "6000.3.27f2", StringComparison.Ordinal)) &&
             string.Equals(value, "ENABLE_MARSHALLING_TESTS", StringComparison.Ordinal)) return false;
         return ForbiddenDefine(value);
     }
@@ -453,6 +539,25 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     { return value.StartsWith("TAMER_", StringComparison.Ordinal) ||
         value.IndexOf("TEST", StringComparison.OrdinalIgnoreCase) >= 0 ||
         value.IndexOf("HARNESS", StringComparison.OrdinalIgnoreCase) >= 0 || value == "DEVELOPMENT_BUILD"; }
+    private static AndroidArchitecture ReadArchitectures(out string profile, out string[] abis)
+    {
+        if (Required("TAMER_PRIVATE_ADS_ABI_PROFILE_VERSION") != "1") throw Rejected();
+        profile = Required("TAMER_PRIVATE_ADS_ABI_PROFILE");
+        AndroidArchitecture architectures;
+        if (profile == "arm64")
+        { architectures = AndroidArchitecture.ARM64; abis = new[] { "arm64-v8a" }; }
+        else if (profile == "internal_dual64" && !approvedPrivacy)
+        { architectures = AndroidArchitecture.ARM64 | AndroidArchitecture.X86_64; abis = new[] { "arm64-v8a", "x86_64" }; }
+        else throw Rejected();
+        if (Required("TAMER_PRIVATE_ADS_EXPECTED_ABIS") != string.Join(",", abis)) throw Rejected();
+        return architectures;
+    }
+    private static bool AbiEnvironmentMatches()
+    {
+        string profile; string[] abis;
+        return ReadArchitectures(out profile, out abis) == snapshot.TargetArchitectures &&
+            profile == snapshot.AbiProfile && abis.SequenceEqual(snapshot.ExpectedAbis);
+    }
     private static string Required(string name)
     { var value = Environment.GetEnvironmentVariable(name); if (string.IsNullOrEmpty(value)) throw Rejected(); return value; }
     private static string Hash(byte[] bytes)
@@ -462,8 +567,9 @@ public sealed class PrivateProductionAdsBuild : IPreprocessBuildWithReport,
     [Serializable] private class Receipt
     {
         public string runId, sourceHead, configSha256, artifactSha256, unityVersion, configuredAndroidDefines,
-            prospectivePlayerDefinePlanSha256, resourceSha256, mode;
-        public int schema, injectedManagers, loginScenes;
+            prospectivePlayerDefinePlanSha256, resourceSha256, mode, abiProfile;
+        public string[] expectedAbis;
+        public int schema, injectedManagers, loginScenes, abiProfileVersion;
         public bool preprocessed, postprocessed, productionContractVerified, buildSceneValueMatched, compiledEditorGatesDisabled,
             approvedBuildContractMatched, binaryVerified, distributable;
     }

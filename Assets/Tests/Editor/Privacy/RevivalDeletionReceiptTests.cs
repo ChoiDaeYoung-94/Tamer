@@ -155,8 +155,13 @@ public class RevivalDeletionReceiptTests
             Assert.That(Field(Data,"_ctsLocalDataUpdate"),Is.Null);
             Assert.That(Field(Login,"_nativeGoogleActivated"),Is.EqualTo(false));
             Invoke(Login,"RetryConnection");Invoke(Login,"StartLogin");
-            Assert.That(((GameObject)Field(Login,"_loading")).activeSelf,Is.True);
+            Assert.That(((GameObject)Field(Login,"_loading")).activeSelf,Is.False);
             Assert.That(((GameObject)Field(Login,"_retry")).activeSelf,Is.False);
+            var status = (GameObject)Field(Login,"_receiptOnlyPanel");
+            Assert.That(status,Is.Not.Null);
+            Assert.That(status.activeSelf,Is.True);
+            Assert.That(status.GetComponentsInChildren(Runtime("UnityEngine.UI.Button"),true),Is.Empty,
+                "Receipt-only recovery must show information without authentication or account-creation actions.");
             Assert.That(Field(Login,"_loginCaptured"),Is.EqualTo(false));
             Assert.That(Invoke(Data,"TryUpdateLocalData","Gold","999"),Is.EqualTo(false));
             Assert.That(Invoke(Data,"TryGrantNoAds"),Is.EqualTo(false));

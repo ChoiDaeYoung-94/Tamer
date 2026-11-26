@@ -1,5 +1,41 @@
 # Quad D 인트로 교체와 남은 기간 추정 — 2026-10-29
 
+## 현재 통합 확인 — 23:09 KST
+
+UI PR493의 source `998a808e2913dbd68fab268b5cef07dbc9c5a3fc`에서 **실제 canonical QuadDIntro→원래 Login→오프라인 Main**을 확인했습니다. 별도 앱 ID `com.AeDeong.MonsterTamer.revival.faceliftintrologin1029`, debug/min25/target36/ARM64·정확한6개 build-only define·네트워크/결제 권한 및 자동 GMA/PGS provider 차단·백업 비활성화입니다. APK는152851254B/SHA-256 `a999192f562472b4243f20d5a82579e5e775a0ea8393d740475ac07495840aa6`이며 운영 후보27과 다릅니다. 관련 격리 계약/씬 순서2/2와 GUID 참조135파일/미해결0을 확인했습니다.
+
+| 같은 APK의 새 프로세스 | 실제 확인 결과 |
+| --- | --- |
+| 정상 재생 | 실제 Quad D 로고 화면·최대 frame99, 완료1/Login1/Main 진입, 이전 영상·음향 정지 |
+| 모의 디코더 오류 | 시험 관찰기가 원래 오류 콜백을 호출한 후 완료1/Login1/Main·정지 |
+| 모의 재생 지연 | 실제 재생 상태를 일시정지하고 시험 기한만 단축해 원래 deadline 이후 완료1/Login1/Main·정지 |
+
+세 경우 모두 blockedLogin1/memoryReads2/serverReady/광고 차단/IAP Unavailable을 확인했습니다. 실제 사용자 인증·연령/동의 입력은0이고, 원래 연령 질문은 선택하지 않은 채 보존했습니다. 알려진 오프라인 개발 PlayerConnection socket 진단3건씩은 별도로 기록했고 미분류 Unity 오류는0입니다. 기존19개 앱에 분리 fixture 한 개를 추가한20개/그중Tamer16개와 기존 저장을 보존했습니다. 세 실행의41PNG·시점별 로그/메타데이터는 비공개입니다. 자연 영상의 실제 로고 화면과 이후 Main의 연령 질문을 별도로 확인했습니다.
+
+관찰 실패2회도 보존합니다. 첫 source d8273dd/APK03073949…는 재생/완료/Login을 확인했지만 완료 콜백과 같은 순간의 오디오 정지를 요구해 실패했습니다. 다음 b326d5d/APK80eeeab8…에서는 목적지 정지가 확인됐으나 Login→Main 사이에서 서비스 준비를 너무 일찍 판정했습니다. 마지막 관찰기는 콜백 상태와 목적지 정지를 나누고 Main/데이터/광고/결제 준비를 기다립니다. 이 재시도에서 공통 인트로의 재생/음향 코드는 바꾸지 않았습니다.
+
+이것은 오프라인 통합 검증입니다. 실제 디코더 준비8초 초과·실제 기기 장애 전체, 운영 PGS/저장·No Ads, 새 정식 후보와 native ARM64/16KB를 통과한 것은 아닙니다. [운영 Play 제공 차단](candidate27-first-launch-20261029.ko.md), [사용자 검토 후 새 후보 순서](final-facelift-candidate-plan-20261029.ko.md)를 유지합니다. PR492/493는 Draft이고 실제 심사 전송·배포·트랙 재개는0입니다.
+
+## 19:25 KST 격리 재생 구현 이력
+
+실제 작업본은 `D:/codex/worktrees/tamer-working/Tamer`, 인트로 코드 커밋은 `codex/quad-d-intro-1029@0c8b0b19c9f7d0015f623ae2c674ee8de1e9d866`입니다. [Draft PR #492](https://github.com/ChoiDaeYoung-94/Tamer/pull/492)는 아직 병합하지 않았습니다. Unity `6000.3.25f1` / revision `e1dba0a9aba4`, Android min25/target36/ARM64, Unity CLI `1.0.0-beta.8`을 사용했습니다.
+
+회사 패키지 `com.quadd.intro@0.1.0`을 아래 고정 Git 원본으로 연결했습니다. 첫 활성 씬을 `QuadDIntro → Login`으로 바꾸고 기존 2초 로고 splash를 해제했습니다. Tamer의 URP에서는 camera-plane 영상이 배경만 출력되는 문제를 재현해, 디코딩된 영상을 overlay Canvas로 표시하는 로컬 어댑터를 추가했습니다. 공통 패키지의 재생·음향·완료 처리 코드는 바꾸지 않았습니다.
+
+격리 Editor 재생에서 화면 로고 출력·103프레임·완료 이벤트 1회·Login 미진입을 확인했습니다. 재생 후 지연 상태 확인에서는 영상과 오디오가 정지했습니다. Editor 관련 검사 10/10, Python release-candidate 검사 19/19, 소스 사전검사 12개, GUID 감사 134개 파일/미해결0을 확인했습니다.
+
+10월29일 19:25 KST, 별도 앱 ID `com.AeDeong.MonsterTamer.revival.quaddintro`의 Android 격리 재생을 확인했습니다. 실제 빌드 소스는 UI 의존성 통합 커밋 `eadab899e886fea8c937adc8f6ba4080fbd244c4`이며 위 인트로 수정이 포함돼 있습니다. APK는 142,085,638 bytes, SHA-256 `51f58706983f00391d8b7e359f48e61583bb2e22c8cc52a0be4c579859c3cba6`입니다. debug 서명·min25/target36/ARM64, Login/게임 씬을 제외한 단일 시험 씬과 인터넷·광고·결제 권한 및 GMA/Play Games 자동 provider 차단을 확인했습니다. 빌드 오류0·원래 파일 복구를 확인하고 Editor를 정상 종료했습니다.
+
+LD플레이어의 `Tamer` 인스턴스에서 실제 로고 PNG·101프레임·음향 샘플 peak 0.1111457·완료 이벤트1회를 확인했습니다. 종료 후 영상/음향은 정지했고 HOME→복귀에서 같은 PID를 유지하며 pause1/resume2·완료1로 재생이 반복되지 않았습니다. 기존12개 앱과 운영 게임 미실행을 보존하고, 이번에 만든 인트로 시험 앱만 갱신했습니다. 시험 후 VM을 정상 종료했습니다. 음향 샘플 측정이며 사람이 직접 청취한 결과로 쓰지 않습니다.
+
+앞선 Android 시도는 관찰용 `OnAudioFilterRead`의 Listener/Source 충돌과 PNG 경로 누락이 있어 전체 통과로 세지 않았습니다. DSP 필터를 추가하지 않는 관찰과 Android 상대 캡처 경로로 수정한 뒤 위 결과를 확보했습니다. 원래 실패 로그와 APK는 비공개 보존합니다.
+
+`releaseReady=false`입니다. LD Android14/API34·4KB/ARM 번역은 실제 native ARM64/16KB 환경의 증거가 아니며, 격리된 다음 씬 경로는 **운영 인트로→Login의 연속 진입**을 대체하지 않습니다. 운영 Login·오류/시간초과 분기의 최종 통합 확인, 새 최종 후보와 사용자 화면 검토는 남아 있습니다. 운영 키 입력·심사 전송·배포·트랙 재개는 하지 않았습니다.
+
+사용자는 이후 [아이콘·전체 UI 페이스리프트 #491](https://github.com/ChoiDaeYoung-94/Tamer/issues/491)를 추가했습니다. 최신 UI와 전체 범위의 기간은 UI 작업 PR의 `ui-facelift-20261029.ko.md`에서 관리합니다. 아래 기간표는 **그 확장 이전의 계획 이력**이며 현재 전체 범위의 확정 일정으로 사용하지 않습니다. 최종 배포는 사용자 화면 검토 이후입니다.
+
+## 확장 이전 계획 이력
+
 사용자가 기존 인트로를 회사 Git의 Quad D 인트로로 교체하는 작업을 추가하고 현재 속도에서 필요한 기간을 요청했습니다. [추적 이슈 #489](https://github.com/ChoiDaeYoung-94/Tamer/issues/489)를 등록했습니다. 이 문서는 작업 범위/의존성과 추정이며 구현·새 빌드·실제 재생·심사/출시 완료 기록이 아닙니다.
 
 ## 확인한 원본과 교체 범위

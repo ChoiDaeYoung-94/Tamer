@@ -21,10 +21,10 @@ public class ShopMan : MonoBehaviour
 
     private string _currentItemName = string.Empty;
     private int _currentItemPrice = 0;
-    private const string _successBuyMessage = "Purchase completed.";
-    private const string _failedBuyMessage = "You don't have enough Gold.";
-    private const string _confirmAllyMessage = "Confirm this ally purchase.";
-    private const string _unavailableAllyMessage = "Purchase could not finish. Sign in again before trying another purchase.";
+    private const string _successBuyMessage = "구매를 완료했습니다.";
+    private const string _failedBuyMessage = "골드가 부족하거나 지금은 구매할 수 없는 상품입니다.";
+    private const string _confirmAllyMessage = "이 동료를 구매할까요?";
+    private const string _unavailableAllyMessage = "구매를 마치지 못했습니다.\n다시 구매하기 전에 기존 계정으로\n로그인해 구매 상태를 확인해 주세요.";
 
     public string _currentItemsText = string.Empty;
     public List<string> CurrentItemsList = new List<string>();
@@ -34,6 +34,7 @@ public class ShopMan : MonoBehaviour
     private bool _isEquipmentItem;
     private bool _purchasePending;
     private bool _purchaseResultOpen;
+    private bool _closeItemInfoOnResult;
     private string _inventoryOwner;
     private int _inventoryGeneration = -1;
     private AD.DataManager.AllyPurchaseIntent _pendingAllyPurchase;
@@ -55,11 +56,38 @@ public class ShopMan : MonoBehaviour
     #region Functions
     private void Init()
     {
+        RefreshDisplayLabels();
         RefreshInventorySession();
+    }
+
+    private void RefreshDisplayLabels()
+    {
+        if (_popupShopUI == null) return;
+        foreach (var label in _popupShopUI.GetComponentsInChildren<TMP_Text>(true))
+        {
+            string caption;
+            switch (label.text?.Replace("\r\n", "\n").Trim())
+            {
+                case "SHOP": caption = "상점"; break;
+                case "GEAR": caption = "장비"; break;
+                case "ALLIES": caption = "동료"; break;
+                case "NO ADS": caption = "광고 제거"; break;
+                case "Remove Ads\nPrice shown in Google Play":
+                    caption = "광고 제거\n가격은 Google Play에서 확인"; break;
+                default: continue;
+            }
+            if (_itemInfoText != null && _itemInfoText.font != null)
+            {
+                label.font = _itemInfoText.font;
+                label.fontSharedMaterial = _itemInfoText.fontSharedMaterial;
+            }
+            label.text = caption;
+        }
     }
 
     public void ClearInventorySession()
     {
+        _closeItemInfoOnResult = false;
         _purchasePending = false;
         _pendingAllyPurchase = null;
         _pendingEquipmentPurchase = null;
@@ -101,6 +129,7 @@ public class ShopMan : MonoBehaviour
 
     public void ChooseItem(string itemName, string price, string info, bool isEquipment)
     {
+        _closeItemInfoOnResult = false;
         _purchasePending = false;
         _pendingAllyPurchase = null;
         _pendingEquipmentPurchase = null;
@@ -109,6 +138,9 @@ public class ShopMan : MonoBehaviour
         _currentItemName = itemName;
         _currentItemPrice = int.Parse(price);
         _itemInfoText.text = info;
+        foreach (var text in _itemInfoPanel.GetComponentsInChildren<TMP_Text>(true))
+            if (text != _itemInfoText && text.name == "TMP_content") text.text = "선택한 상품을 구매할까요?";
+        SetDialogCaptions(_itemInfoPanel, _itemInfoText, "Btn_yes", "구매하기");
         _isEquipmentItem = isEquipment;
         _itemInfoPanel.SetActive(true);
     }
@@ -144,14 +176,41 @@ public class ShopMan : MonoBehaviour
             }
         }
         _purchasePending = true;
-        ShowPurchaseResult(_isEquipmentItem ? "Confirm this equipment purchase." : _confirmAllyMessage);
+        ShowPurchaseResult(PurchaseConfirmationMessage());
     }
 
-    private void ShowPurchaseResult(string message)
+    private string PurchaseConfirmationMessage() =>
+        (_isEquipmentItem ? "이 장비를 구매할까요?" : _confirmAllyMessage) + "\n" + Item.DisplayName(_currentItemName) +
+        "\n가격: " + _currentItemPrice.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " 골드";
+
+    private void ShowPurchaseResult(string message, bool completed = false)
     {
+        _closeItemInfoOnResult = completed;
         _purchaseResultOpen = true;
         _afterBuyText.text = message;
+        SetDialogCaptions(_afterBuyPanel, _afterBuyText, "Btn_OK", _purchasePending ? "구매 확정" : "확인");
+        // A pending purchase requires the explicit confirmation button, never the backdrop.
+        foreach (var backdrop in _afterBuyPanel.GetComponents<UnityEngine.UI.Button>())
+            backdrop.enabled = !_purchasePending;
         _afterBuyPanel.SetActive(true);
+    }
+
+    private static void SetDialogCaptions(GameObject panel, TMP_Text template, string confirmName, string confirmCaption)
+    {
+        foreach (var button in panel.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+        {
+            string caption = button.name == confirmName ? confirmCaption : button.name == "Btn_no" ? "돌아가기" : null;
+            if (caption == null) continue;
+            foreach (var label in button.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (template != null && template.font != null)
+                {
+                    label.font = template.font;
+                    label.fontSharedMaterial = template.fontSharedMaterial;
+                }
+                label.text = caption;
+            }
+        }
     }
 
     public void CheckSuccessBuy()
@@ -162,7 +221,7 @@ public class ShopMan : MonoBehaviour
 
         if (!_purchasePending)
         {
-            AD.Managers.PopupM.DisablePop();
+            if (!DismissPurchaseResult()) _purchaseResultOpen = true;
             return;
         }
 
@@ -182,7 +241,7 @@ public class ShopMan : MonoBehaviour
             {
                 ResetItems();
                 PlayerUICanvas.Instance.UpdatePlayerInfo();
-                ShowPurchaseResult(_successBuyMessage);
+                ShowPurchaseResult(_successBuyMessage, completed: true);
             })) ShowPurchaseResult(_unavailableAllyMessage);
             return;
         }
@@ -196,10 +255,20 @@ public class ShopMan : MonoBehaviour
             CurrentItemsList = inventory.OwnedItems.ToList();
             _currentItemsText = string.Join(",", CurrentItemsList);
             ResetItems(); PlayerUICanvas.Instance.UpdatePlayerInfo();
-            ShowPurchaseResult(_successBuyMessage);
+            ShowPurchaseResult(_successBuyMessage, completed: true);
         });
-        if (result == AD.EquipmentPurchaseResult.AlreadyCommittedCompleted) ShowPurchaseResult(_successBuyMessage);
+        if (result == AD.EquipmentPurchaseResult.AlreadyCommittedCompleted) ShowPurchaseResult(_successBuyMessage, completed: true);
         else if (result != AD.EquipmentPurchaseResult.Completed) ShowPurchaseResult(_unavailableAllyMessage);
+    }
+
+    private bool DismissPurchaseResult()
+    {
+        var popups = AD.Managers.PopupM;
+        popups.RequestClosePopup(_afterBuyPanel);
+        if (_afterBuyPanel.activeSelf) return false;
+        if (_closeItemInfoOnResult) popups.RequestClosePopup(_itemInfoPanel);
+        _closeItemInfoOnResult = false;
+        return true;
     }
 
     private bool TryConsumePurchase(int availableGold)

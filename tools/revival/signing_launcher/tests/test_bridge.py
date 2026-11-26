@@ -47,15 +47,64 @@ class BridgeTests(unittest.TestCase):
         self.plan_path.write_text('{}')
         self.source = self.run / 'source.private.json'
         self.source.write_text('{}')
-        self.plan = {'head': 'a' * 40, 'branch': 'codex/synthetic', 'mode': 'approved_adult_release',
+        self.plan = {'schema':2,'head': 'a' * 40, 'branch': 'codex/synthetic', 'mode': 'approved_adult_release',
                      'checkout': str(self.root), 'run': self.run.relative_to(self.root).as_posix(),
                      'config': str(self.run / 'config.private.json'), 'editorVersion': 'synthetic',
                      'before': {bridge.producer.KEY: {'sha256': 'b' * 64}}}
-        self.value = {'checkout': str(self.root), 'head': 'a' * 40, 'branch': 'codex/synthetic',
+        self.value = {'schema':1,'checkout': str(self.root), 'head': 'a' * 40, 'branch': 'codex/synthetic',
                       'plan': str(self.plan_path), 'planSha256': 'c' * 64,
                       'sourceReview': str(self.source), 'sourceReviewSha256': bridge.sha(self.source.read_bytes()),
                       'python': sys.executable, 'runtimeFiles': [], 'alias': 'synthetic-alias',
                       'certificateSha256': 'd' * 64}
+
+    def external_metadata(self):
+        # Deliberately synthetic metadata. No key is opened and no child runs.
+        private=self.folder.parent/(self.folder.name+'-external')
+        self.profile={'schema':1,'profile':'external_pkcs12_upload','storeType':'PKCS12',
+            'keystore':str(private/'synthetic.p12'),'allowedRoot':str(private),
+            'keystoreSha256':'5'*64,'alias':'synthetic-upload','certificateSha256':'d'*64,
+            'playAppSigningCertificateSha256':'9'*64,'activationEvidence':str(private/'active.json'),
+            'activationEvidenceSha256':'6'*64}
+        self.plan.update(schema=3,signingProfile=self.profile)
+        self.value.update(schema=2,signingProfile=dict(self.profile),alias='synthetic-upload')
+
+    def test_external_receipt_is_created_only_after_worker_and_context_recheck(self):
+        self.external_metadata();order=[]
+        class Locked:
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+            def verify(self,*args):order.append('receipt_pinned')
+        def write(path,raw):
+            self.assertEqual(order[:2],['worker','rechecked']);order.append('receipt')
+            with path.open('xb') as output:output.write(raw)
+        with ExitStack() as stack:
+            checked,worker,build=self.execution_patches(stack)
+            checked.side_effect=lambda *a: (order.append('rechecked') or (self.plan,{})) if order else (self.plan,{})
+            worker.side_effect=lambda *a:order.append('worker')
+            stack.enter_context(patch.object(bridge.producer,'locked_directories',return_value=nullcontext()))
+            stack.enter_context(patch.object(bridge,'require_private'))
+            stack.enter_context(patch.object(bridge.producer,'write_new',side_effect=write))
+            stack.enter_context(patch.object(bridge.producer,'LockedFile',return_value=Locked()))
+            result=bridge.execute(self.value,'e'*32,io.BytesIO(framed('unit-only-same','unit-only-same')))
+            self.assertEqual(worker.call_args.args[2],self.plan);self.assertEqual(build.call_count,1)
+        receipt=json.loads((self.run/bridge.SIGNING).read_bytes())
+        self.assertEqual(receipt['schema'],2);self.assertEqual(receipt['storeType'],'PKCS12')
+        self.assertEqual(receipt['keystore'],bridge.producer.profiles.select(self.plan).keystore)
+        self.assertEqual(receipt['keystoreSha256'],self.profile['keystoreSha256'])
+        self.assertEqual(receipt['activationEvidenceSha256'],self.profile['activationEvidenceSha256'])
+        self.assertEqual(receipt['sourceHead'],self.value['head']);self.assertEqual(receipt['planSha256'],self.value['planSha256'])
+        self.assertFalse(result['binaryVerified'] or result['distributable'])
+        self.assertFalse(any(name in os.environ for name in bridge.SECRET_NAMES))
+
+    def test_external_failed_worker_or_changed_context_creates_no_receipt(self):
+        self.external_metadata()
+        self.test_challenge_failure_or_context_change_creates_no_receipt_or_producer()
+
+    def test_external_worker_cannot_fall_back_to_an_implicit_legacy_plan(self):
+        self.external_metadata();self.value.update(java=str(self.folder/'synthetic-java.exe'),classDirectory=str(self.folder/'synthetic-classes'))
+        with patch.object(bridge.base.subprocess,'Popen',side_effect=AssertionError('NoChildAllowed')):
+            with self.assertRaises(ValueError):bridge.challenge(self.value,['unit-only','unit-only'])
+        self.assertFalse((self.run/bridge.SIGNING).exists())
 
     def test_framing_unicode_partial_NUL_surrogate_and_trailing(self):
         self.assertEqual(bridge.passwords(io.BytesIO(framed())), ['합성-store\n🔑', '합성-key\r\né'])

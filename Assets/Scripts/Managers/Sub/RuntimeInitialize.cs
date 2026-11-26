@@ -15,17 +15,21 @@ public class RuntimeInitialize : MonoBehaviour
         return;
 #endif
 #if UNITY_EDITOR
-        if (SceneManager.GetActiveScene().path == "Assets/Tests/Scenes/RevivalSmoke.unity")
-            return;
-        if (SceneManager.GetActiveScene().path == "Assets/Tests/Scenes/RevivalAdHarness.unity")
-            return;
-        if (SceneManager.GetActiveScene().name.CompareTo("Test") == 0)
-            return;
-
-        if (SceneManager.GetActiveScene().name.CompareTo("Login") != 0)
+        var scene = SceneManager.GetActiveScene();
+        if (!CanKeepEditorScene(scene.name, scene.path))
             SceneManager.LoadScene("Login");
 #endif
     }
+
+#if UNITY_EDITOR
+    private static bool CanKeepEditorScene(string name, string path)
+    {
+        return name == "Login" || name == "Test" ||
+            path == "Assets/Tests/Scenes/RevivalSmoke.unity" ||
+            path == "Assets/Tests/Scenes/RevivalAdHarness.unity" ||
+            path == "Assets/QuadD/Scenes/QuadDIntro.unity";
+    }
+#endif
 
     private void Awake()
     {

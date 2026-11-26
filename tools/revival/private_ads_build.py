@@ -20,12 +20,33 @@ from windows_owned_files import locked_directories, verified_files
 HOOK = 'Assets/Scripts/Editor/RevivalPrivateAdsPreparation'
 JOURNAL = '.revival-local/private-ads-build-active.json'
 TEMPLATES = ('PrivateAdsContract.cs', 'PrivateAdsSceneInjection.cs', 'PrivateProductionAdsBuild.cs')
+ABI_PROFILES = ('arm64', 'internal_dual64')
 PROTECTED = (
     'Assets/Scenes/Login.unity', 'Assets/Scenes/Login.unity.meta',
     'Assets/Prefabs/Manager/Manager.prefab', 'Assets/Prefabs/Manager/Manager.prefab.meta',
     'Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset',
     'Assets/Plugins/Android/GoogleMobileAdsPlugin.androidlib/AndroidManifest.xml',
 )
+
+
+def abi_contract(profile='arm64', mode='disabled_candidate'):
+    """Only the default ABI or the explicitly approved internal dual-64 profile."""
+    if type(profile) is not str or profile not in ABI_PROFILES or mode not in (
+            'disabled_candidate', 'approved_adult_release', 'privacy_only_adult'):
+        raise ValueError('ABI profile rejected')
+    if profile == 'internal_dual64' and mode == 'privacy_only_adult':
+        raise ValueError('Dual ABI profile is internal-candidate only')
+    return {'abiProfileVersion': 1, 'abiProfile': profile,
+            'expectedAbis': ['arm64-v8a'] if profile == 'arm64' else ['arm64-v8a', 'x86_64']}
+
+
+def validate_abi_contract(state):
+    if type(state.get('abiProfileVersion')) is not int or state['abiProfileVersion'] != 1:
+        raise ValueError('Explicit ABI contract version required')
+    expected = abi_contract(state.get('abiProfile'), state.get('mode'))
+    if type(state.get('expectedAbis')) is not list or state['expectedAbis'] != expected['expectedAbis']:
+        raise ValueError('Exact canonical ABI set required')
+    return expected
 
 
 def digest(data):
@@ -276,6 +297,8 @@ def verify_hook_receipt(root, state):
     if privacy:
         expected['approvedPrivacyBuildContractMatched'] = True
         expected['productionAdsEnabled'] = False
+    if {'abiProfileVersion', 'abiProfile', 'expectedAbis'} & state.keys():
+        expected.update(validate_abi_contract(state))
     if not isinstance(receipt, dict) or set(receipt) != set(expected) | extra:
         raise ValueError('Receipt schema rejected')
     if any(type(receipt[key]) is not type(value) or receipt[key] != value

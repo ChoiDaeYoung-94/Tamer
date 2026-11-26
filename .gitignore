@@ -19,6 +19,8 @@
 !/Assets/Tests/Editor.meta
 !/Assets/Tests/Scenes/
 !/Assets/Tests/Scenes.meta
+!/Assets/Tests/QuadD/
+!/Assets/Tests/QuadD.meta
 /Assets/ThirdParty/*
 !/Assets/ThirdParty/PlayFabSDK/
 !/Assets/ThirdParty/PlayFabSDK.meta

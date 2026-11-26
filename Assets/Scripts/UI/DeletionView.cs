@@ -22,7 +22,7 @@ namespace AD
         public void Build(TMP_FontAsset font, Action close)
         {
             var background = gameObject.AddComponent<UnityEngine.UI.Image>();
-            background.color = new Color(.055f, .065f, .085f, 1f);
+            background.color = new Color32(18, 39, 36, 255);
             var content = Rect("Content", transform);
             content.anchorMin = new Vector2(.1f, .08f);
             content.anchorMax = new Vector2(.9f, .92f);
@@ -32,20 +32,20 @@ namespace AD
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
-            Label("Title", content, "Account & privacy", font, 42, 70);
+            Label("Title", content, "계정 및 개인정보", font, 42, 70);
             Message = Label("Status", content, "", font, 30, 210);
             var space = Message.gameObject.GetComponent<UnityEngine.UI.LayoutElement>();
             space.flexibleHeight = 1;
-            RequestButton = Button("Request", content, "Request account deletion", font);
-            ConfirmButton = Button("Confirm", content, "Confirm deletion request", font);
-            SessionConfirmButton = Button("SessionConfirm", content, "Confirm current game session", font);
-            RefreshButton = Button("Refresh", content, "Check request status", font);
-            CancelButton = Button("CancelRequest", content, "Cancel deletion request", font);
-            RetryButton = Button("Retry", content, "Retry", font);
-            ReauthenticateButton = Button("Reauthenticate", content, "Check current session again", font);
-            ContactButton = Button("ContactDeletionSupport", content, "Contact about account deletion", font);
+            RequestButton = Button("Request", content, "계정 삭제 요청", font);
+            ConfirmButton = Button("Confirm", content, "삭제 요청 확정", font);
+            SessionConfirmButton = Button("SessionConfirm", content, "현재 게임 계정 확인", font);
+            RefreshButton = Button("Refresh", content, "요청 상태 확인", font);
+            CancelButton = Button("CancelRequest", content, "삭제 요청 취소", font);
+            RetryButton = Button("Retry", content, "다시 시도", font);
+            ReauthenticateButton = Button("Reauthenticate", content, "현재 세션 다시 확인", font);
+            ContactButton = Button("ContactDeletionSupport", content, "계정 삭제 문의", font);
             ContactButton.onClick.AddListener(() => Application.OpenURL("mailto:" + CloudScriptDeletionClient.SupportEmail + "?subject=Monster%20Tamer%20account%20deletion"));
-            CloseButton = Button("Close", content, "Back to settings", font);
+            CloseButton = Button("Close", content, "설정으로 돌아가기", font);
             CloseButton.onClick.AddListener(() =>
             {
                 if (ExitOnClose) Application.Quit();
@@ -64,7 +64,7 @@ namespace AD
         {
             var rect = Rect(name, parent);
             var image = rect.gameObject.AddComponent<UnityEngine.UI.Image>();
-            image.color = new Color(.16f, .23f, .31f, 1);
+            image.color = new Color32(44, 77, 65, 255);
             var button = rect.gameObject.AddComponent<UnityEngine.UI.Button>();
             button.targetGraphic = image;
             var size = rect.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
@@ -85,7 +85,7 @@ namespace AD
             if (font != null) label.font = font;
             label.text = caption;
             label.fontSize = size;
-            label.color = Color.white;
+            label.color = new Color32(246, 241, 221, 255);
             label.alignment = TextAlignmentOptions.Center;
             label.raycastTarget = false;
             label.richText = false;

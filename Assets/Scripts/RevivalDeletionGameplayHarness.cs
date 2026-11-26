@@ -180,18 +180,21 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
         var body = (TMPro.TMP_Text)typeof(AD.Login).GetField("_retryText", fields).GetValue(login);
         var loading = (GameObject)typeof(AD.Login).GetField("_loading", fields).GetValue(login);
         var button = panel.GetComponentInChildren<UnityEngine.UI.Button>(true);
-        const string message = "Deletion request accepted. Sign in explicitly to continue.";
+        const string message = "삭제 요청이 접수되었습니다. 계속하려면 직접 로그인해 주세요.";
         Require(body != null && body.text == message && body.transform.parent == panel.transform &&
             body.name == "TMP_Contents" && panel.transform.Find("RetryMessage") == null &&
             loading != null && !loading.activeSelf && button != null &&
             !body.transform.IsChildOf(button.transform) &&
-            button.GetComponentsInChildren<TMPro.TMP_Text>(true).Single().text == "Retry" &&
+            button.GetComponentsInChildren<TMPro.TMP_Text>(true).Single().text == "다시 시도" &&
             panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Count(label => label.text == message) == 1 &&
             !panel.GetComponentsInChildren<TMPro.TMP_Text>(true).Any(label => label.text.Contains("Please check your connection")));
         Canvas.ForceUpdateCanvases();
         body.ForceMeshUpdate();
-        Require(!body.isTextOverflowing && Mathf.Approximately(body.fontSize, 30));
-        Mark("LOGIN_RETRY_MESSAGE_PASS bodyCount=1 caption=Retry loadingHidden=true obsoleteNetworkText=absent fontSize=30 overflow=false programmaticObservation=true");
+        Require(!body.isTextOverflowing && body.enableAutoSizing && body.fontSizeMin >= 30 &&
+            body.fontSize >= body.fontSizeMin - .1f && body.fontSize <= body.fontSizeMax + .1f && body.fontSizeMax <= 38);
+        Mark("LOGIN_RETRY_MESSAGE_PASS bodyCount=1 caption=KoreanRetry loadingHidden=true obsoleteNetworkText=absent fontSize="
+            + body.fontSize.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " minimum30=true overflow=false programmaticObservation=true");
         _paused = true;
         Mark("ORIGINAL_LOGIN_PAUSE retryVisible=true automaticAuth=0 reads=0 writes=0 pid=" + Pid);
     }
@@ -389,7 +392,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
                     System.Reflection.BindingFlags.NonPublic).GetValue(Managers.PopupM) as HashSet<GameObject>;
                 Require(_errors == 0 && blockers != null && blockers.Contains(view.gameObject) && !view.ConfirmButton.gameObject.activeSelf &&
                     !view.RequestButton.gameObject.activeSelf && view.CloseButton.interactable &&
-                    view.Message.text.Contains("Your deletion request was accepted."));
+                    view.Message.text.Contains("삭제 요청이 접수되었습니다."));
                 _state.Phase = "accepted";
                 _state.CloudAHash = HashFile(Cloud(AccountA));
                 RequireAcceptedDisk();
@@ -425,7 +428,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
                     ShopMan.Instance.CurrentItemsList.Count == 0 && !Player.Instance.SimpleSword.activeSelf &&
                     !Player.Instance.MasterSword.activeSelf && !Player.Instance.Simpleshield.activeSelf && !Player.Instance.Mastershield.activeSelf &&
                     File.Exists(Inventory(AccountC)) && !File.Exists(Inventory(AccountA)) && _writes == 0 && _submissions == 0 &&
-                    gold != null && gold.text == "Gold - 41" && nickname != null && nickname.text == "FreshFixtureC");
+                    gold != null && gold.text == "골드 · 41" && nickname != null && nickname.text == "FreshFixtureC");
                 Mark("PHASE2_C_PLAYER_SHOP_SNAPSHOT_PASS owner=C currentInventory=empty playerCollection=0 equipped=0 allies=0 shopOwned=0 models=off gold=41 HUD=matched foreignB=preserved legacy=preserved automaticAuth=0 explicitRetry=1 networkCalls=0 errors=0; open original shop manually for visible-item observation");
             }
             _mainObserved = true;
@@ -887,7 +890,7 @@ public sealed class RevivalDeletionGameplayHarness : MonoBehaviour
             string price = (string)typeof(Item).GetField("_itemPrice", fields).GetValue(item);
             Require(icon != null && icon.activeInHierarchy && text != null &&
                 text.gameObject.activeInHierarchy && !string.IsNullOrWhiteSpace(price) &&
-                text.text == itemName + "\nPrice - " + price + "G");
+                text.text == itemName + "\n가격: " + price + "G");
             names.Add(itemName);
         }
         string observation = string.Join(",", names.OrderBy(name => name, StringComparer.Ordinal));
