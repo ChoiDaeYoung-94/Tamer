@@ -314,6 +314,26 @@ class PrepareTests(unittest.TestCase):
             self.assertIn(str(path),paths)
         self.assertFalse(any((f.run/name).exists() for name in (BRIDGE.CLAIM,BRIDGE.SIGNING,BRIDGE.RESULT)))
 
+    def test_external_profile_pins_active_store_after_retired_key_removal(self):
+        f = self.fixture
+        f.external_profile()
+        f.key.unlink()
+        del f.plan['before']['src/AeDeong.keystore']
+        f.rewrite_plan()
+        self.assertTrue(f.prepare()['metadataPrepared'])
+        binding = json.loads((f.out / PREP.BINDING_NAME).read_bytes())
+        pins = {pin['path']: pin['sha256'] for pin in binding['pins']}
+        self.assertNotIn(str(f.key), pins)
+        self.assertEqual(pins[str(f.external_key)], f.profile['keystoreSha256'])
+        self.assertEqual(pins[str(f.activation_path)], f.profile['activationEvidenceSha256'])
+
+    def test_legacy_profile_still_requires_original_key(self):
+        f = self.fixture
+        f.key.unlink()
+        del f.plan['before']['src/AeDeong.keystore']
+        f.rewrite_plan()
+        self.reject()
+
     def test_external_processing_rejects_before_encrypted_key_collection(self):
         f=self.fixture;f.external_profile();f.activation['status']='processing';f.rewrite_activation()
         self.reject();self.assertNotIn(('private',str(f.external_key)),f.events)

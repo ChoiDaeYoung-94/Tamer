@@ -65,6 +65,7 @@ class BridgeTests(unittest.TestCase):
             'keystoreSha256':'5'*64,'alias':'synthetic-upload','certificateSha256':'d'*64,
             'playAppSigningCertificateSha256':'9'*64,'activationEvidence':str(private/'active.json'),
             'activationEvidenceSha256':'6'*64}
+        self.plan['before'].pop(bridge.producer.KEY)
         self.plan.update(schema=3,signingProfile=self.profile)
         self.value.update(schema=2,signingProfile=dict(self.profile),alias='synthetic-upload')
 
@@ -171,6 +172,18 @@ class BridgeTests(unittest.TestCase):
         stack.enter_context(patch.object(sys.modules['private_ads_approved'], 'preflight_approved'))
         stack.enter_context(patch.object(bridge.base, 'git', return_value=self.value['branch']))
         stack.enter_context(patch.object(bridge.producer, 'require_unchanged'))
+
+    def test_external_gate_checks_activation_before_opening_key(self):
+        self.external_metadata()
+        with ExitStack() as stack:
+            self.gate_patches(stack)
+            stack.enter_context(patch.object(bridge.producer, 'require_source_review'))
+            activation = stack.enter_context(patch.object(bridge.producer, 'external_signing_bindings',
+                                                          side_effect=ValueError('Stale activation')))
+            # No key file exists. Opening it first would fail before this assertion.
+            with self.assertRaisesRegex(ValueError, 'Stale activation'):
+                bridge.check(self.value, 'e' * 32)
+            activation.assert_called_once_with(self.plan)
 
     def test_stale_plan_head_source_and_config_stop_before_claim(self):
         # Exact plan byte rejection uses the real loader, not a mirrored hash check.

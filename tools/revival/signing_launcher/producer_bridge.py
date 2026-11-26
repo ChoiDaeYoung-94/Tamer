@@ -171,9 +171,9 @@ def immutable_pin_paths(root, plan, value):
     immutable = {str(root / p) for p in plan['before']
                  if not p.startswith(('Assets/', 'ProjectSettings/', 'Packages/'))}
     selected=producer.profiles.select(plan)
-    external={str(Path(selected.keystore)),str(Path(plan['signingProfile']['activationEvidence']))} if selected.external else set()
+    external={str(Path(plan['signingProfile']['activationEvidence']))} if selected.external else set()
     return immutable | external | {str(Path(value['plan'])), str(Path(value['sourceReview'])),
-        str(Path(plan['config'])), str(root / 'src/AeDeong.keystore'), str(Path(value['certificate'])),
+        str(Path(plan['config'])), str(Path(selected.keystore)), str(Path(value['certificate'])),
         value['python'], value['git'], value['powershell'], value['java'],
         str(Path(value['classDirectory']) / 'OperatingKeyPreflight.class'),
         *(str(HELPERS / p) for p in SOURCES),
@@ -206,12 +206,7 @@ def check(value, attempt, *, claim=False):
     if sha(source.read_bytes()) != value['sourceReviewSha256']:
         raise ValueError('Source review changed')
     producer.require_source_review(root, plan, source)
-    if producer.KEY not in plan['before']:
-        raise ValueError('Original release key missing from exact plan')
-    key = regular(root / producer.KEY)  # Never challenge an external copy.
-    if sha(key.read_bytes()) != plan['before'][producer.KEY]['sha256']:
-        raise ValueError('Original key changed')
-    selected=producer.profiles.select(plan)
+    selected = producer.profiles.select(plan)
     if selected.external:
         if (value.get('schema')!=2 or
                 producer.encoded(value.get('signingProfile'))!=producer.encoded(plan['signingProfile']) or
@@ -220,6 +215,8 @@ def check(value, attempt, *, claim=False):
         producer.external_signing_bindings(plan)
     elif value.get('schema',1)!=1 or 'signingProfile' in value:
         raise ValueError('Legacy signing binding cannot select another profile')
+    elif sha(regular(Path(selected.keystore)).read_bytes()) != selected.keystore_sha256:
+        raise ValueError('Legacy signing key changed')
     cert = regular(value['certificate'])
     if sha(cert.read_bytes()) != value['certificateSha256']:
         raise ValueError('Current upload certificate changed')
@@ -444,14 +441,14 @@ def execute(value, attempt, stream, state=None):
         state['phase'] = 'recheck'
         plan, _ = check(value, attempt)
         signing = Path(plan['checkout']) / plan['run'] / SIGNING
+        selected = producer.profiles.select(plan)
         receipt = {'schema': 1, 'keystore': producer.KEY,
-                   'keystoreSha256': plan['before'][producer.KEY]['sha256'],
+                   'keystoreSha256': selected.keystore_sha256,
                    'alias': value['alias'], 'certificateSha256': value['certificateSha256'],
                    'existingReleaseKeyVerified': True, 'sourceHead': value['head'],
                    'planSha256': value['planSha256']}
-        selected=producer.profiles.select(plan)
         if selected.external:
-            receipt.update(schema=2,keystore=selected.keystore,keystoreSha256=selected.keystore_sha256,
+            receipt.update(schema=2,keystore=selected.keystore,
                 signingProfile=producer.profiles.EXTERNAL,storeType='PKCS12',
                 activationEvidenceSha256=plan['signingProfile']['activationEvidenceSha256'])
         # A direct run has now performed the same actual challenge. Independent

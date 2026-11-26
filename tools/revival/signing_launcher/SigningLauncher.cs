@@ -486,8 +486,8 @@ public static class SigningLauncher {
             }
             // No bridge/Java execution before executable + source files have been pinned.
             foreach(string path in new[]{b.Python,b.Git,b.Powershell,b.Java,b.Bridge,
-                Path.Combine(b.ClassDirectory,"OperatingKeyPreflight.class"),b.Plan,b.SourceReview,b.Certificate,
-                Path.Combine(b.Checkout,"src","AeDeong.keystore")})Find(pins,path);
+                Path.Combine(b.ClassDirectory,"OperatingKeyPreflight.class"),b.Plan,b.SourceReview,b.Certificate})Find(pins,path);
+            if(!external)Find(pins,Path.Combine(b.Checkout,"src","AeDeong.keystore"));
             foreach(string path in b.RuntimeFiles)Find(pins,path);
             string launcherRoot=Path.Combine(b.Checkout,"tools","revival","signing_launcher");
             if(!String.Equals(Path.GetFullPath(b.Bridge),Path.Combine(launcherRoot,"producer_bridge.py"),StringComparison.OrdinalIgnoreCase))throw new SecurityException();
