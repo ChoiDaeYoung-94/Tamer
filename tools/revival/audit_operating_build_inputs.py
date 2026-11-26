@@ -30,7 +30,8 @@ ENTRIES = (LEGACY_ENTRY, APPROVED_ENTRY)
 APPROVED_SCRIPT = 'tools/revival/private_ads_build/PrivateProductionAdsBuild.cs'
 PRODUCER_SCRIPT = 'tools/revival/private_ads_producer.py'
 PROJECT_SETTINGS = 'ProjectSettings/ProjectSettings.asset'
-APPROVED_INPUTS = (APPROVED_SCRIPT, PRODUCER_SCRIPT, PROJECT_SETTINGS, PLAYFAB, PGS_TEXT, PGS_ASSET)
+PGS_SERVER_PIN = 'ProjectSettings/TamerPlayGamesServerClient.sha256'
+APPROVED_INPUTS = (APPROVED_SCRIPT, PRODUCER_SCRIPT, PROJECT_SETTINGS, PLAYFAB, PGS_TEXT, PGS_ASSET, PGS_SERVER_PIN)
 ENTRY_INPUTS = {LEGACY_ENTRY: INPUTS, APPROVED_ENTRY: APPROVED_INPUTS}
 # Pin reviewed semantics, not OS newline representation. Any source change requires
 # reviewing this calculator and updating the pins, rather than guessing behavior.
@@ -39,8 +40,8 @@ SOURCE_PINS = {
     OUTPUT_PLAN: '47ffe454ef1517fb033c6f0f4e53fba1817cbf5709a81fc418f6bbec3388137b',
 }
 APPROVED_SOURCE_PINS = {
-    APPROVED_SCRIPT: '6c570f277783216d1246676edb66e87939b24b8687fdbb465d51c138c50e175a',
-    PRODUCER_SCRIPT: '5269c7be995d508614447a97640ec0809a75ef3bf9e7f87ba7fec1ac884f9016',
+    APPROVED_SCRIPT: '8529039d56a2febd8bb76ce20f3adfa4cfe2642ec233564171e7ef9f5ab3ef63',
+    PRODUCER_SCRIPT: '7809f867f8252d61096d4e5c62a894933b69a0c47308d1eebed376e859f99bff',
 }
 ENTRY_SOURCE_PINS = {LEGACY_ENTRY: SOURCE_PINS, APPROVED_ENTRY: APPROVED_SOURCE_PINS}
 UNVERIFIED = [
@@ -439,6 +440,12 @@ def audit_project(root, output, expected_title, published_max, *, allow_finish_r
                             lambda: source_contract(blobs, entry))
         check('playFabTitleMatchesExpected', lambda: playfab_title_matches(blobs[PLAYFAB], expected_title))
         check('pgsSingleConfiguredValuesMatch', lambda: pgs_matches(blobs[PGS_TEXT], blobs[PGS_ASSET]))
+        if not legacy:
+            def matches_server_client():
+                client_id = yaml_string(decode(blobs[PGS_ASSET]), 'mWebClientId')
+                expected = decode(blobs[PGS_SERVER_PIN]).strip().lower()
+                return bool(client_id) and hashlib.sha256(client_id.encode('utf-8')).hexdigest() == expected
+            check('pgsWebClientMatchesOperatingGameServer', matches_server_client)
         if contract_ok and legacy:
             def calculate():
                 result['legacyAabPlan'] = legacy_aab_plan(blobs[BUILD_INFO], finished, now,

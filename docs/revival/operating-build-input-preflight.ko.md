@@ -132,3 +132,13 @@ python -m unittest discover -s tools/revival -p test_windows_owned_files.py -v
 시험은 임시 디렉터리의 가짜 설정과 공개 빌드 소스 복사본만 사용합니다. code 0/26, 주차 경계, 완료 표시 재사용, 잘못된 ID·PGS 불일치·중복·missing, overflow, 출력 충돌·late race, 입력 보존·짧은 잠금, hardlink·junction·가능한 symlink 거절과 비공개 출력 제한을 검증합니다. 추가 회귀는 CRLF·CR·LF/첫 빈 줄/제어문자/키·인코딩, 경로 정규화 실패와 별칭 제한의 논리 mock, 정규화 전 junction 거절, 최종 root 잠금 재검사와 root 동일 출력의 고정 CLI 오류를 확인합니다. 실제 WinAPI `GetShortPathNameW`로 얻은 8.3 별칭 검사는 논리 mock과 별도이며, OS가 서로 다른 짧은 이름을 제공하지 않으면 그 시험만 skip합니다. 볼륨의 8.3 정책은 바꾸지 않습니다. 기존 symlink fixture는 생성 권한이 없을 때 그 분기를 실행하지 않으므로 전체 skip0만으로 실제 symlink 시험 실행을 주장하지 않습니다. 실제 키·설정·계정·Editor·ADB·빌드·스토어를 호출하지 않습니다.
 
 입력 검사 이후에도 기존 `verify_release_candidate.py source`, 승인/입력 binding, 실제 운영 서명 AAB 및 `aab` 검사, upload 인증서·게시 최대의 Console 대조, 운영 계정·저장·No Ads·구매 복원, 실제 ARM64/16KB 기기·스토어 전달 검증은 별도입니다. 이 문서는 최초 복구 계획 전체의 완료 보고가 아닙니다. 전체 잔여 작업은 [최신 전체 잔여 목록](remaining-recovery-work.ko.md)을 유지합니다.
+
+## 후보 34 이후 Google 로그인 설정
+
+운영 빌드를 준비할 때 비공개 보관본의 `GooglePlayGameSettings.txt`를 `ProjectSettings/`에, `PlayGamesSettings.asset`을 `Assets/GooglePlayGames/Resources/`에 복사합니다. 두 실제 설정은 Git 제외 대상입니다. 저장소의 `ProjectSettings/GooglePlayGameSettings.example.txt`는 서버 클라이언트 ID를 비운 템플릿입니다.
+
+Play Games의 게임 서버 OAuth 클라이언트 ID와 운영 PlayFab 타이틀 Google 추가 콘텐츠의 OAuth 클라이언트 ID를 대조해 보관본을 만듭니다. Android 앱 인증 정보는 패키지와 서명 지문 확인에 사용하며, 서버 인증코드 요청에는 웹 클라이언트 ID를 지정합니다. OAuth 클라이언트 비밀번호는 게임 프로젝트에 넣지 않습니다.
+
+승인된 운영 AAB 사전 검사는 두 입력의 일치와 함께 웹 클라이언트 지문을 검사합니다. 기준값은 `ProjectSettings/TamerPlayGamesServerClient.sha256`에 있습니다. 운영 Android 패키지 빌드 시 `RevivalSdkValidation`이 실제로 패키징할 Resources 설정의 웹 클라이언트를 독립적으로 확인한 SHA-256과 대조합니다. 27f2 생산 경로의 JDK 검사, 서명 프로필 및 ABI·출력 영수증 변경을 대조했습니다. 승인 entry는 현재 ProjectSettings 버전을 그대로 쓰고 출력 경로는 실행별 생산 계획이 정합니다.
+
+운영 웹 클라이언트를 바꾸면 플랫폼 두 곳의 연결을 확인한 뒤 고정값과 비공개 입력을 함께 갱신합니다.

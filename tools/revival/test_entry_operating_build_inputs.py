@@ -177,6 +177,8 @@ class ApprovedGuardedSnapshotTests(unittest.TestCase):
                    b'  DeveloperSecretKey: SYNTHETIC_PLAYFAB_SECRET\n')
         self.write(audit.PGS_TEXT, fixtures.PGS)
         self.write(audit.PGS_ASSET, fixtures.ASSET)
+        client = audit.yaml_string(audit.decode(fixtures.ASSET), 'mWebClientId')
+        self.write(audit.PGS_SERVER_PIN, hashlib.sha256(client.encode()).hexdigest().encode())
         self.write('src/AeDeong.keystore', b'SYNTHETIC_KEY_DO_NOT_READ')
         self.write('.revival-local/approval.private.json', b'SYNTHETIC_APPROVAL_DO_NOT_READ')
         self.write('.revival-local/config.private.json', b'SYNTHETIC_CONFIG_DO_NOT_READ')
@@ -197,6 +199,13 @@ class ApprovedGuardedSnapshotTests(unittest.TestCase):
     def before(self):
         return {p.relative_to(self.root).as_posix(): p.read_bytes()
                 for p in self.root.rglob('*') if p.is_file()}
+
+    def test_matching_editor_and_resource_must_also_match_the_server(self):
+        self.write(audit.PGS_SERVER_PIN, hashlib.sha256(b'other-synthetic-client').hexdigest().encode())
+        result = self.run_audit()
+        self.assertTrue(result['checks']['pgsSingleConfiguredValuesMatch'])
+        self.assertFalse(result['checks']['pgsWebClientMatchesOperatingGameServer'])
+        self.assertFalse(result['inputChecksPassed'])
 
     def test_selected_allowlist_reads_no_legacy_inputs_and_preserves_tree(self):
         before = self.before()
