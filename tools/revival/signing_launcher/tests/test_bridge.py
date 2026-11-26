@@ -65,6 +65,7 @@ class BridgeTests(unittest.TestCase):
             'keystoreSha256':'5'*64,'alias':'synthetic-upload','certificateSha256':'d'*64,
             'playAppSigningCertificateSha256':'9'*64,'activationEvidence':str(private/'active.json'),
             'activationEvidenceSha256':'6'*64}
+        self.plan['before'].pop(bridge.producer.KEY)
         self.plan.update(schema=3,signingProfile=self.profile)
         self.value.update(schema=2,signingProfile=dict(self.profile),alias='synthetic-upload')
 

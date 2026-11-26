@@ -516,8 +516,6 @@ class Collector:
                 raise ValueError('ExternalProfileAliasCertificate')
             self.require_current_activation()
         self.installed()
-        if self.producer.KEY not in self.plan['before']:
-            raise ValueError('OriginalKeyMissing')
         self.fresh_run()
 
     def require_current_activation(self):
