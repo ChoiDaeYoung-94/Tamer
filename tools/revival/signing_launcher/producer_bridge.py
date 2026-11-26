@@ -171,7 +171,7 @@ def immutable_pin_paths(root, plan, value):
     immutable = {str(root / p) for p in plan['before']
                  if not p.startswith(('Assets/', 'ProjectSettings/', 'Packages/'))}
     selected=producer.profiles.select(plan)
-    external={str(Path(selected.keystore)),str(Path(plan['signingProfile']['activationEvidence']))} if selected.external else set()
+    external={str(Path(plan['signingProfile']['activationEvidence']))} if selected.external else set()
     return immutable | external | {str(Path(value['plan'])), str(Path(value['sourceReview'])),
         str(Path(plan['config'])), str(Path(selected.keystore)), str(Path(value['certificate'])),
         value['python'], value['git'], value['powershell'], value['java'],
@@ -207,9 +207,6 @@ def check(value, attempt, *, claim=False):
         raise ValueError('Source review changed')
     producer.require_source_review(root, plan, source)
     selected = producer.profiles.select(plan)
-    key = regular(Path(selected.keystore))
-    if sha(key.read_bytes()) != selected.keystore_sha256:
-        raise ValueError('Selected signing key changed')
     if selected.external:
         if (value.get('schema')!=2 or
                 producer.encoded(value.get('signingProfile'))!=producer.encoded(plan['signingProfile']) or
@@ -218,6 +215,8 @@ def check(value, attempt, *, claim=False):
         producer.external_signing_bindings(plan)
     elif value.get('schema',1)!=1 or 'signingProfile' in value:
         raise ValueError('Legacy signing binding cannot select another profile')
+    elif sha(regular(Path(selected.keystore)).read_bytes()) != selected.keystore_sha256:
+        raise ValueError('Legacy signing key changed')
     cert = regular(value['certificate'])
     if sha(cert.read_bytes()) != value['certificateSha256']:
         raise ValueError('Current upload certificate changed')
